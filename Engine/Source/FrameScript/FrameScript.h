@@ -43,6 +43,8 @@ int32_t FrameScript_CompileFunction(const char* name, const char* wrapper, const
 void FrameScript_CreateEvents(const char** names, uint32_t count);
 // CoA: see FrameScript.cpp
 extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
+// CoA: AscRuntime.cpp:DispatchDetour (orig hook 0x81AA00) -- false refuses the signal.
+extern bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const char* name);
 uint32_t FrameScript_GetEventCount();
 FrameScript_EventObject* FrameScript_GetEvent(uint32_t index);
 void FrameScript_Destroy();

@@ -1,4 +1,5 @@
 #include "Spell_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
@@ -505,199 +506,205 @@ int32_t Spell_C_NeedsCooldownEvent(int32_t itemId) {
 // VERIFY: a6fcb014 manual
 // OFFSET: 0x0080B5D0
 bool Spell_C_IsUsableAction(CGUnit_C* unit, const SpellRec* spell, const WOWGUID& target, const ItemStats_C* item, bool ignoreControl) {
-    if (!unit) {
-        return false;
-    }
-
-    if (spell->m_effect[0] == SPELL_EFFECT_TRADE_SKILL) {
-        return true;
-    }
-
-    if (unit->IsActivePlayer()) {
-        bool attack = spell->m_effect[0] == SPELL_EFFECT_ATTACK || (spell->m_attributes & 0x2);
-        uint32_t flags = static_cast<CGPlayer_C*>(unit)->m_player->m_playerFlags;
-
-        if (flags & 0x1000000) {
-            if (attack || Spell_C_IsRestrictedAbility(spell)) {
-                return false;
-            }
-        } else if (!attack && (flags & 0x800000)) {
-            return false;
-        }
-    }
-
-    if (unit->IsDeadOrGhost() && !(spell->m_attributes & 0x800000)) {
-        return false;
-    }
-
-    MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
-
-    if (map) {
-        if (map->m_instanceType == 4) {
-            if (!(spell->m_attributesExD & 0x20000) && (spell->m_recoveryTime > 900000 || spell->m_categoryRecoveryTime > 900000 || (spell->m_attributesExD & 0x10000))) {
-                return false;
-            }
-        } else if (spell->m_attributesExF & 0x2) {
-            return false;
-        }
-    }
-
-    if (!CGGameUI::m_hasControl && !ignoreControl) {
-        int32_t allowed = 0;
-
-        if ((unit->m_unit->m_unitFieldFlags & 0x800000) && ((spell->m_attributesExE & 0x20000) || Spell_C_CancelsAuraEffect(unit, spell, 7, nullptr))) {
-            allowed = 1;
-        }
-
-        if ((unit->m_unit->m_unitFieldFlags & 0x400000) && ((spell->m_attributesExE & 0x40000) || Spell_C_CancelsAuraEffect(unit, spell, 5, nullptr))) {
-            allowed = 1;
-        }
-
-        if (unit->IsCharmed() && Spell_C_CancelsCharm(unit, spell, nullptr)) {
-            allowed = 1;
-        }
-
-        if ((!(unit->m_unit->m_unitFieldFlags & 0x100000) || !(spell->m_attributes & 0x1000000)) && !allowed) {
-            return false;
-        }
-    }
-
-    if ((!item || !(item->m_flags[0] & 0x10000000)) && !Spell_C_HaveSpellTokens(unit, spell, false, nullptr)) {
-        return false;
-    }
-
-    if (!Spell_C_HaveEquippedSpellItems(unit, spell, true, false, nullptr)) {
-        return false;
-    }
-
-    if (spell->m_attributesEx & 0x500000) {
-        if (unit->IsActivePlayer() && !CGGameUI::GetComboPoints(target) && !unit->IgnoresAuraState(spell)) {
+    // CoA: AscRuntime.cpp:Detour80B5D0 (orig hook 0x80B5D0) -- after a true result, list 0x10BE2DD8 until a
+    // callback says false.
+    const bool result = [&]() -> bool {
+        if (!unit) {
             return false;
         }
 
-        if (unit->m_obj->m_guid == CGPetInfo::GetPet(0) && !CGPetInfo::GetComboPoints(target)) {
+        if (spell->m_effect[0] == SPELL_EFFECT_TRADE_SKILL) {
+            return true;
+        }
+
+        if (unit->IsActivePlayer()) {
+            bool attack = spell->m_effect[0] == SPELL_EFFECT_ATTACK || (spell->m_attributes & 0x2);
+            uint32_t flags = static_cast<CGPlayer_C*>(unit)->m_player->m_playerFlags;
+
+            if (flags & 0x1000000) {
+                if (attack || Spell_C_IsRestrictedAbility(spell)) {
+                    return false;
+                }
+            } else if (!attack && (flags & 0x800000)) {
+                return false;
+            }
+        }
+
+        if (unit->IsDeadOrGhost() && !(spell->m_attributes & 0x800000)) {
             return false;
         }
-    }
 
-    int32_t reason;
+        MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
 
-    if (!unit->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !unit->CanAutoUnshift())) {
-        return false;
-    }
-
-    if (!unit->CheckStealthRules(spell, &reason) || ((spell->m_attributes & 0x10000000) && (unit->m_unit->m_unitFieldFlags & 0x80000) && !unit->IgnoresAuraState(spell))) {
-        return false;
-    }
-
-    if (spell->m_casterAuraState && !unit->HasAuraState(spell->m_casterAuraState) && !unit->IgnoresAuraState(spell)) {
-        return false;
-    }
-
-    if (spell->m_excludeCasterAuraState && unit->HasAuraState(spell->m_excludeCasterAuraState) && !unit->IgnoresAuraState(spell)) {
-        return false;
-    }
-
-    int32_t casterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_casterAuraSpell);
-
-    if (casterAura && !unit->HasAuraBySpellId(casterAura) && !unit->IgnoresAuraState(spell)) {
-        return false;
-    }
-
-    int32_t excludeCasterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeCasterAuraSpell);
-
-    if (excludeCasterAura && unit->HasAuraBySpellId(excludeCasterAura) && !unit->IgnoresAuraState(spell)) {
-        return false;
-    }
-
-    int32_t targetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_targetAuraSpell);
-    int32_t excludeTargetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeTargetAuraSpell);
-
-    if (spell->m_targetAuraState || spell->m_excludeTargetAuraState || targetAura || excludeTargetAura) {
-        WOWGUID guid = target;
-
-        if (!guid) {
-            guid = CGGameUI::m_lockedTarget;
-        }
-
-        CGUnit_C* targetUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
-
-        if (g_autoSelfCastCVar->m_intValue) {
-            int32_t implicit = spell->m_implicitTargetA[0];
-
-            if (!targetUnit || ((implicit == 21 || implicit == 35 || implicit == 57 || implicit == 61) && !unit->CanAssist(targetUnit, false))) {
-                targetUnit = ClntObjMgrGetActivePlayerObj();
+        if (map) {
+            if (map->m_instanceType == 4) {
+                if (!(spell->m_attributesExD & 0x20000) && (spell->m_recoveryTime > 900000 || spell->m_categoryRecoveryTime > 900000 || (spell->m_attributesExD & 0x10000))) {
+                    return false;
+                }
+            } else if (spell->m_attributesExF & 0x2) {
+                return false;
             }
         }
 
-        if (targetUnit) {
-            if (spell->m_targetAuraState && !targetUnit->HasAuraState(spell->m_targetAuraState) && !unit->IgnoresAuraState(spell)) {
-                return false;
+        if (!CGGameUI::m_hasControl && !ignoreControl) {
+            int32_t allowed = 0;
+
+            if ((unit->m_unit->m_unitFieldFlags & 0x800000) && ((spell->m_attributesExE & 0x20000) || Spell_C_CancelsAuraEffect(unit, spell, 7, nullptr))) {
+                allowed = 1;
             }
 
-            if (spell->m_excludeTargetAuraState && targetUnit->HasAuraState(spell->m_excludeTargetAuraState) && !unit->IgnoresAuraState(spell)) {
-                return false;
+            if ((unit->m_unit->m_unitFieldFlags & 0x400000) && ((spell->m_attributesExE & 0x40000) || Spell_C_CancelsAuraEffect(unit, spell, 5, nullptr))) {
+                allowed = 1;
             }
 
-            if (targetAura && !targetUnit->HasAuraBySpellId(targetAura) && !unit->IgnoresAuraState(spell)) {
-                return false;
+            if (unit->IsCharmed() && Spell_C_CancelsCharm(unit, spell, nullptr)) {
+                allowed = 1;
             }
 
-            if (excludeTargetAura && targetUnit->HasAuraBySpellId(excludeTargetAura) && !unit->IgnoresAuraState(spell)) {
+            if ((!(unit->m_unit->m_unitFieldFlags & 0x100000) || !(spell->m_attributes & 0x1000000)) && !allowed) {
                 return false;
             }
+        }
 
-            if (spell->m_implicitTargetA[0] == 6 && !unit->CanAttack(targetUnit)) {
-                return false;
-            }
-
-            if (spell->m_implicitTargetA[0] == 21 && !unit->CanAssist(targetUnit, false)) {
-                return false;
-            }
-
-            if (spell->m_implicitTargetA[0] == 35 && (!unit->IsInMyPartyOrRaid(targetUnit) || !unit->CanAssist(targetUnit, false))) {
-                return false;
-            }
-
-            int32_t implicit = spell->m_implicitTargetA[0];
-
-            if ((implicit == 57 || implicit == 61) && (!unit->IsInMyParty(targetUnit) || !unit->CanAssist(targetUnit, false))) {
-                return false;
-            }
-        } else if (spell->m_targetAuraState || targetAura) {
+        if ((!item || !(item->m_flags[0] & 0x10000000)) && !Spell_C_HaveSpellTokens(unit, spell, false, nullptr)) {
             return false;
         }
-    }
 
-    if ((spell->m_attributes & 0x2000000) && Spell_C_IsActionOnHold(&spell->m_id, 0)) {
-        return false;
-    }
-
-    if (unit->m_obj->m_guid == CGPetInfo::GetPet(0) && !CGPetInfo::PetActionsUsable(false)) {
-        return false;
-    }
-
-    int32_t interruptFlags = spell->m_auraInterruptFlags;
-
-    if (((interruptFlags & 0x100) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x100))) && !(unit->m_clientFlags & 0x200000)) {
-        return false;
-    }
-
-    if (((interruptFlags & 0x80) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x80))) && (unit->m_clientFlags & 0x200000)) {
-        return false;
-    }
-
-    if (spell->m_attributes & 0xC000) {
-        if (unit->IsOutdoors()) {
-            if (spell->m_attributes & 0x4000) {
-                return false;
-            }
-        } else if (spell->m_attributes & 0x8000) {
+        if (!Spell_C_HaveEquippedSpellItems(unit, spell, true, false, nullptr)) {
             return false;
         }
-    }
 
-    return (!(spell->m_attributesExD & 0x4000000) || static_cast<CGPlayer_C*>(unit)->IsInFlyableZone(1)) && (!(spell->m_attributesExC & 0x800) || !map || map->m_instanceType == 3) && (!(spell->m_attributesExF & 0x800) || !map || map->m_instanceType != 2);
+        if (spell->m_attributesEx & 0x500000) {
+            if (unit->IsActivePlayer() && !CGGameUI::GetComboPoints(target) && !unit->IgnoresAuraState(spell)) {
+                return false;
+            }
+
+            if (unit->m_obj->m_guid == CGPetInfo::GetPet(0) && !CGPetInfo::GetComboPoints(target)) {
+                return false;
+            }
+        }
+
+        int32_t reason;
+
+        if (!unit->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !unit->CanAutoUnshift())) {
+            return false;
+        }
+
+        if (!unit->CheckStealthRules(spell, &reason) || ((spell->m_attributes & 0x10000000) && (unit->m_unit->m_unitFieldFlags & 0x80000) && !unit->IgnoresAuraState(spell))) {
+            return false;
+        }
+
+        if (spell->m_casterAuraState && !unit->HasAuraState(spell->m_casterAuraState) && !unit->IgnoresAuraState(spell)) {
+            return false;
+        }
+
+        if (spell->m_excludeCasterAuraState && unit->HasAuraState(spell->m_excludeCasterAuraState) && !unit->IgnoresAuraState(spell)) {
+            return false;
+        }
+
+        int32_t casterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_casterAuraSpell);
+
+        if (casterAura && !unit->HasAuraBySpellId(casterAura) && !unit->IgnoresAuraState(spell)) {
+            return false;
+        }
+
+        int32_t excludeCasterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeCasterAuraSpell);
+
+        if (excludeCasterAura && unit->HasAuraBySpellId(excludeCasterAura) && !unit->IgnoresAuraState(spell)) {
+            return false;
+        }
+
+        int32_t targetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_targetAuraSpell);
+        int32_t excludeTargetAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeTargetAuraSpell);
+
+        if (spell->m_targetAuraState || spell->m_excludeTargetAuraState || targetAura || excludeTargetAura) {
+            WOWGUID guid = target;
+
+            if (!guid) {
+                guid = CGGameUI::m_lockedTarget;
+            }
+
+            CGUnit_C* targetUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
+
+            if (g_autoSelfCastCVar->m_intValue) {
+                int32_t implicit = spell->m_implicitTargetA[0];
+
+                if (!targetUnit || ((implicit == 21 || implicit == 35 || implicit == 57 || implicit == 61) && !unit->CanAssist(targetUnit, false))) {
+                    targetUnit = ClntObjMgrGetActivePlayerObj();
+                }
+            }
+
+            if (targetUnit) {
+                if (spell->m_targetAuraState && !targetUnit->HasAuraState(spell->m_targetAuraState) && !unit->IgnoresAuraState(spell)) {
+                    return false;
+                }
+
+                if (spell->m_excludeTargetAuraState && targetUnit->HasAuraState(spell->m_excludeTargetAuraState) && !unit->IgnoresAuraState(spell)) {
+                    return false;
+                }
+
+                if (targetAura && !targetUnit->HasAuraBySpellId(targetAura) && !unit->IgnoresAuraState(spell)) {
+                    return false;
+                }
+
+                if (excludeTargetAura && targetUnit->HasAuraBySpellId(excludeTargetAura) && !unit->IgnoresAuraState(spell)) {
+                    return false;
+                }
+
+                if (spell->m_implicitTargetA[0] == 6 && !unit->CanAttack(targetUnit)) {
+                    return false;
+                }
+
+                if (spell->m_implicitTargetA[0] == 21 && !unit->CanAssist(targetUnit, false)) {
+                    return false;
+                }
+
+                if (spell->m_implicitTargetA[0] == 35 && (!unit->IsInMyPartyOrRaid(targetUnit) || !unit->CanAssist(targetUnit, false))) {
+                    return false;
+                }
+
+                int32_t implicit = spell->m_implicitTargetA[0];
+
+                if ((implicit == 57 || implicit == 61) && (!unit->IsInMyParty(targetUnit) || !unit->CanAssist(targetUnit, false))) {
+                    return false;
+                }
+            } else if (spell->m_targetAuraState || targetAura) {
+                return false;
+            }
+        }
+
+        if ((spell->m_attributes & 0x2000000) && Spell_C_IsActionOnHold(&spell->m_id, 0)) {
+            return false;
+        }
+
+        if (unit->m_obj->m_guid == CGPetInfo::GetPet(0) && !CGPetInfo::PetActionsUsable(false)) {
+            return false;
+        }
+
+        int32_t interruptFlags = spell->m_auraInterruptFlags;
+
+        if (((interruptFlags & 0x100) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x100))) && !(unit->m_clientFlags & 0x200000)) {
+            return false;
+        }
+
+        if (((interruptFlags & 0x80) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x80))) && (unit->m_clientFlags & 0x200000)) {
+            return false;
+        }
+
+        if (spell->m_attributes & 0xC000) {
+            if (unit->IsOutdoors()) {
+                if (spell->m_attributes & 0x4000) {
+                    return false;
+                }
+            } else if (spell->m_attributes & 0x8000) {
+                return false;
+            }
+        }
+
+        return (!(spell->m_attributesExD & 0x4000000) || static_cast<CGPlayer_C*>(unit)->IsInFlyableZone(1)) && (!(spell->m_attributesExC & 0x800) || !map || map->m_instanceType == 3) && (!(spell->m_attributesExF & 0x800) || !map || map->m_instanceType != 2);
+    }();
+
+    return result && CoA::ClientHooks::usableAction.AllPass(unit, spell, &target, item, ignoreControl);
 }
 
 // VERIFY: 59e5790d auto
@@ -1104,6 +1111,9 @@ void PendingSpellCast::OnSpellStartPacket(CDataStore* msg) {
 // VERIFY: ccbce7b4 manual
 // OFFSET: 0x0080FEE0
 int32_t Packet_Group_30(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscRuntime.cpp:Detour80FEE0 (orig hook 0x80FEE0) -- list 0x10BE2D58 first.
+    CoA::ClientHooks::beforeSpellPacket.Run(param, static_cast<uint32_t>(msgId), time, msg);
+
     SmartGUID castItem;
     SmartGUID caster;
     *msg >> castItem;

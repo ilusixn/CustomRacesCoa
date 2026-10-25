@@ -1,4 +1,5 @@
 #include "Item_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/Ui/ItemSocketInfo.h"
 #include "WoW/Source/Ui/LootFrame.h"
@@ -1503,6 +1504,9 @@ WOWGUID CGItem_C::s_bindOnUseItem;
 // VERIFY: 92b5a602 manual
 // OFFSET: 0x00708C20
 int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
+    // CoA: AscRuntime.cpp:Detour708C20 (orig hook 0x708C20) -- the use callbacks after, with the item.
+    auto afterUse = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::itemUsed.Run(this); });
+
     if ((this->m_obj->m_type & TYPE_CONTAINER) || (this->m_itemFlags & 1)) {
         return 0;
     }

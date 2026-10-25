@@ -1,4 +1,5 @@
 #include "Movement.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -5525,6 +5526,9 @@ int32_t CMovement_C::ForceSetTransportInt(WOWGUID transport, uint8_t seat, int32
 // VERIFY: 0fab2c50 manual
 // OFFSET: 0x006ECF80
 void CMovement_C::Teleport(WOWGUID transport, const C3Vector& position, float facing, int32_t removeSpline, int32_t needAck, uint8_t seat) {
+    // CoA: AscRuntime.cpp:Detour6ECF80 (orig hook 0x6ECF80) -- list 0x10BE2BAC first, with the movement's unit.
+    CoA::ClientHooks::beforeTeleport.Run(this->m_unit);
+
     if (this->m_flags2 & MOVEMENTFLAG2_UNK_2000) {
         this->m_unit->m_clientFlags |= 0x20000000;
     } else {

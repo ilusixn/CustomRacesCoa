@@ -1,4 +1,5 @@
 #include "CoA/Source/CoA.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Modules/Account.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
@@ -78,6 +79,7 @@ void CoA::Attach() {
     g_createEventsHook = CoA::Events::ExtendList;
     CoA::Events::RegisterNames();
     CoA::Events::InstallClient();
+    CoA::ClientHooks::InstallClient();
     // AscDbc: custom tables read through the client's SFile.
     CoA::Dbc::InstallClient();
     CoA::ClientState::InstallClient();

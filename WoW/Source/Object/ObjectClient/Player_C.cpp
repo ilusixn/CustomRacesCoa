@@ -1,4 +1,5 @@
 #include "Player_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
@@ -3053,6 +3054,9 @@ static int32_t AuraVisionUpdateHandler(WOWGUID guid, void* param) {
 // VERIFY: ef96589a manual
 // OFFSET: 0x006E7F50
 void CGPlayer_C::PostInitActivePlayer() {
+    // CoA: AscRuntime.cpp:Detour6E7F50 (orig hook 0x6E7F50) -- list 0x10BE2DB8 after, with the player.
+    auto afterInit = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterActivePlayerInit.Run(this); });
+
     this->m_movementData.m_flags |= 0x200;
     this->SetActiveMirrorHandlers();
     SI2::InitVocalErrorSounds(this->m_unit->m_unitFieldBytes0[0], this->m_player->m_playerBytes3[0]);
@@ -4197,6 +4201,9 @@ int32_t Packet_Group_10(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 // VERIFY: 5322b599 manual
 // OFFSET: 0x006DF050
 int32_t Packet_SMSG_INITIAL_SPELLS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscRuntime.cpp:Detour6DF050 (orig hook 0x6DF050) -- list 0x10BE28EC on every second packet.
+    CoA::ClientHooks::InitialSpellsReceived();
+
     uint8_t talentSpec;
     msg->Get(talentSpec);
     uint16_t count;

@@ -1,4 +1,6 @@
 #include "GameUI.h"
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/CVarHooks.h"
 #include "WoW/Source/DB/Rec/FileDataRec.h"
@@ -1682,6 +1684,15 @@ int32_t CGGameUI::CanPerformAction(uint32_t action) {
 // VERIFY: a126fb23 manual
 // OFFSET: 0x0052A980
 void CGGameUI::InitializeFrameXML() {
+    // CoA: AscRuntime.cpp:Detour52A980 (orig hook 0x52A980) -- list 0x10BE29EC after, when m_currentlyReloadingUI
+    // was set before the call.
+    const bool reloading = CGGameUI::m_currentlyReloadingUI != 0;
+    auto afterReload = CoA::ClientHooks::OnScopeExit([reloading]() {
+        if (reloading) {
+            CoA::ClientHooks::afterUiReload.Run();
+        }
+    });
+
     CGChat::Pause();
 
     g_taintLogCVar = CVar::Register("taintLog", "Whether taint logging is enabled", 0, "0", SetTaintLogCallback, 5, false, nullptr, false);
@@ -2748,6 +2759,21 @@ void CGGameUI::AcceptAreaSpiritHeal() {
 // VERIFY: 7e358d82 manual
 // OFFSET: 0x00524BF0
 void CGGameUI::Target(WOWGUID guid) {
+    // CoA: AscRuntime.cpp:Detour524BF0 (orig hook 0x524BF0) -- skipped while a UI reload is requested; list 0x10BE2950
+    // first; after: a morphed target's portrait refreshed (FUN_10111d20), then list 0x10BE2970.
+    if (CGGameUI::m_reloadUIRequested) {
+        return;
+    }
+
+    CoA::ClientHooks::beforeTarget.Run();
+    auto afterTarget = CoA::ClientHooks::OnScopeExit([guid]() {
+        if (guid) {
+            CoA::ClientHooksClient::RefreshMorphPortrait(static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__)));
+        }
+
+        CoA::ClientHooks::afterTarget.Run();
+    });
+
     if (!guid) {
         CGGameUI::unused_BD08CC = 0;
 
@@ -3656,6 +3682,10 @@ void CGGameUI::BeginCinematicInternal(void* param) {
 // VERIFY: 694d44fd manual
 // OFFSET: 0x00528010
 void CGGameUI::EnterWorld() {
+    // CoA: AscRuntime.cpp:EnterWorldDetour (orig hook 0x528010) -- the pre list first, the post list after.
+    CoA::ClientHooks::enterWorld.Run();
+    auto afterEnter = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterEnterWorld.Run(); });
+
     if (CGGameUI::s_inWorld) {
         return;
     }
@@ -4131,6 +4161,9 @@ bool CGGameUI::CanInspect(CGUnit_C* unit) {
 // VERIFY: 1417860a manual
 // OFFSET: 0x005204C0
 void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGroupId, const char* zoneText, const char* subZoneText, const char* realZoneText, int32_t inside) {
+    // CoA: AscRuntime.cpp:Detour5204C0 (orig hook 0x5204C0) -- list 0x10BE290C after, with the first argument.
+    auto afterFeedback = CoA::ClientHooks::OnScopeExit([areaId]() { CoA::ClientHooks::afterZoneFeedback.Run(areaId); });
+
     int32_t newArea = CGGameUI::m_areaID != areaId;
     int32_t hadArea = CGGameUI::m_areaID != 0;
     CGGameUI::m_areaID = areaId;
@@ -7451,6 +7484,9 @@ void TaintEventCallback(lua_State* L, int32_t event, const char* name, const cha
 // VERIFY: 559cc5a7 manual
 // OFFSET: 0x00528F00
 void CGGameUI::Shutdown() {
+    // CoA: AscRuntime.cpp:Detour528F00 (orig hook 0x528F00) -- list 0x10BE28CC first.
+    CoA::ClientHooks::beforeShutdown.Run();
+
     CGGameUI::m_accountDataGeneration++;
     g_theGxDevicePtr->RemoveTextureRecreationCallback(UpdateAllPortraits);
     g_theGxDevicePtr->RemoveDeviceRestoredCallback(UpdateAllPortraits);
@@ -8105,6 +8141,9 @@ void CCapturePointUIManager::DeleteNode(CapturePointUIManagerNode* node) {
 // VERIFY: 1c2e47fb auto
 // OFFSET: 0x00528C30
 void CGGameUI::LeaveWorld() {
+    // CoA: AscRuntime.cpp:Detour528C30 (orig hook 0x528C30) -- list 0x10BE28AC first.
+    CoA::ClientHooks::leaveWorld.Run();
+
     if (!CGGameUI::s_inWorld) {
         return;
     }

@@ -1,4 +1,6 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include <intrin.h>
@@ -9658,6 +9660,9 @@ CGUnit_C::CGUnit_C(uint32_t time, const CClientObjCreate& create)
       m_predictedHealth(this->m_unit->m_unitFieldHealth),
       m_powerRegenRemainder(0),
       m_manaRegenInterruptTime(0) {
+    // CoA: AscRuntime.cpp:Detour73F660 (orig hook 0x73F660) -- list 0x10BE2BCC after, with the unit.
+    auto afterCreate = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterUnitCreated.Run(this); });
+
     this->m_movement = &this->m_movementData;
     this->m_animStateFlags = 0;
     this->m_clientFlags = 0x400000;
@@ -16570,6 +16575,11 @@ void CGUnit_C::ScanAuraSpellsOnDisplayUpdate() {
 // VERIFY: 975b5867 manual
 // OFFSET: 0x00724820
 void CGUnit_C::AddAuraEffect(uint32_t index, const SpellRec* spell) {
+    // CoA: AscRuntime.cpp:Detour724820 (orig hook 0x724820) -- the first false from the list skips the call.
+    if (!CoA::ClientHooks::addAuraEffect.AllPass(this, index, spell)) {
+        return;
+    }
+
     uint32_t count = this->m_handItemSpellIds.m_count == 0xFFFFFFFF ? this->m_handItemSpellIds.m_dynamic.m_count : this->m_handItemSpellIds.m_count;
 
     if (index >= count) {
@@ -16722,6 +16732,11 @@ handItems:
 // VERIFY: e85d416f manual
 // OFFSET: 0x0071E930
 void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
+    // CoA: AscRuntime.cpp:Detour71E930 (orig hook 0x71E930) -- the first false from the list skips the call.
+    if (!CoA::ClientHooks::removeAuraEffect.AllPass(this, index, spell)) {
+        return;
+    }
+
     uint32_t count = this->m_handItemSpellIds.m_count == 0xFFFFFFFF ? this->m_handItemSpellIds.m_dynamic.m_count : this->m_handItemSpellIds.m_count;
 
     if (index >= count) {
@@ -23738,6 +23753,10 @@ void CGUnit_C::FillPartyMemberPetState(CGPartyPetState* state) {
 // VERIFY: 80a37933 manual
 // OFFSET: 0x00730290
 void CGUnit_C::OnReceiveMirrorImageDataFromServer(CDataStore* msg) {
+    // CoA: AscRuntime.cpp:Detour730290 (orig hook 0x730290) -- after: a morphed unit's portrait refreshed
+    // (FUN_10111d20).
+    auto afterMirror = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooksClient::RefreshMorphPortrait(this); });
+
     ComponentData data;
     this->m_clientFlags &= ~0x20000;
 

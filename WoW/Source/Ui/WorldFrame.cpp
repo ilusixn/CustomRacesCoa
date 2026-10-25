@@ -1,4 +1,5 @@
 #include "WorldFrame.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include <cstring>
 #include <typeinfo>
@@ -448,6 +449,9 @@ void CGWorldFrame::SetCameraTarget(CGObject_C* target, int32_t freeLook) {
 // VERIFY: 412d637a manual
 // OFFSET: 0x004F6F90
 void CGWorldFrame::ClearTrackedObjects() {
+    // CoA: AscRuntime.cpp:Detour4F6F90 (orig hook 0x4F6F90) -- list 0x10BE2AAC after.
+    auto afterClear = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterClearTrackedObjects.Run(); });
+
     if (this->m_trackedEffectGuidA) {
         CGObject_C* object = ClntObjMgrObjectPtr(this->m_trackedEffectGuidA, TYPE_OBJECT, __FILE__, __LINE__);
 
