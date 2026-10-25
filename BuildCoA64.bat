@@ -5,7 +5,7 @@ set "ROOT=%~dp0"
 set "ROOT=%ROOT:~0,-1%"
 set "BUILD=%ROOT%\out\build\x64-Release"
 set "BIN=%ROOT%\bin"
-set "STAGE=%TEMP%\waystone_pkg"
+set "STAGE=%TEMP%\coa64_pkg"
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 
 for /f "usebackq delims=" %%i in (`git -C "%ROOT%" rev-parse --short^=7 HEAD`) do set "HASH=%%i"
@@ -40,7 +40,7 @@ copy /y "%BIN%\Win\Wow64.exe" "%STAGE%\Waystone.exe" >nul
 copy /y "%BIN%\Win\Wow64.map" "%STAGE%\Waystone.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
 
-set "ZIP=%BIN%\Waystone-%HASH%.zip"
+set "ZIP=%BIN%\CoA64-%HASH%.zip"
 powershell -NoProfile -Command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%ZIP%' -Force"
 if errorlevel 1 goto :fail
 rmdir /s /q "%STAGE%"
