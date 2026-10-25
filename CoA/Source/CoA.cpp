@@ -54,6 +54,7 @@ static const CoA::Module s_modules[] = {
     { "GameMode", CoA::GameMode::Init },
     { "SpellActivationOverlay", CoA::SpellActivationOverlay::Init },
     { "SuperTrack", CoA::SuperTrack::Init },
+    { "GroupFinder", CoA::GroupFinder::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -85,6 +86,7 @@ static const CoA::Module s_modules[] = {
     { "WorldMapClient", CoA::WorldMapClient::Init },
     { "SpellActivationOverlayClient", CoA::SpellActivationOverlayClient::Init },
     { "SuperTrackClient", CoA::SuperTrackClient::Init },
+    { "GroupFinderClient", CoA::GroupFinderClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
