@@ -1,4 +1,6 @@
 #include "Object_C.h"
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "WoW/Source/Object/ObjectClient/DynamicObject_C.h"
 #include "WoW/Source/UIUtil/Types.h"
@@ -386,6 +388,9 @@ void CGObject_C::UpdateEffectAttachments() {
 // VERIFY: 8c88711b auto
 // OFFSET: 0x00743EC0
 void CGObject_C::PreAnimate(CGWorldFrame* frame) {
+    // CoA: AscRuntime.cpp:Detour743EC0 (orig hook 0x743EC0) -- list 0x10BE2CF8 after, with the object.
+    auto afterPreAnimate = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterPreAnimate.Run(this); });
+
     if (CGGameUI::m_lockedTarget == this->m_obj->m_guid && ClntObjMgrGetActivePlayer() != this->m_obj->m_guid && CGObject_C::s_cvObjectSelectionCircle->m_intValue) {
         frame->m_trackedEffectGuidA = this->m_obj->m_guid;
     }
@@ -1267,18 +1272,9 @@ void CGObject_C::ClearEffectList(int32_t all) {
         return;
     }
 
-    SpellRec spell;
-    CEffect* effect = this->m_effectList;
-
-    while (effect) {
-        CEffect* next = effect->m_next;
-
-        if (!g_spellDB.GetRecord(effect->m_spellId, &spell) || !(spell.m_attributesExC & 0x100000)) {
-            effect->MoveToDestroyList();
-        }
-
-        effect = next;
-    }
+    // CoA: AscRuntime.cpp:Replace744AC0 (orig hook 0x744AC0), replaced -- without `all` only what list 0x10BE2D78
+    // votes out goes (stock: every effect whose spell lacks attribute 0x100000).
+    CoA::ClientHooksClient::FilterEffects(this);
 }
 
 // VERIFY: 82510f34 manual

@@ -860,3 +860,15 @@ void PortraitShutdown() {
     s_pendingPortraits.Clear();
     s_freePortraits.Clear();
 }
+
+// CoA: FUN_10111d20's portrait lookup (0x6F6020 on 0xC5CE30).
+bool PortraitMarkDirty(uint32_t displayId) {
+    UNITPORTRAIT* portrait = s_unitPortraits.Ptr(displayId, HASHKEY_DWORD{ displayId });
+
+    if (!portrait) {
+        return false;
+    }
+
+    portrait->m_cache.m_dirty = 1;
+    return true;
+}

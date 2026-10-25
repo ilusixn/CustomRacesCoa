@@ -43,6 +43,8 @@ static TSFixedArray<FrameScript_EventObject*> s_scriptEvents;
 
 // CoA: set by CoA::Attach (CoA::Events::ExtendList); the engine does not link the CoA code itself
 const char** (*g_createEventsHook)(const char** names, uint32_t& count);
+// CoA: set by CoA::ClientHooks::InstallClient (CoA::ClientHooks::AllowSignalEvent).
+bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const char* name);
 
 // CoA: the DLL reads the event table at 0xD3F7D0 directly (AscRuntime.cpp:EventId / EventName)
 uint32_t FrameScript_GetEventCount() {
@@ -1470,6 +1472,17 @@ void FrameScript_Destroy() {
 // VERIFY: 8009da99 manual
 // OFFSET: 0x0081AA00
 void FrameScript_SignalEvent(uint32_t index, lua_State* L, int32_t argCount) {
+    // CoA: AscRuntime.cpp:DispatchDetour (orig hook 0x81AA00) -- a signal without a Lua state or an event object
+    // is refused and logged; else the stock-event callbacks run first.
+    if (g_signalEventHook) {
+        const bool hasData = s_scriptEvents.m_data != nullptr;
+        FrameScript_EventObject* object = hasData && index < s_scriptEvents.Count() ? s_scriptEvents[index] : nullptr;
+
+        if (!g_signalEventHook(static_cast<int32_t>(index), L, s_scriptEvents.Count(), hasData, object != nullptr, object ? object->m_key.m_str : nullptr)) {
+            return;
+        }
+    }
+
     if (!s_scriptEvents.Count()) {
         return;
     }

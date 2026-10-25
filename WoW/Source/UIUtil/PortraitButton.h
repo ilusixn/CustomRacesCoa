@@ -47,6 +47,9 @@ void __fastcall UpdateAllPortraits();
 void PortraitInitialize();
 void PortraitShutdown();
 void UpdatePendingPortraits();
+// CoA: AscRuntime.cpp:Detour730290 / Detour524BF0 (orig hook 0x730290, 0x524BF0) -- the cached portrait of a display
+// id marked dirty (s_unitPortraits +0x18 = 1); false when none is cached.
+bool PortraitMarkDirty(uint32_t displayId);
 void SetPortraitTexture(CSimpleTexture* texture, const char* fileName);
 void SetPortraitTexture(CSimpleTexture* texture, uint32_t race, uint32_t sex, WOWGUID guid);
 void SetPortraitTexture(CSimpleTexture* texture, uint32_t displayId, CGPartyPetState* petState);

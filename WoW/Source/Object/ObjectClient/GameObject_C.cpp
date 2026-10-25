@@ -1,4 +1,5 @@
 #include "GameObject_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
@@ -3862,6 +3863,9 @@ int32_t CGGameObject_C::FloatingTooltip() const {
 // VERIFY: 3b7ec338 manual
 // OFFSET: 0x0070F680
 void CGGameObject_C::UseObject() {
+    // CoA: AscRuntime.cpp:Detour70F680 (orig hook 0x70F680) -- the use callbacks after, with the object.
+    auto afterUse = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::gameObjectUsed.Run(this); });
+
     GAME_ERROR_TYPE error;
     float distance;
     const char* errorText = nullptr;
