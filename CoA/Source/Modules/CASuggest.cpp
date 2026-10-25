@@ -501,6 +501,56 @@ namespace {
     };
 }
 
+std::vector<uint32_t> CoA::CA::detail::SuggestedFor(uint32_t category) {
+    std::vector<uint32_t> out;
+
+    for (const auto& s : Sugg().entries) {
+        Row r = FindRow(s.first);
+
+        if (!r) {
+            continue;
+        }
+
+        bool inCategory = category == 0;
+
+        for (uint32_t off = 0x1C8; off < 0x1D4 && !inCategory; off += 4) {
+            inCategory = RowU32(r, off) == category;
+        }
+
+        if (!inCategory || ActiveBuild()->Has(RowU32(r, 0))) {
+            continue;
+        }
+
+        out.push_back(s.first);
+
+        if (out.size() >= 10) {
+            break;
+        }
+    }
+
+    return out;
+}
+
+std::vector<uint32_t> CoA::CA::detail::SuggestedEntries(bool abilities, uint32_t max, bool skipKnown) {
+    std::vector<uint32_t> out;
+
+    for (const auto& s : Sugg().entries) {
+        Row r = FindRow(s.first);
+
+        if (!r || KindSpell(r) != abilities || (skipKnown && ActiveBuild()->Has(RowU32(r, 0)))) {   // FUN_101c6770
+            continue;
+        }
+
+        out.push_back(s.first);
+
+        if (max <= out.size()) {
+            break;
+        }
+    }
+
+    return out;
+}
+
 void CoA::CA::detail::ResetSuggest() {
     Sugg() = Suggestions();
     s_spellSuggestions.clear();

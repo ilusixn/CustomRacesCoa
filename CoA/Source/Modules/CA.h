@@ -315,6 +315,14 @@ namespace CoA::CA {
         std::string (*decodeLink)(const std::string& url) = nullptr;             // AscBuildCreator::DecodeLink
         BuildSeed (*seedFromLink)(const std::string& url) = nullptr;             // AscBuildCreator::SeedFromLink
         bool (*seedOfBuild)(const std::string& id, BuildSeed& seed) = nullptr;   // AscBuildCreator::SeedOfBuild
+        // The Build Creator's pending entry, asked per spell (FUN_100faa20 / FUN_100fb960 / FUN_10100180).
+        bool (*creatorCanAddSpell)(uint32_t spell) = nullptr;
+        bool (*creatorCanRemoveSpell)(uint32_t spell) = nullptr;
+        bool (*creatorHasSpell)(uint32_t spell) = nullptr;
+        // AscSpellText (client): a spell's name, the forms it requires, its described text (Description(s, 1, 1, 0)).
+        const std::string& (*spellName)(uint32_t spell) = nullptr;
+        const std::string& (*spellForms)(uint32_t spell) = nullptr;
+        std::string (*spellDescription)(uint32_t spell) = nullptr;
     };
 
     Deps& Dependencies();

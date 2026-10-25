@@ -86,6 +86,26 @@ unit tokens to GUIDs.
 4. Lists come back in the original's sort order (entry order, talent order, locked first).
 5. Natives reading the active build before world entry use the default build, not a null.
 
-### 7c
+### 7c (branch `plan7c-ca-filter`)
 
-Planned after 7b merges.
+- **Task 7, spell API** (`SpellApi.h/.cpp`, `SpellApiClient.cpp`): AscSpellApi.cpp's eight C_Spell natives
+  (GetMaxLearnableRank, AppliesBuff / AppliesDebuff, IsHarmfulSpell / IsHelpfulSpell, IsImmunitySpell, IsTrainerSpell,
+  GetFirstRank) and FUN_10325130 (IsPositiveEffect, public for SpellVisuals later). A spell is a `SpellFields` struct
+  the client half fills from Spell.dbc; SkillLineAbility / SkillLine come through Deps, and the 0x934 patch hooks
+  (ClientDbcPatch::Deps skillLineAbilityErase / Update) are filled. Tests: positive-effect rules (attribute 0x4000000,
+  custom attr bits, family lists, aura cases, trigger-spell nesting), buff / debuff, immunity list, trainer lookup,
+  max learnable rank.
+- **Task 8, browser filters** (`CAFilter.cpp` replaces the stubs): AscCAFilter.cpp's four containers, the FILTER_*
+  enums and groups, the text match, the 256-bit sort keys, '$' tokens, refine vs full filter, category buckets, the
+  recent / upcoming sets, the glue reset and its ten natives (C_CharacterAdvancement x7, C_BuildEditor x3). Build
+  Creator questions go through CA Deps. Tests: group OR / AND, sort order, tokens empty the results, refine,
+  quality words lifted from the query, category buckets, IsFiltered.
+- **Task 9, live re-measure**: in-world error capture, before / after table in the findings doc.
+
+### Review Focus (7c)
+
+1. Filters OR within a group and AND across groups, in the original's group numbering per container.
+2. Results come back in the 256-bit key order (fields overlapping as in the original).
+3. A '$' token empties the results; the refine path is taken only under the original's conditions.
+4. IsHelpfulSpell / IsHarmfulSpell agree with FUN_10325130 for nested trigger spells without recursing forever.
+5. Natives with bad arguments return what the original returns (C_BuildEditor raises nothing).
