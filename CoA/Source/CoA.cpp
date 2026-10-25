@@ -63,6 +63,7 @@ static const CoA::Module s_modules[] = {
     { "AttachLuaClient", CoA::AttachLuaClient::Init },
     { "AttachMiscClient", CoA::AttachMiscClient::Init },
     { "ProfilerClient", CoA::ProfilerClient::Init },
+    { "GlueCVarsClient", CoA::GlueCVarsClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
