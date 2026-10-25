@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/LuaReg.h"
+#include "CoA/Source/Runtime/Timer.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
 #include <cstring>
@@ -122,5 +123,27 @@ COA_TEST(SpellActivationOverlay_GlueResets) {
     Tick();
     CoA::Lifecycle::RunGlueScreen();
     CHECK(Tick() == V{ "SHOW_SPELL_ACTIVATION_OVERLAY:3" });
+    CoA::Dbc::SetFileReader(nullptr);
+}
+
+namespace {
+    int s_scheduled = 0;
+    int s_cancelled = 0;
+}
+
+// Reproduced original behaviour: each world entry (also a far teleport or instance change re-entering the world) arms
+// another 100 ms chain, and the glue stop cancels only the last stored id.
+COA_TEST(SpellActivationOverlay_EachWorldEntryAddsAChain) {
+    Setup();
+    s_scheduled = 0;
+    s_cancelled = 0;
+    CoA::Timer::SetBackend([](uint32_t, CoA::Timer::Fn, void*) { return static_cast<uint32_t>(++s_scheduled); },
+        [](uint32_t, CoA::Timer::Fn, void*) { ++s_cancelled; });
+    CoA::SpellActivationOverlay::Start();
+    CoA::SpellActivationOverlay::Start();
+    CHECK(s_scheduled == 2);
+    CoA::SpellActivationOverlay::Stop();
+    CHECK(s_cancelled == 1);
+    CoA::Timer::SetBackend(nullptr, nullptr);
     CoA::Dbc::SetFileReader(nullptr);
 }
