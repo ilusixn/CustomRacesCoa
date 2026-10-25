@@ -1,4 +1,5 @@
 #include "CoA/Source/Runtime/Read.h"
+#include "Engine/Source/Storm/H/storm.h"
 #include <cstring>
 
 uint8_t CoA::Read::U8(CDataStore* msg) {
@@ -81,4 +82,30 @@ void CoA::Read::CStr(CDataStore* msg, char* out, uint32_t max) {
 void CoA::Read::Data(CDataStore* msg, void* out, uint32_t n) {
     memset(out, 0, n);
     msg->GetData(out, n);
+}
+
+// The original passes the source length by address where 0x778180 takes it by value, so its zlib stream gets a stack
+// address as its input size; a well-formed stream stops at its end either way, and this passes the real length.
+bool CoA::Read::Inflate(CDataStore* msg, std::vector<uint8_t>& out) {
+    const uint32_t total = CoA::Read::Remaining(msg);
+    std::vector<uint8_t> in(total);
+
+    if (total) {
+        msg->GetData(in.data(), total);
+    }
+
+    if (total < 4) {
+        return false;
+    }
+
+    uint32_t size;
+    memcpy(&size, in.data(), 4);
+    out.resize(size);
+
+    if (zlib_uncompress(out.data(), &size, in.data() + 4, total - 4) != 0) {
+        return false;
+    }
+
+    out.resize(size);
+    return true;
 }

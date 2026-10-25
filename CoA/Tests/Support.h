@@ -46,6 +46,8 @@ namespace CoATest {
     std::vector<uint8_t> Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings, uint32_t columns = 0);
     // A localized-string block of a WDBC row: the offset in all 16 locale slots, then the flags dword.
     std::vector<uint32_t> Loc(uint32_t offset);
+    // A CompressedDataStore payload: the u32 inflated size, then the zlib stream of `plain`.
+    Bytes Compressed(const Bytes& plain);
 
     // Feeds a payload to a handler with the CoA::Packets::Handler signature.
     int32_t Deliver(int32_t (*handler)(void*, uint32_t, uint32_t, CDataStore*), uint32_t opcode, Bytes& bytes, CDataStore** out = nullptr);

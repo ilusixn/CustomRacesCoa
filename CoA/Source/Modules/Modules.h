@@ -28,6 +28,9 @@ namespace CoA::LuaDbc { void Init(); }
 namespace CoA::CharacterList { void Init(); }
 namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
+namespace CoA::Seasonal { void Init(); void Reset(); }
+namespace CoA::HighRisk { void Init(); }
+namespace CoA::Token { void Init(); }
 namespace CoA::Appearance { void Init(); }
 namespace CoA::SpellApi { void Init(); }
 namespace CoA::CA { void Init(); }
@@ -55,6 +58,7 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
 namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
+namespace CoA::HighRiskClient { void Init(); }
 namespace CoA::AppearanceClient { void Init(); }
 namespace CoA::SpellApiClient { void Init(); }
 namespace CoA::CAClient { void Init(); }
