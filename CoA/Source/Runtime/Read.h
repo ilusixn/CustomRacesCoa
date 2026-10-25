@@ -4,6 +4,7 @@
 #include "Engine/Source/Base/CDataStore.h"
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // Reading DLL packet fields through the client's own CDataStore getters. The reconstruction reads m_buffer
 // directly, which is the original's result for a well-formed packet; for a short one the getters fail instead of
@@ -26,6 +27,10 @@ namespace CoA::Read {
     void CStr(CDataStore* msg, char* out, uint32_t max);
     // n raw bytes; zero-filled on failure.
     void Data(CDataStore* msg, void* out, uint32_t n);
+    // CompressedDataStore (FUN_10195a60): the rest of the packet is a u32 inflated size and zlib data, inflated with the
+    // client's 0x778180 (0 = ok). The packet is consumed either way; false when fewer than 4 bytes are left or
+    // inflating fails.
+    bool Inflate(CDataStore* msg, std::vector<uint8_t>& out);
 }
 
 #endif
