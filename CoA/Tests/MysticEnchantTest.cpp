@@ -103,7 +103,7 @@ COA_TEST(MysticEnchant_PatchAddsRow) {
         b.U32(v);
     }
     b.Str("RE_QUALITY_LEGENDARY").Str("RE_QUALITY_LEGENDARY").Str("ARCANE").Str("NONE").Str("").Str("");
-    s_allowPatched = true;
+    s_patchedSpells = { 1040 };
     CHECK(Feed(0x56B, b) == V{ "MYSTIC_ENCHANT_PATCHED" });
     CHECK((Run(L, "local t = C_MysticEnchant.GetEnchantInfoByItem(5040) return t.SpellID, t.Quality, t.Spec[1]") ==
         V{ "1040", "RE_QUALITY_LEGENDARY", "ARCANE" }));
