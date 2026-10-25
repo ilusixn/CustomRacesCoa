@@ -92,3 +92,36 @@ Modules that world entry showed come first. The rest follow by size, as remainin
    (`#Minimap`, `#MovieFrame`), the software cursor (AscCursor: SetAttackCursor), and the small remainder
    (≤ 5 each).
 8. Then the DXVK plan (HD patches, `HDPatch.xml`), then Warden.
+
+## Plan 4 result (world-entry errors)
+
+Measured 2026-10-25 at commit 7471b11 (`out/baseline/x64/{Extensions,Fatal,FrameXML}-plan4.*`, screenshot
+`out/baseline/x64/8-world-plan4.png`). Character in Un'Goro Crater, 3 minutes in the world, client responsive.
+
+- **Gone:**
+  - Every unhandled packet of the eight Plan 4 modules: AuraAmounts 0x673 (202 before), ObjectAddon 0x578 (63),
+    GameMode 0x90B.
+  - The Lua errors from GetCustomGameMode, GetMapIDByZoneID, GetUnitPrimaryStat and C_SpellActivationOverlay.
+  - The SuggestInvite / SuperTrackerUtil FrameXML errors.
+  - The Blizzard_CombatLog "Corrupt" dialog. Ascension.exe always accepts add-on signatures (0x816625 / 0x81663E /
+    0x816694 / 0x81675F); CoA64 now does the same (user-approved, CoA/DIFFERENCES.md).
+- **Left, owned by later plans:**
+  - Packets: SMSG_CA_AVAILABLE_CREDITS_UPDATE, 0x725 / 0x726 (AscCAMgr, Plan 5); SMSG_TOKEN_UPDATE (AscToken); the
+    challenge lists (AscChallenge); SMSG_CALLBOARD_CACHE_CONFIG_UPDATE (AscCallboardCache).
+  - Lua: `SpecializationUtil.lua:65` GetActiveSpecID (AscCAMgr, Plan 5).
+- **HD archives ruled out:** a 32-bit `Ascension.exe -hd 0` baseline refuses the same eight HD archives as CoA64
+  (`out/baseline/7-world-hd0.png`, `FrameXML-world-hd0.log`). It shows no Sound Kit Player frame and prints "COA mode",
+  and its FrameXML.log also lacks `HDPatch.xml`. So `HDPatch.xml` is HD-only (the DXVK plan), but the other two
+  differences are not.
+- **Open, Sound Kit Player frame:** both clients load `patch-B.MPQ`'s `FrameXML.toc` (line 349 includes
+  `Ascension_DebugTools`, whose `SoundKitBrowser` frame is not hidden). The 32-bit client must hide it later.
+  CoA64's FrameXML.log has a `(null)` load error right after `DevelopmentXML.xml` that the baseline lacks; the code
+  that hides the frame probably fails there.
+- **Open, realm mode** (LootCollector prints "WR mode"): it decides from `C_GameMode:IsGameModeActive`,
+  `C_CharacterCreate.CanCreateArchetype`, `C_Player.IsCustomClass` and `C_Player.IsHero`, since "Pale Reach" is not
+  in its name list. One of these still answers differently; probably the same failing FrameXML code, or a CA native
+  (Plan 5).
+- **Ascension_SkillCards** loads only in CoA64 (with a second `(null)` error). It is probably the unported
+  AscAddonTaint hook on 0x5F7E90, which refuses add-ons the server does not list on realms without add-ons.
+- **Still printing "too many errors"** about every 10 s: the source is not captured (add-on errors outside C_Logger).
+  Next step: capture the Lua error texts (the `(null)` FrameXML errors included), which settles the two open items.

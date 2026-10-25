@@ -58,4 +58,7 @@ class CScriptRegion : public CScriptObject, public CLayoutFrame {
     void RegisterAnimGroup(CSimpleAnimGroup* group);
 };
 
+// CoA: AscSuperTrack.cpp:PositionFrame (CScriptRegion_Scripts.cpp).
+extern bool g_setPointRawOffsets;
+
 #endif
