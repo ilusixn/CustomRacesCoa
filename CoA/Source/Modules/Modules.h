@@ -28,6 +28,7 @@ namespace CoA::LuaDbc { void Init(); }
 namespace CoA::CharacterList { void Init(); }
 namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
+namespace CoA::MysticEnchant { void Init(); }
 namespace CoA::ExtraActionButton { void Init(); }
 namespace CoA::UnitAddon { void Init(); }
 namespace CoA::AutoQuest { void Init(); }
