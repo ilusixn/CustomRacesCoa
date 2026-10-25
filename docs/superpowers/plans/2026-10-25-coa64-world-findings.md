@@ -125,3 +125,33 @@ Measured 2026-10-25 at commit 7471b11 (`out/baseline/x64/{Extensions,Fatal,Frame
   AscAddonTaint hook on 0x5F7E90, which refuses add-ons the server does not list on realms without add-ons.
 - **Still printing "too many errors"** about every 10 s: the source is not captured (add-on errors outside C_Logger).
   Next step: capture the Lua error texts (the `(null)` FrameXML errors included), which settles the two open items.
+
+## Plan 5 result (world-entry errors II)
+
+Capture 2026-10-25, `-extlog 1`, about 2 minutes in world (Un'Goro Crater). Gone since the first capture:
+CombatFeedback.lua:107 (9,183), SendSystemMessage (2,724), `#Minimap:GetViewRadius` (259), `#Frame:GetAllAttributes`
+(83), GlobalsF / GlobalsI / AutoQuest / UnitAddon / ExtraActionButton.
+
+CombatFeedback did not reproduce, so no separate fix was made. The likely cause: an earlier error in a frame's
+OnLoad (a missing widget method) stopped `CombatFeedback_Initialize` from running. Watch for it in later captures.
+
+Remaining errors, by count:
+
+| Count | Error | Owner |
+|---:|---|---|
+| 3684 | GameTooltip.lua:606 `C_MysticEnchant` | MysticEnchant (Plan 6) |
+| 8 | TutorialUtil.lua:61 `C_Tutorial` | Tutorial |
+| 5 | HealPredictionUtil.lua:599 `IsHelpfulSpell` | SpellApi (Plan 7) |
+| 3 | DraftUtil.lua:22 `HasHandOfFateSacrificePick` | DraftMode |
+| 3 | AsyncCallbackHandler.lua:42 `C_AssetQueryService` | AssetQueryService |
+| 2 | MysticEnchantUtil.lua:37 `C_MysticEnchant` | MysticEnchant (Plan 6) |
+| 3 | ChallengeUtil.lua:86 / WorldMapFrame.lua:246 `C_Challenge` | Challenge |
+| 3 | Minimap.lua:235 / 346 `C_Manastorm` | Manastorm |
+| 2 | LibGroupTalents `GetTalentsByClass`, RuneFrame `HasRuneUI` | CAMgr (Plan 7) |
+| 1 | GameTooltip.lua:371 `GetEntryBySpellID`, C_PrimaryStat `IsPendingBuildAvailable` | CA (Plan 7) |
+| 2 | UIParent.lua `C_LootLockout` | LootLockout |
+| 1 each | `C_SkillCardCollection`, `C_PlayerTicket`, `C_CustomStore`, `C_BuildCreator` | SkillCard, GMTicket, CustomStore, BuildCreator |
+| 1 each | missing CVars `ObjectSelectionCircleTexture`, `useUiScale`, `autoAcceptTrades` | CVars still to port |
+| 1 | InterfaceOptionsPanels.lua:1105 `InterfaceOptionsSocialPanelProfanityFilterText` | open; check against the 32-bit baseline |
+
+Fatal.txt still lists the unhandled appearance packets (0x69A / 0x69D / 0x6A2), which belong to the Appearance module.
