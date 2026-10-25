@@ -97,12 +97,17 @@ int32_t CGCharacterModelBase::GetScriptMetaTable() {
     return CGCharacterModelBase::s_metatable;
 }
 
+// CoA: AscModelMethods.cpp:SetFrameJumps (Extensions.dll patches 0x59714D, 0x5971C1).
+uint8_t g_rotateModelJump = 0x74;
+uint8_t g_updateModelJump = 0x75;
+
 // VERIFY: 8f4f2545 auto
 // OFFSET: 0x005971B0
 void CGCharacterModelBase::UpdateModel() {
     CSimpleModel::UpdateModel();
 
-    if (!this->m_sequenceSet && OsGetAsyncTimeMs() > this->m_sequenceResetTime && this->m_model->GetBoneSequenceId(-1)) {
+    // CoA: AscModelMethods.cpp:SetFrameJumps (Extensions.dll patch 0x5971C1) -- jmp skips the reset to stand.
+    if (g_updateModelJump != 0xEB && !this->m_sequenceSet && OsGetAsyncTimeMs() > this->m_sequenceResetTime && this->m_model->GetBoneSequenceId(-1)) {
         this->m_model->SetBoneSequence(-1, 0, -1, 0, 1.0f, 1, 1);
         this->m_sequenceResetTime = 0;
     }
@@ -219,7 +224,12 @@ void CGCharacterModelBase::RotateModel(float facing) {
             sequence = 11;
         }
 
-        if (this->m_model->HasSequence(sequence) && sequence != this->m_model->GetBoneSequenceId(-1)) {
+        // CoA: AscModelMethods.cpp:SetFrameJumps (Extensions.dll patch 0x59714D) -- jne inverts the test, jmp never
+        // turns.
+        const bool has = this->m_model->HasSequence(sequence) != 0;
+        const bool turn = g_rotateModelJump == 0xEB ? false : (g_rotateModelJump == 0x75 ? !has : has);
+
+        if (turn && sequence != this->m_model->GetBoneSequenceId(-1)) {
             this->m_model->SetBoneSequence(-1, sequence, -1, 0, 1.0f, 1, 1);
         }
     }

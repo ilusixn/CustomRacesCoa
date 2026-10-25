@@ -225,4 +225,8 @@ class CSimpleFrame : public CScriptRegion {
 // CoA: AscAttachLua.cpp:FUN_10a46660 / FUN_10a466f0 (orig hook 0x48FC30, 0x48FCE0).
 extern void (*g_globalMouseHook)(int32_t down, uint32_t button);
 
+// CoA: AscWidget.cpp:RegistrarDetour (orig hooks 0x49E540, 0x57C040, 0x9603D0, 0x970610) -- after a registrar
+// has filled the method table (at -1), the DLL adds its "#<widget>" methods.
+extern void (*g_widgetMethodsHook)(const char* widget, lua_State* L);
+
 #endif

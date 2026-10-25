@@ -125,10 +125,12 @@ void CGDressUpModelFrame::UpdateModel() {
 }
 
 // STATIC: 0x00C0E4F8
-static int32_t s_mainHandItemId;
+// CoA: not static -- AscModelMethods.cpp:SetSheathe reads both hands.
+int32_t s_mainHandItemId;
 
 // STATIC: 0x00C0E4FC
-static int32_t s_offHandItemId;
+// CoA: not static -- AscModelMethods.cpp:SetSheathe reads both hands.
+int32_t s_offHandItemId;
 
 // CoA: not static -- Script_TryOn sets it (AscAttachFixes.cpp:FUN_10a4bdc0, orig hook 0x598830).
 // STATIC: 0x00ACF548
