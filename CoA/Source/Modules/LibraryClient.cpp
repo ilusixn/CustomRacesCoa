@@ -1,6 +1,5 @@
 // Addon-file helpers (port of AscLibrary.cpp): LoadLibrary / IsLibraryLoaded -- XML libraries under
-// Interface\LibraryXML\, loaded once each per Lua state. Ported so far: the glue-state natives (SaveSavedVariables
-// is world-only).
+// Interface\LibraryXML\, loaded once each per Lua state. And SaveSavedVariables.
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "CoA/Source/Runtime/Script.h"
@@ -10,6 +9,9 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+
+// WoW/Source/Ui/AddOns.h (not self-contained).
+void AddOnsSaveOne(const char* name);
 
 namespace {
     std::vector<std::string> s_loaded;   // DAT_10d3d7dc..e0
@@ -60,9 +62,17 @@ namespace {
         return 1;
     }
 
+    // FUN_10a70bf0: write only the named addon's SavedVariables (AddOnsSaveOne).
+    int SaveSavedVariables(lua_State* L) {
+        std::string name = CoA::Script::CheckString(L, 1);
+        AddOnsSaveOne(name.c_str());
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("", "IsLibraryLoaded", IsLibraryLoaded),
         COA_NATIVE("", "LoadLibrary", LoadLibraryXml),
+        COA_NATIVE("", "SaveSavedVariables", SaveSavedVariables),
     };
 }
 
