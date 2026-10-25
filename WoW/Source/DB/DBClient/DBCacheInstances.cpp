@@ -1,4 +1,5 @@
 #include "DBCacheInstances.h"
+#include "CoA/Source/Modules/AttachLua.h"
 #include <cstring>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -263,6 +264,9 @@ void SetClientCacheVersion(uint32_t version) {
     g_wardenCache.VerifyAndUpdateVersion(version);
     g_arenaTeamCache.VerifyAndUpdateVersion(version);
     g_danceCache.VerifyAndUpdateVersion(version);
+
+    // CoA: AscAttachLua.cpp:FUN_10a76b10 (orig hook 0x635710) -- the DLL's own stores take the version after.
+    CoA::AttachLua::ClientCacheVersionSet(version);
 }
 
 // VERIFY: 33bf72e2 manual

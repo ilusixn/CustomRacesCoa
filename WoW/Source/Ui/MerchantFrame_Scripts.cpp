@@ -1,4 +1,5 @@
 #include "MerchantFrame.h"
+#include "CoA/Source/Runtime/Packet.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -108,6 +109,15 @@ static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
     MerchantItem* item = index >= 0 && index < CGMerchantInfo::m_numMerchantItems && CGMerchantInfo::m_merchant ? &CGMerchantInfo::m_items[index] : nullptr;
     ItemExtendedCostRec* cost;
     double numItems;
+
+    // CoA: AscAttachLua.cpp:FUN_10a76d80 (orig hook 0x5846E0), replaced -- an extended cost without its
+    // ItemExtendedCost row reads -1, -1, -1.
+    if (item && item->m_itemID && item->m_extendedCostID && !g_itemExtendedCostDB.GetRecord(item->m_extendedCostID)) {
+        lua_pushnumber(L, -1.0);
+        lua_pushnumber(L, -1.0);
+        lua_pushnumber(L, -1.0);
+        return 3;
+    }
 
     if (item && item->m_itemID && (cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID))) {
         lua_pushnumber(L, cost->m_honorPoints);
@@ -273,64 +283,83 @@ static int32_t Script_ShowRepairCursor(lua_State* L) {
 // VERIFY: bc45f8d1 manual
 // OFFSET: 0x00584E10
 static int32_t Script_GetMerchantItemInfo(lua_State* L) {
+    // CoA: AscAttachLua.cpp:FUN_10a76f40 (orig hook 0x584E10) -- the last value becomes 1 / nil: whether the item
+    // has an extended cost (the index is not range-checked, as the original).
     if (!lua_isnumber(L, 1)) {
-        return luaL_error(L, "Usage: GetMerchantItemInfo(index)");
+        luaL_error(L, "Usage: GetMerchantItemCostInfo(index)");
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    MerchantItem* item;
+    const int32_t costIndex = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+    const int32_t result = [&]() -> int32_t {
+        if (!lua_isnumber(L, 1)) {
+            return luaL_error(L, "Usage: GetMerchantItemInfo(index)");
+        }
 
-    if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant || !(item = &CGMerchantInfo::m_items[index]) || !item->m_itemID) {
-        lua_pushnil(L);
-        lua_pushnil(L);
-        lua_pushnumber(L, 0.0);
-        lua_pushnumber(L, 1.0);
-        lua_pushnumber(L, 0.0);
-        lua_pushnumber(L, 1.0);
-        lua_pushnil(L);
+        int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        MerchantItem* item;
+
+        if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant || !(item = &CGMerchantInfo::m_items[index]) || !item->m_itemID) {
+            lua_pushnil(L);
+            lua_pushnil(L);
+            lua_pushnumber(L, 0.0);
+            lua_pushnumber(L, 1.0);
+            lua_pushnumber(L, 0.0);
+            lua_pushnumber(L, 1.0);
+            lua_pushnil(L);
+            return 7;
+        }
+
+        ItemStats_C* stats = CGMerchantInfo::GetItemStats(item->m_itemID);
+
+        if (stats) {
+            lua_pushstring(L, stats->GetName(0));
+        } else {
+            lua_pushnil(L);
+        }
+
+        const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+        char texture[260];
+        SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
+        lua_pushstring(L, texture);
+        lua_pushnumber(L, item->m_price);
+        lua_pushnumber(L, item->m_buyCount);
+        lua_pushnumber(L, item->m_maxCount);
+
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
+        ItemExtendedCostRec* cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID);
+        bool affordable = false;
+
+        if (!cost || !cost->m_requiredArenaRating || (static_cast<uint32_t>(cost->m_arenaBracket) <= 2 && CGArenaTeamInfo::CheckPersonalAndTeamRating(cost->m_requiredArenaRating, cost->m_arenaBracket))) {
+            affordable = true;
+        }
+
+        int32_t error;
+
+        // CoA: AscAttachFixes.cpp:FUN_10a442f0 (orig hook 0x6DC3F0) -- this caller keeps the required-level check.
+        if ((player && stats && !player->CanUseItem(stats, error, true)) || !affordable) {
+            lua_pushnil(L);
+        } else {
+            lua_pushnumber(L, 1.0);
+        }
+
+        if (cost) {
+            lua_pushnumber(L, 1.0);
+        } else {
+            lua_pushnil(L);
+        }
+
         return 7;
-    }
+    }();
 
-    ItemStats_C* stats = CGMerchantInfo::GetItemStats(item->m_itemID);
+    lua_settop(L, -2);
 
-    if (stats) {
-        lua_pushstring(L, stats->GetName(0));
-    } else {
-        lua_pushnil(L);
-    }
-
-    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-    char texture[260];
-    SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
-    lua_pushstring(L, texture);
-    lua_pushnumber(L, item->m_price);
-    lua_pushnumber(L, item->m_buyCount);
-    lua_pushnumber(L, item->m_maxCount);
-
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
-    ItemExtendedCostRec* cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID);
-    bool affordable = false;
-
-    if (!cost || !cost->m_requiredArenaRating || (static_cast<uint32_t>(cost->m_arenaBracket) <= 2 && CGArenaTeamInfo::CheckPersonalAndTeamRating(cost->m_requiredArenaRating, cost->m_arenaBracket))) {
-        affordable = true;
-    }
-
-    int32_t error;
-
-    // CoA: AscAttachFixes.cpp:FUN_10a442f0 (orig hook 0x6DC3F0) -- this caller keeps the required-level check.
-    if ((player && stats && !player->CanUseItem(stats, error, true)) || !affordable) {
-        lua_pushnil(L);
-    } else {
-        lua_pushnumber(L, 1.0);
-    }
-
-    if (cost) {
+    if (CGMerchantInfo::m_items[costIndex].m_extendedCostID) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
     }
 
-    return 7;
+    return result;
 }
 
 // VERIFY: a814f0b1 manual
@@ -444,34 +473,28 @@ static int32_t Script_PickupMerchantItem(lua_State* L) {
 // VERIFY: 1597625c manual
 // OFFSET: 0x005854C0
 static int32_t Script_BuyMerchantItem(lua_State* L) {
+    // CoA: AscAttachLua.cpp:FUN_10a6ba50 (orig hook 0x5854C0), replaced -- CMSG_BUY_ITEM {vendor, item, slot, count, 1}
+    // straight away; the count defaults to 0 and is not capped.
     if (!lua_isnumber(L, 1)) {
-        return luaL_error(L, "Usage: BuyMerchantItem(index)");
+        luaL_error(L, "Usage: BuyMerchantItem(index)");
     }
 
-    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)) {
+    if (!ClntObjMgrGetActivePlayerObj()) {
         return 0;
     }
 
     CGGameUI::ClearCursor(1, 1);
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    int32_t count = 1;
+    uint32_t count = 0;
 
-    if (lua_isnumber(L, 2) && static_cast<int32_t>(lua_tonumber(L, 2)) >= 1) {
-        count = static_cast<int32_t>(lua_tonumber(L, 2));
-
-        if (count >= 255) {
-            count = 255;
-        }
+    if (lua_isnumber(L, 2) && lua_tonumber(L, 2) >= 1.0) {
+        count = static_cast<uint32_t>(static_cast<int32_t>(lua_tonumber(L, 2)));
     }
 
-    if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant) {
-        return 0;
-    }
+    const uint32_t index = static_cast<uint32_t>(static_cast<int32_t>(lua_tonumber(L, 1) - 1.0));
 
-    MerchantItem* item = &CGMerchantInfo::m_items[index];
-
-    if (item && item->m_slot) {
-        CGPlayer_C::BuyItem(CGMerchantInfo::m_merchant, item, static_cast<uint8_t>(count), 1);
+    if (index < static_cast<uint32_t>(CGMerchantInfo::m_numMerchantItems) && CGMerchantInfo::m_merchant) {
+        const MerchantItem& item = CGMerchantInfo::m_items[index];
+        CoA::Packet(0x1A2).U64(CGMerchantInfo::m_merchant.m_guid).U32(static_cast<uint32_t>(item.m_itemID)).U32(static_cast<uint32_t>(item.m_slot)).U32(count).U8(1).Send();
     }
 
     return 0;

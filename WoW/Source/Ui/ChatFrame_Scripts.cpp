@@ -1,4 +1,6 @@
 #include "ChatFrame.h"
+#include "CoA/Source/Modules/AttachLua.h"
+#include "WoW/Source/Ui/ChatFrame.h"
 #include <cstdint>
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -1507,6 +1509,22 @@ static int32_t Script_LoggingChat(lua_State* L) {
 // VERIFY: 70d23c41 auto
 // OFFSET: 0x004FBD20
 static int32_t Script_LoggingCombat(lua_State* L) {
+    // CoA: AscAttachLua.cpp:FUN_10a6ff20 (orig hook 0x4FBD20) -- turning it on (with no log open) names the file
+    // "Logs\\<date-time> WoWCombatLog.txt"; turning it off closes the open log first.
+    if (lua_gettop(L) >= 1) {
+        if (StringToBOOL(L, 1, 1)) {
+            if (!s_chatLog[1]) {
+                s_chatLogNames[1] = CoA::AttachLua::NewCombatLogFileName();
+            }
+        } else {
+            if (s_chatLog[1]) {
+                SLogClose(s_chatLog[1]);
+            }
+
+            s_chatLog[1] = nullptr;
+        }
+    }
+
     return EnableLogging(L, 1);
 }
 

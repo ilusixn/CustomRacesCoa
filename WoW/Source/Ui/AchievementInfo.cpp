@@ -1,4 +1,5 @@
 #include "AchievementInfo.h"
+#include "CoA/Source/Modules/AttachMisc.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/AchievementRec.h"
 #include "WoW/Source/DB/Rec/Achievement_CriteriaRec.h"
@@ -298,44 +299,51 @@ void CGAchievementInfo::UpdateAchievement(int32_t id, WowTime date) {
 // VERIFY: 27756e9f manual
 // OFFSET: 0x005B32F0
 int32_t Packet_SMSG_ALL_ACHIEVEMENT_DATA(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    CGAchievementInfo::m_showAchievementUI = 1;
-    WowTime date;
-    int32_t now = static_cast<int32_t>(::time(nullptr));
-    int32_t id;
-    msg->Get(reinterpret_cast<uint32_t&>(id));
-
-    while (id >= 0) {
-        *msg >> date;
-        CGAchievementInfo::UpdateAchievement(id, date);
+    // CoA: AscAttachMisc.cpp:0x10a4f050 (orig hook 0x5B32F0) -- the challenge data stores are rebuilt after; 1.
+    const int32_t result = [&]() -> int32_t {
+        CGAchievementInfo::m_showAchievementUI = 1;
+        WowTime date;
+        int32_t now = static_cast<int32_t>(::time(nullptr));
+        int32_t id;
         msg->Get(reinterpret_cast<uint32_t&>(id));
-    }
 
-    msg->Get(reinterpret_cast<uint32_t&>(id));
-
-    while (id >= 0) {
-        SmartGUID counter;
-        SmartGUID player;
-        uint32_t flags;
-        uint32_t timer1;
-        uint32_t timer2;
-        *msg >> counter;
-        *msg >> player;
-        msg->Get(flags);
-        *msg >> date;
-        msg->Get(timer1);
-        msg->Get(timer2);
-        CGAchievementInfo::UpdateCriteria(id, counter.m_guid, flags, date, player, now - timer1, now - timer2);
-        Achievement_CriteriaRec* rec = g_achievement_CriteriaDB.GetRecord(id);
-
-        if (rec && rec->m_timerTime) {
-            FrameScript_SignalEvent(SCRIPT_EVENT_TRACKED_ACHIEVEMENT_UPDATE, "%d%d%d%d", rec->m_achievementID, rec->m_id, timer1, rec->m_timerTime);
+        while (id >= 0) {
+            *msg >> date;
+            CGAchievementInfo::UpdateAchievement(id, date);
+            msg->Get(reinterpret_cast<uint32_t&>(id));
         }
 
         msg->Get(reinterpret_cast<uint32_t&>(id));
-    }
 
-    FrameScript_SignalEvent(SCRIPT_EVENT_CRITERIA_UPDATE, nullptr);
-    FrameScript_SignalEvent(SCRIPT_EVENT_RECEIVED_ACHIEVEMENT_LIST, nullptr);
+        while (id >= 0) {
+            SmartGUID counter;
+            SmartGUID player;
+            uint32_t flags;
+            uint32_t timer1;
+            uint32_t timer2;
+            *msg >> counter;
+            *msg >> player;
+            msg->Get(flags);
+            *msg >> date;
+            msg->Get(timer1);
+            msg->Get(timer2);
+            CGAchievementInfo::UpdateCriteria(id, counter.m_guid, flags, date, player, now - timer1, now - timer2);
+            Achievement_CriteriaRec* rec = g_achievement_CriteriaDB.GetRecord(id);
+
+            if (rec && rec->m_timerTime) {
+                FrameScript_SignalEvent(SCRIPT_EVENT_TRACKED_ACHIEVEMENT_UPDATE, "%d%d%d%d", rec->m_achievementID, rec->m_id, timer1, rec->m_timerTime);
+            }
+
+            msg->Get(reinterpret_cast<uint32_t&>(id));
+        }
+
+        FrameScript_SignalEvent(SCRIPT_EVENT_CRITERIA_UPDATE, nullptr);
+        FrameScript_SignalEvent(SCRIPT_EVENT_RECEIVED_ACHIEVEMENT_LIST, nullptr);
+        return 1;
+    }();
+
+    static_cast<void>(result);
+    CoA::AttachMisc::achievementsChanged.Run();
     return 1;
 }
 
@@ -404,18 +412,25 @@ int32_t Packet_SMSG_RESPOND_INSPECT_ACHIEVEMENTS(void* param, NETMESSAGE msgId, 
 // VERIFY: 0126902f manual
 // OFFSET: 0x005B3610
 int32_t Packet_SMSG_ACHIEVEMENT_DELETED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    int32_t id;
-    msg->Get(reinterpret_cast<uint32_t&>(id));
+    // CoA: AscAttachMisc.cpp:FUN_10a4eff0 (orig hook 0x5B3610) -- the challenge data stores are rebuilt after; 1.
+    const int32_t result = [&]() -> int32_t {
+        int32_t id;
+        msg->Get(reinterpret_cast<uint32_t&>(id));
 
-    for (CLIENT_ACHIEVEMENTS* node = s_completedAchievements.Head(); node; node = s_completedAchievements.Next(node)) {
-        if (node->m_id == id) {
-            s_completedAchievements.UnlinkNode(node);
-            FrameScript_SignalEvent(SCRIPT_EVENT_ACHIEVEMENT_EARNED, "%d", id);
-            delete node;
-            return 1;
+        for (CLIENT_ACHIEVEMENTS* node = s_completedAchievements.Head(); node; node = s_completedAchievements.Next(node)) {
+            if (node->m_id == id) {
+                s_completedAchievements.UnlinkNode(node);
+                FrameScript_SignalEvent(SCRIPT_EVENT_ACHIEVEMENT_EARNED, "%d", id);
+                delete node;
+                return 1;
+            }
         }
-    }
 
+        return 1;
+    }();
+
+    static_cast<void>(result);
+    CoA::AttachMisc::achievementsChanged.Run();
     return 1;
 }
 
@@ -657,39 +672,46 @@ void CGAchievementInfo::UpdateInspectCriteria(WOWGUID guid, int32_t id, uint64_t
 // VERIFY: 223cdc99 manual
 // OFFSET: 0x005B3020
 int32_t Packet_SMSG_ACHIEVEMENT_EARNED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    WowTime date;
-    SmartGUID player;
-    int32_t id;
-    uint32_t silent;
-    *msg >> player;
-    msg->Get(reinterpret_cast<uint32_t&>(id));
-    *msg >> date;
-    msg->Get(silent);
+    // CoA: AscAttachMisc.cpp:FUN_10a4f020 (orig hook 0x5B3020) -- the challenge data stores are rebuilt after; 1.
+    const int32_t result = [&]() -> int32_t {
+        WowTime date;
+        SmartGUID player;
+        int32_t id;
+        uint32_t silent;
+        *msg >> player;
+        msg->Get(reinterpret_cast<uint32_t&>(id));
+        *msg >> date;
+        msg->Get(silent);
 
-    if (ClntObjMgrGetActivePlayer() == player) {
-        CGAchievementInfo::UpdateAchievement(id, date);
-    }
+        if (ClntObjMgrGetActivePlayer() == player) {
+            CGAchievementInfo::UpdateAchievement(id, date);
+        }
 
-    AchievementRec* achievement = g_achievementDB.GetRecord(id);
+        AchievementRec* achievement = g_achievementDB.GetRecord(id);
 
-    if (!achievement || silent) {
+        if (!achievement || silent) {
+            return 1;
+        }
+
+        if (!(achievement->m_flags & 0x4)) {
+            void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
+            CEffect* effect = memory ? new (memory) CEffect() : nullptr;
+            WOWGUID guid = player;
+            effect->AddSpecialEffect(SPECIALEFFECT_ACHIEVEMENTBASE, guid, CGObject_C::EffectOnceHandler);
+            effect->m_flags |= 0x20;
+            effect->Release();
+        }
+
+        if (ClntObjMgrGetActivePlayer() == player) {
+            CGAchievementInfo::RemoveTrackedAchievement(achievement->m_id);
+            FrameScript_SignalEvent(SCRIPT_EVENT_ACHIEVEMENT_EARNED, "%d", achievement->m_id);
+        }
+
         return 1;
-    }
+    }();
 
-    if (!(achievement->m_flags & 0x4)) {
-        void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
-        CEffect* effect = memory ? new (memory) CEffect() : nullptr;
-        WOWGUID guid = player;
-        effect->AddSpecialEffect(SPECIALEFFECT_ACHIEVEMENTBASE, guid, CGObject_C::EffectOnceHandler);
-        effect->m_flags |= 0x20;
-        effect->Release();
-    }
-
-    if (ClntObjMgrGetActivePlayer() == player) {
-        CGAchievementInfo::RemoveTrackedAchievement(achievement->m_id);
-        FrameScript_SignalEvent(SCRIPT_EVENT_ACHIEVEMENT_EARNED, "%d", achievement->m_id);
-    }
-
+    static_cast<void>(result);
+    CoA::AttachMisc::achievementsChanged.Run();
     return 1;
 }
 

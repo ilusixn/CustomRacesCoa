@@ -603,42 +603,63 @@ static int32_t Script_GetLFDLockPlayerCount(lua_State* L) {
 // VERIFY: 51dce08f auto
 // OFFSET: 0x00557BE0
 static int32_t Script_GetLFGDungeonRewardInfo(lua_State* L) {
-    // STATIC: 0x00BEABC8
-    static char texture[260];
+    // CoA: AscAttachLua.cpp:FUN_10a76b70 (orig hook 0x557BE0) -- one more value: the reward's item id (by the
+    // dungeon's type and id, unchecked arguments, as the original).
+    const int32_t result = [&]() -> int32_t {
+        // STATIC: 0x00BEABC8
+        static char texture[260];
 
-    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
-        luaL_error(L, "Usage: GetLFGDungeonRewardInfo(dungeonID, lootIndex)");
-        return 0;
+        if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+            luaL_error(L, "Usage: GetLFGDungeonRewardInfo(dungeonID, lootIndex)");
+            return 0;
+        }
+
+        int32_t dungeonID = lua_tointeger(L, 1);
+        LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(dungeonID);
+
+        if (!rec || (rec->m_typeID != 6 && !(rec->m_flags & 0x4))) {
+            return 0;
+        }
+
+        uint32_t slot = (rec->m_typeID << 24) | (dungeonID & 0xFFFFFF);
+        LFGRewardItem* item = CGLookingForGroup::GetDungeonRewardItem(slot, lua_tointeger(L, 2) - 1);
+
+        if (!item) {
+            return 0;
+        }
+
+        WOWGUID none = WOWGUID();
+        const char* name = "";
+        ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_itemID, none, RandomDungeonRewardItemStatsCallback, nullptr, false);
+
+        if (stats) {
+            name = stats->GetName(0);
+        }
+
+        const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+        SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
+        lua_pushstring(L, name);
+        lua_pushstring(L, texture);
+        lua_pushnumber(L, item->m_quantity);
+        return 3;
+    }();
+
+    const int32_t dungeonID = static_cast<int32_t>(lua_tonumber(L, 1));
+    const int32_t lootIndex = static_cast<int32_t>(lua_tonumber(L, 2));
+    LfgDungeonsRec* dungeon = g_lfgDungeonsDB.GetRecord(dungeonID);
+
+    if (!dungeon) {
+        return result;
     }
 
-    int32_t dungeonID = lua_tointeger(L, 1);
-    LfgDungeonsRec* rec = g_lfgDungeonsDB.GetRecord(dungeonID);
+    LFGRewardItem* reward = CGLookingForGroup::GetDungeonRewardItem((static_cast<uint32_t>(dungeon->m_typeID) << 24) | (dungeonID & 0xFFFFFF), lootIndex - 1);
 
-    if (!rec || (rec->m_typeID != 6 && !(rec->m_flags & 0x4))) {
-        return 0;
+    if (!reward) {
+        return result;
     }
 
-    uint32_t slot = (rec->m_typeID << 24) | (dungeonID & 0xFFFFFF);
-    LFGRewardItem* item = CGLookingForGroup::GetDungeonRewardItem(slot, lua_tointeger(L, 2) - 1);
-
-    if (!item) {
-        return 0;
-    }
-
-    WOWGUID none = WOWGUID();
-    const char* name = "";
-    ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_itemID, none, RandomDungeonRewardItemStatsCallback, nullptr, false);
-
-    if (stats) {
-        name = stats->GetName(0);
-    }
-
-    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-    SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
-    lua_pushstring(L, name);
-    lua_pushstring(L, texture);
-    lua_pushnumber(L, item->m_quantity);
-    return 3;
+    lua_pushinteger(L, reward->m_itemID);
+    return result + 1;
 }
 
 // VERIFY: ea869eb8 manual
