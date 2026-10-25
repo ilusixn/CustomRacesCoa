@@ -34,7 +34,9 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
-static const float MAX_SHORT_RANGE_TELEPORT_SQUARED = 22500.0f;
+// CoA: AscAccount.cpp:OnGMStatus (runtime patch 0xA32904) -- the original's constant becomes FLT_MAX for a GM.
+// STATIC: 0x00A32904
+float g_maxShortRangeTeleportSquared = 22500.0f;
 
 static const int32_t HEARTBEAT_INTERVAL_MS = 500;
 
@@ -5539,7 +5541,7 @@ void CMovement_C::Teleport(WOWGUID transport, const C3Vector& position, float fa
     float dx = this->m_position.x - position.x;
     float dy = this->m_position.y - position.y;
     float dz = this->m_position.z - position.z;
-    int32_t preload = dz * dz + dy * dy + dx * dx > MAX_SHORT_RANGE_TELEPORT_SQUARED;
+    int32_t preload = dz * dz + dy * dy + dx * dx > g_maxShortRangeTeleportSquared;
 
     this->CMovementShared::Teleport(position, facing, removeSpline);
     this->RemoveFromMoversList(1);

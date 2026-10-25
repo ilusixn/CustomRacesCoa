@@ -1,6 +1,7 @@
 #ifndef COA_SOURCE_RUNTIME_EVENTS_H
 #define COA_SOURCE_RUNTIME_EVENTS_H
 
+#include <cstdarg>
 #include <cstdint>
 
 // The DLL's FrameXML events (port of AscRuntime's event code and the scaffold's DataContainer event list).
@@ -21,11 +22,22 @@ namespace CoA::Events {
     int32_t Id(const char* name);
     // The event name at an index of the client's table, or nullptr.
     const char* Name(int32_t id);
-    // AscRuntime::Signal: FrameScript_SignalEvent (0x81B530) when the client knows the name.
+    // AscRuntime::Signal: FrameScript_SignalEvent (0x81B530) when the client knows the name. Goes to the installed
+    // sink (EventsClient.cpp's InstallClient; tests install a recorder); nothing happens without one.
     void Signal(const char* name, const char* format, ...);
+    using SignalSink = void (*)(const char* name, const char* format, va_list args);
+    void SetSignalSink(SignalSink sink);
+    // EventsClient.cpp: the FrameScript sink.
+    void InstallClient();
 }
 
-// Marks a module's custom event; Tools/coa/inventory.py counts these.
-#define COA_EVENT(name) CoA::Events::Queue(name)
+namespace CoA::Events {
+    // A module declares an event it fires (the names themselves are all queued by RegisterNames). Logs a name the
+    // client table will not have; returns whether it is known.
+    bool Fires(const char* name);
+}
+
+// Declares an event a module fires; Tools/coa/inventory.py counts these.
+#define COA_EVENT(name) CoA::Events::Fires(name)
 
 #endif
