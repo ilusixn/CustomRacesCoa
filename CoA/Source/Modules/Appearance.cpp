@@ -14,16 +14,16 @@
 //
 // SMSG:
 //   0x698 (FUN_100c4a50) str result: APPLY_APPEARANCES_* (29); OK -> current := pending;
-//         APPLY_PENDING_APPEARANCE_RESULT(result, ok).
+//         APPLY_PENDING_APPEARANCE_RESULT(ok, result).
 //   0x699 (FUN_100c4480) u32 n x {u32 appearance, u32 time}: the collected list.
 //   0x69A (FUN_100c41e0) u32 n x u32: current; then pending := current.
 //   0x69B (handler_0x069b) u32 appearance, u32 -- newly collected (time now); APPEARANCE_COLLECTED(id).
 //   0x69C (handler_0x069c) u32 appearance, u32 -- uncollected; APPEARANCE_UNCOLLECTED(id).
 //   0x69D (FUN_100c4530) u32 n x {str name, u32 m x u32}: the outfits.
 //   0x69F (FUN_100c5320) str result: SAVE_APPEARANCE_OUTFIT_*; OK -> outfits[pending name] := pending outfit;
-//         APPEARANCE_OUTFIT_SAVED_RESULT(result, ok).
+//         APPEARANCE_OUTFIT_SAVED_RESULT(ok, result).
 //   0x6A1 (FUN_100c4f70) str result: DELETE_APPEARANCE_OUTFIT_*; OK -> erase outfits[pending name];
-//         APPEARANCE_OUTFIT_DELETED_RESULT(result, ok).
+//         APPEARANCE_OUTFIT_DELETED_RESULT(ok, result).
 //   0x6A2 (handler_0x06a2) u8, u8 -> +0x1A4, +0x1A5.
 //   0x6EB (FUN_100c4da0) str -> COLLECT_ITEM_APPEARANCE_RESULT(str).
 //
