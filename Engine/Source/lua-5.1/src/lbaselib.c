@@ -635,11 +635,11 @@ static void base_open (lua_State *L) {
 }
 
 
-// VERIFY: 44afe790 auto
-// OFFSET: 0x00855060
 /* CoA: set by CoA::Attach to CoA_OnLuaBaseOpened; the Lua library does not link the CoA code itself */
 void (*g_luaBaseOpenedHook)(lua_State *L);
 
+// VERIFY: 44afe790 auto
+// OFFSET: 0x00855060
 LUALIB_API int luaopen_base (lua_State *L) {
   base_open(L);
   luaL_register(L, LUA_COLIBNAME, co_funcs);
