@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-class CVar;
+struct CVar;
 
 namespace CoA {
     // One DLL CVar, as its registrar call passes it to CVar::Register (0x767FC0). `slot` receives the CVar* at every
@@ -26,6 +26,9 @@ namespace CoA::CVars {
     // FUN_101145c0 (glue vector, world = false) / FUN_10114540 (world queue, world = true); called from module Init
     // in the original's order.
     void Queue(const CoA::CVarEntry& entry, bool world);
+    // A client module attaches its callback to a queued entry before registration (the original registers each with
+    // its callback; here the callbacks live in client-only files). False when no entry has the name.
+    bool SetCallback(const char* name, bool (*callback)(CVar* var, const char* oldValue, const char* value, void* arg));
     // Tests only.
     void Reset();
 

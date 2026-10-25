@@ -105,6 +105,8 @@ inline CVarArrayWrapper::CVarArrayWrapper(CVar* cvar) {
 
 // CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640).
 extern bool (*g_cvarSaveFilterHook)(const char* name);
+// CoA: AscRaidVideo.cpp:FUN_102dc5f0 (orig hook 0x766640) -- the value SaveCvar writes.
+extern const char* (*g_cvarSaveValueHook)(const char* name, const char* value);
 // CoA: AscAttachMisc.cpp:FUN_10a4a780 (orig hook 0x7668C0) -- the value CVar::Set goes on with.
 extern const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 

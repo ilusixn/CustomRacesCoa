@@ -1,4 +1,5 @@
 #include "World.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
@@ -2156,7 +2157,9 @@ void CWorldScene::AddDoodadDefModelToModelScene(CMapDoodadDef* doodadDef) {
 
     float alpha = 1.0f;
 
-    if ((CWorld::enables & Enable_NoFullAlpha) && !(flags & 0x800)) {
+    // CoA: AscGraphics.cpp:FUN_10261d60 (Extensions.dll patch 0x791D6A) -- lodObjectCull other than "1" makes the jne a
+    // jmp: the fade block never runs.
+    if (CoA::Graphics::LodObjectCull() && (CWorld::enables & Enable_NoFullAlpha) && !(flags & 0x800)) {
         float dx = doodadDef->m_sphere.c.x - CWorldScene::s_activeWorldView.x;
         float dy = doodadDef->m_sphere.c.y - CWorldScene::s_activeWorldView.y;
         float dz = doodadDef->m_sphere.c.z - CWorldScene::s_activeWorldView.z;
@@ -4412,7 +4415,9 @@ void CWorldScene::RenderEntitys() {
 
         CM2Model* model = entity->m_model;
 
-        if (model && model->IsLoaded(0, 0) && !(entity->m_staticFlags & 0x4)) {
+        // CoA: AscGraphics.cpp:FUN_1025e290 (Extensions.dll patch 0x793A45) -- entityShadows other than "1" makes the je on
+        // the model a jmp: the entity is not drawn in this pass.
+        if (CoA::Graphics::EntityShadows() && model && model->IsLoaded(0, 0) && !(entity->m_staticFlags & 0x4)) {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ entity->m_funcParam64 }, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {

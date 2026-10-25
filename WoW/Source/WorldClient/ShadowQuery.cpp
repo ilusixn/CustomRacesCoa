@@ -1,4 +1,5 @@
 #include "ShadowQuery.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/Types.h"
@@ -473,7 +474,9 @@ void CShadowQuery::GatherShadowCasters(CShadowCacheQueryData& data, int32_t firs
             isUnit = 0;
         }
 
-        uint32_t doodad = (model->m_fFlags & 0x1) ? model->m_shared->m_billboardBoneCount : 0;
+        // CoA: AscGraphics.cpp:FUN_1025e290 (Extensions.dll patch 0x7BBA22) -- entityShadows other than "1" NOPs the jne:
+        // never a doodad caster.
+        uint32_t doodad = (CoA::Graphics::EntityShadows() && (model->m_fFlags & 0x1)) ? model->m_shared->m_billboardBoneCount : 0;
 
         for (int32_t band = firstBand; band <= lastBand; band++) {
             int32_t queryFlags = data.m_queryFlags[band];

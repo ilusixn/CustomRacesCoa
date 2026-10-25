@@ -297,6 +297,8 @@ int32_t CVar::Delete(const char* fileName) {
 
 // CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640) -- names the DLL lists are skipped (returns 1).
 bool (*g_cvarSaveFilterHook)(const char* name);
+// CoA: set by CoA::GlueCVarsClient (the raid video settings).
+const char* (*g_cvarSaveValueHook)(const char* name, const char* value);
 // CoA: set by CoA::AttachMiscClient.
 const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 
@@ -305,6 +307,12 @@ const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 int32_t CVar::SaveCvar(const char* name, const char* value, void* arg) {
     if (g_cvarSaveFilterHook && g_cvarSaveFilterHook(name)) {
         return 1;
+    }
+
+    // CoA: AscRaidVideo.cpp:FUN_102dc5f0 (orig hook 0x766640) -- in a raid the base video CVars keep their own values
+    // in Config.wtf.
+    if (g_cvarSaveValueHook) {
+        value = g_cvarSaveValueHook(name, value);
     }
 
     return CVar::WriteCvarLine(name, value, arg);

@@ -47,5 +47,6 @@ namespace CoA::AttachFixesClient { void Init(); }
 namespace CoA::AttachLuaClient { void Init(); }
 namespace CoA::AttachMiscClient { void Init(); }
 namespace CoA::ProfilerClient { void Init(); }
+namespace CoA::GlueCVarsClient { void Init(); }
 
 #endif
