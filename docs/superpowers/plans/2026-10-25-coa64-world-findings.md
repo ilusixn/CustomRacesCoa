@@ -193,3 +193,13 @@ Next by count: Appearance (GameTooltip), then Tutorial, Challenge / DraftMode, M
    and event the reconstruction registers, until every row reads total / total. The per-error order above stops
    setting priority; the inventory gaps do.
 3. Then DXVK, then a proper Warden plan. Helios is out of scope.
+
+## Plan 8 result (appearance)
+
+Capture 2026-10-26, `-extlog 1`, about 2 minutes in world, no crash. The GameTooltip.lua:633 `C_Appearance` errors
+(3,243) are gone, and Lua errors fell from 3,274 to 31 for the whole session (login, realm and character screens
+included; the only glue-screen one is the missing `useUiScale` CVar). What is left is all inventory-parity work:
+`C_Tutorial` 8, C stack overflow 4, `HasHandOfFateSacrificePick` 3, `C_Manastorm` 3, `C_Challenge` 2, `C_LootLockout` 2,
+one each for `C_SkillCardCollection`, `C_PlayerTicket`, `C_AssetQueryService`, `C_CustomStore`, `C_BuildCreator`, the
+options-panel profanity widget and three missing CVars (`useUiScale`, `autoAcceptTrades`,
+`ObjectSelectionCircleTexture`). Open item: SpellVisuals (applied SPELL_VISUAL appearances need it).
