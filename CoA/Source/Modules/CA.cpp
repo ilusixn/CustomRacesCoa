@@ -754,6 +754,10 @@ namespace CoA::CA::detail {
 // ---- rows ----------------------------------------------------------------------------------------------------------
 using namespace CoA::CA::detail;
 
+std::vector<Row>& CoA::CA::detail::ClassListFor(ClassLists& l, Row r) {
+    return ListFor(l, r);
+}
+
 CoA::CA::Row CoA::CA::FindRow(uint32_t id) {
     return Rows().Row(id);
 }

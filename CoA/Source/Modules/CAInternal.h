@@ -88,6 +88,7 @@ namespace CoA::CA::detail {
     };
 
     Index& Idx();
+    std::vector<Row>& ClassListFor(ClassLists& l, Row r);   // the list of the row's type (FUN_10148850's pick)
     void BuildIndex();          // FUN_1014a530
     void IndexRow(Row r);       // FUN_1014a330(row, 1)
     void UnindexRow(Row r);     // FUN_10148fd0

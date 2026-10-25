@@ -698,6 +698,7 @@ void CoA::CA::Init() {
     CoA::GameMode::Dependencies().activeSpecIndex = CoA::CA::ActiveSpecIndex;
     CoA::MysticEnchant::Dependencies().investment = Investment;
     InitNatives();
+    InitEdit();
     COA_EVENT("ASCENSION_CA_SPECIALIZATION_ACTIVE_ID_CHANGED");
     COA_EVENT("ASCENSION_KNOWN_ENTRY_UPDATED");
     COA_EVENT("ASCENSION_ENTRY_UPDATED");

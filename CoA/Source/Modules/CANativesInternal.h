@@ -24,6 +24,8 @@ namespace CoA::CA::detail {
     std::string ClassName(uint32_t cls);   // ClassTypes +4, else INVALID_CLASS_TYPE_<n>
     std::string TabName(uint32_t tab);     // TabTypes +4, else INVALID_TAB_TYPE_<n>
 
+    void SetInt(lua_State* L, const char* k, int32_t v);              // t[k] = v, t at -1
+    void SetStr(lua_State* L, const char* k, const std::string& v);
     void PushEntry(lua_State* L, Row r);                             // FUN_10172cf0 (nil without a row)
     void PushEntryList(lua_State* L, const std::vector<Row>& rows);  // FUN_10172df0
     void PushIntArray(lua_State* L, const std::vector<uint32_t>& v); // FUN_1009a460
@@ -47,6 +49,7 @@ namespace CoA::CA::detail {
 
     // Each native file's binding table, added from CoA::CA::Init.
     void InitNatives();   // CANatives.cpp
+    void InitEdit();      // CAEdit.cpp
 }
 
 #endif
