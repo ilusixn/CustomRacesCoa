@@ -1080,13 +1080,17 @@ int32_t FrameXML_CheckSignature(const char* tocFile, const char* extraFile, cons
     void* data;
     uint32_t size;
 
+    // CoA: Ascension.exe patch 0x816625, 0x81663E, 0x816694, 0x81675F -- the check always reports a valid signature: a
+    // missing or wrong-sized .sig, a failed verification and a digest mismatch all return 3; the digest is still computed
+    // for a verified file. (With no .sig the exe goes on with an unread size and unloads an unread pointer; here it
+    // returns.)
     if (!SFile::ReadFile(nullptr, sigFile, &data, &size, 0, 1, nullptr)) {
-        return 0;
+        return 3;
     }
 
     if (size != 276) {
         SFile::Unload(data);
-        return 1;
+        return 3;
     }
 
     char* name = SStrChrR(sigFile, '\\');
@@ -1095,7 +1099,7 @@ int32_t FrameXML_CheckSignature(const char* tocFile, const char* extraFile, cons
 
     if (!VerifySignature(static_cast<const uint8_t*>(data), size, modulus, name)) {
         SFile::Unload(data);
-        return 1;
+        return 3;
     }
 
     uint8_t signedDigest[16];
@@ -1104,5 +1108,7 @@ int32_t FrameXML_CheckSignature(const char* tocFile, const char* extraFile, cons
 
     CalculateSignatureMD5(tocFile, extraFile, digest);
 
-    return memcmp(signedDigest, digest, sizeof(signedDigest)) ? 2 : 3;
+    // (The exe computes the comparison, then overwrites it with 3.)
+    static_cast<void>(signedDigest);
+    return 3;
 }
