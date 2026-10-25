@@ -246,10 +246,13 @@ namespace CAFixture {
         CaRow(139).Spell(1, 5709).U32(0x88, 50).Put();                           // needs 50 AE invested
         CaRow(140).Spell(1, 5710).U32(0xA4, 5).Put();                            // needs 5 class points
         CaRow(141).Spell(1, 5711).Put();                                         // rewritten by SMSG 0x64A
-        CaRow(142).Str(4, "TalentAbility").Spell(1, 5712).Put();                // a talent ability
+        CaRow(142).Str(4, "TalentAbility").Spell(1, 5712).Put();
+        CaRow(150).Spell(1, 5800).U32(0x80, 9).Put();                                          // a CoA-class ability
+        CaRow(151).Str(4, "Talent").Spell(1, 5801).Spell(2, 5802).U32(0x80, 9).Put();          // a CoA-class talent, 2 ranks                // a talent ability
         // ClassTypes: id, name, class, hero, coa, stock, L.
         PutWords(ClassTypeTable(), { 3, ClassTypeTable().Str("Warrior"), 1, 0, 0, 0, 0 });
         PutWords(ClassTypeTable(), { 5, ClassTypeTable().Str("Mage"), 8, 0, 0, 0, 0 });
+        PutWords(ClassTypeTable(), { 9, ClassTypeTable().Str("General"), 0, 0, 1, 0, 0 });   // any CoA class (12..32)
         PutWords(TabTypeTable(), { 7, TabTypeTable().Str("Protection"), 0 });
         // Essence: id, level, class, draft, wildcard, specDraft, u2c, AE, TE.
         PutWords(EssenceTable(), { 1, 10, 1, 0, 0, 0, 0, 20, 5 });

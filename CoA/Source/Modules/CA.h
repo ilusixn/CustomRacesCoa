@@ -311,6 +311,10 @@ namespace CoA::CA {
         bool (*wildcardRollInFlight)() = nullptr;                           // AscWildcardRapid::InFlight
         void (*wildcardMarkRerollPending)() = nullptr;                      // AscWildcardRapid::MarkRerollPending
         void (*wildcardArmPoll)() = nullptr;                                // AscWildcardRolls::ArmPoll
+        std::string (*exportBuild)(const Build& b, bool includeREs) = nullptr;   // AscBuildCreator::ExportBuildOf
+        std::string (*decodeLink)(const std::string& url) = nullptr;             // AscBuildCreator::DecodeLink
+        BuildSeed (*seedFromLink)(const std::string& url) = nullptr;             // AscBuildCreator::SeedFromLink
+        bool (*seedOfBuild)(const std::string& id, BuildSeed& seed) = nullptr;   // AscBuildCreator::SeedOfBuild
     };
 
     Deps& Dependencies();
