@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/Misc.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -99,26 +100,13 @@ static int32_t Packet_SMSG_GAMETIME_UPDATE(void* param, NETMESSAGE msgId, uint32
 // VERIFY: 7ffa0808 auto
 // OFFSET: 0x007E2A50
 static int32_t Packet_SMSG_SERVERTIME(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    uint32_t encodedTime;
-    uint32_t lastTick;
-    msg->Get(encodedTime);
-    msg->Get(lastTick);
-
-    if (!msg->IsRead()) {
-        ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->m_size, msg->m_read);
-        return 0;
-    }
-
-    WowTime serverTime;
-    WowTime::WowDecodeTime(encodedTime, &serverTime);
-    serverTime.m_tzHours = 0;
-
-    char timeString[128];
-    char text[256];
-    SStrPrintf(text, sizeof(text), "Server game time is %s", WowTime::WowGetTimeString(&serverTime, timeString, sizeof(timeString)));
-    ConsoleWrite(text, DEFAULT_COLOR);
-    SStrPrintf(text, sizeof(text), "Server last tick is 0x%08x %s", lastTick, static_cast<int32_t>(lastTick) < 0 ? "(High bit set)" : "");
-    ConsoleWrite(text, DEFAULT_COLOR);
+    // CoA: AscMisc.cpp:FUN_10a4f500 (orig hook 0x7E2A50), replacing the handler -- the first u32 is skipped, the second
+    // is the server's epoch time (GetServerTimeOffset).
+    uint32_t skipped;
+    uint32_t serverTime;
+    msg->Get(skipped);
+    msg->Get(serverTime);
+    CoA::Misc::ServerTimeReceived(static_cast<int32_t>(serverTime));
     return 1;
 }
 

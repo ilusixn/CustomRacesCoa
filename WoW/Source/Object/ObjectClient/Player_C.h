@@ -601,4 +601,7 @@ int32_t GetModalNextSpell();
 uint32_t GetVisibleAuraEffectDisplay();
 uint32_t GetVisibleAuraEffectFlags();
 
+// CoA: AscMisc.cpp:GetBindPosition.
+void PlayerGetBindPoint(C3Vector* position, uint32_t* mapId);
+
 #endif

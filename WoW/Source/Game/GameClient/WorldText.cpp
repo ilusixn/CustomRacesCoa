@@ -1,4 +1,5 @@
 #include "WorldText.h"
+#include "CoA/Source/Modules/Misc.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -300,7 +301,16 @@ void WORLDTEXTSTRING::CalculateTextHeight(uint32_t elapsed) {
 
 // VERIFY: 9e3ba832 auto
 // OFFSET: 0x007E6DC0
-WORLDTEXTSTRING* WorldTextCreate(uint32_t type, const C3Vector& position, const char* text, const CImVector* color, const int32_t* pvpRank) {
+WORLDTEXTSTRING* WorldTextCreate(uint32_t type, const C3Vector& requested, const char* text, const CImVector* color, const int32_t* pvpRank) {
+    // CoA: AscMisc.cpp:LAB_10a77da0 (orig hook 0x7E6DC0) -- CreateWorldText's stored position (all three non-zero)
+    // replaces the caller's, once.
+    C3Vector placed = requested;
+    float stored[3];
+
+    if (CoA::MiscClient::TakeWorldTextPosition(stored)) {
+        placed = C3Vector(stored[0], stored[1], stored[2]);
+    }
+
     if (!text || !*text) {
         return nullptr;
     }
@@ -313,7 +323,7 @@ WORLDTEXTSTRING* WorldTextCreate(uint32_t type, const C3Vector& position, const 
         string->m_color = s_worldTextTypes[type].m_color;
     }
 
-    string->m_position = position;
+    string->m_position = placed;
     string->m_type = type;
     string->m_startTime = OsGetAsyncTimeMs();
     SStrCopy(string->m_text, text, sizeof(string->m_text));
@@ -579,4 +589,14 @@ void WorldTextInitialize() {
     for (uint32_t i = 0; i < 15; i++) {
         s_pvpRankTextures[i] = TextureCreate(s_pvpRankTextureNames[i], CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1, 0, 0, 0), &status, 0);
     }
+}
+
+// CoA: AscMisc.cpp:CreateWorldText (FUN_10a4ac90) writes world text type 5's style (0xAF4748 +0x8C..+0xA0) and the
+// float at 0xAF4890 (s_iconPositions[1].x).
+WORLDTEXTTYPE* WorldTextTypeStyle(uint32_t type) {
+    return &s_worldTextTypes[type];
+}
+
+C3Vector* WorldTextIconPositions() {
+    return s_iconPositions;
 }
