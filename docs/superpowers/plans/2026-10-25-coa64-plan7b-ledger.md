@@ -1,0 +1,31 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-25-coa64-plan7-character-advancement.md (7b)
+7a: complete, merged 523b02c (ledger docs/superpowers/plans/2026-10-25-coa64-plan7a-ledger.md)
+7b Task 3: Ruling: the global GetClassInfo is not registered by CA -- ClassRaceClient already registers the same ChrClasses handler (name, filename, id; ReadNumber failure returns nothing; three nils) -- cost if wrong: none, one registration either way.
+7b Task 3: Ruling: PickupSpell's spellbook walk (0xBE8D98 / 0xBE6D88) and 0x53BAF0 go through Deps::pickupFromSpellbook; unit tokens through Deps::unitTokenGuid; RankNumber through Deps::rankNumber (1 when unset, as for an unranked spell) -- cost if wrong: none.
+7b Task 3: Ruling: GetActiveChrSpec is tested only without a pending build: ChrSpecs.dbc loads once per process and ClassInfoTest owns its rows -- cost if wrong: a wrong spec id from GetActiveChrSpec would go unnoticed by the suite.
+7b Task 3: Ruling: SpellAtRankOf takes the rank as a byte (FUN_101c62e0), so 257 is rank 1 -- CA_SpellAtRankByte RED->GREEN -- cost if wrong: none.
+7b Task 3: note: natives were transcribed before their tests; mutations of EntryOrder's 0xA4 key, PendingOrError's raise and KindSpell's TalentAbility case each CAUGHT (the last after adding fixture row 142).
+7b Task 3: complete (commits cf9db2d..686fef0, tests: cmd //c Tools\coa\check.bat -> 320 tests, 0 failed)
+7b Task 4: Ruling: LearnID's group-1 exclusivity (every other +0x74 == 1 row's entry removed from the copy) is kept as the reconstruction has it -- checked against the genuine DLL at 0x1017D35D..0x1017D397 (CharacterAdvancement.dbc table 0x10bdf65c) -- cost if wrong: none, it is the original.
+7b Task 4: Ruling: unported modules answer through new Deps (tokenAtLeast, specHasCreatorBuild, wildcardRollActive / InFlight / MarkRerollPending / ArmPoll); unset means no token, no creator build, no roll, and the re-arm / pending flags are skipped -- cost if wrong: wildcard Scroll-of-Fortune confirmations and the creator-build purge confirm are missing until Wildcard / Token / BuildCreator are ported.
+7b Task 4: Ruling: the original's unit pointer arguments (ActivePlayer, ObjectPtr(guid, 0x10)) become the active player's GUID with UnitExists -- cost if wrong: none (7a's GUID convention).
+7b Task 4: note: transcribed before tests; mutations of LearnID's group-1 removal, Clear's group-1 keep, AddRanks' all-or-nothing copy and UnlearnID's roll gate each CAUGHT.
+7b Task 4: complete (commits 686fef0..234e680, tests: cmd //c Tools\coa\check.bat -> 330 tests, 0 failed)
+7b Task 5: Ruling: SMSG 0x6E2 stops reading a spec whose entry count exceeds the bytes left (the 7a 0x726 guard), then still signals and resets the pending build; the original reads past the buffer -- cost if wrong: a malformed inspect packet leaves that spec's old entries.
+7b Task 5: Ruling: the reconstruction's "[CA] suggestions: ..." log line is its own diagnostic, not the original's, and is left out -- cost if wrong: one log line missing.
+7b Task 5: Ruling: CA::Reset (tests only) also resets the suggestion lists, maps and dirty marks (ResetSuggest) -- cost if wrong: none in the client.
+7b Task 5: note: transcribed before tests; mutations of the locked doubling, the override source, InspectedOrder's rank tie-break (after adding a same-kind entry) and the tick's dirty gate each CAUGHT.
+7b Task 5: complete (commits 234e680..0965414, tests: cmd //c Tools\coa\check.bat -> 336 tests, 0 failed)
+7b Task 6: Ruling: the Build Creator's link decode (Inflate + Base64), ExportBuildOf, SeedFromLink and SeedOfBuild answer through Deps until BuildCreator is ported: unset, ExportBuild returns "", a compressed link fails to decode, a stock-class link seeds an empty build, ImportPendingBuildID raises "invalid buildID" -- cost if wrong: Build Creator links and exports do nothing until BuildCreator lands; plain CoA build strings work.
+7b Task 6: Ruling: AscBuildCreator's UrlDecode is ported locally in CALinks.cpp (pure, a dozen lines), keeping its quirk that a "%XX" in the last three characters stays undecoded -- cost if wrong: a duplicate to fold into BuildCreator when it is ported.
+7b Task 6: note: binding set checked against the reconstruction's table: 129 of 130 registered, the missing one the global GetClassInfo (Task 3 ruling). Mutations of MergeEntry's rank add, the '.'->':' rewrite and the talent-token requirement each CAUGHT.
+7b Task 6: complete (commits 0965414..433b3eb, tests: cmd //c Tools\coa\check.bat -> 339 tests, 0 failed)
+Final review (7b, Opus): no Critical, no Important; Minors M1-M4; four items declined to judge.
+Final: fixed GetCategories argument check (declined item, re-graded: a number argument raised a usage error the original never raises) -- the genuine DLL builds a one-slot type list {lua_type(L,1) > 0 ? boolean : nil} (FUN_1008bf80) for FUN_10309e50, whose boolean slot passes numbers; CA_NativeCategoriesAndTags GetCategories(5) RED->GREEN, suite 339/339
+Final: Ruling: GetEntriesAvailableForTrade's rank loop stays as transcribed -- its lower bound is at least 1, so --r leaves the loop at 0 with no wrap; the genuine DLL's loop (0x10176F70..0x10176FA4: dec esi; cmp esi, edi; jae) is the same -- cost if wrong: none.
+Final: Ruling: UnitTokenGuid zeroes the GUID when the token is unknown; InspectUnit then sends 0 where the original sends whatever 0x60ABF0 left -- Script_GetGUIDFromToken writes nothing useful on failure -- cost if wrong: an unknown-token inspect request carries 0 instead of stale bytes.
+Final: Ruling: std::string temporaries alive across luaL_error (PendingOrError, Learned) are left as transcribed -- the engine's Lua decides whether they leak -- cost if wrong: a small leak per raised error.
+Final: minor (deferred): M1 0x727 tests send zero locked / +0x18 / +0x1C, so a reordered U8(locked) would pass.
+Final: minor (deferred): M2 no locked entry in the GetKnown*Entries tests, so SortLockedFirst is unguarded.
+Final: minor (deferred): M3 GetActiveChrSpec (SpecOf) does not skip a ChrSpecs row whose id is 0 as the original does.
+Final: minor (deferred): M4 KnownRows' added !e.row guard is unledgered (unreachable: UpdatePointers drops rowless entries).
