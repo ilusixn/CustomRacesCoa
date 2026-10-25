@@ -36,8 +36,8 @@ if not exist "%BIN%\Win\XvidDecoder.dll" goto :missing
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%"
-copy /y "%BIN%\Win\Wow64.exe" "%STAGE%\Waystone.exe" >nul
-copy /y "%BIN%\Win\Wow64.map" "%STAGE%\Waystone.map" >nul
+copy /y "%BIN%\Win\CoA64.exe" "%STAGE%\CoA64.exe" >nul
+copy /y "%BIN%\Win\CoA64.map" "%STAGE%\CoA64.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
 
 set "ZIP=%BIN%\CoA64-%HASH%.zip"
