@@ -300,6 +300,10 @@ namespace CoA::CA {
         uint32_t (*firstRank)(uint32_t spell) = nullptr;       // AscSpellRank::FirstRank
         const std::vector<uint32_t>& (*rankChain)(uint32_t firstRank) = nullptr;   // AscSpellRank::Chain
         bool (*wildcardUndesired)(uint32_t id, uint8_t context) = nullptr;   // AscWildcardSets::IsUndesired
+        bool (*unitTokenGuid)(const char* token, uint64_t& guid) = nullptr;   // a valid unit token's GUID
+        uint32_t (*rankNumber)(uint32_t spell) = nullptr;                      // AscSpellRank::RankNumber
+        // The spellbook slot holding the spell picked up (0xBE8D98 / 0xBE6D88, 0x53BAF0(slot, 0)); false if none.
+        bool (*pickupFromSpellbook)(uint32_t spell) = nullptr;
     };
 
     Deps& Dependencies();

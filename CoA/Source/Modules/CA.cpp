@@ -872,12 +872,9 @@ const char* CoA::CA::RowText(Row r, uint32_t off) {
     return RowStr(r, off);
 }
 
-uint32_t CoA::CA::SpellAtRankOf(Row r, uint32_t rank) {   // FUN_101c62e0
-    if (rank == 0 || rank > 9) {
-        return 0;
-    }
-
-    return RowU32(r, 0x10 + rank * 4);
+uint32_t CoA::CA::SpellAtRankOf(Row r, uint32_t rank) {   // FUN_101c62e0: the rank is a byte, 1..9
+    const uint8_t k = static_cast<uint8_t>(rank);
+    return k && static_cast<uint8_t>(k - 1) < 9 ? RowU32(r, 0x14 + (k - 1) * 4) : 0;
 }
 
 std::string CoA::CA::QualityName(int q) {
