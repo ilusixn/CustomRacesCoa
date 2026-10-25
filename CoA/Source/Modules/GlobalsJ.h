@@ -31,6 +31,17 @@ namespace CoA::GlobalsJ {
     // leaving resets it.
     void OnErrorHandler(lua_State* L, int32_t entering);
 
+    // FUN_10a3d090 (the detour on the COMBAT_LOG_EVENT dispatch 0x74F910): false drops the entry. Everything after
+    // CombatLogDisableAll; periodic events (0x0A / 0x23 when v58 == v5C, 0x09 / 0x22 when v5C == v60) of a spell with
+    // SpellCustomAttr +0x14 bit 4; any event CombatLogDisable named.
+    bool CombatLogAllowed(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60);
+    // SetAttackAnimation (0x10D3D810) for the player's attack swing (the detour on 0x7385C0); 0 = the client's.
+    int32_t AttackAnimation();
+    // SetAttackDistance (0x10D3D7EC) for the attack-range check (the detour on 0x4F5F40); 0 = the client's.
+    float AttackDistance();
+    // SetFadeOutGameObjects (0x10BCC8D9, initially 1): the game-object vtable slot 0x9F3A88 returns it.
+    bool FadeOutGameObjects();
+
     // GlobalsJClient.cpp: hooks FrameScript_HandleError.
     void InstallClient();
     // Tests only.
