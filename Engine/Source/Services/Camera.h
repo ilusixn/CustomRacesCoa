@@ -27,4 +27,7 @@ void CameraSetupScreenProjection(const CRect& rect, const C2Vector& offset, floa
 void CameraSetupWorldProjection(CCamera* camera, const CRect& rect, uint32_t flags);
 void DataMgrGetCoord(CDataMgr* mgr, uint32_t index, C3Vector* value);
 
+// CoA: AscCharacterCreate.cpp:CameraDetour (orig hook 0x4C1290) -- called after every DataMgrGetCoord.
+extern void (*g_dataMgrGetCoordHook)(uint32_t index, C3Vector* value);
+
 #endif

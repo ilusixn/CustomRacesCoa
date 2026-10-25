@@ -1,4 +1,5 @@
 #include "CharacterCreation.h"
+#include "CoA/Source/Modules/CharacterCreate.h"
 #include <cstdint>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Frame/CScriptObject.h"
@@ -315,20 +316,19 @@ static int32_t Script_CycleCharCustomization(lua_State* L) {
 // VERIFY: e5380494 auto
 // OFFSET: 0x004E0BE0
 static int32_t Script_GetCharacterCreateFacing(lua_State* L) {
-    lua_pushnumber(L, CCharacterCreation::m_charFacing * 57.29578f);
+    // CoA: AscCharacterCreate.cpp:GetCharacterCreateFacing (Extensions.dll patch 0x4E0BE0) -- replaced: the preview's
+    // facing override, else its transform's yaw.
+    lua_pushnumber(L, CoA::CharacterCreate::FacingDegrees());
     return 1;
 }
 
 // VERIFY: 2d8b49e6 auto
 // OFFSET: 0x004E0C10
 static int32_t Script_SetCharacterCreateFacing(lua_State* L) {
-    if (!lua_isnumber(L, 1)) {
-        luaL_error(L, "Usage: SetCharacterCreateFacing(degrees)");
-        return 0;
-    }
-
-    CCharacterCreation::SetCharacterFacing(lua_tonumber(L, 1) * 0.017453292f);
-    return 1;
+    // CoA: AscCharacterCreate.cpp:SetCharacterCreateFacing (Extensions.dll patch 0x4E0C10) -- replaced: a layer-1
+    // facing override put straight on the preview models.
+    CoA::CharacterCreate::SetFacingDegrees(static_cast<float>(luaL_checknumber(L, 1)));
+    return 0;
 }
 
 // VERIFY: 8699a7d2 auto

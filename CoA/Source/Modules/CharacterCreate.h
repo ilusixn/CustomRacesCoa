@@ -81,6 +81,17 @@ namespace CoA::CharacterCreate {
     void AfterCameraCoord(int32_t id, float* out);   // FUN_1018af70
     void WatchComponent();          // FUN_1018b160
     void ResetPreview();            // FUN_1018cad0
+
+    // Runs fn when the scope ends, on every return path -- what the original's detours do after the original returns.
+    struct RunAfter {
+        void (*fn)();
+        ~RunAfter() { this->fn(); }
+    };
+}
+
+// CharacterCreateClient.cpp: the preview backend, the camera hook and the after-paint watch.
+namespace CoA::CharacterCreateClient {
+    void Init();
 }
 
 #endif
