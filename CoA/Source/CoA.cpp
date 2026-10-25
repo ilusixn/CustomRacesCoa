@@ -49,6 +49,12 @@ static const CoA::Module s_modules[] = {
     { "VanityCollection", CoA::VanityCollection::Init },
     { "MythicPlus", CoA::MythicPlus::Init },
     { "CharacterCreate", CoA::CharacterCreate::Init },
+    { "ObjectAddon", CoA::ObjectAddon::Init },
+    { "AuraAmounts", CoA::AuraAmounts::Init },
+    { "GameMode", CoA::GameMode::Init },
+    { "SpellActivationOverlay", CoA::SpellActivationOverlay::Init },
+    { "SuperTrack", CoA::SuperTrack::Init },
+    { "GroupFinder", CoA::GroupFinder::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -73,6 +79,14 @@ static const CoA::Module s_modules[] = {
     { "EventPacketsClient", CoA::EventPacketsClient::Init },
     { "PatchDataClient", CoA::PatchDataClient::Init },
     { "ClientDbcPatchClient", CoA::ClientDbcPatchClient::Init },
+    { "ObjectAddonClient", CoA::ObjectAddonClient::Init },
+    { "AuraAmountsClient", CoA::AuraAmountsClient::Init },
+    { "GameModeClient", CoA::GameModeClient::Init },
+    { "GlobalsEClient", CoA::GlobalsEClient::Init },
+    { "WorldMapClient", CoA::WorldMapClient::Init },
+    { "SpellActivationOverlayClient", CoA::SpellActivationOverlayClient::Init },
+    { "SuperTrackClient", CoA::SuperTrackClient::Init },
+    { "GroupFinderClient", CoA::GroupFinderClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

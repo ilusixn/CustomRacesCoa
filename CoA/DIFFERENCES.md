@@ -15,6 +15,7 @@ both references, or from the decomp where the references disagree.
 | `.rdata 0x9FC672` | chat literal `|Htuest:` (quest links in chat not rewritten) | ported | `ChatFrame.cpp` |
 | `0x4648B3` | `CMSG_AUTH_SESSION` build 12344 | ported as `g_coaAuthSessionBuild` | `RealmConnection.cpp` |
 | `0x4DA7FC`/`809`/`816` | glue signature failures load the frames anyway | ported | `CGlueMgr.cpp` |
+| `0x816625`, `0x81663E`, `0x816694`, `0x81675F` | `FrameXML_CheckSignature` always returns 3 (valid): add-on `.toc.sig` failures never mark an add-on CORRUPT, and every add-on that passes is marked secure (`AddOns.cpp`: status 0), so add-ons run untainted and may call protected functions | ported (both reference exes carry the same patch -- a common private-server edit -- but the decomp is stock 12340 and the 32-bit pair behaves this way; found from Blizzard_CombatLog's "Corrupt" dialog) | `LoadXML.cpp` |
 | `0x4DCCF0` | `ScanDLLStart` returns 0 | ported | `GlueScriptEvents_Scripts.cpp` |
 | `0x4E0F53`–`0x4E0FC0` | random-class array 10 → 30 | ported | `CharacterCreation.cpp` |
 | `0x40B7D0` → cave `0x4E5CB0` | sets `m_scandllOkayToLogIn = 1`, `m_scandllShouldBlockPlaying = 0`, loads `Extensions.dll` | ported (the CoA code is linked in; `CoA::Attach` runs at this point) | `Win64/WinMain.cpp` |

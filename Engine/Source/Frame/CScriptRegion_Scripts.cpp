@@ -459,6 +459,9 @@ static int32_t Script_GetPoint(lua_State* L) {
     return 5;
 }
 
+// CoA: AscSuperTrack.cpp:PositionFrame -- Script_SetPoint's offsets unscaled.
+bool g_setPointRawOffsets = false;
+
 // VERIFY: bfe26544 auto
 // OFFSET: 0x0049DB10
 static int32_t Script_SetPoint(lua_State* L) {
@@ -534,9 +537,18 @@ static int32_t Script_SetPoint(lua_State* L) {
 
     if (lua_isnumber(L, argIndex) && lua_isnumber(L, argIndex + 1)) {
         offsetX = lua_tonumber(L, argIndex);
-        offsetX = NDCToDDCWidth(offsetX / (CoordinateGetAspectCompensation() * 1024.0f));
+
+        // CoA: AscSuperTrack.cpp:PositionFrame (Extensions.dll patch 0x49DDBF, 0x49DDE5) -- on, the offsets are used
+        // unscaled.
+        if (!g_setPointRawOffsets) {
+            offsetX = NDCToDDCWidth(offsetX / (CoordinateGetAspectCompensation() * 1024.0f));
+        }
+
         offsetY = lua_tonumber(L, argIndex + 1);
-        offsetY = NDCToDDCWidth(offsetY / (CoordinateGetAspectCompensation() * 1024.0f));
+
+        if (!g_setPointRawOffsets) {
+            offsetY = NDCToDDCWidth(offsetY / (CoordinateGetAspectCompensation() * 1024.0f));
+        }
     } else {
         offsetY = 0.0f;
     }

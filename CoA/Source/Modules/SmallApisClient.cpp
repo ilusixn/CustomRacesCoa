@@ -2,6 +2,7 @@
 // server-time offset for C_LoyaltyPass.
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Modules/ObjectAddon.h"
 #include "CoA/Source/Modules/SmallApis.h"
 #include "CoA/Source/Modules/SmallApisClient.h"
 #include "CoA/Source/Runtime/Dbc.h"
@@ -105,7 +106,7 @@ namespace {
         return 1;
     }
 
-    // FUN_100ca700: the item's ObjectAddon field 0; 0 until that module is ported.
+    // FUN_100ca700: the item's addon field 0 (FUN_1027f1f0 -> FUN_102cdbb0).
     int GetScalingLevel(lua_State* L) {
         std::string text;
 
@@ -113,12 +114,14 @@ namespace {
             return 0;
         }
 
-        if (!ItemFromGuidString(text.c_str())) {
+        CGItem_C* item = ItemFromGuidString(text.c_str());
+
+        if (!item) {
             lua_pushnil(L);
             return 1;
         }
 
-        PushInt(L, 0);
+        PushInt(L, static_cast<int32_t>(CoA::ObjectAddon::Item(item->m_obj->m_guid.m_guid)[0].value));
         return 1;
     }
 
