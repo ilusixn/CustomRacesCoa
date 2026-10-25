@@ -45,6 +45,7 @@ static const CoA::Module s_modules[] = {
     { "BridgeStore", CoA::BridgeStore::Init },
     { "VanityCollection", CoA::VanityCollection::Init },
     { "MythicPlus", CoA::MythicPlus::Init },
+    { "CharacterCreate", CoA::CharacterCreate::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
