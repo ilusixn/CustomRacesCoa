@@ -1,3 +1,4 @@
+#include "CoA/Source/Runtime/CVars.h"
 #include "GameUI.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/Types.h"
@@ -660,6 +661,9 @@ void CGGameUI::RegisterGameCVars() {
     g_questPOICVar = CVar::Register("questPOI", "If enabled, the quest POI system will be used.", 0x20, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("miniWorldMap", "Whether or not the world map has been toggled to smaller size", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("dontShowEquipmentSetsOnItems", "Don't show which equipment sets an item is associated with", 0x10, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
+
+    // CoA: AscClientOptions.cpp:WorldCVarsDetour (orig hook 0x51D9B0) -- the DLL's world CVars after the client's
+    CoA::CVars::RegisterWorld();
 }
 
 // VERIFY: d0dc1b08 auto

@@ -1,3 +1,4 @@
+#include "CoA/Source/Runtime/CVars.h"
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -681,6 +682,9 @@ void ClientRegisterConsoleCommands() {
     }
 
     CVar::Register("accounttype", "Account Type", 0, "", nullptr, CATEGORY_GAME, false, nullptr, false);
+
+    // CoA: CVar.cpp:RegisterGlueCVarsCustom (orig hook 0x401B60) -- the DLL's glue CVars after the client's
+    CoA::CVars::RegisterGlue();
 }
 
 // VERIFY: dd31cf34 auto
