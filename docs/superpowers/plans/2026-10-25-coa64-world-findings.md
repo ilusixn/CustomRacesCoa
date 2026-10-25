@@ -163,3 +163,25 @@ now gets past line 606 and stops at line 633 on `C_Appearance` (3,188, the same 
 Appearance moves up the order. The other remaining errors are as in the Plan 5 table (Tutorial 10, SpellApi 5,
 Challenge 5, DraftMode 3, CAMgr `GetEntryBySpellID` 3, Manastorm 3, CAMgr `GetTalentsByClass` 2, LootLockout 2, one
 each for the rest). Fatal.txt also lists an unhandled opcode 0x726 (1830) besides the appearance packets.
+
+## Plan 7 result (character advancement)
+
+Capture 2026-10-25, `-extlog 1`, about 2 minutes in world in Northshire, after 7a (engine), 7b (natives) and 7c (browser
+filters, C_Spell). Every character advancement and spell API error is gone: `GetEntryBySpellID`, `GetTalentsByClass`,
+`HasRuneUI`, `IsPendingBuildAvailable`, `IsHelpfulSpell`. CharacterAdvancement.dbc loads 10,255 rows. The first 7b run
+crashed about 20 s in, in `CM2Scene::Animate`. A layered batch whose material layer is past its index read
+`m_materials[index - layer]` through a u32 index, which is 16 GB away on x64. It is fixed (pointer arithmetic, the
+original's address), and two later runs stayed up.
+
+| Error                                        | Plan 6 | Plan 7 |
+|----------------------------------------------|-------:|-------:|
+| GameTooltip.lua:633 `C_Appearance`           |  3,188 |  3,243 |
+| C_CharacterAdvancement / C_Spell (all)       |     10 |      0 |
+| TutorialUtil `C_Tutorial`                    |     10 |      8 |
+| C stack overflow                             |      ? |      4 |
+| DraftUtil `HasHandOfFateSacrificePick`       |      3 |      3 |
+| Minimap `C_Manastorm`                        |      3 |      3 |
+| `C_Challenge`, `C_LootLockout`               |    7   |      4 |
+| one each: SkillCards, PlayerTicket, AssetQuery, CustomStore, BuildCreator, 3 CVars, options panel | | 9 |
+
+Next by count: Appearance (GameTooltip), then Tutorial, Challenge / DraftMode, Manastorm, LootLockout.
