@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Source/DB/DBClient/CreatureStats_C.h"
+#include "WoW/Source/Net/Types.h"
 #include "WoW/Source/DB/DBClient/DBCache.h"
 #include "WoW/Source/DB/DBClient/GameObjectStats_C.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
@@ -65,5 +66,9 @@ void DBCache_Idle();
 void DBCache_Initialize();
 void DBCache_RegisterHandlers();
 void SetClientCacheVersion(uint32_t version);
+// CoA: AscEventPackets.cpp (DBCacheInstances.cpp).
+int32_t DBCacheReceiveCreature(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t DBCacheReceiveSingleItem(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
+int32_t DBCacheReceiveQuest(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
 #endif
