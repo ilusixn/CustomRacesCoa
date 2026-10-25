@@ -230,6 +230,10 @@ namespace {
     }
 }
 
+int32_t CoA::AttachFixesClient::CountCarried(CGPlayer_C* player, uint32_t itemId) {
+    return CountItem(player, itemId);
+}
+
 bool CoA::AttachFixesClient::QuestRelevant(CGPlayer_C* player, uint32_t entry, bool gameObject) {
     const uint32_t* questItems = nullptr;
 

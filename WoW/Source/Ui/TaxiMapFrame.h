@@ -70,4 +70,7 @@ bool TaxiRouteExists(uint32_t from, uint32_t to);
 int32_t TaxiNodeCost(uint32_t index);
 
 
+// CoA: AscSmallApis.cpp:C_Taxi.GetCurrentTaxiNodeID.
+int32_t TaxiMapCurrentNodeId();
+
 #endif
