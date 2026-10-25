@@ -43,6 +43,8 @@ static const CoA::Module s_modules[] = {
     { "RealmMerge", CoA::RealmMerge::Init },
     { "EventPackets", CoA::EventPackets::Init },
     { "BridgeStore", CoA::BridgeStore::Init },
+    { "VanityCollection", CoA::VanityCollection::Init },
+    { "MythicPlus", CoA::MythicPlus::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },

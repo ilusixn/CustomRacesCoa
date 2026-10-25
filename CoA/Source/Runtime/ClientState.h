@@ -24,6 +24,21 @@ namespace CoA::ClientState {
     const char* BasePath();
     void SetBasePathProbe(const char* (*probe)());
 
+    // Client tables and the character the glue has selected, as the DLL reads them; null entries answer 0 / "" / -1.
+    struct Data {
+        uint32_t (*itemDisplayId)(uint32_t item) = nullptr;   // Item.dbc display id (+0x14); 0 without a row
+        const char* (*itemIcon)(uint32_t item) = nullptr;     // the inventory icon of the item's ItemDisplayInfo row
+        uint8_t (*characterClass)() = nullptr;                // ClientServices::GetCharacterClass (0x6B1080)
+        uint8_t (*characterRace)() = nullptr;                 // ClientServices::GetCharacterRace (0x6B1070)
+        int32_t (*spellMechanic)(uint32_t spell) = nullptr;  // Spell.dbc +0xC; -1 without a row
+    };
+    Data& Probes();
+    uint32_t ItemDisplayId(uint32_t item);
+    const char* ItemIcon(uint32_t item);
+    uint8_t CharacterClass();
+    uint8_t CharacterRace();
+    int32_t SpellMechanic(uint32_t spell);
+
     void InstallClient();
 }
 
