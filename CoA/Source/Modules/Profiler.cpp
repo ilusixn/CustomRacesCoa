@@ -1,4 +1,7 @@
 #include "CoA/Source/Modules/Profiler.h"
+#include "CoA/Source/Runtime/Logger.h"
+#include <atomic>
+#include <windows.h>
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Logger.h"
 #include "CoA/Source/Runtime/LuaReg.h"
@@ -409,7 +412,51 @@ namespace {
     };
 }
 
+namespace {
+    std::atomic<uint64_t> s_lastReceive{ 0 };   // 0x10BE3570
+    std::atomic<bool> s_armed{ false };         // 0x10BE3569
+    std::atomic<bool> s_tripped{ false };       // 0x10BE356A
+    std::atomic<bool> s_disconnect{ false };    // 0x10BE356B
+}
+
+void CoA::Profiler::WatchdogArm(uint64_t now) {
+    s_lastReceive = now;
+    s_tripped = false;
+    s_armed = true;
+}
+
+void CoA::Profiler::WatchdogDisarm() {
+    s_armed = false;
+    s_tripped = false;
+    s_disconnect = false;
+    s_lastReceive = 0;
+}
+
+void CoA::Profiler::PacketReceivedAt(uint64_t now) {
+    s_lastReceive = now;
+}
+
+bool CoA::Profiler::WatchdogCheck(uint64_t now) {
+    const uint64_t last = s_lastReceive;
+
+    if (!s_armed || s_tripped || !last || now - last < 30000) {
+        return false;
+    }
+
+    s_tripped = true;
+    s_disconnect = true;
+    s_armed = false;
+    CoA::Logger::Write(CoA::Logger::Error, "Packet watchdog timed out after 30 seconds without receiving a packet; forcing disconnect.");
+    return true;
+}
+
+bool CoA::Profiler::TakeWatchdogDisconnect() {
+    return s_disconnect.exchange(false);
+}
+
 int64_t CoA::Profiler::Received(int32_t opcode, uint32_t size) {
+    // FUN_102c3ab0 stamps every packet first.
+    CoA::Profiler::PacketReceivedAt(GetTickCount64());
     s_currentOpcode = opcode;
 
     if (!s_opcodeLogging) {
