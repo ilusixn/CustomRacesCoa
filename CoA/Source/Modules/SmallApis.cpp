@@ -76,11 +76,37 @@ namespace {
         return 0;
     }
 
+    // C_CharacterCustomizationUnlocks (handler_GetCurrentOptionInfo / ...): constant in the original.
+    int GetCurrentOptionInfo(lua_State* L) {
+        if (lua_gettop(L) != 1) {
+            return 0;
+        }
+
+        CoA::Script::CheckNumber(L, 1);
+        CoA::Script::PushBool(L, false);
+        CoA::Script::PushBool(L, true);
+        CoA::Script::PushInt(L, 0);
+        return 3;
+    }
+
+    int GetFirstLockedRequirement(lua_State* L) {
+        CoA::Script::PushInt(L, 0);
+        return 1;
+    }
+
+    int HasLockedSelections(lua_State* L) {
+        CoA::Script::PushBool(L, false);
+        return 1;
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("C_CVar", "GetCVarBitfield", GetCVarBitfield),
         COA_NATIVE("C_CVar", "SetCVarBitfield", SetCVarBitfield),
         COA_NATIVE("C_CVar", "SetCVarSave", SetCVarSave),
         COA_NATIVE("C_EquipmentSet", "PlaceInBank", PlaceInBank),
+        COA_NATIVE("C_CharacterCustomizationUnlocks", "GetCurrentOptionInfo", GetCurrentOptionInfo),
+        COA_NATIVE("C_CharacterCustomizationUnlocks", "GetFirstLockedRequirement", GetFirstLockedRequirement),
+        COA_NATIVE("C_CharacterCustomizationUnlocks", "HasLockedSelections", HasLockedSelections),
     };
 }
 

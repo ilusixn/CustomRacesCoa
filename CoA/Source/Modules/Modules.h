@@ -27,6 +27,7 @@ namespace CoA::EventPackets { void Init(); }
 namespace CoA::BridgeStore { void Init(); }
 namespace CoA::VanityCollection { void Init(); }
 namespace CoA::MythicPlus { void Init(); }
+namespace CoA::CharacterCreate { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
