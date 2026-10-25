@@ -17,6 +17,7 @@
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -44,7 +45,7 @@ namespace MysticFixture {
     inline uint32_t s_free = 5;
     inline uint32_t s_scrollPrice = 1000;
     inline uint8_t s_targetClass = 3;
-    inline bool s_allowPatched = false;
+    inline std::set<uint32_t> s_patchedSpells;   // patched rows whose spell has a record in this test
     inline std::vector<CoA::MysticEnchant::Item> s_items;
     inline std::map<uint32_t, uint32_t> s_tokens;
 
@@ -91,7 +92,7 @@ namespace MysticFixture {
     }
 
     inline bool SpellStacks(uint32_t spell, uint32_t& stacks) {
-        if (spell == 1001 || (s_allowPatched && spell == 1040)) {
+        if (spell == 1001 || s_patchedSpells.count(spell) != 0) {
             stacks = 1;
             return true;
         }
@@ -135,7 +136,7 @@ namespace MysticFixture {
         s_free = 5;
         s_scrollPrice = 1000;
         s_targetClass = 3;
-        s_allowPatched = false;
+        s_patchedSpells.clear();
         s_items.clear();
         s_tokens.clear();
         CoA::ClientState::SetInWorldProbe([] { return s_inWorld; });
