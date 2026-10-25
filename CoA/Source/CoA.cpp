@@ -30,6 +30,7 @@ static const CoA::Module s_modules[] = {
     { "GlobalsB", CoA::GlobalsB::Init },
     { "GlobalsD", CoA::GlobalsD::Init },
     { "GlobalsG", CoA::GlobalsG::Init },
+    { "Bindings", CoA::Bindings::Init },
     { "GlobalsJ", CoA::GlobalsJ::Init },
     { "Json", CoA::Json::Init },
     { "LoggerApi", CoA::LoggerApi::Init },
