@@ -2,6 +2,7 @@
 // manager. The packets, the update and the glue reset are in CAPackets.cpp; the rules in CARules.cpp.
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/CAInternal.h"
+#include "CoA/Source/Modules/CANativesInternal.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/Config.h"
 #include "CoA/Source/Modules/GameEvents.h"
@@ -1340,4 +1341,5 @@ void CoA::CA::Reset() {
     s_attrs = CustomAttrs();
     s_removingSpell = 0;
     s_deps = Deps();
+    ResetSuggest();
 }

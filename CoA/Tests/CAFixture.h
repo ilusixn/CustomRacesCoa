@@ -139,6 +139,17 @@ namespace CAFixture {
         return t;
     }
 
+    // SpellSpellSuggestions / SpellStatSuggestions: id, source spell, suggested spell / stat, weight.
+    inline Table& SpellSuggestionTable() {
+        static Table t { "SpellSpellSuggestions.dbc", nullptr, 0x10, {} };
+        return t;
+    }
+
+    inline Table& StatSuggestionTable() {
+        static Table t { "SpellStatSuggestions.dbc", nullptr, 0x10, {} };
+        return t;
+    }
+
     inline void PutAt(Table& t, std::vector<std::pair<uint32_t, uint32_t>> words) {
         std::vector<uint8_t> row(t.structSize, 0);
 
@@ -251,10 +262,14 @@ namespace CAFixture {
         PutAt(TagTypeTable(), { { 0, 2 }, { 8, 1 }, { 0x68, TagTypeTable().Str("icon") }, { 0x6C, TagTypeTable().Str("Root B") } });
         PutAt(TagTypeTable(), { { 0, 3 }, { 4, 1 }, { 8, 0 } });
         PutAt(TagTypeTable(), { { 0, 4 }, { 4, 1 }, { 0xC, 1 } });   // hidden
+        PutWords(SpellSuggestionTable(), { 1, 5000, 5200, 30 });   // 100 suggests 103
+        PutWords(SpellSuggestionTable(), { 2, 5500, 5100, 20 });   // 120 suggests 102
+        PutWords(StatSuggestionTable(), { 1, 5000, 3, 7 });
+        PutWords(StatSuggestionTable(), { 2, 5000, 5, 2 });
     }
 
     inline bool ReadTables(const char* path, std::vector<uint8_t>& out) {
-        for (Table* t : { &CaTable(), &ClassTypeTable(), &TabTypeTable(), &EssenceTable(), &CategoryTable(), &TagTypeTable() }) {
+        for (Table* t : { &CaTable(), &ClassTypeTable(), &TabTypeTable(), &EssenceTable(), &CategoryTable(), &TagTypeTable(), &SpellSuggestionTable(), &StatSuggestionTable() }) {
             const size_t n = strlen(path);
             const size_t m = strlen(t->path);
 

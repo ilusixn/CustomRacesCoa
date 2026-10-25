@@ -50,6 +50,8 @@ namespace CoA::CA::detail {
     // Each native file's binding table, added from CoA::CA::Init.
     void InitNatives();   // CANatives.cpp
     void InitEdit();      // CAEdit.cpp
+    void InitSuggest();   // CASuggest.cpp
+    void ResetSuggest();  // tests: the suggestion lists, maps and dirty marks back to their start
 }
 
 #endif
