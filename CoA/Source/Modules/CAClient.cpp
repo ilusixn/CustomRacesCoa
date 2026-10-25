@@ -5,6 +5,7 @@
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Modules/SpellRank.h"
 #include "CoA/Source/Modules/SpellText.h"
+#include "CoA/Source/Modules/Token.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "CoA/Source/Runtime/Script.h"
@@ -257,6 +258,7 @@ namespace {
 void CoA::CAClient::Init() {
     CoA::CA::Deps& d = CoA::CA::Dependencies();
     d.activePlayerGuid = ActivePlayerGuid;
+    d.tokenAtLeast = [](uint32_t token, uint32_t count) { return CoA::Token::AtLeast(token, count, 0); };
     d.unitExists = UnitExists;
     d.unitClass = UnitClass;
     d.unitLevel = UnitLevel;
