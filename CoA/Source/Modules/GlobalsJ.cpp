@@ -613,7 +613,52 @@ namespace {
         return 1;
     }
 
+    // ---- FindScriptEvents(text) (FUN_100d8410) ----
+    // Every event name (FUN_10278d20: the custom list, then the client's 600 from FUN_10073fe0's table) whose
+    // lower-case form contains the lower-case text -- all of them for "".
+    const char* const kClientEventNames[] = {
+#include "CoA/Source/Modules/ScriptEventNames.generated.inc"
+    };
+
+    std::string Lower(std::string v) {
+        for (char& c : v) {
+            c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+        }
+
+        return v;
+    }
+
+    int FindScriptEvents(lua_State* L) {
+        std::string text;
+
+        if (!CoA::Script::ReadString(L, text)) {
+            return 0;
+        }
+
+        text = Lower(text);
+        std::vector<const char*> all = CoA::Events::CustomNames();
+        all.insert(all.end(), std::begin(kClientEventNames), std::end(kClientEventNames));
+        std::vector<const char*> found;
+
+        for (const char* name : all) {
+            if (text.empty() || Lower(name).find(text) != std::string::npos) {
+                found.push_back(name);
+            }
+        }
+
+        lua_createtable(L, 0, static_cast<int>(found.size()));
+
+        for (uint32_t i = 0; i < found.size(); ++i) {
+            CoA::Script::PushNum(L, i + 1);
+            CoA::Script::PushStr(L, found[i]);
+            lua_settable(L, -3);
+        }
+
+        return 1;
+    }
+
     const CoA::Binding s_bindings[] = {
+        COA_NATIVE("", "FindScriptEvents", FindScriptEvents),
         COA_NATIVE("", "Ascension_GetArenaRewardInfo", Ascension_GetArenaRewardInfo),
         COA_NATIVE("", "Ascension_QueryArenaRewardInfo", Ascension_QueryArenaRewardInfo),
         COA_NATIVE("", "CombatLogDisable", CombatLogDisable),
