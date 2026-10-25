@@ -1679,3 +1679,8 @@ void FrameScript_CreateEvents(const char** names, uint32_t count) {
         }
     }
 }
+
+// CoA: AscSuperTrack.cpp:PositionFrame writes this flag (0xD3F798): 0 on, 1 off.
+void FrameScript_SetProfileFlag(int32_t value) {
+    s_scriptProfileEnabled = value;
+}

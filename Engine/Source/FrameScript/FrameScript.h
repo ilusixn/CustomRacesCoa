@@ -92,4 +92,7 @@ void FrameScript_UnregisterScriptEvent(FrameScript_Object* object, FrameScript_E
 void SetDecimalConversion(int32_t convert);
 void vFrameScript_SignalEvent(uint32_t index, const char* format, va_list args);
 
+// CoA: AscSuperTrack.cpp:PositionFrame (FrameScript.cpp).
+void FrameScript_SetProfileFlag(int32_t value);
+
 #endif
