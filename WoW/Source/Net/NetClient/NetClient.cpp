@@ -10,6 +10,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowServices/HMAC.h"
+#include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Runtime/Packets.h"
 
 // STATIC: 0x00AD2ED0
@@ -264,6 +265,12 @@ void NetClient::SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, voi
         return;
     }
 
+    // CoA: 0x51F..0x55E would write past m_handlers (the 32-bit client does); dropped here (CoA/DIFFERENCES.md)
+    if (CoA::Packets::InGap(msgId)) {
+        CoA::Log::Printf("SetMessageHandler: opcode 0x%X has no table, ignored", static_cast<uint32_t>(msgId));
+        return;
+    }
+
     this->m_handlers[msgId] = handler;
     this->m_handlerParams[msgId] = param;
 }
@@ -274,6 +281,11 @@ void NetClient::ResetHandler(NETMESSAGE msgId) {
     // CoA: AscProfiler.cpp:ClearHandler (orig hook 0x631FC0) -- above 0x55E the CoA entry is erased
     if (static_cast<int32_t>(msgId) > 0x55E) {
         CoA::Packets::Erase(msgId);
+        return;
+    }
+
+    // CoA: 0x51F..0x55E would write past m_handlers; nothing is stored there (see SetMessageHandler)
+    if (CoA::Packets::InGap(msgId)) {
         return;
     }
 

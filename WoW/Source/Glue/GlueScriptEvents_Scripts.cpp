@@ -57,9 +57,10 @@ int32_t Script_RestoreVideoStereoDefaults(lua_State* L);
 static int32_t Script_GetBuildInfo(lua_State* L) {
     lua_pushstring(L, FrameScript_GetText("VERSION", -1, GENDER_NOT_APPLICABLE));
     lua_pushstring(L, FrameScript_GetText("RELEASE_BUILD", -1, GENDER_NOT_APPLICABLE));
-    lua_pushstring(L, CLIENT_NAME " " WAYSTONE_BUILD_STRING);
-    lua_pushstring(L, WAYSTONE_COMMIT);
-    lua_pushstring(L, WAYSTONE_DATE);
+    // CoA: the original 12340 returns (Ascension.exe 0x4DBE91..0x4DBEAD), not wowdecomp's Waystone version strings
+    lua_pushstring(L, GAME_VERSION);
+    lua_pushstring(L, GAME_BUILD_STRING);
+    lua_pushstring(L, GAME_BUILD_DATE);
     return 5;
 }
 

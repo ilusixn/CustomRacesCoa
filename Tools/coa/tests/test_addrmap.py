@@ -61,3 +61,29 @@ class MergeManualTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TagFormsTest(unittest.TestCase):
+    def test_static_tag_indexes_a_global_as_data(self):
+        with tempfile.TemporaryDirectory() as root:
+            write(root, 'WoW/Source/Client.cpp', '// STATIC: 0x00B2F9A0\nstatic int32_t s_gameInitialized;\n')
+            write(root, 'Engine/A.cpp', '    // STATIC: 0x00B414E8\n    static CVar* s_var;\n')
+            index = addrmap.index_offsets(root)
+            self.assertEqual(index[0xB2F9A0][0], 's_gameInitialized')
+            self.assertEqual(index[0xB414E8][0], 's_var')
+            self.assertEqual(addrmap.index_kinds(root)[0xB2F9A0], 'data')
+
+    def test_bracketed_offset_list_indexes_every_instance(self):
+        with tempfile.TemporaryDirectory() as root:
+            write(root, 'a.h', '// OFFSET: [0x007D4920<CGUnit_C>, 0x007E55F0<CGPlayer_C>]\nT* Get() {\n')
+            index = addrmap.index_offsets(root)
+            self.assertEqual(index[0x7D4920][0], 'Get')
+            self.assertEqual(index[0x7E55F0][0], 'Get')
+            self.assertEqual(addrmap.index_kinds(root)[0x7D4920], 'func')
+
+    def test_build_marks_static_rows_mapped_data(self):
+        with tempfile.TemporaryDirectory() as decomp, tempfile.TemporaryDirectory() as recon:
+            write(decomp, 'a.cpp', '// STATIC: 0x00B6AA2C\nint32_t CGlueMgr::m_suspended;\n')
+            write(recon, 'src/A.cpp', 'if (*reinterpret_cast<const uint32_t*>(0xB6AA2C) == 0) {}\n')
+            row = addrmap.build(decomp, recon)[0xB6AA2C]
+            self.assertEqual((row.kind, row.status, row.symbol), ('data', 'mapped', 'CGlueMgr::m_suspended'))

@@ -19,7 +19,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00403370	func	src/Ascension/AscRuntime.cpp:738,src/Ascension/AscRuntime.hpp:9,src/Ascension/AscTemporalContracts.cpp:11,src/Ascension/AscWildcardRolls.cpp:436	ClientSetTimer	WoW/Source/Client.cpp:2234	mapped
 0x004033B0	func	src/Ascension/AscRuntime.cpp:743,src/Ascension/AscRuntime.hpp:9	ClientKillTimer	WoW/Source/Client.cpp:2206	mapped
 0x004033C0	func	src/Ascension/AscAddonTaint.cpp:105	ClientPostClose	WoW/Source/Client.cpp:782	mapped
-0x00403880	func	src/Ascension/AscEventPackets.cpp:266,src/Ascension/AscPlayerPoll.cpp:383,src/Ascension/AscScript.cpp:128,src/Ascension/AscScript.hpp:53,src/Ascension/AscSmallHooks.cpp:112,src/Ascension/AscUnitSelect.cpp:116,WotLKExtensions/src/Client/CDataStore.cpp:60			unported
+0x00403880	func	src/Ascension/AscEventPackets.cpp:266,src/Ascension/AscPlayerPoll.cpp:383,src/Ascension/AscScript.cpp:128,src/Ascension/AscScript.hpp:53,src/Ascension/AscSmallHooks.cpp:112,src/Ascension/AscUnitSelect.cpp:116,WotLKExtensions/src/Client/CDataStore.cpp:60	CDataStore::~CDataStore	Engine/Source/Base/CDataStore.cpp:63	mapped
 0x004038F0	func	src/Ascension/AscAttachFixes.cpp:581,src/Ascension/AscAttachFixes.cpp:635,src/Ascension/AscAttachFixes.cpp:647,src/Ascension/AscAttachFixes.cpp:880,src/Ascension/AscBindings.cpp:175,src/Ascension/AscCAFilter.cpp:136,src/Ascension/AscCamera.cpp:71,src/Ascension/AscClientDbcPatch.cpp:213,src/Ascension/AscGlobalsJ.cpp:606,src/Ascension/AscInitHooks.cpp:45,src/Ascension/AscPatchData.cpp:227,src/Ascension/AscScript.cpp:219,src/Ascension/AscScript.hpp:84,src/Ascension/AscSpellMods.cpp:62,src/Ascension/AscSpellVisuals.cpp:183,src/Ascension/AscSpellVisuals.cpp:206,src/Ascension/AscTooltipScaling.cpp:75	ClntObjMgrGetActivePlayerObj	WoW/Source/ObjectMgrClient/ObjectMgrClient.cpp:1763	mapped
 0x00403B70	func	src/Ascension/AscMovementForce.cpp:17,src/Ascension/AscMovementForce.cpp:692	LoadNewWorld	WoW/Source/Client.cpp:898	mapped
 0x00403DE0	func	src/Ascension/AscAttachMisc.cpp:7,src/Ascension/AscAttachMisc.cpp:114,src/Ascension/AscAttachMisc.cpp:114,src/Ascension/AscAutoQuest.cpp:124,src/Ascension/AscChatCheck.cpp:117	Packet_SMSG_LOGIN_VERIFY_WORLD	WoW/Source/Client.cpp:979	mapped
@@ -122,8 +122,8 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x004C98C6	unknown	WotLKExtensions/src/Client/WoWTime.cpp:14			unported
 0x004CDA43	unknown	src/Ascension/AscAttachPatches.cpp:53,src/Ascension/AscAttachPatches.cpp:114,src/Ascension/AscAttachPatches.cpp:114,src/Ascension/AscAttachPatches.generated.inc:63,WotLKExtensions/src/GameObjects/CGPlayer.cpp:42			unported
 0x004CEE50	func	src/Ascension/AscAppearance.cpp:1938,src/Ascension/AscAura137.cpp:47,src/Ascension/AscAura137.cpp:53,src/Ascension/AscCAMgr.cpp:5306,src/Ascension/AscClientOptions.cpp:70,src/Ascension/AscSpellMods.cpp:75	CGUnit_C::IsActivePlayer	WoW/Source/SoundInterface/SoundInterface2Footsteps.cpp:20	mapped
-0x004CFD20	func	retired/AscStubs.generated.cpp:23,retired/AscStubs.generated.cpp:25,retired/AscStubs.generated.cpp:30,src/Ascension/AscScript.cpp:170,src/Ascension/AscScript.hpp:101,WotLKExtensions/src/Client/DBClient.cpp:13			unported
-0x004CFD90	func	src/Ascension/AscCharacterCreate.cpp:886,src/Ascension/AscGlobalsD.cpp:71,src/Ascension/AscGlobalsD.cpp:81,src/Ascension/AscGlobalsJ.cpp:1474,src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1612,src/Ascension/AscItemCollections.cpp:360,src/Ascension/AscItemCollections.cpp:411,src/Ascension/AscModelMethods.cpp:449,src/Ascension/AscVanityCollection.cpp:338			unported
+0x004CFD20	func	retired/AscStubs.generated.cpp:23,retired/AscStubs.generated.cpp:25,retired/AscStubs.generated.cpp:30,src/Ascension/AscScript.cpp:170,src/Ascension/AscScript.hpp:101,WotLKExtensions/src/Client/DBClient.cpp:13	GetRecord	WoW/Source/DB/WowClientDB.h:434	mapped
+0x004CFD90	func	src/Ascension/AscCharacterCreate.cpp:886,src/Ascension/AscGlobalsD.cpp:71,src/Ascension/AscGlobalsD.cpp:81,src/Ascension/AscGlobalsJ.cpp:1474,src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1612,src/Ascension/AscItemCollections.cpp:360,src/Ascension/AscItemCollections.cpp:411,src/Ascension/AscModelMethods.cpp:449,src/Ascension/AscVanityCollection.cpp:338	GetRecord	WoW/Source/DB/WowClientDB.h:434	mapped
 0x004D16B7	unknown	src/Ascension/AscAttachPatches.generated.inc:89			unported
 0x004D17F8	unknown	src/Ascension/AscAttachPatches.cpp:33,src/Ascension/AscAttachPatches.generated.inc:85			unported
 0x004D3790	func	src/Ascension/AscEventPackets.cpp:216,src/Ascension/AscEventPackets.cpp:298,src/Ascension/AscItemCollections.cpp:296,src/Ascension/AscScript.cpp:180,src/Ascension/AscScript.hpp:83,WotLKExtensions/src/Client/ClientServices.cpp:13	ClntObjMgrGetActivePlayer	WoW/Source/ObjectMgrClient/ObjectMgrClient.cpp:201	mapped
@@ -336,7 +336,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00557371	unknown	WotLKExtensions/src/GameObjects/CGPlayer.cpp:68			unported
 0x005574C0	func	src/Ascension/AscAttachLua.cpp:9,src/Ascension/AscAttachLua.cpp:130	CGLookingForGroup::GetDungeonRewardItem	WoW/Source/Ui/LFGInfo.cpp:175	mapped
 0x00557BE0	func	src/Ascension/AscAttachLua.cpp:9,src/Ascension/AscAttachLua.cpp:311,src/Ascension/AscAttachLua.cpp:311	Script_GetLFGDungeonRewardInfo	WoW/Source/Ui/LFGInfo_Scripts.cpp:602	mapped
-0x0055F4D0	unknown	src/Ascension/AscLibrary.cpp:59,src/Ascension/AscLibrary.cpp:65			unported
+0x0055F4D0	func	src/Ascension/AscLibrary.cpp:59,src/Ascension/AscLibrary.cpp:65	Ptr	Engine/Source/Storm/H/stpl.h:1292	mapped
 0x00566330	func	src/Ascension/AscAttachLua.cpp:10,src/Ascension/AscAttachLua.cpp:149	CGUIMacros::FindMacro	WoW/Source/Ui/UIMacros.cpp:231	mapped
 0x005663D4	unknown	src/Ascension/AscAttachPatches.cpp:8,src/Ascension/AscAttachPatches.generated.inc:18			unported
 0x00567450	func	src/Ascension/AscAttachLua.cpp:10,src/Ascension/AscAttachLua.cpp:312	Script_GetMacroSpell	WoW/Source/Ui/UIMacros_Scripts.cpp:125	mapped
@@ -668,16 +668,16 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00635520	func	src/Ascension/AscGlobalsB.cpp:63,src/Ascension/AscRealmData.cpp:30	DBCache_Initialize	WoW/Source/DB/DBClient/DBCacheInstances.cpp:387	mapped
 0x00635540	func	src/Ascension/AscGlobalsB.cpp:64	DBCache_Destroy	WoW/Source/DB/DBClient/DBCacheInstances.cpp:393	mapped
 0x00635710	func	src/Ascension/AscAttachLua.cpp:16,src/Ascension/AscAttachLua.cpp:318,src/Ascension/AscAttachLua.cpp:318,src/Ascension/AscCacheFiles.cpp:9,src/Ascension/AscCacheFiles.cpp:26,src/Ascension/AscItemStats.hpp:14,src/Ascension/AscQuestAddon.hpp:20	SetClientCacheVersion	WoW/Source/DB/DBClient/DBCacheInstances.cpp:249	mapped
-0x0065C290	func	src/Ascension/AscCrashContext.cpp:7,src/Ascension/AscCrashContext.cpp:352,WotLKExtensions/src/Client/DBClient.cpp:18			unported
+0x0065C290	func	src/Ascension/AscCrashContext.cpp:7,src/Ascension/AscCrashContext.cpp:352,WotLKExtensions/src/Client/DBClient.cpp:18	GetRecord	WoW/Source/DB/WowClientDB.h:282	mapped
 0x00667EF9	func	src/Ascension/AscRealmData.cpp:28,src/Ascension/AscRealmData.cpp:345,src/Ascension/AscRealmData.cpp:390			unported
 0x00667F16	unknown	src/Ascension/AscRealmData.cpp:352			unported
 0x0067A18E	unknown	src/Ascension/AscAttachInline.generated.inc:25			unported
-0x0067B6A0	unknown	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:55,src/Ascension/AscAttachFixes.cpp:937,src/Ascension/AscAttachFixes.cpp:1085,src/Ascension/AscSmallApis.cpp:279,src/Ascension/AscTemplates.cpp:123,src/Ascension/AscTemplates.cpp:126			unported
-0x0067BD40	unknown	src/Ascension/AscAttachFixes.cpp:903			unported
-0x0067CA30	func	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:53,src/Ascension/AscAttachFixes.cpp:784,src/Ascension/AscGlobalsB.cpp:35,src/Ascension/AscGlobalsB.cpp:37,src/Ascension/AscGlobalsC.cpp:154,src/Ascension/AscGlobalsJ.cpp:747,src/Ascension/AscGlobalsJ.cpp:814,src/Ascension/AscItemCollections.cpp:353,src/Ascension/AscItemStats.cpp:181,src/Ascension/AscModelMethods.cpp:444,src/Ascension/AscMysticEnchant.cpp:373,src/Ascension/AscMysticEnchant.cpp:376,src/Ascension/AscSmallApis.cpp:213,src/Ascension/AscSpellTokens.cpp:173,src/Ascension/AscSpellTokens.cpp:174,src/Ascension/AscTooltipScaling.cpp:81,WotLKExtensions/src/Data/DBItemCache.cpp:5			unported
-0x0067D770	func	WotLKExtensions/src/Data/DBNameCache.cpp:5			unported
-0x0067DE90	func	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:54,src/Ascension/AscAttachFixes.cpp:857,src/Ascension/AscGlobalsB.cpp:40,src/Ascension/AscGlobalsB.cpp:42,src/Ascension/AscSmallApis.cpp:254,src/Ascension/AscSmallApis.cpp:258,src/Ascension/AscSmallApis.cpp:278,src/Ascension/AscTemplates.cpp:71,src/Ascension/AscTemplates.cpp:74,src/Ascension/AscTemporalContracts.cpp:15,src/Ascension/AscTemporalContracts.cpp:62,src/Ascension/AscTemporalContracts.cpp:64			unported
-0x0067EF70	func	WotLKExtensions/src/Data/DBPetitionCache.cpp:5			unported
+0x0067B6A0	func	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:55,src/Ascension/AscAttachFixes.cpp:937,src/Ascension/AscAttachFixes.cpp:1085,src/Ascension/AscSmallApis.cpp:279,src/Ascension/AscTemplates.cpp:123,src/Ascension/AscTemplates.cpp:126	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
+0x0067BD40	func	src/Ascension/AscAttachFixes.cpp:903	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
+0x0067CA30	func	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:53,src/Ascension/AscAttachFixes.cpp:784,src/Ascension/AscGlobalsB.cpp:35,src/Ascension/AscGlobalsB.cpp:37,src/Ascension/AscGlobalsC.cpp:154,src/Ascension/AscGlobalsJ.cpp:747,src/Ascension/AscGlobalsJ.cpp:814,src/Ascension/AscItemCollections.cpp:353,src/Ascension/AscItemStats.cpp:181,src/Ascension/AscModelMethods.cpp:444,src/Ascension/AscMysticEnchant.cpp:373,src/Ascension/AscMysticEnchant.cpp:376,src/Ascension/AscSmallApis.cpp:213,src/Ascension/AscSpellTokens.cpp:173,src/Ascension/AscSpellTokens.cpp:174,src/Ascension/AscTooltipScaling.cpp:81,WotLKExtensions/src/Data/DBItemCache.cpp:5	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
+0x0067D770	func	WotLKExtensions/src/Data/DBNameCache.cpp:5	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
+0x0067DE90	func	src/Ascension/AscAssetQuery.cpp:38,src/Ascension/AscAssetQuery.cpp:54,src/Ascension/AscAttachFixes.cpp:857,src/Ascension/AscGlobalsB.cpp:40,src/Ascension/AscGlobalsB.cpp:42,src/Ascension/AscSmallApis.cpp:254,src/Ascension/AscSmallApis.cpp:258,src/Ascension/AscSmallApis.cpp:278,src/Ascension/AscTemplates.cpp:71,src/Ascension/AscTemplates.cpp:74,src/Ascension/AscTemporalContracts.cpp:15,src/Ascension/AscTemporalContracts.cpp:62,src/Ascension/AscTemporalContracts.cpp:64	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
+0x0067EF70	func	WotLKExtensions/src/Data/DBPetitionCache.cpp:5	GetRecord	WoW/Source/DB/DBClient/DBCache.h:296	mapped
 0x00681450	func	src/Ascension/AscCursor.cpp:109	GxTexSetWrap	Engine/Source/Gx/Gx.cpp:880	mapped
 0x00681580	func	src/Ascension/AscGraphics.cpp:13,src/Ascension/AscGraphics.cpp:402,src/Ascension/AscGraphics.cpp:704	GxTexReusable	Engine/Source/Gx/Gx.cpp:397	mapped
 0x006815C0	func	src/Ascension/AscGraphics.cpp:13,src/Ascension/AscGraphics.cpp:402,src/Ascension/AscGraphics.cpp:703	GxTexReusable	Engine/Source/Gx/Gx.cpp:403	mapped
@@ -763,7 +763,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x006F09F0	func	src/Ascension/AscMovementForce.cpp:13,src/Ascension/AscMovementForce.cpp:688	CMovement_C::ExecuteMovement	WoW/Source/Object/Movement.cpp:5266	mapped
 0x006F1490	func	src/Ascension/AscMovementForce.cpp:18,src/Ascension/AscMovementForce.cpp:567,src/Ascension/AscMovementForce.cpp:693	MovementIdleMoveUnits	WoW/Source/Object/ObjectClient/Movement_C.cpp:193	mapped
 0x006F1497	unknown	src/Ascension/AscMovementForce.cpp:567,src/Ascension/AscMovementForce.cpp:576			unported
-0x006F6020	func	src/Ascension/AscAttachLua.cpp:145,src/Ascension/AscRuntime.cpp:237,src/Ascension/AscRuntime.cpp:257,src/Ascension/AscRuntime.cpp:580,src/Ascension/AscRuntime.cpp:593			unported
+0x006F6020	func	src/Ascension/AscAttachLua.cpp:145,src/Ascension/AscRuntime.cpp:237,src/Ascension/AscRuntime.cpp:257,src/Ascension/AscRuntime.cpp:580,src/Ascension/AscRuntime.cpp:593	Ptr	Engine/Source/Storm/H/stpl.h:1273	mapped
 0x006F74B0	func	src/Ascension/AscRuntime.cpp:347,src/Ascension/AscRuntime.cpp:358	CEffect::UnLinkSelf	WoW/Source/Object/ObjectClient/Effect_C.cpp:114	mapped
 0x006F75B0	func	src/Ascension/AscClientOptions.cpp:279,src/Ascension/AscClientOptions.cpp:285	GetSpecialSpellVisualEffectNameRec	WoW/Source/Object/ObjectClient/Effect_C.cpp:129	mapped
 0x006F7A00	func	src/Ascension/AscRuntime.cpp:347,src/Ascension/AscRuntime.cpp:360	CEffect::MoveToOrphanList	WoW/Source/Object/ObjectClient/Effect_C.cpp:316	mapped
@@ -1093,7 +1093,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x007E6390	func	src/Ascension/AscAttachFixes.cpp:29,src/Ascension/AscAttachFixes.cpp:449	PlayerNameUpdateDrawCallback	WoW/Source/Game/GameClient/PlayerName.cpp:118	mapped
 0x007E6DC0	func	src/Ascension/AscMisc.cpp:388,src/Ascension/AscMisc.cpp:458	WorldTextCreate	WoW/Source/Game/GameClient/WorldText.cpp:303	mapped
 0x007EB180	func	src/Ascension/AscGraphics.cpp:10,src/Ascension/AscGraphics.cpp:350,src/Ascension/AscGraphics.cpp:691	DayNight::GetLightParams	WoW/Source/WorldClient/DayNight.cpp:286	mapped
-0x007EB210	func	src/Ascension/AscGraphics.cpp:9,src/Ascension/AscGraphics.cpp:333,src/Ascension/AscGraphics.cpp:690			unported
+0x007EB210	func	src/Ascension/AscGraphics.cpp:9,src/Ascension/AscGraphics.cpp:333,src/Ascension/AscGraphics.cpp:690	GetRecord	WoW/Source/DB/WowClientDB.h:434	mapped
 0x007EC15A	unknown	src/Ascension/AscGraphics.cpp:214			unported
 0x007ECEF0	func	src/Ascension/AscZoneLight.cpp:189,WotLKExtensions/src/WorldData/DNInfo.cpp:10	DayNight::GetInfo	WoW/Source/WorldClient/DayNight.cpp:526	mapped
 0x007ED150	func	src/Ascension/AscZoneLight.cpp:6,src/Ascension/AscZoneLight.cpp:190,WotLKExtensions/src/WorldData/DNInfo.cpp:5	DayNight::DNInfo::AddZoneLight	WoW/Source/WorldClient/DayNight.cpp:586	mapped
@@ -1450,7 +1450,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x009AD000	func	src/Ascension/AscZoneLight.cpp:14,src/Ascension/AscZoneLight.cpp:76	DayNight::DNGlare::Initialize	WoW/Source/WorldClient/DayNightRender.cpp:247	mapped
 0x009E0360	unknown	WotLKExtensions/src/WorldData/ZoneLightData.cpp:16			unported
 0x009E04CC	unknown	WotLKExtensions/src/Client/Misc.cpp:52			unported
-0x009E8A9C	unknown	src/Ascension/AscMain.cpp:60			unported
+0x009E8A9C	data	src/Ascension/AscMain.cpp:60	s_defaultSeed	WoW/Source/WowServices/WowConnection.cpp:52	mapped
 0x009E8AAC	unknown	src/Ascension/AscMain.cpp:60			unported
 0x009E8CFC	unknown	src/Ascension/AscGraphics.cpp:6,src/Ascension/AscGraphics.cpp:680			unported
 0x009F3A88	unknown	src/Ascension/AscAttachPatches.cpp:13,src/Ascension/AscAttachPatches.generated.inc:65,src/Ascension/AscGlobalsJ.cpp:15,src/Ascension/AscGlobalsJ.cpp:1634			unported
@@ -1462,321 +1462,321 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00A23F38	unknown	src/Ascension/AscGlobalsJ.cpp:1555,src/Ascension/AscGlobalsJ.cpp:1581			unported
 0x00A23FA4	unknown	src/Ascension/AscGlobalsJ.cpp:1555,src/Ascension/AscGlobalsJ.cpp:1581			unported
 0x00A23FD8	unknown	src/Ascension/AscGlobalsJ.cpp:1555,src/Ascension/AscGlobalsJ.cpp:1581			unported
-0x00A25F78	unknown	WotLKExtensions/src/Client/Misc.cpp:36			unported
-0x00A2D2FC	unknown	WotLKExtensions/src/Client/CGTooltip.cpp:605,WotLKExtensions/src/Client/CGTooltip.cpp:607			unported
+0x00A25F78	data	WotLKExtensions/src/Client/Misc.cpp:36	s_spellStatOrder	WoW/Source/UIUtil/Tooltip.cpp:254	mapped
+0x00A2D2FC	data	WotLKExtensions/src/Client/CGTooltip.cpp:605,WotLKExtensions/src/Client/CGTooltip.cpp:607	CGReputationInfo::m_reactionThresholds	WoW/Source/Ui/ReputationInfo.cpp:54	mapped
 0x00A32904	unknown	src/Ascension/AscAccount.cpp:110,src/Ascension/AscAccount.cpp:120			unported
 0x00A3B558	unknown	src/Ascension/AscBuildCreator.cpp:425			unported
 0x00A40218	unknown	src/Ascension/AscAttachLua.cpp:321			unported
 0x00A4040C	func	src/Ascension/AscSpellShadow.cpp:11,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscUnitSelect.cpp:26,src/Ascension/AscUnitSelect.cpp:141			unported
 0x00A41C2C	unknown	src/Ascension/AscZoneLight.cpp:14,src/Ascension/AscZoneLight.cpp:77			unported
 0x00A41E00	unknown	src/Ascension/AscPOI.cpp:101,src/Ascension/AscPOI.cpp:107,src/Ascension/AscPOI.cpp:108,src/Ascension/AscPOI.cpp:109			unported
-0x00A41E04	unknown	src/Ascension/AscAttachPatches.cpp:36			unported
-0x00A41E1C	unknown	src/Ascension/AscAttachPatches.cpp:36			unported
+0x00A41E04	data	src/Ascension/AscAttachPatches.cpp:36	s_outdoorZoomTiles	WoW/Source/Ui/MinimapFrame.cpp:227	mapped
+0x00A41E1C	data	src/Ascension/AscAttachPatches.cpp:36	s_indoorZoomRadius	WoW/Source/Ui/MinimapFrame.cpp:230	mapped
 0x00A478E0	unknown	src/Ascension/AscClientGuards.cpp:72,src/Ascension/AscClientGuards.cpp:78			unported
 0x00AA2D0E	unknown	src/Ascension/AscAttachInline.generated.inc:23			unported
 0x00AB6160	unknown	src/Ascension/AscRealmData.cpp:58,src/Ascension/AscRealmData.cpp:170,src/Ascension/AscRealmData.cpp:176			unported
-0x00AB63B4	unknown	src/Ascension/AscCVarHooks.cpp:10,src/Ascension/AscCVarHooks.cpp:157			unported
-0x00AB63B8	unknown	src/Ascension/AscCVarHooks.cpp:10,src/Ascension/AscCVarHooks.cpp:158			unported
-0x00AB63BC	unknown	src/Ascension/AscLoadingScreen.cpp:3,src/Ascension/AscLoadingScreen.cpp:35			unported
+0x00AB63B4	data	src/Ascension/AscCVarHooks.cpp:10,src/Ascension/AscCVarHooks.cpp:157	s_normalAspect	WoW/Source/LoadingScreen.cpp:62	mapped
+0x00AB63B8	data	src/Ascension/AscCVarHooks.cpp:10,src/Ascension/AscCVarHooks.cpp:158	s_wideAspect	WoW/Source/LoadingScreen.cpp:65	mapped
+0x00AB63BC	data	src/Ascension/AscLoadingScreen.cpp:3,src/Ascension/AscLoadingScreen.cpp:35	s_simpleMapID	WoW/Source/LoadingScreen.cpp:68	mapped
 0x00AB6400	unknown	src/Ascension/AscCursor.cpp:116			unported
-0x00AC0CB4	unknown	WotLKExtensions/src/Misc/Util.cpp:42			unported
-0x00AC0CBC	unknown	WotLKExtensions/src/Misc/Util.cpp:43			unported
-0x00AC436C	unknown	src/Ascension/AscCVarHooks.cpp:8,src/Ascension/AscCVarHooks.cpp:69,src/Ascension/AscCVarHooks.cpp:87,src/Ascension/AscCVarHooks.cpp:120,src/Ascension/AscGeosets.cpp:122			unported
-0x00AC79A4	unknown	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:13,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscSpellShadow.cpp:103			unported
-0x00AC7A40	unknown	src/Ascension/AscAttachLua.cpp:6,src/Ascension/AscAttachLua.cpp:96			unported
-0x00AC80A8	unknown	src/Ascension/AscNamePlates.cpp:47,src/Ascension/AscUnitSelect.cpp:249,src/Ascension/AscUnitSelect.cpp:300,src/Ascension/AscUnitSelect.cpp:345			unported
-0x00AC8A64	unknown	src/Ascension/AscMisc.cpp:259,src/Ascension/AscMisc.cpp:264			unported
+0x00AC0CB4	data	WotLKExtensions/src/Misc/Util.cpp:42	s_ddcWidthScale	Engine/Source/Base/Coordinate.cpp:8	mapped
+0x00AC0CBC	data	WotLKExtensions/src/Misc/Util.cpp:43	s_aspectCompensation	Engine/Source/Base/Coordinate.cpp:14	mapped
+0x00AC436C	data	src/Ascension/AscCVarHooks.cpp:8,src/Ascension/AscCVarHooks.cpp:69,src/Ascension/AscCVarHooks.cpp:87,src/Ascension/AscCVarHooks.cpp:120,src/Ascension/AscGeosets.cpp:122	CCharacterSelection::s_selectionIndex	WoW/Source/Glue/CharacterSelection.cpp:48	mapped
+0x00AC79A4	data	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:13,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscSpellShadow.cpp:103	s_spellShadowStyle	WoW/Source/Ui/WorldFrame.cpp:111	mapped
+0x00AC7A40	data	src/Ascension/AscAttachLua.cpp:6,src/Ascension/AscAttachLua.cpp:96	s_chatLogNames	WoW/Source/Ui/ChatFrame_Scripts.cpp:1470	mapped
+0x00AC80A8	data	src/Ascension/AscNamePlates.cpp:47,src/Ascension/AscUnitSelect.cpp:249,src/Ascension/AscUnitSelect.cpp:300,src/Ascension/AscUnitSelect.cpp:345	CGGameUI::m_visible	WoW/Source/Ui/GameUI.cpp:938	mapped
+0x00AC8A64	data	src/Ascension/AscMisc.cpp:259,src/Ascension/AscMisc.cpp:264	s_duelDistSq	WoW/Source/Ui/GameUI.cpp:1034	mapped
 0x00ACD72C	unknown	WotLKExtensions/src/GameObjects/CGPlayer.cpp:73			unported
 0x00ACD7FC	unknown	WotLKExtensions/src/GameObjects/CGPlayer.cpp:71			unported
 0x00ACE8F8	unknown	src/Ascension/AscSpellTokens.cpp:376,src/Ascension/AscSpellTokens.cpp:400,WotLKExtensions/src/Client/CFormula.cpp:112			unported
 0x00ACEF20	unknown	src/Ascension/AscGossipQuest.cpp:20,src/Ascension/AscGossipQuest.cpp:61			unported
-0x00ACF548	unknown	src/Ascension/AscAttachFixes.cpp:33,src/Ascension/AscAttachFixes.cpp:480			unported
-0x00ACFC00	unknown	src/Ascension/AscGameMode.cpp:145,src/Ascension/AscGameMode.cpp:154			unported
+0x00ACF548	data	src/Ascension/AscAttachFixes.cpp:33,src/Ascension/AscAttachFixes.cpp:480	s_nextHand	WoW/Source/Ui/DressUpModelFrame.cpp:134	mapped
+0x00ACFC00	data	src/Ascension/AscGameMode.cpp:145,src/Ascension/AscGameMode.cpp:154	CGEquipmentManager::s_equipmentSets	WoW/Source/Ui/EquipmentManager.cpp:42	mapped
 0x00ACFDA0	unknown	src/Ascension/AscCallboardCache.cpp:9			unported
-0x00ACFDB0	unknown	src/Ascension/AscChallenge.cpp:287,src/Ascension/AscCustomStore.cpp:130,src/Ascension/AscCustomStore.cpp:133,src/Ascension/AscSpawnVisibility.cpp:8,src/Ascension/AscSpawnVisibility.cpp:56,src/Ascension/AscTutorial.cpp:91,src/Ascension/AscTutorial.cpp:94			unported
-0x00ACFDEC	unknown	src/Ascension/AscSpawnVisibility.cpp:7,src/Ascension/AscSpawnVisibility.cpp:52			unported
+0x00ACFDB0	data	src/Ascension/AscChallenge.cpp:287,src/Ascension/AscCustomStore.cpp:130,src/Ascension/AscCustomStore.cpp:133,src/Ascension/AscSpawnVisibility.cpp:8,src/Ascension/AscSpawnVisibility.cpp:56,src/Ascension/AscTutorial.cpp:91,src/Ascension/AscTutorial.cpp:94	s_completedAchievements	WoW/Source/Ui/AchievementInfo.cpp:25	mapped
+0x00ACFDEC	data	src/Ascension/AscSpawnVisibility.cpp:7,src/Ascension/AscSpawnVisibility.cpp:52	s_completedQuests	WoW/Source/Ui/AchievementInfo.cpp:40	mapped
 0x00AD2808	unknown	src/Ascension/AscCursor.cpp:8,src/Ascension/AscCursor.cpp:57			unported
-0x00AD2A84	unknown	src/Ascension/AscGlobalsJ.cpp:1344,src/Ascension/AscGlobalsJ.cpp:1367			unported
+0x00AD2A84	data	src/Ascension/AscGlobalsJ.cpp:1344,src/Ascension/AscGlobalsJ.cpp:1367	s_itemQualityColorStrings	WoW/Source/UIUtil/Tooltip.cpp:140	mapped
 0x00AD2AE0	unknown	src/Ascension/AscTooltipScaling.cpp:556			unported
-0x00AD2D30	unknown	src/Ascension/AscTooltipScaling.cpp:1005,src/Ascension/AscTooltipScaling.cpp:1129			unported
-0x00AD2D34	unknown	src/Ascension/AscTooltipScaling.cpp:1007,src/Ascension/AscTooltipScaling.cpp:1129			unported
-0x00AD2D3C	unknown	src/Ascension/AscUnitSelect.cpp:184			unported
-0x00AD2D40	unknown	src/Ascension/AscSpellShadow.cpp:17,src/Ascension/AscSpellShadow.cpp:152,src/Ascension/AscUnitSelect.cpp:199			unported
-0x00AD2D48	unknown	src/Ascension/AscUnitSelect.cpp:192			unported
-0x00AD2D84	unknown	src/Ascension/AscGlobalsJ.cpp:1344,src/Ascension/AscGlobalsJ.cpp:1370			unported
-0x00AD305C	unknown	src/Ascension/AscChallenge.cpp:304,src/Ascension/AscClientDbcPatch.generated.inc:11,src/Ascension/AscClientDbcs.generated.inc:3,src/Ascension/AscGlobalsB.cpp:25,WotLKExtensions/src/Data/DBCAddresses.hpp:5			unported
-0x00AD3080	unknown	src/Ascension/AscCallboardCache.cpp:9,src/Ascension/AscCallboardCache.cpp:50,src/Ascension/AscClientDbcPatch.cpp:47,src/Ascension/AscClientDbcs.generated.inc:4,WotLKExtensions/src/Data/DBCAddresses.hpp:7			unported
-0x00AD30A4	unknown	src/Ascension/AscClientDbcPatch.cpp:49,src/Ascension/AscClientDbcs.generated.inc:5,WotLKExtensions/src/Data/DBCAddresses.hpp:6			unported
-0x00AD30C8	unknown	src/Ascension/AscAnimationCount.cpp:4,src/Ascension/AscClientDbcs.generated.inc:6,WotLKExtensions/src/Data/DBCAddresses.hpp:8			unported
+0x00AD2D30	data	src/Ascension/AscTooltipScaling.cpp:1005,src/Ascension/AscTooltipScaling.cpp:1129	s_tooltipTextColor	WoW/Source/UIUtil/Tooltip.cpp:146	mapped
+0x00AD2D34	data	src/Ascension/AscTooltipScaling.cpp:1007,src/Ascension/AscTooltipScaling.cpp:1129	s_tooltipRedColor	WoW/Source/UIUtil/Tooltip.cpp:149	mapped
+0x00AD2D3C	data	src/Ascension/AscUnitSelect.cpp:184	s_tooltipDisenchantColor	WoW/Source/UIUtil/Tooltip.cpp:200	mapped
+0x00AD2D40	data	src/Ascension/AscSpellShadow.cpp:17,src/Ascension/AscSpellShadow.cpp:152,src/Ascension/AscUnitSelect.cpp:199	s_tooltipGreenColor	WoW/Source/UIUtil/Tooltip.cpp:155	mapped
+0x00AD2D48	data	src/Ascension/AscUnitSelect.cpp:192	s_tooltipBrightRedColor	WoW/Source/UIUtil/Tooltip.cpp:182	mapped
+0x00AD2D84	data	src/Ascension/AscGlobalsJ.cpp:1344,src/Ascension/AscGlobalsJ.cpp:1370	s_itemQualityColors	WoW/Source/UIUtil/Tooltip.cpp:164	mapped
+0x00AD305C	data	src/Ascension/AscChallenge.cpp:304,src/Ascension/AscClientDbcPatch.generated.inc:11,src/Ascension/AscClientDbcs.generated.inc:3,src/Ascension/AscGlobalsB.cpp:25,WotLKExtensions/src/Data/DBCAddresses.hpp:5	g_achievementDB	WoW/Source/DB/DBClient/DBClient.cpp:33	mapped
+0x00AD3080	data	src/Ascension/AscCallboardCache.cpp:9,src/Ascension/AscCallboardCache.cpp:50,src/Ascension/AscClientDbcPatch.cpp:47,src/Ascension/AscClientDbcs.generated.inc:4,WotLKExtensions/src/Data/DBCAddresses.hpp:7	g_achievement_CriteriaDB	WoW/Source/DB/DBClient/DBClient.cpp:36	mapped
+0x00AD30A4	data	src/Ascension/AscClientDbcPatch.cpp:49,src/Ascension/AscClientDbcs.generated.inc:5,WotLKExtensions/src/Data/DBCAddresses.hpp:6	g_achievement_CategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:39	mapped
+0x00AD30C8	data	src/Ascension/AscAnimationCount.cpp:4,src/Ascension/AscClientDbcs.generated.inc:6,WotLKExtensions/src/Data/DBCAddresses.hpp:8	g_animationDataDB	WoW/Source/DB/DBClient/DBClient.cpp:42	mapped
 0x00AD30D0	unknown	src/Ascension/AscAnimationCount.cpp:21			unported
-0x00AD30EC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:106,src/Ascension/AscClientDbcs.generated.inc:7,WotLKExtensions/src/Data/DBCAddresses.hpp:9			unported
-0x00AD3110	unknown	src/Ascension/AscClientDbcPatch.generated.inc:105,src/Ascension/AscClientDbcs.generated.inc:8,WotLKExtensions/src/Data/DBCAddresses.hpp:10			unported
-0x00AD3134	unknown	src/Ascension/AscClientDbcPatch.generated.inc:12,src/Ascension/AscClientDbcs.generated.inc:9,src/Ascension/AscGlobalsB.cpp:25,src/Ascension/AscGlobalsD.cpp:16,src/Ascension/AscWorldMap.cpp:3,src/Ascension/AscWorldMap.cpp:13,WotLKExtensions/src/Data/DBCAddresses.hpp:11			unported
+0x00AD30EC	data	src/Ascension/AscClientDbcPatch.generated.inc:106,src/Ascension/AscClientDbcs.generated.inc:7,WotLKExtensions/src/Data/DBCAddresses.hpp:9	g_areaGroupDB	WoW/Source/DB/DBClient/DBClient.cpp:45	mapped
+0x00AD3110	data	src/Ascension/AscClientDbcPatch.generated.inc:105,src/Ascension/AscClientDbcs.generated.inc:8,WotLKExtensions/src/Data/DBCAddresses.hpp:10	g_areaPOIDB	WoW/Source/DB/DBClient/DBClient.cpp:48	mapped
+0x00AD3134	data	src/Ascension/AscClientDbcPatch.generated.inc:12,src/Ascension/AscClientDbcs.generated.inc:9,src/Ascension/AscGlobalsB.cpp:25,src/Ascension/AscGlobalsD.cpp:16,src/Ascension/AscWorldMap.cpp:3,src/Ascension/AscWorldMap.cpp:13,WotLKExtensions/src/Data/DBCAddresses.hpp:11	g_areaTableDB	WoW/Source/DB/DBClient/DBClient.cpp:51	mapped
 0x00AD3140	unknown	src/Ascension/AscTemporalContracts.cpp:641			unported
 0x00AD3144	unknown	src/Ascension/AscTemporalContracts.cpp:641			unported
 0x00AD3154	unknown	src/Ascension/AscTemporalContracts.cpp:641			unported
-0x00AD3158	unknown	src/Ascension/AscClientDbcPatch.generated.inc:104,src/Ascension/AscClientDbcs.generated.inc:10,WotLKExtensions/src/Data/DBCAddresses.hpp:12			unported
-0x00AD317C	unknown	src/Ascension/AscClientDbcs.generated.inc:11,WotLKExtensions/src/Data/DBCAddresses.hpp:13			unported
-0x00AD31A0	unknown	src/Ascension/AscClientDbcs.generated.inc:12,WotLKExtensions/src/Data/DBCAddresses.hpp:14			unported
-0x00AD31C4	unknown	src/Ascension/AscClientDbcs.generated.inc:13,WotLKExtensions/src/Data/DBCAddresses.hpp:15			unported
-0x00AD31E8	unknown	src/Ascension/AscClientDbcs.generated.inc:14,WotLKExtensions/src/Data/DBCAddresses.hpp:16			unported
-0x00AD320C	unknown	src/Ascension/AscClientDbcs.generated.inc:15,WotLKExtensions/src/Data/DBCAddresses.hpp:17			unported
-0x00AD3230	unknown	src/Ascension/AscClientDbcs.generated.inc:16,WotLKExtensions/src/Data/DBCAddresses.hpp:18			unported
-0x00AD3254	unknown	src/Ascension/AscClientDbcPatch.generated.inc:101,src/Ascension/AscClientDbcs.generated.inc:17,WotLKExtensions/src/Data/DBCAddresses.hpp:19			unported
-0x00AD3278	unknown	src/Ascension/AscClientDbcPatch.generated.inc:51,src/Ascension/AscClientDbcs.generated.inc:18,WotLKExtensions/src/Data/DBCAddresses.hpp:20			unported
-0x00AD329C	unknown	src/Ascension/AscClientDbcs.generated.inc:19,WotLKExtensions/src/Data/DBCAddresses.hpp:21			unported
-0x00AD32C0	unknown	src/Ascension/AscClientDbcs.generated.inc:20,WotLKExtensions/src/Data/DBCAddresses.hpp:22			unported
-0x00AD32E4	unknown	src/Ascension/AscClientDbcs.generated.inc:21,WotLKExtensions/src/Data/DBCAddresses.hpp:24			unported
-0x00AD3308	unknown	src/Ascension/AscClientDbcs.generated.inc:22,src/Ascension/AscHdDbc.cpp:54,WotLKExtensions/src/Data/DBCAddresses.hpp:25			unported
-0x00AD332C	unknown	src/Ascension/AscClientDbcs.generated.inc:23,src/Ascension/AscHdDbc.cpp:55,WotLKExtensions/src/Data/DBCAddresses.hpp:26			unported
-0x00AD3350	unknown	src/Ascension/AscClientDbcPatch.generated.inc:13,src/Ascension/AscClientDbcs.generated.inc:24,WotLKExtensions/src/Data/DBCAddresses.hpp:27			unported
-0x00AD3374	unknown	src/Ascension/AscClientDbcs.generated.inc:25,src/Ascension/AscGlobalsG.cpp:102,WotLKExtensions/src/Data/DBCAddresses.hpp:28			unported
-0x00AD3398	unknown	src/Ascension/AscClientDbcs.generated.inc:26,src/Ascension/AscHdDbc.cpp:53,src/Ascension/AscHdDbc.cpp:109,WotLKExtensions/src/Data/DBCAddresses.hpp:23			unported
+0x00AD3158	data	src/Ascension/AscClientDbcPatch.generated.inc:104,src/Ascension/AscClientDbcs.generated.inc:10,WotLKExtensions/src/Data/DBCAddresses.hpp:12	g_areaTriggerDB	WoW/Source/DB/DBClient/DBClient.cpp:54	mapped
+0x00AD317C	data	src/Ascension/AscClientDbcs.generated.inc:11,WotLKExtensions/src/Data/DBCAddresses.hpp:13	g_attackAnimKitsDB	WoW/Source/DB/DBClient/DBClient.cpp:57	mapped
+0x00AD31A0	data	src/Ascension/AscClientDbcs.generated.inc:12,WotLKExtensions/src/Data/DBCAddresses.hpp:14	g_attackAnimTypesDB	WoW/Source/DB/DBClient/DBClient.cpp:60	mapped
+0x00AD31C4	data	src/Ascension/AscClientDbcs.generated.inc:13,WotLKExtensions/src/Data/DBCAddresses.hpp:15	g_auctionHouseDB	WoW/Source/DB/DBClient/DBClient.cpp:63	mapped
+0x00AD31E8	data	src/Ascension/AscClientDbcs.generated.inc:14,WotLKExtensions/src/Data/DBCAddresses.hpp:16	g_bankBagSlotPricesDB	WoW/Source/DB/DBClient/DBClient.cpp:66	mapped
+0x00AD320C	data	src/Ascension/AscClientDbcs.generated.inc:15,WotLKExtensions/src/Data/DBCAddresses.hpp:17	g_bannedAddOnsDB	WoW/Source/DB/DBClient/DBClient.cpp:69	mapped
+0x00AD3230	data	src/Ascension/AscClientDbcs.generated.inc:16,WotLKExtensions/src/Data/DBCAddresses.hpp:18	g_barberShopStyleDB	WoW/Source/DB/DBClient/DBClient.cpp:72	mapped
+0x00AD3254	data	src/Ascension/AscClientDbcPatch.generated.inc:101,src/Ascension/AscClientDbcs.generated.inc:17,WotLKExtensions/src/Data/DBCAddresses.hpp:19	g_battlemasterListDB	WoW/Source/DB/DBClient/DBClient.cpp:75	mapped
+0x00AD3278	data	src/Ascension/AscClientDbcPatch.generated.inc:51,src/Ascension/AscClientDbcs.generated.inc:18,WotLKExtensions/src/Data/DBCAddresses.hpp:20	g_cameraShakesDB	WoW/Source/DB/DBClient/DBClient.cpp:78	mapped
+0x00AD329C	data	src/Ascension/AscClientDbcs.generated.inc:19,WotLKExtensions/src/Data/DBCAddresses.hpp:21	g_cfg_CategoriesDB	WoW/Source/DB/DBClient/DBClient.cpp:81	mapped
+0x00AD32C0	data	src/Ascension/AscClientDbcs.generated.inc:20,WotLKExtensions/src/Data/DBCAddresses.hpp:22	g_cfg_ConfigsDB	WoW/Source/DB/DBClient/DBClient.cpp:84	mapped
+0x00AD32E4	data	src/Ascension/AscClientDbcs.generated.inc:21,WotLKExtensions/src/Data/DBCAddresses.hpp:24	g_charBaseInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:87	mapped
+0x00AD3308	data	src/Ascension/AscClientDbcs.generated.inc:22,src/Ascension/AscHdDbc.cpp:54,WotLKExtensions/src/Data/DBCAddresses.hpp:25	g_charHairGeosetsDB	WoW/Source/DB/DBClient/DBClient.cpp:90	mapped
+0x00AD332C	data	src/Ascension/AscClientDbcs.generated.inc:23,src/Ascension/AscHdDbc.cpp:55,WotLKExtensions/src/Data/DBCAddresses.hpp:26	g_charSectionsDB	WoW/Source/DB/DBClient/DBClient.cpp:93	mapped
+0x00AD3350	data	src/Ascension/AscClientDbcPatch.generated.inc:13,src/Ascension/AscClientDbcs.generated.inc:24,WotLKExtensions/src/Data/DBCAddresses.hpp:27	g_charStartOutfitDB	WoW/Source/DB/DBClient/DBClient.cpp:96	mapped
+0x00AD3374	data	src/Ascension/AscClientDbcs.generated.inc:25,src/Ascension/AscGlobalsG.cpp:102,WotLKExtensions/src/Data/DBCAddresses.hpp:28	g_charTitlesDB	WoW/Source/DB/DBClient/DBClient.cpp:99	mapped
+0x00AD3398	data	src/Ascension/AscClientDbcs.generated.inc:26,src/Ascension/AscHdDbc.cpp:53,src/Ascension/AscHdDbc.cpp:109,WotLKExtensions/src/Data/DBCAddresses.hpp:23	g_characterFacialHairStylesDB	WoW/Source/DB/DBClient/DBClient.cpp:102	mapped
 0x00AD33A0	unknown	src/Ascension/AscHdDbc.cpp:115			unported
 0x00AD33B8	unknown	src/Ascension/AscHdDbc.cpp:117			unported
-0x00AD33BC	unknown	src/Ascension/AscClientDbcs.generated.inc:27,WotLKExtensions/src/Data/DBCAddresses.hpp:29			unported
-0x00AD33E0	unknown	src/Ascension/AscClientDbcs.generated.inc:28,WotLKExtensions/src/Data/DBCAddresses.hpp:30			unported
-0x00AD3404	unknown	retired/AscStubs.generated.cpp:33,retired/AscStubs.generated.cpp:447,src/Ascension/AscCAMgr.cpp:3986,src/Ascension/AscCAMgr.cpp:3992,src/Ascension/AscCharacterCreate.cpp:440,src/Ascension/AscClientDbcPatch.generated.inc:14,src/Ascension/AscClientDbcs.generated.inc:29,src/Ascension/AscGlobalsE.cpp:12,src/Ascension/AscGroupFinder.cpp:157,src/Ascension/AscRecoveryService.cpp:480,WotLKExtensions/src/Data/DBCAddresses.hpp:31			unported
+0x00AD33BC	data	src/Ascension/AscClientDbcs.generated.inc:27,WotLKExtensions/src/Data/DBCAddresses.hpp:29	g_chatChannelsDB	WoW/Source/DB/DBClient/DBClient.cpp:105	mapped
+0x00AD33E0	data	src/Ascension/AscClientDbcs.generated.inc:28,WotLKExtensions/src/Data/DBCAddresses.hpp:30	g_chatProfanityDB	WoW/Source/DB/DBClient/DBClient.cpp:108	mapped
+0x00AD3404	data	retired/AscStubs.generated.cpp:33,retired/AscStubs.generated.cpp:447,src/Ascension/AscCAMgr.cpp:3986,src/Ascension/AscCAMgr.cpp:3992,src/Ascension/AscCharacterCreate.cpp:440,src/Ascension/AscClientDbcPatch.generated.inc:14,src/Ascension/AscClientDbcs.generated.inc:29,src/Ascension/AscGlobalsE.cpp:12,src/Ascension/AscGroupFinder.cpp:157,src/Ascension/AscRecoveryService.cpp:480,WotLKExtensions/src/Data/DBCAddresses.hpp:31	g_chrClassesDB	WoW/Source/DB/DBClient/DBClient.cpp:111	mapped
 0x00AD3410	unknown	src/Ascension/AscTooltipScaling.cpp:917			unported
 0x00AD3414	unknown	src/Ascension/AscTooltipScaling.cpp:917			unported
 0x00AD3424	unknown	src/Ascension/AscTooltipScaling.cpp:920			unported
-0x00AD3428	unknown	src/Ascension/AscClientDbcs.generated.inc:30,src/Ascension/AscGlobalsC.cpp:96,src/Ascension/AscGlobalsE.cpp:11,src/Ascension/AscItemCollections.cpp:131,src/Ascension/AscRecoveryService.cpp:464,src/Ascension/AscSmallApis.cpp:447,src/Ascension/AscSmallApis.cpp:458,WotLKExtensions/src/Data/DBCAddresses.hpp:32			unported
-0x00AD344C	unknown	src/Ascension/AscClientDbcs.generated.inc:31,WotLKExtensions/src/Data/DBCAddresses.hpp:33			unported
-0x00AD3470	unknown	src/Ascension/AscClientDbcs.generated.inc:32,WotLKExtensions/src/Data/DBCAddresses.hpp:34			unported
-0x00AD3494	unknown	src/Ascension/AscClientDbcPatch.generated.inc:69,src/Ascension/AscClientDbcs.generated.inc:34,src/Ascension/AscHdDbc.cpp:49,src/Ascension/AscTemplates.cpp:219,WotLKExtensions/src/Data/DBCAddresses.hpp:36			unported
-0x00AD34B8	unknown	src/Ascension/AscCharacterCreate.cpp:438,src/Ascension/AscClientDbcPatch.generated.inc:70,src/Ascension/AscClientDbcs.generated.inc:33,src/Ascension/AscHdDbc.cpp:48,src/Ascension/AscTemplates.cpp:189,WotLKExtensions/src/Data/DBCAddresses.hpp:35			unported
-0x00AD34DC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:15,src/Ascension/AscClientDbcs.generated.inc:35,WotLKExtensions/src/Data/DBCAddresses.hpp:37			unported
-0x00AD3500	unknown	src/Ascension/AscCharacterCreate.cpp:439,src/Ascension/AscClientDbcPatch.generated.inc:68,src/Ascension/AscClientDbcs.generated.inc:36,src/Ascension/AscHdDbc.cpp:50,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,src/Ascension/AscTemplates.cpp:151,WotLKExtensions/src/Data/DBCAddresses.hpp:38			unported
-0x00AD3524	unknown	src/Ascension/AscClientDbcPatch.generated.inc:67,src/Ascension/AscClientDbcs.generated.inc:37,WotLKExtensions/src/Data/DBCAddresses.hpp:39			unported
-0x00AD3548	unknown	src/Ascension/AscClientDbcPatch.generated.inc:66,src/Ascension/AscClientDbcs.generated.inc:38,WotLKExtensions/src/Data/DBCAddresses.hpp:40			unported
-0x00AD356C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:65,src/Ascension/AscClientDbcs.generated.inc:39,WotLKExtensions/src/Data/DBCAddresses.hpp:41			unported
-0x00AD3590	unknown	src/Ascension/AscClientDbcPatch.generated.inc:16,src/Ascension/AscClientDbcs.generated.inc:40,WotLKExtensions/src/Data/DBCAddresses.hpp:42			unported
-0x00AD35B4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:18,src/Ascension/AscClientDbcs.generated.inc:41,WotLKExtensions/src/Data/DBCAddresses.hpp:44			unported
-0x00AD35D8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:17,src/Ascension/AscClientDbcs.generated.inc:42,WotLKExtensions/src/Data/DBCAddresses.hpp:43			unported
-0x00AD35FC	unknown	src/Ascension/AscClientDbcs.generated.inc:43,WotLKExtensions/src/Data/DBCAddresses.hpp:45			unported
-0x00AD3620	unknown	src/Ascension/AscClientDbcs.generated.inc:44,WotLKExtensions/src/Data/DBCAddresses.hpp:46			unported
-0x00AD3644	unknown	WotLKExtensions/src/Data/DBCAddresses.hpp:47			unported
-0x00AD3668	unknown	WotLKExtensions/src/Data/DBCAddresses.hpp:48			unported
-0x00AD368C	unknown	src/Ascension/AscClientDbcs.generated.inc:45,WotLKExtensions/src/Data/DBCAddresses.hpp:49			unported
-0x00AD36B0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:19,src/Ascension/AscClientDbcs.generated.inc:46,src/Ascension/AscEventPackets.cpp:316,src/Ascension/AscGlobalsJ.cpp:985,src/Ascension/AscGlobalsJ.cpp:998,src/Ascension/AscLootLockout.cpp:3,src/Ascension/AscLootLockout.cpp:31,WotLKExtensions/src/Data/DBCAddresses.hpp:50			unported
-0x00AD36D4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:120,src/Ascension/AscClientDbcs.generated.inc:47,WotLKExtensions/src/Data/DBCAddresses.hpp:52			unported
-0x00AD36F8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:121,src/Ascension/AscClientDbcs.generated.inc:48,WotLKExtensions/src/Data/DBCAddresses.hpp:51			unported
-0x00AD371C	unknown	src/Ascension/AscClientDbcs.generated.inc:49,WotLKExtensions/src/Data/DBCAddresses.hpp:53			unported
+0x00AD3428	data	src/Ascension/AscClientDbcs.generated.inc:30,src/Ascension/AscGlobalsC.cpp:96,src/Ascension/AscGlobalsE.cpp:11,src/Ascension/AscItemCollections.cpp:131,src/Ascension/AscRecoveryService.cpp:464,src/Ascension/AscSmallApis.cpp:447,src/Ascension/AscSmallApis.cpp:458,WotLKExtensions/src/Data/DBCAddresses.hpp:32	g_chrRacesDB	WoW/Source/DB/DBClient/DBClient.cpp:114	mapped
+0x00AD344C	data	src/Ascension/AscClientDbcs.generated.inc:31,WotLKExtensions/src/Data/DBCAddresses.hpp:33	g_cinematicCameraDB	WoW/Source/DB/DBClient/DBClient.cpp:117	mapped
+0x00AD3470	data	src/Ascension/AscClientDbcs.generated.inc:32,WotLKExtensions/src/Data/DBCAddresses.hpp:34	g_cinematicSequencesDB	WoW/Source/DB/DBClient/DBClient.cpp:120	mapped
+0x00AD3494	data	src/Ascension/AscClientDbcPatch.generated.inc:69,src/Ascension/AscClientDbcs.generated.inc:34,src/Ascension/AscHdDbc.cpp:49,src/Ascension/AscTemplates.cpp:219,WotLKExtensions/src/Data/DBCAddresses.hpp:36	g_creatureDisplayInfoExtraDB	WoW/Source/DB/DBClient/DBClient.cpp:123	mapped
+0x00AD34B8	data	src/Ascension/AscCharacterCreate.cpp:438,src/Ascension/AscClientDbcPatch.generated.inc:70,src/Ascension/AscClientDbcs.generated.inc:33,src/Ascension/AscHdDbc.cpp:48,src/Ascension/AscTemplates.cpp:189,WotLKExtensions/src/Data/DBCAddresses.hpp:35	g_creatureDisplayInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:126	mapped
+0x00AD34DC	data	src/Ascension/AscClientDbcPatch.generated.inc:15,src/Ascension/AscClientDbcs.generated.inc:35,WotLKExtensions/src/Data/DBCAddresses.hpp:37	g_creatureFamilyDB	WoW/Source/DB/DBClient/DBClient.cpp:129	mapped
+0x00AD3500	data	src/Ascension/AscCharacterCreate.cpp:439,src/Ascension/AscClientDbcPatch.generated.inc:68,src/Ascension/AscClientDbcs.generated.inc:36,src/Ascension/AscHdDbc.cpp:50,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,src/Ascension/AscTemplates.cpp:151,WotLKExtensions/src/Data/DBCAddresses.hpp:38	g_creatureModelDataDB	WoW/Source/DB/DBClient/DBClient.cpp:132	mapped
+0x00AD3524	data	src/Ascension/AscClientDbcPatch.generated.inc:67,src/Ascension/AscClientDbcs.generated.inc:37,WotLKExtensions/src/Data/DBCAddresses.hpp:39	g_creatureMovementInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:135	mapped
+0x00AD3548	data	src/Ascension/AscClientDbcPatch.generated.inc:66,src/Ascension/AscClientDbcs.generated.inc:38,WotLKExtensions/src/Data/DBCAddresses.hpp:40	g_creatureSoundDataDB	WoW/Source/DB/DBClient/DBClient.cpp:138	mapped
+0x00AD356C	data	src/Ascension/AscClientDbcPatch.generated.inc:65,src/Ascension/AscClientDbcs.generated.inc:39,WotLKExtensions/src/Data/DBCAddresses.hpp:41	g_creatureSpellDataDB	WoW/Source/DB/DBClient/DBClient.cpp:141	mapped
+0x00AD3590	data	src/Ascension/AscClientDbcPatch.generated.inc:16,src/Ascension/AscClientDbcs.generated.inc:40,WotLKExtensions/src/Data/DBCAddresses.hpp:42	g_creatureTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:144	mapped
+0x00AD35B4	data	src/Ascension/AscClientDbcPatch.generated.inc:18,src/Ascension/AscClientDbcs.generated.inc:41,WotLKExtensions/src/Data/DBCAddresses.hpp:44	g_currencyTypesDB	WoW/Source/DB/DBClient/DBClient.cpp:147	mapped
+0x00AD35D8	data	src/Ascension/AscClientDbcPatch.generated.inc:17,src/Ascension/AscClientDbcs.generated.inc:42,WotLKExtensions/src/Data/DBCAddresses.hpp:43	g_currencyCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:150	mapped
+0x00AD35FC	data	src/Ascension/AscClientDbcs.generated.inc:43,WotLKExtensions/src/Data/DBCAddresses.hpp:45	g_danceMovesDB	WoW/Source/DB/DBClient/DBClient.cpp:153	mapped
+0x00AD3620	data	src/Ascension/AscClientDbcs.generated.inc:44,WotLKExtensions/src/Data/DBCAddresses.hpp:46	g_deathThudLookupsDB	WoW/Source/DB/DBClient/DBClient.cpp:156	mapped
+0x00AD3644	data	WotLKExtensions/src/Data/DBCAddresses.hpp:47	g_declinedWordDB	WoW/Source/DB/DBClient/DBClient.cpp:159	mapped
+0x00AD3668	data	WotLKExtensions/src/Data/DBCAddresses.hpp:48	g_declinedWordCasesDB	WoW/Source/DB/DBClient/DBClient.cpp:162	mapped
+0x00AD368C	data	src/Ascension/AscClientDbcs.generated.inc:45,WotLKExtensions/src/Data/DBCAddresses.hpp:49	g_destructibleModelDataDB	WoW/Source/DB/DBClient/DBClient.cpp:165	mapped
+0x00AD36B0	data	src/Ascension/AscClientDbcPatch.generated.inc:19,src/Ascension/AscClientDbcs.generated.inc:46,src/Ascension/AscEventPackets.cpp:316,src/Ascension/AscGlobalsJ.cpp:985,src/Ascension/AscGlobalsJ.cpp:998,src/Ascension/AscLootLockout.cpp:3,src/Ascension/AscLootLockout.cpp:31,WotLKExtensions/src/Data/DBCAddresses.hpp:50	g_dungeonEncounterDB	WoW/Source/DB/DBClient/DBClient.cpp:168	mapped
+0x00AD36D4	data	src/Ascension/AscClientDbcPatch.generated.inc:120,src/Ascension/AscClientDbcs.generated.inc:47,WotLKExtensions/src/Data/DBCAddresses.hpp:52	g_dungeonMapDB	WoW/Source/DB/DBClient/DBClient.cpp:171	mapped
+0x00AD36F8	data	src/Ascension/AscClientDbcPatch.generated.inc:121,src/Ascension/AscClientDbcs.generated.inc:48,WotLKExtensions/src/Data/DBCAddresses.hpp:51	g_dungeonMapChunkDB	WoW/Source/DB/DBClient/DBClient.cpp:174	mapped
+0x00AD371C	data	src/Ascension/AscClientDbcs.generated.inc:49,WotLKExtensions/src/Data/DBCAddresses.hpp:53	g_durabilityCostsDB	WoW/Source/DB/DBClient/DBClient.cpp:177	mapped
 0x00AD373C	unknown	src/Ascension/AscTooltipScaling.cpp:503			unported
-0x00AD3740	unknown	src/Ascension/AscClientDbcs.generated.inc:50,WotLKExtensions/src/Data/DBCAddresses.hpp:54			unported
+0x00AD3740	data	src/Ascension/AscClientDbcs.generated.inc:50,WotLKExtensions/src/Data/DBCAddresses.hpp:54	g_durabilityQualityDB	WoW/Source/DB/DBClient/DBClient.cpp:180	mapped
 0x00AD3760	unknown	src/Ascension/AscTooltipScaling.cpp:507			unported
-0x00AD3764	unknown	src/Ascension/AscClientDbcs.generated.inc:51,WotLKExtensions/src/Data/DBCAddresses.hpp:55			unported
-0x00AD3788	unknown	src/Ascension/AscClientDbcs.generated.inc:53,WotLKExtensions/src/Data/DBCAddresses.hpp:56			unported
-0x00AD37AC	unknown	src/Ascension/AscClientDbcs.generated.inc:54,src/Ascension/AscHdDbc.cpp:56,WotLKExtensions/src/Data/DBCAddresses.hpp:58			unported
-0x00AD37D0	unknown	src/Ascension/AscClientDbcs.generated.inc:52,WotLKExtensions/src/Data/DBCAddresses.hpp:57			unported
-0x00AD37F4	unknown	src/Ascension/AscClientDbcs.generated.inc:55,WotLKExtensions/src/Data/DBCAddresses.hpp:59			unported
-0x00AD3818	unknown	src/Ascension/AscClientDbcs.generated.inc:56,WotLKExtensions/src/Data/DBCAddresses.hpp:60			unported
-0x00AD383C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:103,src/Ascension/AscClientDbcs.generated.inc:58,WotLKExtensions/src/Data/DBCAddresses.hpp:62			unported
-0x00AD3860	unknown	src/Ascension/AscClientDbcPatch.generated.inc:20,src/Ascension/AscClientDbcs.generated.inc:57,WotLKExtensions/src/Data/DBCAddresses.hpp:61			unported
-0x00AD3884	unknown	src/Ascension/AscClientDbcPatch.generated.inc:21,src/Ascension/AscClientDbcs.generated.inc:59,WotLKExtensions/src/Data/DBCAddresses.hpp:63			unported
-0x00AD38A8	unknown	src/Ascension/AscClientDbcs.generated.inc:60,WotLKExtensions/src/Data/DBCAddresses.hpp:64			unported
-0x00AD38CC	unknown	src/Ascension/AscClientDbcs.generated.inc:61,WotLKExtensions/src/Data/DBCAddresses.hpp:65			unported
-0x00AD38F0	unknown	src/Ascension/AscClientDbcs.generated.inc:62,WotLKExtensions/src/Data/DBCAddresses.hpp:66			unported
-0x00AD3914	unknown	src/Ascension/AscClientDbcPatch.generated.inc:79,src/Ascension/AscClientDbcs.generated.inc:63,WotLKExtensions/src/Data/DBCAddresses.hpp:67			unported
-0x00AD3938	unknown	src/Ascension/AscClientDbcPatch.generated.inc:78,src/Ascension/AscClientDbcs.generated.inc:64,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,WotLKExtensions/src/Data/DBCAddresses.hpp:68			unported
-0x00AD395C	unknown	src/Ascension/AscClientDbcs.generated.inc:65,WotLKExtensions/src/Data/DBCAddresses.hpp:69			unported
-0x00AD3980	unknown	src/Ascension/AscClientDbcs.generated.inc:66,WotLKExtensions/src/Data/DBCAddresses.hpp:70			unported
-0x00AD39A4	unknown	src/Ascension/AscClientDbcs.generated.inc:67,WotLKExtensions/src/Data/DBCAddresses.hpp:71			unported
-0x00AD39C8	unknown	src/Ascension/AscClientDbcs.generated.inc:68,WotLKExtensions/src/Data/DBCAddresses.hpp:72			unported
-0x00AD39EC	unknown	src/Ascension/AscClientDbcs.generated.inc:69,WotLKExtensions/src/Data/DBCAddresses.hpp:73			unported
-0x00AD3A10	unknown	src/Ascension/AscClientDbcs.generated.inc:70,WotLKExtensions/src/Data/DBCAddresses.hpp:74			unported
-0x00AD3A34	unknown	src/Ascension/AscClientDbcs.generated.inc:71,WotLKExtensions/src/Data/DBCAddresses.hpp:75			unported
-0x00AD3A58	unknown	src/Ascension/AscClientDbcs.generated.inc:72,WotLKExtensions/src/Data/DBCAddresses.hpp:76			unported
-0x00AD3A7C	unknown	src/Ascension/AscClientDbcs.generated.inc:73,WotLKExtensions/src/Data/DBCAddresses.hpp:77			unported
-0x00AD3AA0	unknown	src/Ascension/AscClientDbcs.generated.inc:74,WotLKExtensions/src/Data/DBCAddresses.hpp:78			unported
-0x00AD3AC4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:46,src/Ascension/AscClientDbcs.generated.inc:75,WotLKExtensions/src/Data/DBCAddresses.hpp:79			unported
-0x00AD3AE8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:45,src/Ascension/AscClientDbcs.generated.inc:76,WotLKExtensions/src/Data/DBCAddresses.hpp:80			unported
-0x00AD3B0C	unknown	src/Ascension/AscClientDbcs.generated.inc:77,WotLKExtensions/src/Data/DBCAddresses.hpp:81			unported
-0x00AD3B30	unknown	src/Ascension/AscClientDbcs.generated.inc:78,WotLKExtensions/src/Data/DBCAddresses.hpp:86			unported
-0x00AD3B54	unknown	src/Ascension/AscClientDbcs.generated.inc:79,WotLKExtensions/src/Data/DBCAddresses.hpp:83			unported
-0x00AD3B78	unknown	src/Ascension/AscClientDbcs.generated.inc:80,WotLKExtensions/src/Data/DBCAddresses.hpp:82			unported
-0x00AD3B9C	unknown	src/Ascension/AscClientDbcs.generated.inc:81,WotLKExtensions/src/Data/DBCAddresses.hpp:85			unported
-0x00AD3BC0	unknown	src/Ascension/AscClientDbcs.generated.inc:82,WotLKExtensions/src/Data/DBCAddresses.hpp:84			unported
-0x00AD3BE4	unknown	src/Ascension/AscClientDbcs.generated.inc:83,WotLKExtensions/src/Data/DBCAddresses.hpp:87			unported
-0x00AD3C08	unknown	src/Ascension/AscClientDbcs.generated.inc:84,WotLKExtensions/src/Data/DBCAddresses.hpp:88			unported
-0x00AD3C2C	unknown	src/Ascension/AscClientDbcs.generated.inc:85,WotLKExtensions/src/Data/DBCAddresses.hpp:89			unported
-0x00AD3C50	unknown	src/Ascension/AscClientDbcs.generated.inc:86,WotLKExtensions/src/Data/DBCAddresses.hpp:90			unported
-0x00AD3C74	unknown	src/Ascension/AscClientDbcs.generated.inc:87,WotLKExtensions/src/Data/DBCAddresses.hpp:91			unported
-0x00AD3C98	unknown	src/Ascension/AscClientDbcs.generated.inc:88,WotLKExtensions/src/Data/DBCAddresses.hpp:92			unported
-0x00AD3CBC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:64,src/Ascension/AscClientDbcs.generated.inc:89,src/Ascension/AscHdDbc.cpp:57,WotLKExtensions/src/Data/DBCAddresses.hpp:93			unported
-0x00AD3CE0	unknown	src/Ascension/AscClientDbcs.generated.inc:90,WotLKExtensions/src/Data/DBCAddresses.hpp:94			unported
-0x00AD3D04	unknown	src/Ascension/AscClientDbcs.generated.inc:91,WotLKExtensions/src/Data/DBCAddresses.hpp:95			unported
-0x00AD3D28	unknown	src/Ascension/AscClientDbcPatch.generated.inc:22,src/Ascension/AscClientDbcs.generated.inc:92,WotLKExtensions/src/Data/DBCAddresses.hpp:96			unported
-0x00AD3D4C	unknown	src/Ascension/AscAppearance.cpp:224,src/Ascension/AscAppearance.cpp:690,src/Ascension/AscAppearance.cpp:1242,src/Ascension/AscAppearance.cpp:1263,src/Ascension/AscAppearance.cpp:1269,src/Ascension/AscClientDbcPatch.cpp:43,src/Ascension/AscClientDbcs.generated.inc:93,src/Ascension/AscGlobalsD.cpp:17,src/Ascension/AscScript.hpp:112,src/Ascension/AscVanityCollection.cpp:337,WotLKExtensions/src/Data/DBCAddresses.hpp:100			unported
+0x00AD3764	data	src/Ascension/AscClientDbcs.generated.inc:51,WotLKExtensions/src/Data/DBCAddresses.hpp:55	g_emotesDB	WoW/Source/DB/DBClient/DBClient.cpp:183	mapped
+0x00AD3788	data	src/Ascension/AscClientDbcs.generated.inc:53,WotLKExtensions/src/Data/DBCAddresses.hpp:56	g_emotesTextDataDB	WoW/Source/DB/DBClient/DBClient.cpp:186	mapped
+0x00AD37AC	data	src/Ascension/AscClientDbcs.generated.inc:54,src/Ascension/AscHdDbc.cpp:56,WotLKExtensions/src/Data/DBCAddresses.hpp:58	g_emotesTextSoundDB	WoW/Source/DB/DBClient/DBClient.cpp:189	mapped
+0x00AD37D0	data	src/Ascension/AscClientDbcs.generated.inc:52,WotLKExtensions/src/Data/DBCAddresses.hpp:57	g_emotesTextDB	WoW/Source/DB/DBClient/DBClient.cpp:192	mapped
+0x00AD37F4	data	src/Ascension/AscClientDbcs.generated.inc:55,WotLKExtensions/src/Data/DBCAddresses.hpp:59	g_environmentalDamageDB	WoW/Source/DB/DBClient/DBClient.cpp:195	mapped
+0x00AD3818	data	src/Ascension/AscClientDbcs.generated.inc:56,WotLKExtensions/src/Data/DBCAddresses.hpp:60	g_exhaustionDB	WoW/Source/DB/DBClient/DBClient.cpp:198	mapped
+0x00AD383C	data	src/Ascension/AscClientDbcPatch.generated.inc:103,src/Ascension/AscClientDbcs.generated.inc:58,WotLKExtensions/src/Data/DBCAddresses.hpp:62	g_factionGroupDB	WoW/Source/DB/DBClient/DBClient.cpp:201	mapped
+0x00AD3860	data	src/Ascension/AscClientDbcPatch.generated.inc:20,src/Ascension/AscClientDbcs.generated.inc:57,WotLKExtensions/src/Data/DBCAddresses.hpp:61	g_factionDB	WoW/Source/DB/DBClient/DBClient.cpp:204	mapped
+0x00AD3884	data	src/Ascension/AscClientDbcPatch.generated.inc:21,src/Ascension/AscClientDbcs.generated.inc:59,WotLKExtensions/src/Data/DBCAddresses.hpp:63	g_factionTemplateDB	WoW/Source/DB/DBClient/DBClient.cpp:207	mapped
+0x00AD38A8	data	src/Ascension/AscClientDbcs.generated.inc:60,WotLKExtensions/src/Data/DBCAddresses.hpp:64	g_fileDataDB	WoW/Source/DB/DBClient/DBClient.cpp:210	mapped
+0x00AD38CC	data	src/Ascension/AscClientDbcs.generated.inc:61,WotLKExtensions/src/Data/DBCAddresses.hpp:65	g_footprintTexturesDB	WoW/Source/DB/DBClient/DBClient.cpp:213	mapped
+0x00AD38F0	data	src/Ascension/AscClientDbcs.generated.inc:62,WotLKExtensions/src/Data/DBCAddresses.hpp:66	g_footstepTerrainLookupDB	WoW/Source/DB/DBClient/DBClient.cpp:216	mapped
+0x00AD3914	data	src/Ascension/AscClientDbcPatch.generated.inc:79,src/Ascension/AscClientDbcs.generated.inc:63,WotLKExtensions/src/Data/DBCAddresses.hpp:67	g_gameObjectArtKitDB	WoW/Source/DB/DBClient/DBClient.cpp:219	mapped
+0x00AD3938	data	src/Ascension/AscClientDbcPatch.generated.inc:78,src/Ascension/AscClientDbcs.generated.inc:64,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,WotLKExtensions/src/Data/DBCAddresses.hpp:68	g_gameObjectDisplayInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:222	mapped
+0x00AD395C	data	src/Ascension/AscClientDbcs.generated.inc:65,WotLKExtensions/src/Data/DBCAddresses.hpp:69	g_gameTablesDB	WoW/Source/DB/DBClient/DBClient.cpp:225	mapped
+0x00AD3980	data	src/Ascension/AscClientDbcs.generated.inc:66,WotLKExtensions/src/Data/DBCAddresses.hpp:70	g_gameTipsDB	WoW/Source/DB/DBClient/DBClient.cpp:228	mapped
+0x00AD39A4	data	src/Ascension/AscClientDbcs.generated.inc:67,WotLKExtensions/src/Data/DBCAddresses.hpp:71	g_gemPropertiesDB	WoW/Source/DB/DBClient/DBClient.cpp:231	mapped
+0x00AD39C8	data	src/Ascension/AscClientDbcs.generated.inc:68,WotLKExtensions/src/Data/DBCAddresses.hpp:72	g_glyphPropertiesDB	WoW/Source/DB/DBClient/DBClient.cpp:234	mapped
+0x00AD39EC	data	src/Ascension/AscClientDbcs.generated.inc:69,WotLKExtensions/src/Data/DBCAddresses.hpp:73	g_glyphSlotDB	WoW/Source/DB/DBClient/DBClient.cpp:237	mapped
+0x00AD3A10	data	src/Ascension/AscClientDbcs.generated.inc:70,WotLKExtensions/src/Data/DBCAddresses.hpp:74	g_gmSurveyAnswersDB	WoW/Source/DB/DBClient/DBClient.cpp:240	mapped
+0x00AD3A34	data	src/Ascension/AscClientDbcs.generated.inc:71,WotLKExtensions/src/Data/DBCAddresses.hpp:75	g_gmSurveyCurrentSurveyDB	WoW/Source/DB/DBClient/DBClient.cpp:243	mapped
+0x00AD3A58	data	src/Ascension/AscClientDbcs.generated.inc:72,WotLKExtensions/src/Data/DBCAddresses.hpp:76	g_gmSurveyQuestionsDB	WoW/Source/DB/DBClient/DBClient.cpp:246	mapped
+0x00AD3A7C	data	src/Ascension/AscClientDbcs.generated.inc:73,WotLKExtensions/src/Data/DBCAddresses.hpp:77	g_gmSurveySurveysDB	WoW/Source/DB/DBClient/DBClient.cpp:249	mapped
+0x00AD3AA0	data	src/Ascension/AscClientDbcs.generated.inc:74,WotLKExtensions/src/Data/DBCAddresses.hpp:78	g_gmTicketCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:252	mapped
+0x00AD3AC4	data	src/Ascension/AscClientDbcPatch.generated.inc:46,src/Ascension/AscClientDbcs.generated.inc:75,WotLKExtensions/src/Data/DBCAddresses.hpp:79	g_groundEffectDoodadDB	WoW/Source/DB/DBClient/DBClient.cpp:255	mapped
+0x00AD3AE8	data	src/Ascension/AscClientDbcPatch.generated.inc:45,src/Ascension/AscClientDbcs.generated.inc:76,WotLKExtensions/src/Data/DBCAddresses.hpp:80	g_groundEffectTextureDB	WoW/Source/DB/DBClient/DBClient.cpp:258	mapped
+0x00AD3B0C	data	src/Ascension/AscClientDbcs.generated.inc:77,WotLKExtensions/src/Data/DBCAddresses.hpp:81	g_gtBarberShopCostBaseDB	WoW/Source/DB/DBClient/DBClient.cpp:261	mapped
+0x00AD3B30	data	src/Ascension/AscClientDbcs.generated.inc:78,WotLKExtensions/src/Data/DBCAddresses.hpp:86	g_gtCombatRatingsDB	WoW/Source/DB/DBClient/DBClient.cpp:264	mapped
+0x00AD3B54	data	src/Ascension/AscClientDbcs.generated.inc:79,WotLKExtensions/src/Data/DBCAddresses.hpp:83	g_gtChanceToMeleeCritDB	WoW/Source/DB/DBClient/DBClient.cpp:267	mapped
+0x00AD3B78	data	src/Ascension/AscClientDbcs.generated.inc:80,WotLKExtensions/src/Data/DBCAddresses.hpp:82	g_gtChanceToMeleeCritBaseDB	WoW/Source/DB/DBClient/DBClient.cpp:270	mapped
+0x00AD3B9C	data	src/Ascension/AscClientDbcs.generated.inc:81,WotLKExtensions/src/Data/DBCAddresses.hpp:85	g_gtChanceToSpellCritDB	WoW/Source/DB/DBClient/DBClient.cpp:273	mapped
+0x00AD3BC0	data	src/Ascension/AscClientDbcs.generated.inc:82,WotLKExtensions/src/Data/DBCAddresses.hpp:84	g_gtChanceToSpellCritBaseDB	WoW/Source/DB/DBClient/DBClient.cpp:276	mapped
+0x00AD3BE4	data	src/Ascension/AscClientDbcs.generated.inc:83,WotLKExtensions/src/Data/DBCAddresses.hpp:87	g_gtNPCManaCostScalerDB	WoW/Source/DB/DBClient/DBClient.cpp:279	mapped
+0x00AD3C08	data	src/Ascension/AscClientDbcs.generated.inc:84,WotLKExtensions/src/Data/DBCAddresses.hpp:88	g_gtOCTClassCombatRatingScalarDB	WoW/Source/DB/DBClient/DBClient.cpp:282	mapped
+0x00AD3C2C	data	src/Ascension/AscClientDbcs.generated.inc:85,WotLKExtensions/src/Data/DBCAddresses.hpp:89	g_gtOCTRegenHPDB	WoW/Source/DB/DBClient/DBClient.cpp:285	mapped
+0x00AD3C50	data	src/Ascension/AscClientDbcs.generated.inc:86,WotLKExtensions/src/Data/DBCAddresses.hpp:90	g_gtOCTRegenMPDB	WoW/Source/DB/DBClient/DBClient.cpp:288	mapped
+0x00AD3C74	data	src/Ascension/AscClientDbcs.generated.inc:87,WotLKExtensions/src/Data/DBCAddresses.hpp:91	g_gtRegenHPPerSptDB	WoW/Source/DB/DBClient/DBClient.cpp:291	mapped
+0x00AD3C98	data	src/Ascension/AscClientDbcs.generated.inc:88,WotLKExtensions/src/Data/DBCAddresses.hpp:92	g_gtRegenMPPerSptDB	WoW/Source/DB/DBClient/DBClient.cpp:294	mapped
+0x00AD3CBC	data	src/Ascension/AscClientDbcPatch.generated.inc:64,src/Ascension/AscClientDbcs.generated.inc:89,src/Ascension/AscHdDbc.cpp:57,WotLKExtensions/src/Data/DBCAddresses.hpp:93	g_helmetGeosetVisDataDB	WoW/Source/DB/DBClient/DBClient.cpp:297	mapped
+0x00AD3CE0	data	src/Ascension/AscClientDbcs.generated.inc:90,WotLKExtensions/src/Data/DBCAddresses.hpp:94	g_holidayDescriptionsDB	WoW/Source/DB/DBClient/DBClient.cpp:300	mapped
+0x00AD3D04	data	src/Ascension/AscClientDbcs.generated.inc:91,WotLKExtensions/src/Data/DBCAddresses.hpp:95	g_holidayNamesDB	WoW/Source/DB/DBClient/DBClient.cpp:303	mapped
+0x00AD3D28	data	src/Ascension/AscClientDbcPatch.generated.inc:22,src/Ascension/AscClientDbcs.generated.inc:92,WotLKExtensions/src/Data/DBCAddresses.hpp:96	g_holidaysDB	WoW/Source/DB/DBClient/DBClient.cpp:306	mapped
+0x00AD3D4C	data	src/Ascension/AscAppearance.cpp:224,src/Ascension/AscAppearance.cpp:690,src/Ascension/AscAppearance.cpp:1242,src/Ascension/AscAppearance.cpp:1263,src/Ascension/AscAppearance.cpp:1269,src/Ascension/AscClientDbcPatch.cpp:43,src/Ascension/AscClientDbcs.generated.inc:93,src/Ascension/AscGlobalsD.cpp:17,src/Ascension/AscScript.hpp:112,src/Ascension/AscVanityCollection.cpp:337,WotLKExtensions/src/Data/DBCAddresses.hpp:100	g_itemDB	WoW/Source/DB/DBClient/DBClient.cpp:309	mapped
 0x00AD3D6C	unknown	src/Ascension/AscGlobalsD.cpp:17			unported
-0x00AD3D70	unknown	src/Ascension/AscClientDbcs.generated.inc:94,WotLKExtensions/src/Data/DBCAddresses.hpp:97			unported
-0x00AD3D94	unknown	src/Ascension/AscClientDbcs.generated.inc:95,WotLKExtensions/src/Data/DBCAddresses.hpp:98			unported
-0x00AD3DB8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:60,src/Ascension/AscClientDbcs.generated.inc:96,WotLKExtensions/src/Data/DBCAddresses.hpp:99			unported
-0x00AD3DDC	func	src/Ascension/AscCharacterCreate.cpp:886,src/Ascension/AscClientDbcPatch.generated.inc:59,src/Ascension/AscClientDbcs.generated.inc:97,src/Ascension/AscGlobalsD.cpp:71,src/Ascension/AscGlobalsD.cpp:81,src/Ascension/AscGlobalsJ.cpp:1474,src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1612,src/Ascension/AscItemCollections.cpp:360,src/Ascension/AscItemCollections.cpp:412,src/Ascension/AscModelMethods.cpp:449,src/Ascension/AscVanityCollection.cpp:338,WotLKExtensions/src/Data/DBCAddresses.hpp:101			unported
-0x00AD3E00	unknown	src/Ascension/AscAttachLua.cpp:179,src/Ascension/AscClientDbcPatch.generated.inc:23,src/Ascension/AscClientDbcs.generated.inc:98,WotLKExtensions/src/Data/DBCAddresses.hpp:102			unported
-0x00AD3E24	unknown	src/Ascension/AscClientDbcs.generated.inc:99,WotLKExtensions/src/Data/DBCAddresses.hpp:103			unported
-0x00AD3E48	unknown	src/Ascension/AscClientDbcPatch.generated.inc:58,src/Ascension/AscClientDbcs.generated.inc:100,WotLKExtensions/src/Data/DBCAddresses.hpp:104			unported
-0x00AD3E6C	unknown	src/Ascension/AscClientDbcs.generated.inc:101,WotLKExtensions/src/Data/DBCAddresses.hpp:105			unported
-0x00AD3E90	unknown	src/Ascension/AscClientDbcPatch.generated.inc:57,src/Ascension/AscClientDbcs.generated.inc:102,WotLKExtensions/src/Data/DBCAddresses.hpp:106			unported
-0x00AD3EB4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:56,src/Ascension/AscClientDbcs.generated.inc:103,WotLKExtensions/src/Data/DBCAddresses.hpp:107			unported
-0x00AD3ED8	unknown	src/Ascension/AscClientDbcPatch.cpp:50,src/Ascension/AscClientDbcs.generated.inc:104,WotLKExtensions/src/Data/DBCAddresses.hpp:108			unported
-0x00AD3EFC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:55,src/Ascension/AscClientDbcs.generated.inc:105,src/Ascension/AscScript.hpp:113,src/Ascension/AscSpellTokens.cpp:191,WotLKExtensions/src/Data/DBCAddresses.hpp:109			unported
-0x00AD3F20	unknown	src/Ascension/AscClientDbcs.generated.inc:107,WotLKExtensions/src/Data/DBCAddresses.hpp:111			unported
-0x00AD3F44	unknown	src/Ascension/AscClientDbcs.generated.inc:106,WotLKExtensions/src/Data/DBCAddresses.hpp:110			unported
-0x00AD3F68	unknown	src/Ascension/AscClientDbcPatch.generated.inc:54,src/Ascension/AscClientDbcs.generated.inc:108,WotLKExtensions/src/Data/DBCAddresses.hpp:112			unported
-0x00AD3F8C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:53,src/Ascension/AscClientDbcs.generated.inc:109,WotLKExtensions/src/Data/DBCAddresses.hpp:113			unported
-0x00AD3FB0	unknown	src/Ascension/AscClientDbcs.generated.inc:110,WotLKExtensions/src/Data/DBCAddresses.hpp:115			unported
-0x00AD3FD4	unknown	src/Ascension/AscClientDbcs.generated.inc:111,WotLKExtensions/src/Data/DBCAddresses.hpp:114			unported
-0x00AD3FF8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:108,src/Ascension/AscClientDbcs.generated.inc:112,WotLKExtensions/src/Data/DBCAddresses.hpp:116			unported
-0x00AD401C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:107,src/Ascension/AscClientDbcs.generated.inc:113,WotLKExtensions/src/Data/DBCAddresses.hpp:117			unported
-0x00AD4040	unknown	src/Ascension/AscAttachLua.cpp:126,src/Ascension/AscClientDbcPatch.generated.inc:24,src/Ascension/AscClientDbcs.generated.inc:114,WotLKExtensions/src/Data/DBCAddresses.hpp:118			unported
-0x00AD4064	unknown	src/Ascension/AscClientDbcs.generated.inc:115,WotLKExtensions/src/Data/DBCAddresses.hpp:125			unported
-0x00AD4088	unknown	src/Ascension/AscClientDbcs.generated.inc:116,WotLKExtensions/src/Data/DBCAddresses.hpp:124			unported
-0x00AD40AC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:2,src/Ascension/AscClientDbcs.generated.inc:117,WotLKExtensions/src/Data/DBCAddresses.hpp:126			unported
-0x00AD40D0	unknown	src/Ascension/AscClientDbcs.generated.inc:118,WotLKExtensions/src/Data/DBCAddresses.hpp:127			unported
-0x00AD40F4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:25,src/Ascension/AscClientDbcs.generated.inc:119,WotLKExtensions/src/Data/DBCAddresses.hpp:128			unported
-0x00AD4118	unknown	src/Ascension/AscClientDbcPatch.generated.inc:102,src/Ascension/AscClientDbcs.generated.inc:120,WotLKExtensions/src/Data/DBCAddresses.hpp:129			unported
-0x00AD413C	unknown	src/Ascension/AscClientDbcs.generated.inc:121,WotLKExtensions/src/Data/DBCAddresses.hpp:130			unported
-0x00AD4160	unknown	src/Ascension/AscCARules.cpp:42,src/Ascension/AscClientDbcs.generated.inc:122,src/Ascension/AscEventPackets.cpp:321,src/Ascension/AscGlobalsB.cpp:25,src/Ascension/AscGlobalsD.cpp:15,src/Ascension/AscLoadingScreen.cpp:39,src/Ascension/AscLootLockout.cpp:32,src/Ascension/AscMisc.cpp:284,src/Ascension/AscMisc.cpp:288,src/Ascension/AscMisc.cpp:383,src/Ascension/AscRaidVideo.cpp:74,src/Ascension/AscRaidVideo.cpp:81,src/Ascension/AscRealmData.cpp:242,src/Ascension/AscUnitSelect.cpp:157,WotLKExtensions/src/Data/DBCAddresses.hpp:131			unported
+0x00AD3D70	data	src/Ascension/AscClientDbcs.generated.inc:94,WotLKExtensions/src/Data/DBCAddresses.hpp:97	g_itemBagFamilyDB	WoW/Source/DB/DBClient/DBClient.cpp:312	mapped
+0x00AD3D94	data	src/Ascension/AscClientDbcs.generated.inc:95,WotLKExtensions/src/Data/DBCAddresses.hpp:98	g_itemClassDB	WoW/Source/DB/DBClient/DBClient.cpp:315	mapped
+0x00AD3DB8	data	src/Ascension/AscClientDbcPatch.generated.inc:60,src/Ascension/AscClientDbcs.generated.inc:96,WotLKExtensions/src/Data/DBCAddresses.hpp:99	g_itemCondExtCostsDB	WoW/Source/DB/DBClient/DBClient.cpp:318	mapped
+0x00AD3DDC	data	src/Ascension/AscCharacterCreate.cpp:886,src/Ascension/AscClientDbcPatch.generated.inc:59,src/Ascension/AscClientDbcs.generated.inc:97,src/Ascension/AscGlobalsD.cpp:71,src/Ascension/AscGlobalsD.cpp:81,src/Ascension/AscGlobalsJ.cpp:1474,src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1612,src/Ascension/AscItemCollections.cpp:360,src/Ascension/AscItemCollections.cpp:412,src/Ascension/AscModelMethods.cpp:449,src/Ascension/AscVanityCollection.cpp:338,WotLKExtensions/src/Data/DBCAddresses.hpp:101	g_itemDisplayInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:321	mapped
+0x00AD3E00	data	src/Ascension/AscAttachLua.cpp:179,src/Ascension/AscClientDbcPatch.generated.inc:23,src/Ascension/AscClientDbcs.generated.inc:98,WotLKExtensions/src/Data/DBCAddresses.hpp:102	g_itemExtendedCostDB	WoW/Source/DB/DBClient/DBClient.cpp:324	mapped
+0x00AD3E24	data	src/Ascension/AscClientDbcs.generated.inc:99,WotLKExtensions/src/Data/DBCAddresses.hpp:103	g_itemGroupSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:327	mapped
+0x00AD3E48	data	src/Ascension/AscClientDbcPatch.generated.inc:58,src/Ascension/AscClientDbcs.generated.inc:100,WotLKExtensions/src/Data/DBCAddresses.hpp:104	g_itemLimitCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:330	mapped
+0x00AD3E6C	data	src/Ascension/AscClientDbcs.generated.inc:101,WotLKExtensions/src/Data/DBCAddresses.hpp:105	g_itemPetFoodDB	WoW/Source/DB/DBClient/DBClient.cpp:333	mapped
+0x00AD3E90	data	src/Ascension/AscClientDbcPatch.generated.inc:57,src/Ascension/AscClientDbcs.generated.inc:102,WotLKExtensions/src/Data/DBCAddresses.hpp:106	g_itemPurchaseGroupDB	WoW/Source/DB/DBClient/DBClient.cpp:336	mapped
+0x00AD3EB4	data	src/Ascension/AscClientDbcPatch.generated.inc:56,src/Ascension/AscClientDbcs.generated.inc:103,WotLKExtensions/src/Data/DBCAddresses.hpp:107	g_itemRandomPropertiesDB	WoW/Source/DB/DBClient/DBClient.cpp:339	mapped
+0x00AD3ED8	data	src/Ascension/AscClientDbcPatch.cpp:50,src/Ascension/AscClientDbcs.generated.inc:104,WotLKExtensions/src/Data/DBCAddresses.hpp:108	g_itemRandomSuffixDB	WoW/Source/DB/DBClient/DBClient.cpp:342	mapped
+0x00AD3EFC	data	src/Ascension/AscClientDbcPatch.generated.inc:55,src/Ascension/AscClientDbcs.generated.inc:105,src/Ascension/AscScript.hpp:113,src/Ascension/AscSpellTokens.cpp:191,WotLKExtensions/src/Data/DBCAddresses.hpp:109	g_itemSetDB	WoW/Source/DB/DBClient/DBClient.cpp:345	mapped
+0x00AD3F20	data	src/Ascension/AscClientDbcs.generated.inc:107,WotLKExtensions/src/Data/DBCAddresses.hpp:111	g_itemSubClassMaskDB	WoW/Source/DB/DBClient/DBClient.cpp:348	mapped
+0x00AD3F44	data	src/Ascension/AscClientDbcs.generated.inc:106,WotLKExtensions/src/Data/DBCAddresses.hpp:110	g_itemSubClassDB	WoW/Source/DB/DBClient/DBClient.cpp:351	mapped
+0x00AD3F68	data	src/Ascension/AscClientDbcPatch.generated.inc:54,src/Ascension/AscClientDbcs.generated.inc:108,WotLKExtensions/src/Data/DBCAddresses.hpp:112	g_itemVisualEffectsDB	WoW/Source/DB/DBClient/DBClient.cpp:354	mapped
+0x00AD3F8C	data	src/Ascension/AscClientDbcPatch.generated.inc:53,src/Ascension/AscClientDbcs.generated.inc:109,WotLKExtensions/src/Data/DBCAddresses.hpp:113	g_itemVisualsDB	WoW/Source/DB/DBClient/DBClient.cpp:357	mapped
+0x00AD3FB0	data	src/Ascension/AscClientDbcs.generated.inc:110,WotLKExtensions/src/Data/DBCAddresses.hpp:115	g_languageWordsDB	WoW/Source/DB/DBClient/DBClient.cpp:360	mapped
+0x00AD3FD4	data	src/Ascension/AscClientDbcs.generated.inc:111,WotLKExtensions/src/Data/DBCAddresses.hpp:114	g_languagesDB	WoW/Source/DB/DBClient/DBClient.cpp:363	mapped
+0x00AD3FF8	data	src/Ascension/AscClientDbcPatch.generated.inc:108,src/Ascension/AscClientDbcs.generated.inc:112,WotLKExtensions/src/Data/DBCAddresses.hpp:116	g_lfgDungeonExpansionDB	WoW/Source/DB/DBClient/DBClient.cpp:366	mapped
+0x00AD401C	data	src/Ascension/AscClientDbcPatch.generated.inc:107,src/Ascension/AscClientDbcs.generated.inc:113,WotLKExtensions/src/Data/DBCAddresses.hpp:117	g_lfgDungeonGroupDB	WoW/Source/DB/DBClient/DBClient.cpp:369	mapped
+0x00AD4040	data	src/Ascension/AscAttachLua.cpp:126,src/Ascension/AscClientDbcPatch.generated.inc:24,src/Ascension/AscClientDbcs.generated.inc:114,WotLKExtensions/src/Data/DBCAddresses.hpp:118	g_lfgDungeonsDB	WoW/Source/DB/DBClient/DBClient.cpp:372	mapped
+0x00AD4064	data	src/Ascension/AscClientDbcs.generated.inc:115,WotLKExtensions/src/Data/DBCAddresses.hpp:125	g_liquidTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:375	mapped
+0x00AD4088	data	src/Ascension/AscClientDbcs.generated.inc:116,WotLKExtensions/src/Data/DBCAddresses.hpp:124	g_liquidMaterialDB	WoW/Source/DB/DBClient/DBClient.cpp:378	mapped
+0x00AD40AC	data	src/Ascension/AscClientDbcPatch.generated.inc:2,src/Ascension/AscClientDbcs.generated.inc:117,WotLKExtensions/src/Data/DBCAddresses.hpp:126	g_loadingScreensDB	WoW/Source/DB/DBClient/DBClient.cpp:381	mapped
+0x00AD40D0	data	src/Ascension/AscClientDbcs.generated.inc:118,WotLKExtensions/src/Data/DBCAddresses.hpp:127	g_loadingScreenTaxiSplinesDB	WoW/Source/DB/DBClient/DBClient.cpp:384	mapped
+0x00AD40F4	data	src/Ascension/AscClientDbcPatch.generated.inc:25,src/Ascension/AscClientDbcs.generated.inc:119,WotLKExtensions/src/Data/DBCAddresses.hpp:128	g_lockDB	WoW/Source/DB/DBClient/DBClient.cpp:387	mapped
+0x00AD4118	data	src/Ascension/AscClientDbcPatch.generated.inc:102,src/Ascension/AscClientDbcs.generated.inc:120,WotLKExtensions/src/Data/DBCAddresses.hpp:129	g_lockTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:390	mapped
+0x00AD413C	data	src/Ascension/AscClientDbcs.generated.inc:121,WotLKExtensions/src/Data/DBCAddresses.hpp:130	g_mailTemplateDB	WoW/Source/DB/DBClient/DBClient.cpp:393	mapped
+0x00AD4160	data	src/Ascension/AscCARules.cpp:42,src/Ascension/AscClientDbcs.generated.inc:122,src/Ascension/AscEventPackets.cpp:321,src/Ascension/AscGlobalsB.cpp:25,src/Ascension/AscGlobalsD.cpp:15,src/Ascension/AscLoadingScreen.cpp:39,src/Ascension/AscLootLockout.cpp:32,src/Ascension/AscMisc.cpp:284,src/Ascension/AscMisc.cpp:288,src/Ascension/AscMisc.cpp:383,src/Ascension/AscRaidVideo.cpp:74,src/Ascension/AscRaidVideo.cpp:81,src/Ascension/AscRealmData.cpp:242,src/Ascension/AscUnitSelect.cpp:157,WotLKExtensions/src/Data/DBCAddresses.hpp:131	g_mapDB	WoW/Source/DB/DBClient/DBClient.cpp:396	mapped
 0x00AD416C	unknown	src/Ascension/AscAttachFixes.cpp:610,src/Ascension/AscAttachFixes.cpp:970,src/Ascension/AscCrashContext.cpp:85			unported
 0x00AD4170	unknown	src/Ascension/AscAttachFixes.cpp:610,src/Ascension/AscAttachFixes.cpp:970,src/Ascension/AscCrashContext.cpp:85			unported
 0x00AD4180	unknown	src/Ascension/AscAttachFixes.cpp:609,src/Ascension/AscAttachFixes.cpp:969,src/Ascension/AscCrashContext.cpp:84			unported
-0x00AD4184	unknown	src/Ascension/AscClientDbcs.generated.inc:123,WotLKExtensions/src/Data/DBCAddresses.hpp:132			unported
-0x00AD41A8	unknown	src/Ascension/AscClientDbcs.generated.inc:124,WotLKExtensions/src/Data/DBCAddresses.hpp:133			unported
-0x00AD41CC	unknown	src/Ascension/AscClientDbcs.generated.inc:125,WotLKExtensions/src/Data/DBCAddresses.hpp:134			unported
-0x00AD41F0	unknown	src/Ascension/AscClientDbcs.generated.inc:126,WotLKExtensions/src/Data/DBCAddresses.hpp:135			unported
-0x00AD4214	unknown	src/Ascension/AscClientDbcs.generated.inc:127,WotLKExtensions/src/Data/DBCAddresses.hpp:136			unported
-0x00AD4238	unknown	src/Ascension/AscClientDbcs.generated.inc:128,WotLKExtensions/src/Data/DBCAddresses.hpp:137			unported
-0x00AD425C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:71,src/Ascension/AscClientDbcs.generated.inc:129,WotLKExtensions/src/Data/DBCAddresses.hpp:140			unported
-0x00AD4280	unknown	src/Ascension/AscClientDbcs.generated.inc:130,WotLKExtensions/src/Data/DBCAddresses.hpp:138			unported
-0x00AD42A4	unknown	src/Ascension/AscClientDbcs.generated.inc:131,WotLKExtensions/src/Data/DBCAddresses.hpp:139			unported
-0x00AD42C8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:52,src/Ascension/AscClientDbcs.generated.inc:132,WotLKExtensions/src/Data/DBCAddresses.hpp:146			unported
-0x00AD42EC	unknown	src/Ascension/AscClientDbcs.generated.inc:133,WotLKExtensions/src/Data/DBCAddresses.hpp:147			unported
-0x00AD4310	unknown	src/Ascension/AscClientDbcs.generated.inc:134,WotLKExtensions/src/Data/DBCAddresses.hpp:148			unported
-0x00AD4334	unknown	src/Ascension/AscClientDbcs.generated.inc:135,WotLKExtensions/src/Data/DBCAddresses.hpp:149			unported
-0x00AD4358	unknown	src/Ascension/AscClientDbcPatch.generated.inc:44,src/Ascension/AscClientDbcs.generated.inc:136,WotLKExtensions/src/Data/DBCAddresses.hpp:150			unported
-0x00AD437C	unknown	src/Ascension/AscClientDbcs.generated.inc:137,WotLKExtensions/src/Data/DBCAddresses.hpp:151			unported
-0x00AD43A0	unknown	src/Ascension/AscClientDbcs.generated.inc:138,WotLKExtensions/src/Data/DBCAddresses.hpp:152			unported
-0x00AD43C4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:26,src/Ascension/AscClientDbcs.generated.inc:139,WotLKExtensions/src/Data/DBCAddresses.hpp:153			unported
-0x00AD43E8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:110,src/Ascension/AscClientDbcs.generated.inc:140,WotLKExtensions/src/Data/DBCAddresses.hpp:154			unported
-0x00AD440C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:111,src/Ascension/AscClientDbcs.generated.inc:141,WotLKExtensions/src/Data/DBCAddresses.hpp:155			unported
-0x00AD4430	unknown	src/Ascension/AscClientDbcPatch.generated.inc:112,src/Ascension/AscClientDbcs.generated.inc:142,WotLKExtensions/src/Data/DBCAddresses.hpp:156			unported
+0x00AD4184	data	src/Ascension/AscClientDbcs.generated.inc:123,WotLKExtensions/src/Data/DBCAddresses.hpp:132	g_mapDifficultyDB	WoW/Source/DB/DBClient/DBClient.cpp:399	mapped
+0x00AD41A8	data	src/Ascension/AscClientDbcs.generated.inc:124,WotLKExtensions/src/Data/DBCAddresses.hpp:133	g_materialDB	WoW/Source/DB/DBClient/DBClient.cpp:402	mapped
+0x00AD41CC	data	src/Ascension/AscClientDbcs.generated.inc:125,WotLKExtensions/src/Data/DBCAddresses.hpp:134	g_movieDB	WoW/Source/DB/DBClient/DBClient.cpp:405	mapped
+0x00AD41F0	data	src/Ascension/AscClientDbcs.generated.inc:126,WotLKExtensions/src/Data/DBCAddresses.hpp:135	g_movieFileDataDB	WoW/Source/DB/DBClient/DBClient.cpp:408	mapped
+0x00AD4214	data	src/Ascension/AscClientDbcs.generated.inc:127,WotLKExtensions/src/Data/DBCAddresses.hpp:136	g_movieVariationDB	WoW/Source/DB/DBClient/DBClient.cpp:411	mapped
+0x00AD4238	data	src/Ascension/AscClientDbcs.generated.inc:128,WotLKExtensions/src/Data/DBCAddresses.hpp:137	g_nameGenDB	WoW/Source/DB/DBClient/DBClient.cpp:414	mapped
+0x00AD425C	data	src/Ascension/AscClientDbcPatch.generated.inc:71,src/Ascension/AscClientDbcs.generated.inc:129,WotLKExtensions/src/Data/DBCAddresses.hpp:140	g_npcSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:417	mapped
+0x00AD4280	data	src/Ascension/AscClientDbcs.generated.inc:130,WotLKExtensions/src/Data/DBCAddresses.hpp:138	g_namesProfanityDB	WoW/Source/DB/DBClient/DBClient.cpp:420	mapped
+0x00AD42A4	data	src/Ascension/AscClientDbcs.generated.inc:131,WotLKExtensions/src/Data/DBCAddresses.hpp:139	g_namesReservedDB	WoW/Source/DB/DBClient/DBClient.cpp:423	mapped
+0x00AD42C8	data	src/Ascension/AscClientDbcPatch.generated.inc:52,src/Ascension/AscClientDbcs.generated.inc:132,WotLKExtensions/src/Data/DBCAddresses.hpp:146	g_overrideSpellDataDB	WoW/Source/DB/DBClient/DBClient.cpp:426	mapped
+0x00AD42EC	data	src/Ascension/AscClientDbcs.generated.inc:133,WotLKExtensions/src/Data/DBCAddresses.hpp:147	g_packageDB	WoW/Source/DB/DBClient/DBClient.cpp:429	mapped
+0x00AD4310	data	src/Ascension/AscClientDbcs.generated.inc:134,WotLKExtensions/src/Data/DBCAddresses.hpp:148	g_pageTextMaterialDB	WoW/Source/DB/DBClient/DBClient.cpp:432	mapped
+0x00AD4334	data	src/Ascension/AscClientDbcs.generated.inc:135,WotLKExtensions/src/Data/DBCAddresses.hpp:149	g_paperDollItemFrameDB	WoW/Source/DB/DBClient/DBClient.cpp:435	mapped
+0x00AD4358	data	src/Ascension/AscClientDbcPatch.generated.inc:44,src/Ascension/AscClientDbcs.generated.inc:136,WotLKExtensions/src/Data/DBCAddresses.hpp:150	g_particleColorDB	WoW/Source/DB/DBClient/DBClient.cpp:438	mapped
+0x00AD437C	data	src/Ascension/AscClientDbcs.generated.inc:137,WotLKExtensions/src/Data/DBCAddresses.hpp:151	g_petPersonalityDB	WoW/Source/DB/DBClient/DBClient.cpp:441	mapped
+0x00AD43A0	data	src/Ascension/AscClientDbcs.generated.inc:138,WotLKExtensions/src/Data/DBCAddresses.hpp:152	g_powerDisplayDB	WoW/Source/DB/DBClient/DBClient.cpp:444	mapped
+0x00AD43C4	data	src/Ascension/AscClientDbcPatch.generated.inc:26,src/Ascension/AscClientDbcs.generated.inc:139,WotLKExtensions/src/Data/DBCAddresses.hpp:153	g_pvpDifficultyDB	WoW/Source/DB/DBClient/DBClient.cpp:447	mapped
+0x00AD43E8	data	src/Ascension/AscClientDbcPatch.generated.inc:110,src/Ascension/AscClientDbcs.generated.inc:140,WotLKExtensions/src/Data/DBCAddresses.hpp:154	g_questFactionRewardDB	WoW/Source/DB/DBClient/DBClient.cpp:450	mapped
+0x00AD440C	data	src/Ascension/AscClientDbcPatch.generated.inc:111,src/Ascension/AscClientDbcs.generated.inc:141,WotLKExtensions/src/Data/DBCAddresses.hpp:155	g_questInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:453	mapped
+0x00AD4430	data	src/Ascension/AscClientDbcPatch.generated.inc:112,src/Ascension/AscClientDbcs.generated.inc:142,WotLKExtensions/src/Data/DBCAddresses.hpp:156	g_questSortDB	WoW/Source/DB/DBClient/DBClient.cpp:456	mapped
 0x00AD443C	unknown	src/Ascension/AscTemporalContracts.cpp:646			unported
 0x00AD4440	unknown	src/Ascension/AscTemporalContracts.cpp:646			unported
 0x00AD4450	unknown	src/Ascension/AscTemporalContracts.cpp:646			unported
-0x00AD4454	unknown	src/Ascension/AscClientDbcPatch.generated.inc:113,src/Ascension/AscClientDbcs.generated.inc:143,WotLKExtensions/src/Data/DBCAddresses.hpp:157			unported
-0x00AD4478	unknown	src/Ascension/AscClientDbcs.generated.inc:144,WotLKExtensions/src/Data/DBCAddresses.hpp:159			unported
-0x00AD449C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:61,src/Ascension/AscClientDbcs.generated.inc:145,WotLKExtensions/src/Data/DBCAddresses.hpp:158			unported
-0x00AD44C0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:62,src/Ascension/AscClientDbcs.generated.inc:146,WotLKExtensions/src/Data/DBCAddresses.hpp:160			unported
-0x00AD44E4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:63,src/Ascension/AscClientDbcs.generated.inc:147,WotLKExtensions/src/Data/DBCAddresses.hpp:161			unported
-0x00AD4508	unknown	src/Ascension/AscClientDbcPatch.generated.inc:47,src/Ascension/AscClientDbcs.generated.inc:148,WotLKExtensions/src/Data/DBCAddresses.hpp:162			unported
-0x00AD452C	unknown	src/Ascension/AscClientDbcs.generated.inc:149,WotLKExtensions/src/Data/DBCAddresses.hpp:163			unported
-0x00AD4550	unknown	src/Ascension/AscClientDbcPatch.generated.inc:100,src/Ascension/AscClientDbcs.generated.inc:150,WotLKExtensions/src/Data/DBCAddresses.hpp:164			unported
-0x00AD4574	unknown	src/Ascension/AscClientDbcPatch.generated.inc:114,src/Ascension/AscClientDbcs.generated.inc:151,WotLKExtensions/src/Data/DBCAddresses.hpp:165			unported
-0x00AD4598	unknown	src/Ascension/AscClientDbcPatch.generated.inc:10,src/Ascension/AscClientDbcs.generated.inc:152,src/Ascension/AscGlobalsB.cpp:26,src/Ascension/AscSpellApi.cpp:302,WotLKExtensions/src/Data/DBCAddresses.hpp:166			unported
-0x00AD45BC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:115,src/Ascension/AscClientDbcs.generated.inc:153,WotLKExtensions/src/Data/DBCAddresses.hpp:167			unported
-0x00AD45E0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:9,src/Ascension/AscClientDbcs.generated.inc:154,src/Ascension/AscGlobalsB.cpp:26,src/Ascension/AscGlobalsE.cpp:13,src/Ascension/AscGlobalsH.cpp:44,src/Ascension/AscGossipQuest.cpp:82,src/Ascension/AscSpellApi.cpp:351,WotLKExtensions/src/Data/DBCAddresses.hpp:168			unported
+0x00AD4454	data	src/Ascension/AscClientDbcPatch.generated.inc:113,src/Ascension/AscClientDbcs.generated.inc:143,WotLKExtensions/src/Data/DBCAddresses.hpp:157	g_questXPDB	WoW/Source/DB/DBClient/DBClient.cpp:459	mapped
+0x00AD4478	data	src/Ascension/AscClientDbcs.generated.inc:144,WotLKExtensions/src/Data/DBCAddresses.hpp:159	g_resistancesDB	WoW/Source/DB/DBClient/DBClient.cpp:462	mapped
+0x00AD449C	data	src/Ascension/AscClientDbcPatch.generated.inc:61,src/Ascension/AscClientDbcs.generated.inc:145,WotLKExtensions/src/Data/DBCAddresses.hpp:158	g_randPropPointsDB	WoW/Source/DB/DBClient/DBClient.cpp:465	mapped
+0x00AD44C0	data	src/Ascension/AscClientDbcPatch.generated.inc:62,src/Ascension/AscClientDbcs.generated.inc:146,WotLKExtensions/src/Data/DBCAddresses.hpp:160	g_scalingStatDistributionDB	WoW/Source/DB/DBClient/DBClient.cpp:468	mapped
+0x00AD44E4	data	src/Ascension/AscClientDbcPatch.generated.inc:63,src/Ascension/AscClientDbcs.generated.inc:147,WotLKExtensions/src/Data/DBCAddresses.hpp:161	g_scalingStatValuesDB	WoW/Source/DB/DBClient/DBClient.cpp:471	mapped
+0x00AD4508	data	src/Ascension/AscClientDbcPatch.generated.inc:47,src/Ascension/AscClientDbcs.generated.inc:148,WotLKExtensions/src/Data/DBCAddresses.hpp:162	g_screenEffectDB	WoW/Source/DB/DBClient/DBClient.cpp:474	mapped
+0x00AD452C	data	src/Ascension/AscClientDbcs.generated.inc:149,WotLKExtensions/src/Data/DBCAddresses.hpp:163	g_serverMessagesDB	WoW/Source/DB/DBClient/DBClient.cpp:477	mapped
+0x00AD4550	data	src/Ascension/AscClientDbcPatch.generated.inc:100,src/Ascension/AscClientDbcs.generated.inc:150,WotLKExtensions/src/Data/DBCAddresses.hpp:164	g_sheatheSoundLookupsDB	WoW/Source/DB/DBClient/DBClient.cpp:480	mapped
+0x00AD4574	data	src/Ascension/AscClientDbcPatch.generated.inc:114,src/Ascension/AscClientDbcs.generated.inc:151,WotLKExtensions/src/Data/DBCAddresses.hpp:165	g_skillCostsDataDB	WoW/Source/DB/DBClient/DBClient.cpp:483	mapped
+0x00AD4598	data	src/Ascension/AscClientDbcPatch.generated.inc:10,src/Ascension/AscClientDbcs.generated.inc:152,src/Ascension/AscGlobalsB.cpp:26,src/Ascension/AscSpellApi.cpp:302,WotLKExtensions/src/Data/DBCAddresses.hpp:166	g_skillLineAbilityDB	WoW/Source/DB/DBClient/DBClient.cpp:486	mapped
+0x00AD45BC	data	src/Ascension/AscClientDbcPatch.generated.inc:115,src/Ascension/AscClientDbcs.generated.inc:153,WotLKExtensions/src/Data/DBCAddresses.hpp:167	g_skillLineCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:489	mapped
+0x00AD45E0	data	src/Ascension/AscClientDbcPatch.generated.inc:9,src/Ascension/AscClientDbcs.generated.inc:154,src/Ascension/AscGlobalsB.cpp:26,src/Ascension/AscGlobalsE.cpp:13,src/Ascension/AscGlobalsH.cpp:44,src/Ascension/AscGossipQuest.cpp:82,src/Ascension/AscSpellApi.cpp:351,WotLKExtensions/src/Data/DBCAddresses.hpp:168	g_skillLineDB	WoW/Source/DB/DBClient/DBClient.cpp:492	mapped
 0x00AD45EC	unknown	src/Ascension/AscGossipQuest.cpp:88			unported
 0x00AD45F0	unknown	src/Ascension/AscGossipQuest.cpp:88			unported
 0x00AD4600	unknown	src/Ascension/AscGossipQuest.cpp:87			unported
-0x00AD4604	unknown	src/Ascension/AscClientDbcPatch.generated.inc:27,src/Ascension/AscClientDbcs.generated.inc:155,WotLKExtensions/src/Data/DBCAddresses.hpp:169			unported
-0x00AD4628	unknown	src/Ascension/AscClientDbcPatch.generated.inc:116,src/Ascension/AscClientDbcs.generated.inc:156,WotLKExtensions/src/Data/DBCAddresses.hpp:170			unported
-0x00AD464C	unknown	src/Ascension/AscAlphaAmbience.cpp:5,src/Ascension/AscAlphaAmbience.cpp:29,src/Ascension/AscClientDbcPatch.generated.inc:93,src/Ascension/AscClientDbcs.generated.inc:157,WotLKExtensions/src/Data/DBCAddresses.hpp:171			unported
-0x00AD4670	unknown	src/Ascension/AscClientDbcPatch.generated.inc:91,src/Ascension/AscClientDbcs.generated.inc:159,WotLKExtensions/src/Data/DBCAddresses.hpp:174			unported
-0x00AD4694	unknown	src/Ascension/AscClientDbcPatch.generated.inc:92,src/Ascension/AscClientDbcs.generated.inc:158,WotLKExtensions/src/Data/DBCAddresses.hpp:172			unported
-0x00AD46B8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:86,src/Ascension/AscClientDbcs.generated.inc:160,WotLKExtensions/src/Data/DBCAddresses.hpp:177			unported
-0x00AD46DC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:87,src/Ascension/AscClientDbcs.generated.inc:161,WotLKExtensions/src/Data/DBCAddresses.hpp:178			unported
-0x00AD4700	unknown	src/Ascension/AscClientDbcPatch.generated.inc:85,src/Ascension/AscClientDbcs.generated.inc:162,WotLKExtensions/src/Data/DBCAddresses.hpp:179			unported
-0x00AD4724	unknown	src/Ascension/AscClientDbcs.generated.inc:163,WotLKExtensions/src/Data/DBCAddresses.hpp:180			unported
-0x00AD4748	unknown	src/Ascension/AscClientDbcPatch.generated.inc:35,src/Ascension/AscClientDbcs.generated.inc:164,src/Ascension/AscModelMethods.cpp:83,src/Ascension/AscSpellText.cpp:122,WotLKExtensions/src/Data/DBCAddresses.hpp:181			unported
-0x00AD476C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:33,src/Ascension/AscClientDbcs.generated.inc:165,WotLKExtensions/src/Data/DBCAddresses.hpp:182			unported
-0x00AD4790	unknown	src/Ascension/AscClientDbcPatch.generated.inc:41,src/Ascension/AscClientDbcs.generated.inc:166,WotLKExtensions/src/Data/DBCAddresses.hpp:183			unported
-0x00AD47B4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:39,src/Ascension/AscClientDbcs.generated.inc:168,WotLKExtensions/src/Data/DBCAddresses.hpp:185			unported
-0x00AD47D8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:38,src/Ascension/AscClientDbcs.generated.inc:169,WotLKExtensions/src/Data/DBCAddresses.hpp:186			unported
-0x00AD47FC	unknown	src/Ascension/AscClientDbcs.generated.inc:170,WotLKExtensions/src/Data/DBCAddresses.hpp:187			unported
+0x00AD4604	data	src/Ascension/AscClientDbcPatch.generated.inc:27,src/Ascension/AscClientDbcs.generated.inc:155,WotLKExtensions/src/Data/DBCAddresses.hpp:169	g_skillRaceClassInfoDB	WoW/Source/DB/DBClient/DBClient.cpp:495	mapped
+0x00AD4628	data	src/Ascension/AscClientDbcPatch.generated.inc:116,src/Ascension/AscClientDbcs.generated.inc:156,WotLKExtensions/src/Data/DBCAddresses.hpp:170	g_skillTiersDB	WoW/Source/DB/DBClient/DBClient.cpp:498	mapped
+0x00AD464C	data	src/Ascension/AscAlphaAmbience.cpp:5,src/Ascension/AscAlphaAmbience.cpp:29,src/Ascension/AscClientDbcPatch.generated.inc:93,src/Ascension/AscClientDbcs.generated.inc:157,WotLKExtensions/src/Data/DBCAddresses.hpp:171	g_soundAmbienceDB	WoW/Source/DB/DBClient/DBClient.cpp:501	mapped
+0x00AD4670	data	src/Ascension/AscClientDbcPatch.generated.inc:91,src/Ascension/AscClientDbcs.generated.inc:159,WotLKExtensions/src/Data/DBCAddresses.hpp:174	g_soundEntriesDB	WoW/Source/DB/DBClient/DBClient.cpp:504	mapped
+0x00AD4694	data	src/Ascension/AscClientDbcPatch.generated.inc:92,src/Ascension/AscClientDbcs.generated.inc:158,WotLKExtensions/src/Data/DBCAddresses.hpp:172	g_soundEmittersDB	WoW/Source/DB/DBClient/DBClient.cpp:507	mapped
+0x00AD46B8	data	src/Ascension/AscClientDbcPatch.generated.inc:86,src/Ascension/AscClientDbcs.generated.inc:160,WotLKExtensions/src/Data/DBCAddresses.hpp:177	g_soundProviderPreferencesDB	WoW/Source/DB/DBClient/DBClient.cpp:510	mapped
+0x00AD46DC	data	src/Ascension/AscClientDbcPatch.generated.inc:87,src/Ascension/AscClientDbcs.generated.inc:161,WotLKExtensions/src/Data/DBCAddresses.hpp:178	g_soundSamplePreferencesDB	WoW/Source/DB/DBClient/DBClient.cpp:513	mapped
+0x00AD4700	data	src/Ascension/AscClientDbcPatch.generated.inc:85,src/Ascension/AscClientDbcs.generated.inc:162,WotLKExtensions/src/Data/DBCAddresses.hpp:179	g_soundWaterTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:516	mapped
+0x00AD4724	data	src/Ascension/AscClientDbcs.generated.inc:163,WotLKExtensions/src/Data/DBCAddresses.hpp:180	g_spamMessagesDB	WoW/Source/DB/DBClient/DBClient.cpp:519	mapped
+0x00AD4748	data	src/Ascension/AscClientDbcPatch.generated.inc:35,src/Ascension/AscClientDbcs.generated.inc:164,src/Ascension/AscModelMethods.cpp:83,src/Ascension/AscSpellText.cpp:122,WotLKExtensions/src/Data/DBCAddresses.hpp:181	g_spellCastTimesDB	WoW/Source/DB/DBClient/DBClient.cpp:522	mapped
+0x00AD476C	data	src/Ascension/AscClientDbcPatch.generated.inc:33,src/Ascension/AscClientDbcs.generated.inc:165,WotLKExtensions/src/Data/DBCAddresses.hpp:182	g_spellCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:525	mapped
+0x00AD4790	data	src/Ascension/AscClientDbcPatch.generated.inc:41,src/Ascension/AscClientDbcs.generated.inc:166,WotLKExtensions/src/Data/DBCAddresses.hpp:183	g_spellChainEffectsDB	WoW/Source/DB/DBClient/DBClient.cpp:528	mapped
+0x00AD47B4	data	src/Ascension/AscClientDbcPatch.generated.inc:39,src/Ascension/AscClientDbcs.generated.inc:168,WotLKExtensions/src/Data/DBCAddresses.hpp:185	g_spellDescriptionVariablesDB	WoW/Source/DB/DBClient/DBClient.cpp:531	mapped
+0x00AD47D8	data	src/Ascension/AscClientDbcPatch.generated.inc:38,src/Ascension/AscClientDbcs.generated.inc:169,WotLKExtensions/src/Data/DBCAddresses.hpp:186	g_spellDifficultyDB	WoW/Source/DB/DBClient/DBClient.cpp:534	mapped
+0x00AD47FC	data	src/Ascension/AscClientDbcs.generated.inc:170,WotLKExtensions/src/Data/DBCAddresses.hpp:187	g_spellDispelTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:537	mapped
 0x00AD4800	unknown	src/Ascension/AscGlobalsJ.cpp:1123,src/Ascension/AscGlobalsJ.cpp:1148			unported
-0x00AD4820	unknown	src/Ascension/AscClientDbcPatch.generated.inc:34,src/Ascension/AscClientDbcs.generated.inc:171,src/Ascension/AscGlobalsD.cpp:18,WotLKExtensions/src/Data/DBCAddresses.hpp:188			unported
+0x00AD4820	data	src/Ascension/AscClientDbcPatch.generated.inc:34,src/Ascension/AscClientDbcs.generated.inc:171,src/Ascension/AscGlobalsD.cpp:18,WotLKExtensions/src/Data/DBCAddresses.hpp:188	g_spellDurationDB	WoW/Source/DB/DBClient/DBClient.cpp:540	mapped
 0x00AD4840	unknown	src/Ascension/AscGlobalsD.cpp:18			unported
-0x00AD4844	unknown	src/Ascension/AscClientDbcPatch.generated.inc:40,src/Ascension/AscClientDbcs.generated.inc:172,WotLKExtensions/src/Data/DBCAddresses.hpp:189			unported
-0x00AD4868	unknown	src/Ascension/AscClientDbcPatch.generated.inc:50,src/Ascension/AscClientDbcs.generated.inc:173,WotLKExtensions/src/Data/DBCAddresses.hpp:190			unported
-0x00AD488C	unknown	retired/AscStubs.generated.cpp:24,src/Ascension/AscClientDbcPatch.generated.inc:29,src/Ascension/AscClientDbcs.generated.inc:174,src/Ascension/AscGlobalsJ.cpp:690,src/Ascension/AscGlobalsJ.cpp:1004,src/Ascension/AscGlobalsJ.cpp:1143,src/Ascension/AscLootLockout.cpp:33,src/Ascension/AscSpellText.cpp:120,src/Ascension/AscTrialCreator.cpp:343,src/Ascension/AscTrialCreator.cpp:348,WotLKExtensions/src/Data/DBCAddresses.hpp:191			unported
+0x00AD4844	data	src/Ascension/AscClientDbcPatch.generated.inc:40,src/Ascension/AscClientDbcs.generated.inc:172,WotLKExtensions/src/Data/DBCAddresses.hpp:189	g_spellEffectCameraShakesDB	WoW/Source/DB/DBClient/DBClient.cpp:543	mapped
+0x00AD4868	data	src/Ascension/AscClientDbcPatch.generated.inc:50,src/Ascension/AscClientDbcs.generated.inc:173,WotLKExtensions/src/Data/DBCAddresses.hpp:190	g_spellFocusObjectDB	WoW/Source/DB/DBClient/DBClient.cpp:546	mapped
+0x00AD488C	data	retired/AscStubs.generated.cpp:24,src/Ascension/AscClientDbcPatch.generated.inc:29,src/Ascension/AscClientDbcs.generated.inc:174,src/Ascension/AscGlobalsJ.cpp:690,src/Ascension/AscGlobalsJ.cpp:1004,src/Ascension/AscGlobalsJ.cpp:1143,src/Ascension/AscLootLockout.cpp:33,src/Ascension/AscSpellText.cpp:120,src/Ascension/AscTrialCreator.cpp:343,src/Ascension/AscTrialCreator.cpp:348,WotLKExtensions/src/Data/DBCAddresses.hpp:191	g_spellIconDB	WoW/Source/DB/DBClient/DBClient.cpp:549	mapped
 0x00AD4898	unknown	src/Ascension/AscTrialCreator.cpp:346			unported
 0x00AD489C	unknown	src/Ascension/AscTrialCreator.cpp:345			unported
-0x00AD48B0	unknown	src/Ascension/AscClientDbcPatch.cpp:45,src/Ascension/AscClientDbcs.generated.inc:175,src/Ascension/AscGlobalsJ.cpp:388,src/Ascension/AscGlobalsJ.cpp:389,WotLKExtensions/src/Data/DBCAddresses.hpp:193			unported
-0x00AD48D4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:42,src/Ascension/AscClientDbcs.generated.inc:176,WotLKExtensions/src/Data/DBCAddresses.hpp:192			unported
-0x00AD48F8	unknown	src/Ascension/AscClientDbcs.generated.inc:177,WotLKExtensions/src/Data/DBCAddresses.hpp:194			unported
-0x00AD491C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:7,src/Ascension/AscClientDbcs.generated.inc:178,WotLKExtensions/src/Data/DBCAddresses.hpp:195			unported
-0x00AD4940	unknown	src/Ascension/AscClientDbcPatch.generated.inc:8,src/Ascension/AscClientDbcs.generated.inc:179,WotLKExtensions/src/Data/DBCAddresses.hpp:196			unported
-0x00AD4964	unknown	src/Ascension/AscClientDbcPatch.generated.inc:36,src/Ascension/AscClientDbcs.generated.inc:180,src/Ascension/AscUnitSelect.cpp:287,WotLKExtensions/src/Data/DBCAddresses.hpp:197			unported
-0x00AD4988	unknown	src/Ascension/AscClientDbcPatch.generated.inc:37,src/Ascension/AscClientDbcs.generated.inc:181,src/Ascension/AscManastorm.cpp:397,src/Ascension/AscSpellMods.cpp:105,src/Ascension/AscSpellText.cpp:121,WotLKExtensions/src/Data/DBCAddresses.hpp:198			unported
+0x00AD48B0	data	src/Ascension/AscClientDbcPatch.cpp:45,src/Ascension/AscClientDbcs.generated.inc:175,src/Ascension/AscGlobalsJ.cpp:388,src/Ascension/AscGlobalsJ.cpp:389,WotLKExtensions/src/Data/DBCAddresses.hpp:193	g_spellItemEnchantmentDB	WoW/Source/DB/DBClient/DBClient.cpp:552	mapped
+0x00AD48D4	data	src/Ascension/AscClientDbcPatch.generated.inc:42,src/Ascension/AscClientDbcs.generated.inc:176,WotLKExtensions/src/Data/DBCAddresses.hpp:192	g_spellItemEnchantmentConditionDB	WoW/Source/DB/DBClient/DBClient.cpp:555	mapped
+0x00AD48F8	data	src/Ascension/AscClientDbcs.generated.inc:177,WotLKExtensions/src/Data/DBCAddresses.hpp:194	g_spellMechanicDB	WoW/Source/DB/DBClient/DBClient.cpp:558	mapped
+0x00AD491C	data	src/Ascension/AscClientDbcPatch.generated.inc:7,src/Ascension/AscClientDbcs.generated.inc:178,WotLKExtensions/src/Data/DBCAddresses.hpp:195	g_spellMissileDB	WoW/Source/DB/DBClient/DBClient.cpp:561	mapped
+0x00AD4940	data	src/Ascension/AscClientDbcPatch.generated.inc:8,src/Ascension/AscClientDbcs.generated.inc:179,WotLKExtensions/src/Data/DBCAddresses.hpp:196	g_spellMissileMotionDB	WoW/Source/DB/DBClient/DBClient.cpp:564	mapped
+0x00AD4964	data	src/Ascension/AscClientDbcPatch.generated.inc:36,src/Ascension/AscClientDbcs.generated.inc:180,src/Ascension/AscUnitSelect.cpp:287,WotLKExtensions/src/Data/DBCAddresses.hpp:197	g_spellRadiusDB	WoW/Source/DB/DBClient/DBClient.cpp:567	mapped
+0x00AD4988	data	src/Ascension/AscClientDbcPatch.generated.inc:37,src/Ascension/AscClientDbcs.generated.inc:181,src/Ascension/AscManastorm.cpp:397,src/Ascension/AscSpellMods.cpp:105,src/Ascension/AscSpellText.cpp:121,WotLKExtensions/src/Data/DBCAddresses.hpp:198	g_spellRangeDB	WoW/Source/DB/DBClient/DBClient.cpp:570	mapped
 0x00AD4994	unknown	src/Ascension/AscSpellMods.cpp:112			unported
 0x00AD4998	unknown	src/Ascension/AscSpellMods.cpp:112			unported
 0x00AD49A8	unknown	src/Ascension/AscSpellMods.cpp:111			unported
-0x00AD49AC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:48,src/Ascension/AscClientDbcs.generated.inc:182,WotLKExtensions/src/Data/DBCAddresses.hpp:199			unported
-0x00AD49D0	unknown	retired/AscStubs.generated.cpp:23,src/Ascension/AscClientDbcPatch.cpp:276,src/Ascension/AscClientDbcPatch.cpp:293,src/Ascension/AscClientDbcs.generated.inc:167,src/Ascension/AscScript.cpp:170,src/Ascension/AscScript.hpp:101,WotLKExtensions/src/Data/DBCAddresses.hpp:184			unported
+0x00AD49AC	data	src/Ascension/AscClientDbcPatch.generated.inc:48,src/Ascension/AscClientDbcs.generated.inc:182,WotLKExtensions/src/Data/DBCAddresses.hpp:199	g_spellRuneCostDB	WoW/Source/DB/DBClient/DBClient.cpp:573	mapped
+0x00AD49D0	data	retired/AscStubs.generated.cpp:23,src/Ascension/AscClientDbcPatch.cpp:276,src/Ascension/AscClientDbcPatch.cpp:293,src/Ascension/AscClientDbcs.generated.inc:167,src/Ascension/AscScript.cpp:170,src/Ascension/AscScript.hpp:101,WotLKExtensions/src/Data/DBCAddresses.hpp:184	g_spellDB	WoW/Source/DB/DBClient/DBClient.cpp:576	mapped
 0x00AD49DC	unknown	src/Ascension/AscCAMgr.cpp:1562,src/Ascension/AscCAMgr.cpp:1573,src/Ascension/AscCAMgr.cpp:1657			unported
-0x00AD49F4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:28,src/Ascension/AscClientDbcs.generated.inc:183,src/Ascension/AscSpellText.cpp:36,src/Ascension/AscWorldEntryTweaks.cpp:79,WotLKExtensions/src/Data/DBCAddresses.hpp:200			unported
-0x00AD4A18	unknown	src/Ascension/AscCharacterCreate.cpp:714,src/Ascension/AscClientDbcPatch.generated.inc:6,src/Ascension/AscClientDbcs.generated.inc:185,src/Ascension/AscHdDbc.cpp:51,src/Ascension/AscModelMethods.cpp:82,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,WotLKExtensions/src/Data/DBCAddresses.hpp:202			unported
-0x00AD4A3C	unknown	src/Ascension/AscCharacterCreate.cpp:703,src/Ascension/AscClientDbcPatch.generated.inc:4,src/Ascension/AscClientDbcs.generated.inc:186,src/Ascension/AscModelMethods.cpp:81,WotLKExtensions/src/Data/DBCAddresses.hpp:204			unported
-0x00AD4A60	unknown	src/Ascension/AscClientDbcPatch.generated.inc:43,src/Ascension/AscClientDbcs.generated.inc:187,WotLKExtensions/src/Data/DBCAddresses.hpp:203			unported
-0x00AD4A84	unknown	src/Ascension/AscClientDbcPatch.generated.inc:5,src/Ascension/AscClientDbcs.generated.inc:188,src/Ascension/AscHdDbc.cpp:52,src/Ascension/AscModelMethods.cpp:165,src/Ascension/AscModelMethods.cpp:170,WotLKExtensions/src/Data/DBCAddresses.hpp:205			unported
+0x00AD49F4	data	src/Ascension/AscClientDbcPatch.generated.inc:28,src/Ascension/AscClientDbcs.generated.inc:183,src/Ascension/AscSpellText.cpp:36,src/Ascension/AscWorldEntryTweaks.cpp:79,WotLKExtensions/src/Data/DBCAddresses.hpp:200	g_spellShapeshiftFormDB	WoW/Source/DB/DBClient/DBClient.cpp:579	mapped
+0x00AD4A18	data	src/Ascension/AscCharacterCreate.cpp:714,src/Ascension/AscClientDbcPatch.generated.inc:6,src/Ascension/AscClientDbcs.generated.inc:185,src/Ascension/AscHdDbc.cpp:51,src/Ascension/AscModelMethods.cpp:82,src/Ascension/AscModelNames.cpp:6,src/Ascension/AscModelNames.cpp:44,WotLKExtensions/src/Data/DBCAddresses.hpp:202	g_spellVisualEffectNameDB	WoW/Source/DB/DBClient/DBClient.cpp:582	mapped
+0x00AD4A3C	data	src/Ascension/AscCharacterCreate.cpp:703,src/Ascension/AscClientDbcPatch.generated.inc:4,src/Ascension/AscClientDbcs.generated.inc:186,src/Ascension/AscModelMethods.cpp:81,WotLKExtensions/src/Data/DBCAddresses.hpp:204	g_spellVisualKitDB	WoW/Source/DB/DBClient/DBClient.cpp:585	mapped
+0x00AD4A60	data	src/Ascension/AscClientDbcPatch.generated.inc:43,src/Ascension/AscClientDbcs.generated.inc:187,WotLKExtensions/src/Data/DBCAddresses.hpp:203	g_spellVisualKitAreaModelDB	WoW/Source/DB/DBClient/DBClient.cpp:588	mapped
+0x00AD4A84	data	src/Ascension/AscClientDbcPatch.generated.inc:5,src/Ascension/AscClientDbcs.generated.inc:188,src/Ascension/AscHdDbc.cpp:52,src/Ascension/AscModelMethods.cpp:165,src/Ascension/AscModelMethods.cpp:170,WotLKExtensions/src/Data/DBCAddresses.hpp:205	g_spellVisualKitModelAttachDB	WoW/Source/DB/DBClient/DBClient.cpp:591	mapped
 0x00AD4A90	unknown	src/Ascension/AscModelMethods.cpp:168			unported
 0x00AD4A94	unknown	src/Ascension/AscModelMethods.cpp:167			unported
-0x00AD4AA8	unknown	src/Ascension/AscCharacterCreate.cpp:700,src/Ascension/AscClientDbcPatch.generated.inc:3,src/Ascension/AscClientDbcs.generated.inc:184,src/Ascension/AscModelMethods.cpp:80,src/Ascension/AscSpellVisuals.cpp:50,WotLKExtensions/src/Data/DBCAddresses.hpp:201			unported
+0x00AD4AA8	data	src/Ascension/AscCharacterCreate.cpp:700,src/Ascension/AscClientDbcPatch.generated.inc:3,src/Ascension/AscClientDbcs.generated.inc:184,src/Ascension/AscModelMethods.cpp:80,src/Ascension/AscSpellVisuals.cpp:50,WotLKExtensions/src/Data/DBCAddresses.hpp:201	g_spellVisualDB	WoW/Source/DB/DBClient/DBClient.cpp:594	mapped
 0x00AD4AB4	unknown	src/Ascension/AscInitHooks.cpp:102,src/Ascension/AscSpellVisuals.cpp:53			unported
 0x00AD4AB8	unknown	src/Ascension/AscInitHooks.cpp:6,src/Ascension/AscInitHooks.cpp:102,src/Ascension/AscSpellVisuals.cpp:53			unported
 0x00AD4AC8	unknown	src/Ascension/AscInitHooks.cpp:100,src/Ascension/AscInitHooks.cpp:104,src/Ascension/AscSpellVisuals.cpp:52			unported
-0x00AD4ACC	unknown	src/Ascension/AscClientDbcs.generated.inc:189,WotLKExtensions/src/Data/DBCAddresses.hpp:206			unported
-0x00AD4AF0	unknown	src/Ascension/AscClientDbcs.generated.inc:190,WotLKExtensions/src/Data/DBCAddresses.hpp:207			unported
-0x00AD4B14	unknown	src/Ascension/AscClientDbcs.generated.inc:191,WotLKExtensions/src/Data/DBCAddresses.hpp:208			unported
-0x00AD4B38	unknown	src/Ascension/AscClientDbcs.generated.inc:192,WotLKExtensions/src/Data/DBCAddresses.hpp:209			unported
-0x00AD4B5C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:30,src/Ascension/AscClientDbcs.generated.inc:193,src/Ascension/AscSpellRank.cpp:10,WotLKExtensions/src/Data/DBCAddresses.hpp:210			unported
-0x00AD4B80	unknown	src/Ascension/AscClientDbcPatch.generated.inc:31,src/Ascension/AscClientDbcs.generated.inc:194,WotLKExtensions/src/Data/DBCAddresses.hpp:211			unported
-0x00AD4BA4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:117,src/Ascension/AscClientDbcs.generated.inc:195,WotLKExtensions/src/Data/DBCAddresses.hpp:212			unported
-0x00AD4BC8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:119,src/Ascension/AscClientDbcs.generated.inc:197,WotLKExtensions/src/Data/DBCAddresses.hpp:214			unported
-0x00AD4BEC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:118,src/Ascension/AscClientDbcs.generated.inc:196,WotLKExtensions/src/Data/DBCAddresses.hpp:213			unported
-0x00AD4C10	unknown	src/Ascension/AscClientDbcs.generated.inc:198,WotLKExtensions/src/Data/DBCAddresses.hpp:215			unported
-0x00AD4C34	unknown	src/Ascension/AscClientDbcs.generated.inc:199,WotLKExtensions/src/Data/DBCAddresses.hpp:216			unported
-0x00AD4C58	unknown	src/Ascension/AscClientDbcs.generated.inc:200,WotLKExtensions/src/Data/DBCAddresses.hpp:217			unported
-0x00AD4C7C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:49,src/Ascension/AscClientDbcs.generated.inc:201,WotLKExtensions/src/Data/DBCAddresses.hpp:218			unported
-0x00AD4CA0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:126,src/Ascension/AscClientDbcs.generated.inc:202,WotLKExtensions/src/Data/DBCAddresses.hpp:219			unported
-0x00AD4CC4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:127,src/Ascension/AscClientDbcs.generated.inc:203,WotLKExtensions/src/Data/DBCAddresses.hpp:220			unported
-0x00AD4CE8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:128,src/Ascension/AscClientDbcs.generated.inc:204,WotLKExtensions/src/Data/DBCAddresses.hpp:221			unported
-0x00AD4D0C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:95,src/Ascension/AscClientDbcs.generated.inc:205,WotLKExtensions/src/Data/DBCAddresses.hpp:222			unported
-0x00AD4D30	unknown	src/Ascension/AscClientDbcPatch.generated.inc:73,src/Ascension/AscClientDbcs.generated.inc:207,WotLKExtensions/src/Data/DBCAddresses.hpp:224			unported
-0x00AD4D54	unknown	src/Ascension/AscClientDbcPatch.generated.inc:72,src/Ascension/AscClientDbcs.generated.inc:206,WotLKExtensions/src/Data/DBCAddresses.hpp:223			unported
-0x00AD4D78	unknown	src/Ascension/AscClientDbcPatch.generated.inc:74,src/Ascension/AscClientDbcs.generated.inc:208,WotLKExtensions/src/Data/DBCAddresses.hpp:225			unported
-0x00AD4D9C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:75,src/Ascension/AscClientDbcs.generated.inc:209,WotLKExtensions/src/Data/DBCAddresses.hpp:226			unported
-0x00AD4DC0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:76,src/Ascension/AscClientDbcs.generated.inc:210,WotLKExtensions/src/Data/DBCAddresses.hpp:227			unported
-0x00AD4DE4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:77,src/Ascension/AscClientDbcs.generated.inc:211,WotLKExtensions/src/Data/DBCAddresses.hpp:228			unported
-0x00AD4E08	unknown	src/Ascension/AscClientDbcPatch.generated.inc:94,src/Ascension/AscClientDbcs.generated.inc:212,WotLKExtensions/src/Data/DBCAddresses.hpp:229			unported
-0x00AD4E2C	unknown	src/Ascension/AscClientDbcs.generated.inc:213,WotLKExtensions/src/Data/DBCAddresses.hpp:233			unported
-0x00AD4E50	unknown	src/Ascension/AscClientDbcs.generated.inc:214,WotLKExtensions/src/Data/DBCAddresses.hpp:230			unported
-0x00AD4E74	unknown	src/Ascension/AscClientDbcs.generated.inc:215,WotLKExtensions/src/Data/DBCAddresses.hpp:231			unported
-0x00AD4E98	unknown	src/Ascension/AscClientDbcs.generated.inc:216,WotLKExtensions/src/Data/DBCAddresses.hpp:232			unported
-0x00AD4EBC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:122,src/Ascension/AscClientDbcs.generated.inc:217,src/Ascension/AscGlobalsE.cpp:14,src/Ascension/AscWorldMap.cpp:2,src/Ascension/AscWorldMap.cpp:12,WotLKExtensions/src/Data/DBCAddresses.hpp:235			unported
-0x00AD4EE0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:123,src/Ascension/AscClientDbcs.generated.inc:219,WotLKExtensions/src/Data/DBCAddresses.hpp:236			unported
-0x00AD4F04	unknown	src/Ascension/AscClientDbcPatch.generated.inc:124,src/Ascension/AscClientDbcs.generated.inc:220,WotLKExtensions/src/Data/DBCAddresses.hpp:237			unported
-0x00AD4F28	unknown	src/Ascension/AscClientDbcPatch.generated.inc:125,src/Ascension/AscClientDbcs.generated.inc:218,WotLKExtensions/src/Data/DBCAddresses.hpp:238			unported
-0x00AD4F4C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:32,src/Ascension/AscClientDbcs.generated.inc:221,WotLKExtensions/src/Data/DBCAddresses.hpp:239			unported
-0x00AD4F70	unknown	src/Ascension/AscClientDbcPatch.generated.inc:109,src/Ascension/AscClientDbcs.generated.inc:222,WotLKExtensions/src/Data/DBCAddresses.hpp:240			unported
-0x00AD4F94	unknown	src/Ascension/AscClientDbcPatch.generated.inc:97,src/Ascension/AscClientDbcs.generated.inc:223,WotLKExtensions/src/Data/DBCAddresses.hpp:242			unported
-0x00AD4FB8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:96,src/Ascension/AscClientDbcs.generated.inc:224,WotLKExtensions/src/Data/DBCAddresses.hpp:243			unported
-0x00AD4FDC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:98,src/Ascension/AscClientDbcs.generated.inc:225,WotLKExtensions/src/Data/DBCAddresses.hpp:241			unported
-0x00AD5000	unknown	src/Ascension/AscClientDbcPatch.generated.inc:99,src/Ascension/AscClientDbcs.generated.inc:226,WotLKExtensions/src/Data/DBCAddresses.hpp:234			unported
-0x00AD5024	unknown	src/Ascension/AscClientDbcPatch.generated.inc:90,src/Ascension/AscClientDbcs.generated.inc:227,WotLKExtensions/src/Data/DBCAddresses.hpp:173			unported
-0x00AD5048	unknown	src/Ascension/AscClientDbcPatch.generated.inc:83,src/Ascension/AscClientDbcs.generated.inc:228,WotLKExtensions/src/Data/DBCAddresses.hpp:141			unported
-0x00AD506C	unknown	src/Ascension/AscClientDbcPatch.generated.inc:84,src/Ascension/AscClientDbcs.generated.inc:229,WotLKExtensions/src/Data/DBCAddresses.hpp:142			unported
-0x00AD5090	unknown	src/Ascension/AscClientDbcPatch.generated.inc:81,src/Ascension/AscClientDbcs.generated.inc:230,WotLKExtensions/src/Data/DBCAddresses.hpp:143			unported
-0x00AD50B4	unknown	src/Ascension/AscClientDbcPatch.generated.inc:82,src/Ascension/AscClientDbcs.generated.inc:231,WotLKExtensions/src/Data/DBCAddresses.hpp:144			unported
-0x00AD50D8	unknown	src/Ascension/AscClientDbcPatch.generated.inc:80,src/Ascension/AscClientDbcs.generated.inc:232,WotLKExtensions/src/Data/DBCAddresses.hpp:145			unported
-0x00AD50FC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:88,src/Ascension/AscClientDbcs.generated.inc:233,WotLKExtensions/src/Data/DBCAddresses.hpp:175			unported
-0x00AD5120	unknown	src/Ascension/AscClientDbcPatch.generated.inc:89,src/Ascension/AscClientDbcs.generated.inc:234,WotLKExtensions/src/Data/DBCAddresses.hpp:176			unported
-0x00AD6640	unknown	WotLKExtensions/src/Client/Misc.cpp:27			unported
+0x00AD4ACC	data	src/Ascension/AscClientDbcs.generated.inc:189,WotLKExtensions/src/Data/DBCAddresses.hpp:206	g_stableSlotPricesDB	WoW/Source/DB/DBClient/DBClient.cpp:597	mapped
+0x00AD4AF0	data	src/Ascension/AscClientDbcs.generated.inc:190,WotLKExtensions/src/Data/DBCAddresses.hpp:207	g_stationeryDB	WoW/Source/DB/DBClient/DBClient.cpp:600	mapped
+0x00AD4B14	data	src/Ascension/AscClientDbcs.generated.inc:191,WotLKExtensions/src/Data/DBCAddresses.hpp:208	g_stringLookupsDB	WoW/Source/DB/DBClient/DBClient.cpp:603	mapped
+0x00AD4B38	data	src/Ascension/AscClientDbcs.generated.inc:192,WotLKExtensions/src/Data/DBCAddresses.hpp:209	g_summonPropertiesDB	WoW/Source/DB/DBClient/DBClient.cpp:606	mapped
+0x00AD4B5C	data	src/Ascension/AscClientDbcPatch.generated.inc:30,src/Ascension/AscClientDbcs.generated.inc:193,src/Ascension/AscSpellRank.cpp:10,WotLKExtensions/src/Data/DBCAddresses.hpp:210	g_talentDB	WoW/Source/DB/DBClient/DBClient.cpp:609	mapped
+0x00AD4B80	data	src/Ascension/AscClientDbcPatch.generated.inc:31,src/Ascension/AscClientDbcs.generated.inc:194,WotLKExtensions/src/Data/DBCAddresses.hpp:211	g_talentTabDB	WoW/Source/DB/DBClient/DBClient.cpp:612	mapped
+0x00AD4BA4	data	src/Ascension/AscClientDbcPatch.generated.inc:117,src/Ascension/AscClientDbcs.generated.inc:195,WotLKExtensions/src/Data/DBCAddresses.hpp:212	g_taxiNodesDB	WoW/Source/DB/DBClient/DBClient.cpp:615	mapped
+0x00AD4BC8	data	src/Ascension/AscClientDbcPatch.generated.inc:119,src/Ascension/AscClientDbcs.generated.inc:197,WotLKExtensions/src/Data/DBCAddresses.hpp:214	g_taxiPathNodeDB	WoW/Source/DB/DBClient/DBClient.cpp:618	mapped
+0x00AD4BEC	data	src/Ascension/AscClientDbcPatch.generated.inc:118,src/Ascension/AscClientDbcs.generated.inc:196,WotLKExtensions/src/Data/DBCAddresses.hpp:213	g_taxiPathDB	WoW/Source/DB/DBClient/DBClient.cpp:621	mapped
+0x00AD4C10	data	src/Ascension/AscClientDbcs.generated.inc:198,WotLKExtensions/src/Data/DBCAddresses.hpp:215	g_teamContributionPointsDB	WoW/Source/DB/DBClient/DBClient.cpp:624	mapped
+0x00AD4C34	data	src/Ascension/AscClientDbcs.generated.inc:199,WotLKExtensions/src/Data/DBCAddresses.hpp:216	g_terrainTypeDB	WoW/Source/DB/DBClient/DBClient.cpp:627	mapped
+0x00AD4C58	data	src/Ascension/AscClientDbcs.generated.inc:200,WotLKExtensions/src/Data/DBCAddresses.hpp:217	g_terrainTypeSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:630	mapped
+0x00AD4C7C	data	src/Ascension/AscClientDbcPatch.generated.inc:49,src/Ascension/AscClientDbcs.generated.inc:201,WotLKExtensions/src/Data/DBCAddresses.hpp:218	g_totemCategoryDB	WoW/Source/DB/DBClient/DBClient.cpp:633	mapped
+0x00AD4CA0	data	src/Ascension/AscClientDbcPatch.generated.inc:126,src/Ascension/AscClientDbcs.generated.inc:202,WotLKExtensions/src/Data/DBCAddresses.hpp:219	g_transportAnimationDB	WoW/Source/DB/DBClient/DBClient.cpp:636	mapped
+0x00AD4CC4	data	src/Ascension/AscClientDbcPatch.generated.inc:127,src/Ascension/AscClientDbcs.generated.inc:203,WotLKExtensions/src/Data/DBCAddresses.hpp:220	g_transportPhysicsDB	WoW/Source/DB/DBClient/DBClient.cpp:639	mapped
+0x00AD4CE8	data	src/Ascension/AscClientDbcPatch.generated.inc:128,src/Ascension/AscClientDbcs.generated.inc:204,WotLKExtensions/src/Data/DBCAddresses.hpp:221	g_transportRotationDB	WoW/Source/DB/DBClient/DBClient.cpp:642	mapped
+0x00AD4D0C	data	src/Ascension/AscClientDbcPatch.generated.inc:95,src/Ascension/AscClientDbcs.generated.inc:205,WotLKExtensions/src/Data/DBCAddresses.hpp:222	g_uiSoundLookupsDB	WoW/Source/DB/DBClient/DBClient.cpp:645	mapped
+0x00AD4D30	data	src/Ascension/AscClientDbcPatch.generated.inc:73,src/Ascension/AscClientDbcs.generated.inc:207,WotLKExtensions/src/Data/DBCAddresses.hpp:224	g_unitBloodLevelsDB	WoW/Source/DB/DBClient/DBClient.cpp:648	mapped
+0x00AD4D54	data	src/Ascension/AscClientDbcPatch.generated.inc:72,src/Ascension/AscClientDbcs.generated.inc:206,WotLKExtensions/src/Data/DBCAddresses.hpp:223	g_unitBloodDB	WoW/Source/DB/DBClient/DBClient.cpp:651	mapped
+0x00AD4D78	data	src/Ascension/AscClientDbcPatch.generated.inc:74,src/Ascension/AscClientDbcs.generated.inc:208,WotLKExtensions/src/Data/DBCAddresses.hpp:225	g_vehicleDB	WoW/Source/DB/DBClient/DBClient.cpp:654	mapped
+0x00AD4D9C	data	src/Ascension/AscClientDbcPatch.generated.inc:75,src/Ascension/AscClientDbcs.generated.inc:209,WotLKExtensions/src/Data/DBCAddresses.hpp:226	g_vehicleSeatDB	WoW/Source/DB/DBClient/DBClient.cpp:657	mapped
+0x00AD4DC0	data	src/Ascension/AscClientDbcPatch.generated.inc:76,src/Ascension/AscClientDbcs.generated.inc:210,WotLKExtensions/src/Data/DBCAddresses.hpp:227	g_vehicleUIIndicatorDB	WoW/Source/DB/DBClient/DBClient.cpp:660	mapped
+0x00AD4DE4	data	src/Ascension/AscClientDbcPatch.generated.inc:77,src/Ascension/AscClientDbcs.generated.inc:211,WotLKExtensions/src/Data/DBCAddresses.hpp:228	g_vehicleUIIndSeatDB	WoW/Source/DB/DBClient/DBClient.cpp:663	mapped
+0x00AD4E08	data	src/Ascension/AscClientDbcPatch.generated.inc:94,src/Ascension/AscClientDbcs.generated.inc:212,WotLKExtensions/src/Data/DBCAddresses.hpp:229	g_vocalUISoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:666	mapped
+0x00AD4E2C	data	src/Ascension/AscClientDbcs.generated.inc:213,WotLKExtensions/src/Data/DBCAddresses.hpp:233	g_wmoAreaTableDB	WoW/Source/DB/DBClient/DBClient.cpp:669	mapped
+0x00AD4E50	data	src/Ascension/AscClientDbcs.generated.inc:214,WotLKExtensions/src/Data/DBCAddresses.hpp:230	g_weaponImpactSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:672	mapped
+0x00AD4E74	data	src/Ascension/AscClientDbcs.generated.inc:215,WotLKExtensions/src/Data/DBCAddresses.hpp:231	g_weaponSwingSounds2DB	WoW/Source/DB/DBClient/DBClient.cpp:675	mapped
+0x00AD4E98	data	src/Ascension/AscClientDbcs.generated.inc:216,WotLKExtensions/src/Data/DBCAddresses.hpp:232	g_weatherDB	WoW/Source/DB/DBClient/DBClient.cpp:678	mapped
+0x00AD4EBC	data	src/Ascension/AscClientDbcPatch.generated.inc:122,src/Ascension/AscClientDbcs.generated.inc:217,src/Ascension/AscGlobalsE.cpp:14,src/Ascension/AscWorldMap.cpp:2,src/Ascension/AscWorldMap.cpp:12,WotLKExtensions/src/Data/DBCAddresses.hpp:235	g_worldMapAreaDB	WoW/Source/DB/DBClient/DBClient.cpp:681	mapped
+0x00AD4EE0	data	src/Ascension/AscClientDbcPatch.generated.inc:123,src/Ascension/AscClientDbcs.generated.inc:219,WotLKExtensions/src/Data/DBCAddresses.hpp:236	g_worldMapContinentDB	WoW/Source/DB/DBClient/DBClient.cpp:684	mapped
+0x00AD4F04	data	src/Ascension/AscClientDbcPatch.generated.inc:124,src/Ascension/AscClientDbcs.generated.inc:220,WotLKExtensions/src/Data/DBCAddresses.hpp:237	g_worldMapOverlayDB	WoW/Source/DB/DBClient/DBClient.cpp:687	mapped
+0x00AD4F28	data	src/Ascension/AscClientDbcPatch.generated.inc:125,src/Ascension/AscClientDbcs.generated.inc:218,WotLKExtensions/src/Data/DBCAddresses.hpp:238	g_worldMapTransformsDB	WoW/Source/DB/DBClient/DBClient.cpp:690	mapped
+0x00AD4F4C	data	src/Ascension/AscClientDbcPatch.generated.inc:32,src/Ascension/AscClientDbcs.generated.inc:221,WotLKExtensions/src/Data/DBCAddresses.hpp:239	g_worldSafeLocsDB	WoW/Source/DB/DBClient/DBClient.cpp:693	mapped
+0x00AD4F70	data	src/Ascension/AscClientDbcPatch.generated.inc:109,src/Ascension/AscClientDbcs.generated.inc:222,WotLKExtensions/src/Data/DBCAddresses.hpp:240	g_worldStateUIDB	WoW/Source/DB/DBClient/DBClient.cpp:696	mapped
+0x00AD4F94	data	src/Ascension/AscClientDbcPatch.generated.inc:97,src/Ascension/AscClientDbcs.generated.inc:223,WotLKExtensions/src/Data/DBCAddresses.hpp:242	g_zoneIntroMusicTableDB	WoW/Source/DB/DBClient/DBClient.cpp:699	mapped
+0x00AD4FB8	data	src/Ascension/AscClientDbcPatch.generated.inc:96,src/Ascension/AscClientDbcs.generated.inc:224,WotLKExtensions/src/Data/DBCAddresses.hpp:243	g_zoneMusicDB	WoW/Source/DB/DBClient/DBClient.cpp:702	mapped
+0x00AD4FDC	data	src/Ascension/AscClientDbcPatch.generated.inc:98,src/Ascension/AscClientDbcs.generated.inc:225,WotLKExtensions/src/Data/DBCAddresses.hpp:241	g_worldStateZoneSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:705	mapped
+0x00AD5000	data	src/Ascension/AscClientDbcPatch.generated.inc:99,src/Ascension/AscClientDbcs.generated.inc:226,WotLKExtensions/src/Data/DBCAddresses.hpp:234	g_worldChunkSoundsDB	WoW/Source/DB/DBClient/DBClient.cpp:708	mapped
+0x00AD5024	data	src/Ascension/AscClientDbcPatch.generated.inc:90,src/Ascension/AscClientDbcs.generated.inc:227,WotLKExtensions/src/Data/DBCAddresses.hpp:173	g_soundEntriesAdvancedDB	WoW/Source/DB/DBClient/DBClient.cpp:711	mapped
+0x00AD5048	data	src/Ascension/AscClientDbcPatch.generated.inc:83,src/Ascension/AscClientDbcs.generated.inc:228,WotLKExtensions/src/Data/DBCAddresses.hpp:141	g_objectEffectDB	WoW/Source/DB/DBClient/DBClient.cpp:714	mapped
+0x00AD506C	data	src/Ascension/AscClientDbcPatch.generated.inc:84,src/Ascension/AscClientDbcs.generated.inc:229,WotLKExtensions/src/Data/DBCAddresses.hpp:142	g_objectEffectGroupDB	WoW/Source/DB/DBClient/DBClient.cpp:717	mapped
+0x00AD5090	data	src/Ascension/AscClientDbcPatch.generated.inc:81,src/Ascension/AscClientDbcs.generated.inc:230,WotLKExtensions/src/Data/DBCAddresses.hpp:143	g_objectEffectModifierDB	WoW/Source/DB/DBClient/DBClient.cpp:720	mapped
+0x00AD50B4	data	src/Ascension/AscClientDbcPatch.generated.inc:82,src/Ascension/AscClientDbcs.generated.inc:231,WotLKExtensions/src/Data/DBCAddresses.hpp:144	g_objectEffectPackageDB	WoW/Source/DB/DBClient/DBClient.cpp:723	mapped
+0x00AD50D8	data	src/Ascension/AscClientDbcPatch.generated.inc:80,src/Ascension/AscClientDbcs.generated.inc:232,WotLKExtensions/src/Data/DBCAddresses.hpp:145	g_objectEffectPackageElemDB	WoW/Source/DB/DBClient/DBClient.cpp:726	mapped
+0x00AD50FC	data	src/Ascension/AscClientDbcPatch.generated.inc:88,src/Ascension/AscClientDbcs.generated.inc:233,WotLKExtensions/src/Data/DBCAddresses.hpp:175	g_soundFilterDB	WoW/Source/DB/DBClient/DBClient.cpp:729	mapped
+0x00AD5120	data	src/Ascension/AscClientDbcPatch.generated.inc:89,src/Ascension/AscClientDbcs.generated.inc:234,WotLKExtensions/src/Data/DBCAddresses.hpp:176	g_soundFilterElemDB	WoW/Source/DB/DBClient/DBClient.cpp:732	mapped
+0x00AD6640	data	WotLKExtensions/src/Client/Misc.cpp:27	s_itemModTokens	WoW/Source/UIUtil/Tooltip.cpp:212	mapped
 0x00ADAA7C	unknown	src/Ascension/AscGlobalsG.cpp:64,src/Ascension/AscGlobalsG.cpp:70,src/Ascension/AscNamePlates.cpp:548,src/Ascension/AscNamePlates.cpp:554			unported
 0x00ADAA88	unknown	src/Ascension/AscNamePlates.cpp:49			unported
 0x00ADB88C	unknown	src/Ascension/AscAttachFixes.cpp:72,src/Ascension/AscAttachFixes.cpp:955			unported
-0x00ADFBC4	unknown	src/Ascension/AscEventPackets.cpp:34,src/Ascension/AscEventPackets.cpp:321,src/Ascension/AscGlobalsC.cpp:55,src/Ascension/AscGlobalsC.cpp:59,src/Ascension/AscGraphics.cpp:52,src/Ascension/AscUnitSelect.cpp:157,src/Ascension/AscZoneLight.cpp:166,WotLKExtensions/src/WorldData/ZoneLightData.cpp:88			unported
+0x00ADFBC4	data	src/Ascension/AscEventPackets.cpp:34,src/Ascension/AscEventPackets.cpp:321,src/Ascension/AscGlobalsC.cpp:55,src/Ascension/AscGlobalsC.cpp:59,src/Ascension/AscGraphics.cpp:52,src/Ascension/AscUnitSelect.cpp:157,src/Ascension/AscZoneLight.cpp:166,WotLKExtensions/src/WorldData/ZoneLightData.cpp:88	s_mapId	WoW/Source/WorldClient/Map.cpp:107	mapped
 0x00AF46AC	unknown	src/Ascension/AscManastorm.cpp:386			unported
 0x00AF46B0	unknown	src/Ascension/AscManastorm.cpp:387			unported
 0x00AF46B8	unknown	src/Ascension/AscManastorm.cpp:388			unported
@@ -1784,155 +1784,155 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00AF46C4	unknown	src/Ascension/AscManastorm.cpp:390			unported
 0x00AF46D0	unknown	src/Ascension/AscManastorm.cpp:391			unported
 0x00AF4748	unknown	src/Ascension/AscClientOptions.cpp:238,src/Ascension/AscClientOptions.cpp:251,src/Ascension/AscClientOptions.cpp:252,src/Ascension/AscMisc.cpp:391,src/Ascension/AscMisc.cpp:415			unported
-0x00AF487C	unknown	src/Ascension/AscClientOptions.cpp:238,src/Ascension/AscClientOptions.cpp:253,src/Ascension/AscMisc.cpp:392,src/Ascension/AscMisc.cpp:425			unported
-0x00AF4998	unknown	src/Ascension/AscClientDbcPatch.generated.inc:131,WotLKExtensions/src/Data/DBCAddresses.hpp:123			unported
-0x00AF49BC	unknown	src/Ascension/AscClientDbcPatch.generated.inc:132,WotLKExtensions/src/Data/DBCAddresses.hpp:121			unported
-0x00AF49E0	unknown	src/Ascension/AscClientDbcPatch.generated.inc:133,WotLKExtensions/src/Data/DBCAddresses.hpp:120			unported
-0x00AF4A04	unknown	src/Ascension/AscClientDbcPatch.generated.inc:130,WotLKExtensions/src/Data/DBCAddresses.hpp:122			unported
-0x00AF4A28	unknown	src/Ascension/AscClientDbcPatch.generated.inc:129,WotLKExtensions/src/Data/DBCAddresses.hpp:119			unported
-0x00AF5718	func	src/Ascension/AscCursor.cpp:46,src/Ascension/AscGlobalsJ.cpp:539,src/Ascension/AscGlobalsJ.cpp:549,src/Ascension/AscLibrary.cpp:31,src/Ascension/AscLibrary.cpp:46,src/Ascension/AscPatchData.cpp:178,src/Ascension/AscPatchData.cpp:192,src/Ascension/AscUnitSelect.cpp:63			unported
-0x00AF5770	unknown	src/Ascension/AscGlobalsJ.cpp:160			unported
-0x00B24180	unknown	src/Ascension/AscAttachPatches.cpp:54,src/Ascension/AscAttachPatches.cpp:110,WotLKExtensions/src/GameObjects/CGPlayer.cpp:45			unported
+0x00AF487C	data	src/Ascension/AscClientOptions.cpp:238,src/Ascension/AscClientOptions.cpp:253,src/Ascension/AscMisc.cpp:392,src/Ascension/AscMisc.cpp:425	s_shadowOffset	WoW/Source/Game/GameClient/WorldText.cpp:58	mapped
+0x00AF4998	data	src/Ascension/AscClientDbcPatch.generated.inc:131,WotLKExtensions/src/Data/DBCAddresses.hpp:123	g_lightSkyboxDB	WoW/Source/DB/DBClient/DBClient.cpp:735	mapped
+0x00AF49BC	data	src/Ascension/AscClientDbcPatch.generated.inc:132,WotLKExtensions/src/Data/DBCAddresses.hpp:121	g_lightIntBandDB	WoW/Source/DB/DBClient/DBClient.cpp:738	mapped
+0x00AF49E0	data	src/Ascension/AscClientDbcPatch.generated.inc:133,WotLKExtensions/src/Data/DBCAddresses.hpp:120	g_lightFloatBandDB	WoW/Source/DB/DBClient/DBClient.cpp:741	mapped
+0x00AF4A04	data	src/Ascension/AscClientDbcPatch.generated.inc:130,WotLKExtensions/src/Data/DBCAddresses.hpp:122	g_lightParamsDB	WoW/Source/DB/DBClient/DBClient.cpp:744	mapped
+0x00AF4A28	data	src/Ascension/AscClientDbcPatch.generated.inc:129,WotLKExtensions/src/Data/DBCAddresses.hpp:119	g_lightDB	WoW/Source/DB/DBClient/DBClient.cpp:747	mapped
+0x00AF5718	data	src/Ascension/AscCursor.cpp:46,src/Ascension/AscGlobalsJ.cpp:539,src/Ascension/AscGlobalsJ.cpp:549,src/Ascension/AscLibrary.cpp:31,src/Ascension/AscLibrary.cpp:46,src/Ascension/AscPatchData.cpp:178,src/Ascension/AscPatchData.cpp:192,src/Ascension/AscUnitSelect.cpp:63	s_frameXMLStatus	Engine/Source/FrameXML/FrameXML.cpp:31	mapped
+0x00AF5770	data	src/Ascension/AscGlobalsJ.cpp:160	s_errorHandlerFunc	Engine/Source/FrameScript/FrameScript.cpp:69	mapped
+0x00B24180	data	src/Ascension/AscAttachPatches.cpp:54,src/Ascension/AscAttachPatches.cpp:110,WotLKExtensions/src/GameObjects/CGPlayer.cpp:45	s_raceFileNames	WoW/Source/SoundInterface/SoundInterface2.cpp:37	mapped
 0x00B2DA20	unknown	src/Ascension/AscAttachPatches.cpp:43,src/Ascension/AscAttachPatches.cpp:89			unported
-0x00B2DA70	unknown	src/Ascension/AscGlobalsG.cpp:86			unported
-0x00B2DA74	unknown	src/Ascension/AscGlobalsG.cpp:81			unported
-0x00B2F9A0	unknown	src/Ascension/AscRegistry.cpp:22,src/Ascension/AscRegistry.cpp:41			unported
-0x00B2FA00	unknown	src/Ascension/AscRaidVideo.cpp:41			unported
-0x00B32258	unknown	src/Ascension/AscRealmData.cpp:191			unported
-0x00B32360	unknown	src/Ascension/AscRealmData.cpp:191			unported
-0x00B499A4	unknown	src/Ascension/AscMisc.cpp:145,src/Ascension/AscMisc.cpp:178			unported
-0x00B6AA2C	unknown	src/Ascension/AscAttachFixes.cpp:678,src/Ascension/AscRegistry.cpp:22,src/Ascension/AscRegistry.cpp:23,src/Ascension/AscRegistry.cpp:39			unported
-0x00B6AF54	unknown	src/Ascension/AscAttachPatches.generated.inc:71			unported
-0x00B6AF5C	unknown	src/Ascension/AscAttachPatches.generated.inc:73			unported
-0x00B6AFF8	unknown	src/Ascension/AscRuntime.cpp:511			unported
-0x00B6B1A0	unknown	src/Ascension/AscCharacterCreate.cpp:15,src/Ascension/AscCharacterCreate.cpp:425			unported
-0x00B6B238	unknown	src/Ascension/AscCVarHooks.cpp:68,src/Ascension/AscCVarHooks.cpp:81			unported
+0x00B2DA70	data	src/Ascension/AscGlobalsG.cpp:86	s_namePlateHeight	WoW/Source/Ui/NamePlateFrame.cpp:59	mapped
+0x00B2DA74	data	src/Ascension/AscGlobalsG.cpp:81	s_namePlateWidth	WoW/Source/Ui/NamePlateFrame.cpp:62	mapped
+0x00B2F9A0	data	src/Ascension/AscRegistry.cpp:22,src/Ascension/AscRegistry.cpp:41	s_gameInitialized	WoW/Source/Client.cpp:287	mapped
+0x00B2FA00	data	src/Ascension/AscRaidVideo.cpp:41	s_cvTextureFilteringMode	WoW/Source/Client_CVar.cpp:130	mapped
+0x00B32258	data	src/Ascension/AscRealmData.cpp:191	System_SFile2::s_dataPath	Engine/Source/BlizzardCore/SFile2-Core.cpp:33	mapped
+0x00B32360	data	src/Ascension/AscRealmData.cpp:191	SFile::m_basePath	Engine/Source/BlizzardCore/SFile2-Core.cpp:30	mapped
+0x00B499A4	data	src/Ascension/AscMisc.cpp:145,src/Ascension/AscMisc.cpp:178	CSimpleTop::s_eventTime	Engine/Source/Frame/CSimpleTop.cpp:33	mapped
+0x00B6AA2C	data	src/Ascension/AscAttachFixes.cpp:678,src/Ascension/AscRegistry.cpp:22,src/Ascension/AscRegistry.cpp:23,src/Ascension/AscRegistry.cpp:39	CGlueMgr::m_suspended	WoW/Source/Glue/CGlueMgr.cpp:164	mapped
+0x00B6AF54	data	src/Ascension/AscAttachPatches.generated.inc:71	CGlueMgr::m_acceptedTOS	WoW/Source/Glue/CGlueMgr.cpp:197	mapped
+0x00B6AF5C	data	src/Ascension/AscAttachPatches.generated.inc:73	CGlueMgr::m_acceptedEULA	WoW/Source/Glue/CGlueMgr.cpp:203	mapped
+0x00B6AFF8	data	src/Ascension/AscRuntime.cpp:511	g_glueScriptEvents	WoW/Source/Glue/GlueMgr.cpp:4	mapped
+0x00B6B1A0	data	src/Ascension/AscCharacterCreate.cpp:15,src/Ascension/AscCharacterCreate.cpp:425	CCharacterCreation::m_character	WoW/Source/Glue/CharacterCreation.cpp:65	mapped
+0x00B6B238	data	src/Ascension/AscCVarHooks.cpp:68,src/Ascension/AscCVarHooks.cpp:81	CCharacterSelection::s_characterList	WoW/Source/Glue/CharacterSelection.cpp:63	mapped
 0x00B6B240	unknown	src/Ascension/AscGeosets.cpp:12,src/Ascension/AscGeosets.cpp:123			unported
-0x00B6B474	unknown	src/Ascension/AscMisc.cpp:145,src/Ascension/AscMisc.cpp:177			unported
-0x00B6B4F8	unknown	src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1601,src/Ascension/AscGlobalsJ.cpp:1608,src/Ascension/AscGlobalsJ.cpp:1615,src/Ascension/AscItemCollections.cpp:208,src/Ascension/AscItemCollections.cpp:214,src/Ascension/AscItemCollections.cpp:358,src/Ascension/AscItemCollections.cpp:363			unported
-0x00B6B600	unknown	src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1600,src/Ascension/AscGlobalsJ.cpp:1607,src/Ascension/AscGlobalsJ.cpp:1615,src/Ascension/AscItemCollections.cpp:207,src/Ascension/AscItemCollections.cpp:214,src/Ascension/AscItemCollections.cpp:357,src/Ascension/AscItemCollections.cpp:362			unported
-0x00B74350	unknown	src/Ascension/AscSpellShadow.cpp:8,src/Ascension/AscSpellShadow.cpp:73			unported
-0x00B7436C	unknown	src/Ascension/AscGlobalsI.cpp:60,src/Ascension/AscGlobalsI.cpp:72,src/Ascension/AscGlobalsJ.cpp:499,src/Ascension/AscGlobalsJ.cpp:503,src/Ascension/AscNamePlates.cpp:51,src/Ascension/AscSuperTrack.cpp:484,src/Ascension/AscSuperTrack.cpp:498			unported
-0x00B74370	func	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:13,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscSpellShadow.cpp:104			unported
-0x00B74380	unknown	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:99,src/Ascension/AscSpellShadow.cpp:102			unported
-0x00B759D8	unknown	src/Ascension/AscAttachLua.cpp:85			unported
+0x00B6B474	data	src/Ascension/AscMisc.cpp:145,src/Ascension/AscMisc.cpp:177	CGlueMgr::m_scandllOkayToLogIn	WoW/Source/Glue/ScanDLLGlue.cpp:26	mapped
+0x00B6B4F8	data	src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1601,src/Ascension/AscGlobalsJ.cpp:1608,src/Ascension/AscGlobalsJ.cpp:1615,src/Ascension/AscItemCollections.cpp:208,src/Ascension/AscItemCollections.cpp:214,src/Ascension/AscItemCollections.cpp:358,src/Ascension/AscItemCollections.cpp:363	s_path2	WoW/Common/ComponentCore/CharacterComponent.cpp:117	mapped
+0x00B6B600	data	src/Ascension/AscGlobalsJ.cpp:1599,src/Ascension/AscGlobalsJ.cpp:1600,src/Ascension/AscGlobalsJ.cpp:1607,src/Ascension/AscGlobalsJ.cpp:1615,src/Ascension/AscItemCollections.cpp:207,src/Ascension/AscItemCollections.cpp:214,src/Ascension/AscItemCollections.cpp:357,src/Ascension/AscItemCollections.cpp:362	s_path	WoW/Common/ComponentCore/CharacterComponent.cpp:123	mapped
+0x00B74350	data	src/Ascension/AscSpellShadow.cpp:8,src/Ascension/AscSpellShadow.cpp:73	s_spellShadowTexture	WoW/Source/Ui/WorldFrame.cpp:114	mapped
+0x00B7436C	data	src/Ascension/AscGlobalsI.cpp:60,src/Ascension/AscGlobalsI.cpp:72,src/Ascension/AscGlobalsJ.cpp:499,src/Ascension/AscGlobalsJ.cpp:503,src/Ascension/AscNamePlates.cpp:51,src/Ascension/AscSuperTrack.cpp:484,src/Ascension/AscSuperTrack.cpp:498	CGWorldFrame::s_currentWorldFrame	WoW/Source/Ui/WorldFrame.cpp:138	mapped
+0x00B74370	data	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:13,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscSpellShadow.cpp:104	s_spellShadowSize	WoW/Source/Ui/WorldFrame.cpp:117	mapped
+0x00B74380	data	src/Ascension/AscSpellShadow.cpp:12,src/Ascension/AscSpellShadow.cpp:99,src/Ascension/AscSpellShadow.cpp:102	s_spellShadowPos	WoW/Source/Ui/WorldFrame.cpp:120	mapped
+0x00B759D8	data	src/Ascension/AscAttachLua.cpp:85	s_chatLog	WoW/Source/Ui/ChatFrame.cpp:232	mapped
 0x00B7A9DC	func	src/Ascension/AscCursor.cpp:13,src/Ascension/AscCursor.cpp:129			unported
-0x00BD0790	unknown	src/Ascension/AscRuntime.cpp:388,src/Ascension/AscRuntime.cpp:395,src/Ascension/AscRuntime.hpp:108			unported
-0x00BD0791	unknown	src/Ascension/AscClientGuards.cpp:6,src/Ascension/AscClientGuards.cpp:46,src/Ascension/AscRuntime.cpp:235,src/Ascension/AscRuntime.cpp:244,src/Ascension/AscRuntime.hpp:106			unported
-0x00BD0792	func	src/Ascension/AscAppearance.cpp:249,src/Ascension/AscAppearance.cpp:253,src/Ascension/AscAutoQuest.cpp:56,src/Ascension/AscBugTracker.cpp:9,src/Ascension/AscBugTracker.cpp:43,src/Ascension/AscCamera.cpp:134,src/Ascension/AscClientDbcPatch.cpp:222,src/Ascension/AscClientDbcPatch.cpp:236,src/Ascension/AscClientDbcPatch.cpp:255,src/Ascension/AscClientDbcPatch.cpp:282,src/Ascension/AscClientOptions.cpp:170,src/Ascension/AscConfig.cpp:11,src/Ascension/AscConfig.cpp:54,src/Ascension/AscGameMode.cpp:44,src/Ascension/AscGlobalsD.cpp:223,src/Ascension/AscGlobalsF.cpp:89,src/Ascension/AscGlobalsI.cpp:43,src/Ascension/AscGraphics.cpp:50,src/Ascension/AscItemCollections.cpp:300,src/Ascension/AscJson.cpp:8,src/Ascension/AscJson.cpp:95,src/Ascension/AscMysticEnchant.cpp:2501,src/Ascension/AscPatchData.cpp:232,src/Ascension/AscPatchData.cpp:237,src/Ascension/AscRuntime.cpp:617,src/Ascension/AscRuntime.cpp:621,src/Ascension/AscRuntime.cpp:646,src/Ascension/AscRuntime.cpp:653,src/Ascension/AscRuntime.cpp:683,src/Ascension/AscRuntime.hpp:11,src/Ascension/AscRuntime.hpp:71,src/Ascension/AscSmallApis.cpp:22,src/Ascension/AscSmallApis.cpp:43,src/Ascension/AscSpellCharges.cpp:8,src/Ascension/AscSpellCharges.cpp:31,src/Ascension/AscUnitTokens.cpp:5,src/Ascension/AscUnitTokens.cpp:27			unported
-0x00BD0793	unknown	src/Ascension/AscAttachFixes.cpp:44,src/Ascension/AscAttachFixes.cpp:678			unported
-0x00BD07B0	unknown	src/Ascension/AscAttachFixes.cpp:922,src/Ascension/AscCamera.cpp:172,src/Ascension/AscCamera.cpp:247,src/Ascension/AscGlobalsJ.cpp:531,src/Ascension/AscNamePlates.cpp:48,src/Ascension/AscUnitSelect.cpp:392			unported
+0x00BD0790	data	src/Ascension/AscRuntime.cpp:388,src/Ascension/AscRuntime.cpp:395,src/Ascension/AscRuntime.hpp:108	CGGameUI::m_currentlyReloadingUI	WoW/Source/Ui/GameUI.cpp:1010	mapped
+0x00BD0791	data	src/Ascension/AscClientGuards.cpp:6,src/Ascension/AscClientGuards.cpp:46,src/Ascension/AscRuntime.cpp:235,src/Ascension/AscRuntime.cpp:244,src/Ascension/AscRuntime.hpp:106	CGGameUI::m_reloadUIRequested	WoW/Source/Ui/GameUI.cpp:1013	mapped
+0x00BD0792	data	src/Ascension/AscAppearance.cpp:249,src/Ascension/AscAppearance.cpp:253,src/Ascension/AscAutoQuest.cpp:56,src/Ascension/AscBugTracker.cpp:9,src/Ascension/AscBugTracker.cpp:43,src/Ascension/AscCamera.cpp:134,src/Ascension/AscClientDbcPatch.cpp:222,src/Ascension/AscClientDbcPatch.cpp:236,src/Ascension/AscClientDbcPatch.cpp:255,src/Ascension/AscClientDbcPatch.cpp:282,src/Ascension/AscClientOptions.cpp:170,src/Ascension/AscConfig.cpp:11,src/Ascension/AscConfig.cpp:54,src/Ascension/AscGameMode.cpp:44,src/Ascension/AscGlobalsD.cpp:223,src/Ascension/AscGlobalsF.cpp:89,src/Ascension/AscGlobalsI.cpp:43,src/Ascension/AscGraphics.cpp:50,src/Ascension/AscItemCollections.cpp:300,src/Ascension/AscJson.cpp:8,src/Ascension/AscJson.cpp:95,src/Ascension/AscMysticEnchant.cpp:2501,src/Ascension/AscPatchData.cpp:232,src/Ascension/AscPatchData.cpp:237,src/Ascension/AscRuntime.cpp:617,src/Ascension/AscRuntime.cpp:621,src/Ascension/AscRuntime.cpp:646,src/Ascension/AscRuntime.cpp:653,src/Ascension/AscRuntime.cpp:683,src/Ascension/AscRuntime.hpp:11,src/Ascension/AscRuntime.hpp:71,src/Ascension/AscSmallApis.cpp:22,src/Ascension/AscSmallApis.cpp:43,src/Ascension/AscSpellCharges.cpp:8,src/Ascension/AscSpellCharges.cpp:31,src/Ascension/AscUnitTokens.cpp:5,src/Ascension/AscUnitTokens.cpp:27	CGGameUI::s_inWorld	WoW/Source/Ui/GameUI.cpp:1181	mapped
+0x00BD0793	data	src/Ascension/AscAttachFixes.cpp:44,src/Ascension/AscAttachFixes.cpp:678	CGGameUI::m_loggingIn	WoW/Source/Ui/GameUI.cpp:1016	mapped
+0x00BD07B0	data	src/Ascension/AscAttachFixes.cpp:922,src/Ascension/AscCamera.cpp:172,src/Ascension/AscCamera.cpp:247,src/Ascension/AscGlobalsJ.cpp:531,src/Ascension/AscNamePlates.cpp:48,src/Ascension/AscUnitSelect.cpp:392	CGGameUI::m_lockedTarget	WoW/Source/Ui/GameUI.cpp:1046	mapped
 0x00BD07B4	unknown	src/Ascension/AscCamera.cpp:247			unported
-0x00BD080C	func	src/Ascension/AscMisc.cpp:42,src/Ascension/AscRuntime.cpp:153			unported
-0x00BD0810	unknown	src/Ascension/AscMisc.cpp:43			unported
-0x00BD088C	unknown	src/Ascension/AscAttachFixes.cpp:77,src/Ascension/AscAttachFixes.cpp:604,src/Ascension/AscAttachFixes.cpp:608,src/Ascension/AscAttachFixes.cpp:968,src/Ascension/AscCARules.cpp:43,src/Ascension/AscChallenge.cpp:700,src/Ascension/AscChallenge.cpp:1679,src/Ascension/AscGlobalsB.cpp:156,src/Ascension/AscGraphics.cpp:49,src/Ascension/AscMisc.cpp:45,src/Ascension/AscMisc.cpp:288,src/Ascension/AscMisc.cpp:383,src/Ascension/AscRaidVideo.cpp:74,src/Ascension/AscRaidVideo.cpp:81,src/Ascension/AscRealmData.cpp:242,src/Ascension/AscSuperTrack.cpp:58,src/Ascension/AscSuperTrack.cpp:526,WotLKExtensions/src/Data/MiscAddresses.hpp:15			unported
-0x00BD0894	unknown	src/Ascension/AscChallenge.cpp:702,src/Ascension/AscChallenge.cpp:1680,src/Ascension/AscManastorm.cpp:503,src/Ascension/AscManastorm.cpp:506			unported
-0x00BD0A58	unknown	src/Ascension/AscSuperTrack.cpp:526,src/Ascension/AscSuperTrack.cpp:532			unported
-0x00BD1948	unknown	src/Ascension/AscManastorm.cpp:171			unported
-0x00BD1968	unknown	src/Ascension/AscChallenge.cpp:282			unported
-0x00BD1998	unknown	src/Ascension/AscGroupFinder.cpp:217			unported
-0x00BD199C	unknown	src/Ascension/AscGroupFinder.cpp:218			unported
-0x00BD19AC	unknown	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66			unported
-0x00BD19B0	unknown	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66			unported
-0x00BD19B4	unknown	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:67			unported
-0x00BE5D84	unknown	src/Ascension/AscGlobalsJ.cpp:586,src/Ascension/AscGlobalsJ.cpp:590			unported
-0x00BE6D88	unknown	src/Ascension/AscCAMgr.cpp:4121,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1068			unported
-0x00BE8D98	unknown	src/Ascension/AscCAMgr.cpp:4120,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1069			unported
-0x00BEA549	unknown	src/Ascension/AscAttachLate.cpp:11,src/Ascension/AscAttachLate.cpp:119			unported
-0x00BEA558	unknown	src/Ascension/AscAttachLate.cpp:122			unported
-0x00BEA55C	unknown	src/Ascension/AscAttachLate.cpp:120			unported
-0x00BEA560	unknown	src/Ascension/AscAttachLate.cpp:121			unported
-0x00BEAE20	unknown	src/Ascension/AscAttachLua.cpp:10,src/Ascension/AscAttachLua.cpp:146			unported
-0x00BEAF68	unknown	src/Ascension/AscAttachLua.cpp:146			unported
-0x00BEB030	unknown	src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81			unported
-0x00BEB1D8	unknown	src/Ascension/AscGlobalsE.cpp:146,src/Ascension/AscGlobalsE.cpp:151			unported
+0x00BD080C	data	src/Ascension/AscMisc.cpp:42,src/Ascension/AscRuntime.cpp:153	CGGameUI::m_areaID	WoW/Source/Ui/GameUI.cpp:1172	mapped
+0x00BD0810	data	src/Ascension/AscMisc.cpp:43	CGGameUI::m_subzoneID	WoW/Source/Ui/GameUI.cpp:1217	mapped
+0x00BD088C	data	src/Ascension/AscAttachFixes.cpp:77,src/Ascension/AscAttachFixes.cpp:604,src/Ascension/AscAttachFixes.cpp:608,src/Ascension/AscAttachFixes.cpp:968,src/Ascension/AscCARules.cpp:43,src/Ascension/AscChallenge.cpp:700,src/Ascension/AscChallenge.cpp:1679,src/Ascension/AscGlobalsB.cpp:156,src/Ascension/AscGraphics.cpp:49,src/Ascension/AscMisc.cpp:45,src/Ascension/AscMisc.cpp:288,src/Ascension/AscMisc.cpp:383,src/Ascension/AscRaidVideo.cpp:74,src/Ascension/AscRaidVideo.cpp:81,src/Ascension/AscRealmData.cpp:242,src/Ascension/AscSuperTrack.cpp:58,src/Ascension/AscSuperTrack.cpp:526,WotLKExtensions/src/Data/MiscAddresses.hpp:15	CGGameUI::m_iCurrentMapID	WoW/Source/Ui/GameUI.cpp:1142	mapped
+0x00BD0894	data	src/Ascension/AscChallenge.cpp:702,src/Ascension/AscChallenge.cpp:1680,src/Ascension/AscManastorm.cpp:503,src/Ascension/AscManastorm.cpp:506	CGGameUI::m_instanceDifficulty	WoW/Source/Ui/GameUI.cpp:1145	mapped
+0x00BD0A58	data	src/Ascension/AscSuperTrack.cpp:526,src/Ascension/AscSuperTrack.cpp:532	CGGameUI::m_corpsePos	WoW/Source/Ui/GameUI.cpp:1205	mapped
+0x00BD1948	data	src/Ascension/AscManastorm.cpp:171	CGPartyInfo::m_members	WoW/Source/Ui/PartyFrame.cpp:36	mapped
+0x00BD1968	data	src/Ascension/AscChallenge.cpp:282	CGPartyInfo::m_leader	WoW/Source/Ui/PartyFrame.cpp:45	mapped
+0x00BD1998	data	src/Ascension/AscGroupFinder.cpp:217	CGPartyInfo::m_realNumMembers	WoW/Source/Ui/PartyFrame.cpp:63	mapped
+0x00BD199C	data	src/Ascension/AscGroupFinder.cpp:218	CGPartyInfo::m_lastAssignmentTime	WoW/Source/Ui/PartyFrame.cpp:78	mapped
+0x00BD19AC	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66	CGBarberShop::m_currentHairStyle	WoW/Source/Ui/BarberShop.cpp:42	mapped
+0x00BD19B0	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66	CGBarberShop::m_currentFacialHair	WoW/Source/Ui/BarberShop.cpp:45	mapped
+0x00BD19B4	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:67	CGBarberShop::m_currentSkinColor	WoW/Source/Ui/BarberShop.cpp:48	mapped
+0x00BE5D84	data	src/Ascension/AscGlobalsJ.cpp:586,src/Ascension/AscGlobalsJ.cpp:590	CGSpellBook::m_autoRangedSpell	WoW/Source/Ui/SpellBookFrame.cpp:48	mapped
+0x00BE6D88	data	src/Ascension/AscCAMgr.cpp:4121,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1068	s_spellList	WoW/Source/Ui/SpellBookFrame.cpp:93	mapped
+0x00BE8D98	data	src/Ascension/AscCAMgr.cpp:4120,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1069	s_numSpells	WoW/Source/Ui/SpellBookFrame.cpp:105	mapped
+0x00BEA549	data	src/Ascension/AscAttachLate.cpp:11,src/Ascension/AscAttachLate.cpp:119	CGBattlefieldInfo::m_hasRandomWinToday	WoW/Source/Ui/BattlefieldInfo.cpp:113	mapped
+0x00BEA558	data	src/Ascension/AscAttachLate.cpp:122	CGBattlefieldInfo::m_randomLossHonor	WoW/Source/Ui/BattlefieldInfo.cpp:128	mapped
+0x00BEA55C	data	src/Ascension/AscAttachLate.cpp:120	CGBattlefieldInfo::m_randomWinHonor	WoW/Source/Ui/BattlefieldInfo.cpp:131	mapped
+0x00BEA560	data	src/Ascension/AscAttachLate.cpp:121	CGBattlefieldInfo::m_randomWinArena	WoW/Source/Ui/BattlefieldInfo.cpp:134	mapped
+0x00BEAE20	data	src/Ascension/AscAttachLua.cpp:10,src/Ascension/AscAttachLua.cpp:146	CGUIMacros::m_sortedMacros	WoW/Source/Ui/UIMacros.cpp:35	mapped
+0x00BEAF68	data	src/Ascension/AscAttachLua.cpp:146	s_macros	WoW/Source/Ui/UIMacros.cpp:38	mapped
+0x00BEB030	data	src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81	CGMailInfo::m_object	WoW/Source/Ui/MailInfo.cpp:65	mapped
+0x00BEB1D8	data	src/Ascension/AscGlobalsE.cpp:146,src/Ascension/AscGlobalsE.cpp:151	CGMailInfo::m_numInboxItems	WoW/Source/Ui/MailInfo.cpp:53	mapped
 0x00BEB204	unknown	src/Ascension/AscGlobalsE.cpp:146,src/Ascension/AscGlobalsE.cpp:154,src/Ascension/AscTooltipScaling.cpp:713			unported
-0x00BEB568	unknown	src/Ascension/AscManastorm.cpp:173			unported
-0x00BEB608	unknown	src/Ascension/AscManastorm.cpp:172			unported
-0x00BEB9A0	unknown	src/Ascension/AscSmallHooks.cpp:71,src/Ascension/AscSmallHooks.cpp:76,src/Ascension/AscSmallHooks.cpp:77,src/Ascension/AscSmallHooks.cpp:79,src/Ascension/AscSmallHooks.cpp:91			unported
-0x00BF9128	unknown	src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:64			unported
-0x00BFA3E8	unknown	src/Ascension/AscAttachFixes.cpp:27,src/Ascension/AscAttachFixes.cpp:1022,src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81,src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:62			unported
-0x00BFA3F0	unknown	src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:63			unported
-0x00BFA8D8	unknown	src/Ascension/AscTooltipScaling.cpp:202,WotLKExtensions/src/Client/CGTooltip.cpp:1165			unported
-0x00C00BF0	unknown	src/Ascension/AscGossipQuest.cpp:18,src/Ascension/AscGossipQuest.cpp:51			unported
+0x00BEB568	data	src/Ascension/AscManastorm.cpp:173	CGRaidInfo::m_members	WoW/Source/Ui/RaidInfo.cpp:30	mapped
+0x00BEB608	data	src/Ascension/AscManastorm.cpp:172	CGRaidInfo::m_numMembers	WoW/Source/Ui/RaidInfo.cpp:33	mapped
+0x00BEB9A0	data	src/Ascension/AscSmallHooks.cpp:71,src/Ascension/AscSmallHooks.cpp:76,src/Ascension/AscSmallHooks.cpp:77,src/Ascension/AscSmallHooks.cpp:79,src/Ascension/AscSmallHooks.cpp:91	CGBankInfo::m_banker	WoW/Source/Ui/CGBankInfo.cpp:8	mapped
+0x00BF9128	data	src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:64	CGMerchantInfo::m_items	WoW/Source/Ui/MerchantFrame.cpp:34	mapped
+0x00BFA3E8	data	src/Ascension/AscAttachFixes.cpp:27,src/Ascension/AscAttachFixes.cpp:1022,src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81,src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:62	CGMerchantInfo::m_merchant	WoW/Source/Ui/MerchantFrame.cpp:25	mapped
+0x00BFA3F0	data	src/Ascension/AscAttachLua.cpp:60,src/Ascension/AscAttachLua.cpp:63	CGMerchantInfo::m_numMerchantItems	WoW/Source/Ui/MerchantFrame.cpp:28	mapped
+0x00BFA8D8	data	src/Ascension/AscTooltipScaling.cpp:202,WotLKExtensions/src/Client/CGTooltip.cpp:1165	CGLootInfo::m_lootObj	WoW/Source/Ui/LootFrame.cpp:34	mapped
+0x00C00BF0	data	src/Ascension/AscGossipQuest.cpp:18,src/Ascension/AscGossipQuest.cpp:51	CGGossipInfo::m_options	WoW/Source/Ui/GossipInfo.cpp:40	mapped
 0x00C00EEF	unknown	src/Ascension/AscGossipQuest.cpp:51			unported
 0x00C0100F	unknown	src/Ascension/AscMovementForce.cpp:72			unported
-0x00C016F0	unknown	src/Ascension/AscAttachFixes.cpp:392,src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81,src/Ascension/AscBindings.cpp:31,src/Ascension/AscBindings.cpp:33			unported
-0x00C016F8	unknown	src/Ascension/AscGossipQuest.cpp:77			unported
+0x00C016F0	data	src/Ascension/AscAttachFixes.cpp:392,src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:81,src/Ascension/AscBindings.cpp:31,src/Ascension/AscBindings.cpp:33	CGGossipInfo::m_gossip	WoW/Source/Ui/GossipInfo.cpp:34	mapped
+0x00C016F8	data	src/Ascension/AscGossipQuest.cpp:77	CGGossipInfo::m_gossipID	WoW/Source/Ui/GossipInfo.cpp:31	mapped
 0x00C0180F	unknown	src/Ascension/AscMovementForce.cpp:72			unported
-0x00C0D648	unknown	src/Ascension/AscAttachFixes.cpp:25,src/Ascension/AscAttachFixes.cpp:405			unported
-0x00C0D65C	unknown	src/Ascension/AscTooltipScaling.cpp:659,src/Ascension/AscTooltipScaling.cpp:674			unported
-0x00C0D7E4	unknown	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:161			unported
-0x00C0D7EC	unknown	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:154			unported
+0x00C0D648	data	src/Ascension/AscAttachFixes.cpp:25,src/Ascension/AscAttachFixes.cpp:405	CGQuestInfo::m_npc	WoW/Source/Ui/QuestFrame.cpp:90	mapped
+0x00C0D65C	data	src/Ascension/AscTooltipScaling.cpp:659,src/Ascension/AscTooltipScaling.cpp:674	CGQuestInfo::m_currentQuest	WoW/Source/Ui/QuestFrame.cpp:45	mapped
+0x00C0D7E4	data	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:161	CGTaxiMap::m_numNodes	WoW/Source/Ui/TaxiMapFrame.cpp:30	mapped
+0x00C0D7EC	data	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:154	s_currentNode	WoW/Source/Ui/TaxiMapFrame.cpp:51	mapped
 0x00C0DC38	unknown	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:162			unported
-0x00C0E490	unknown	src/Ascension/AscAttachFixes.cpp:26,src/Ascension/AscAttachFixes.cpp:415			unported
-0x00C0E4F8	unknown	src/Ascension/AscModelMethods.cpp:435,src/Ascension/AscModelMethods.cpp:441			unported
-0x00C0F3F8	unknown	src/Ascension/AscAttachFixes.cpp:64,src/Ascension/AscAttachFixes.cpp:777			unported
-0x00C0F440	unknown	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:166,src/Ascension/AscTooltipScaling.cpp:732			unported
-0x00C0F450	unknown	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:164,src/Ascension/AscTooltipScaling.cpp:730			unported
-0x00C0F460	unknown	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:162,src/Ascension/AscTooltipScaling.cpp:728			unported
+0x00C0E490	data	src/Ascension/AscAttachFixes.cpp:26,src/Ascension/AscAttachFixes.cpp:415	CGClassTrainer::m_trainer	WoW/Source/Ui/ClassTrainerFrame.cpp:28	mapped
+0x00C0E4F8	data	src/Ascension/AscModelMethods.cpp:435,src/Ascension/AscModelMethods.cpp:441	s_mainHandItemId	WoW/Source/Ui/DressUpModelFrame.cpp:128	mapped
+0x00C0F3F8	data	src/Ascension/AscAttachFixes.cpp:64,src/Ascension/AscAttachFixes.cpp:777	CGAuctionHouse::m_sellItem	WoW/Source/Ui/AuctionHouse.cpp:108	mapped
+0x00C0F440	data	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:166,src/Ascension/AscTooltipScaling.cpp:732	CGAuctionHouse::m_browseList	WoW/Source/Ui/AuctionHouse.cpp:78	mapped
+0x00C0F450	data	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:164,src/Ascension/AscTooltipScaling.cpp:730	CGAuctionHouse::m_ownerList	WoW/Source/Ui/AuctionHouse.cpp:81	mapped
+0x00C0F460	data	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:162,src/Ascension/AscTooltipScaling.cpp:728	CGAuctionHouse::m_bidderList	WoW/Source/Ui/AuctionHouse.cpp:84	mapped
 0x00C0F4E0	unknown	src/Ascension/AscMisc.cpp:246,src/Ascension/AscMisc.cpp:255			unported
-0x00C0F6CC	unknown	src/Ascension/AscMisc.cpp:245,src/Ascension/AscMisc.cpp:250			unported
-0x00C1DC0D	unknown	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:137			unported
-0x00C1DC10	unknown	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:134,src/Ascension/AscAttachFixes.cpp:135,src/Ascension/AscTooltipScaling.cpp:760			unported
-0x00C1DED8	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:18			unported
-0x00C1E358	unknown	src/Ascension/AscCAMgr.cpp:480,src/Ascension/AscCAMgr.cpp:491,WotLKExtensions/src/Data/MiscAddresses.hpp:19			unported
-0x00C23540	unknown	src/Ascension/AscAttachFixes.cpp:801,src/Ascension/AscAttachFixes.cpp:814,src/Ascension/AscClientDbcPatch.cpp:174,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscExtraActionButton.cpp:49,src/Ascension/AscExtraActionButton.cpp:57,src/Ascension/AscInitHooks.cpp:24,src/Ascension/AscInitHooks.cpp:264,src/Ascension/AscMysticEnchant.cpp:253,src/Ascension/AscMysticEnchantPreset.cpp:86,src/Ascension/AscSmallApis.cpp:309,src/Ascension/AscSmallApis.cpp:318			unported
-0x00C235A4	unknown	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:256			unported
-0x00C235F4	unknown	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:243			unported
-0x00C237B0	unknown	src/Ascension/AscAttachFixes.cpp:835,src/Ascension/AscAttachFixes.cpp:846,src/Ascension/AscQuestSpellHide.cpp:3,src/Ascension/AscQuestSpellHide.cpp:15,src/Ascension/AscSmallApis.cpp:281,src/Ascension/AscSmallApis.cpp:289			unported
-0x00C23AD0	unknown	src/Ascension/AscAttachFixes.cpp:835,src/Ascension/AscAttachFixes.cpp:843,src/Ascension/AscQuestSpellHide.cpp:3,src/Ascension/AscQuestSpellHide.cpp:13,src/Ascension/AscSmallApis.cpp:281,src/Ascension/AscSmallApis.cpp:285			unported
-0x00C23AD8	unknown	src/Ascension/AscTooltipScaling.cpp:659,src/Ascension/AscTooltipScaling.cpp:679			unported
-0x00C23AE8	unknown	src/Ascension/AscSmallApis.cpp:489,src/Ascension/AscSmallApis.cpp:498			unported
-0x00C24220	unknown	src/Ascension/AscTooltipScaling.cpp:208,WotLKExtensions/src/Client/CGTooltip.cpp:181			unported
-0x00C24388	unknown	src/Ascension/AscCAMgr.cpp:298			unported
-0x00C2491C	unknown	src/Ascension/AscLibrary.cpp:59,src/Ascension/AscLibrary.cpp:66			unported
-0x00C24EB0	func	src/Ascension/AscAttachFixes.cpp:685,src/Ascension/AscGlobalsI.cpp:40,src/Ascension/AscGlobalsI.cpp:55			unported
-0x00C25DE0	func	src/Ascension/AscCursor.cpp:18,src/Ascension/AscCursor.cpp:20,src/Ascension/AscCursor.cpp:167,src/Ascension/AscCursor.cpp:177			unported
-0x00C26DE8	unknown	src/Ascension/AscCursor.cpp:11,src/Ascension/AscCursor.cpp:79,src/Ascension/AscCursor.cpp:86,src/Ascension/AscCursor.cpp:159			unported
-0x00C5CE30	func	src/Ascension/AscRuntime.cpp:236,src/Ascension/AscRuntime.cpp:257,src/Ascension/AscRuntime.cpp:581,src/Ascension/AscRuntime.cpp:593			unported
+0x00C0F6CC	data	src/Ascension/AscMisc.cpp:245,src/Ascension/AscMisc.cpp:250	CGStableInfo::m_numSlots	WoW/Source/Ui/StableInfo.cpp:24	mapped
+0x00C1DC0D	data	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:137	CGGuildBankInfo::m_currentTab	WoW/Source/Ui/GuildBankFrame.cpp:35	mapped
+0x00C1DC10	data	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:134,src/Ascension/AscAttachFixes.cpp:135,src/Ascension/AscTooltipScaling.cpp:760	CGGuildBankInfo::m_banker	WoW/Source/Ui/GuildBankFrame.cpp:23	mapped
+0x00C1DED8	data	WotLKExtensions/src/Data/MiscAddresses.hpp:18	CGActionBar::m_slotUsable	WoW/Source/Ui/ActionBarFrame.cpp:37	mapped
+0x00C1E358	data	src/Ascension/AscCAMgr.cpp:480,src/Ascension/AscCAMgr.cpp:491,WotLKExtensions/src/Data/MiscAddresses.hpp:19	CGActionBar::m_slotActions	WoW/Source/Ui/ActionBarFrame.cpp:43	mapped
+0x00C23540	data	src/Ascension/AscAttachFixes.cpp:801,src/Ascension/AscAttachFixes.cpp:814,src/Ascension/AscClientDbcPatch.cpp:174,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscExtraActionButton.cpp:49,src/Ascension/AscExtraActionButton.cpp:57,src/Ascension/AscInitHooks.cpp:24,src/Ascension/AscInitHooks.cpp:264,src/Ascension/AscMysticEnchant.cpp:253,src/Ascension/AscMysticEnchantPreset.cpp:86,src/Ascension/AscSmallApis.cpp:309,src/Ascension/AscSmallApis.cpp:318	CGContainerInfo::m_containers	WoW/Source/Ui/ContainerFrame.cpp:24	mapped
+0x00C235A4	data	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:256	CGTradeSkillInfo::m_skillLineID	WoW/Source/Ui/TradeSkillFrame.cpp:120	mapped
+0x00C235F4	data	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:243	CGTradeSkillInfo::m_displayList	WoW/Source/Ui/TradeSkillFrame.cpp:93	mapped
+0x00C237B0	data	src/Ascension/AscAttachFixes.cpp:835,src/Ascension/AscAttachFixes.cpp:846,src/Ascension/AscQuestSpellHide.cpp:3,src/Ascension/AscQuestSpellHide.cpp:15,src/Ascension/AscSmallApis.cpp:281,src/Ascension/AscSmallApis.cpp:289	CGQuestLog::m_quests	WoW/Source/Ui/QuestLog.cpp:75	mapped
+0x00C23AD0	data	src/Ascension/AscAttachFixes.cpp:835,src/Ascension/AscAttachFixes.cpp:843,src/Ascension/AscQuestSpellHide.cpp:3,src/Ascension/AscQuestSpellHide.cpp:13,src/Ascension/AscSmallApis.cpp:281,src/Ascension/AscSmallApis.cpp:285	CGQuestLog::m_numQuest	WoW/Source/Ui/QuestLog.cpp:54	mapped
+0x00C23AD8	data	src/Ascension/AscTooltipScaling.cpp:659,src/Ascension/AscTooltipScaling.cpp:679	CGQuestLog::m_selectedQuest	WoW/Source/Ui/QuestLog.cpp:63	mapped
+0x00C23AE8	data	src/Ascension/AscSmallApis.cpp:489,src/Ascension/AscSmallApis.cpp:498	CGQuestLog::m_timeOffset	WoW/Source/Ui/QuestLog.cpp:87	mapped
+0x00C24220	data	src/Ascension/AscTooltipScaling.cpp:208,WotLKExtensions/src/Client/CGTooltip.cpp:181	CGCharacterInfo::m_inspectTarget	WoW/Source/Ui/PaperDollInfoFrame.cpp:41	mapped
+0x00C24388	data	src/Ascension/AscCAMgr.cpp:298	CGRuneInfo::m_predictedRunes	WoW/Source/Ui/RuneInfo.cpp:29	mapped
+0x00C2491C	data	src/Ascension/AscLibrary.cpp:59,src/Ascension/AscLibrary.cpp:66	s_addons	WoW/Source/UIUtil/AddOns.cpp:31	mapped
+0x00C24EB0	data	src/Ascension/AscAttachFixes.cpp:685,src/Ascension/AscGlobalsI.cpp:40,src/Ascension/AscGlobalsI.cpp:55	g_scriptEvents	WoW/Source/Ui/ScriptEvents.cpp:28	mapped
+0x00C25DE0	data	src/Ascension/AscCursor.cpp:18,src/Ascension/AscCursor.cpp:20,src/Ascension/AscCursor.cpp:167,src/Ascension/AscCursor.cpp:177	s_cursorItemType	WoW/Source/UIUtil/Cursor.cpp:94	mapped
+0x00C26DE8	data	src/Ascension/AscCursor.cpp:11,src/Ascension/AscCursor.cpp:79,src/Ascension/AscCursor.cpp:86,src/Ascension/AscCursor.cpp:159	s_cursorMode	WoW/Source/UIUtil/Cursor.cpp:103	mapped
+0x00C5CE30	data	src/Ascension/AscRuntime.cpp:236,src/Ascension/AscRuntime.cpp:257,src/Ascension/AscRuntime.cpp:581,src/Ascension/AscRuntime.cpp:593	s_unitPortraits	WoW/Source/UIUtil/PortraitButton.cpp:57	mapped
 0x00C5D690	unknown	src/Ascension/AscAssetQuery.cpp:37,src/Ascension/AscAssetQuery.cpp:55,src/Ascension/AscAttachFixes.cpp:937,src/Ascension/AscAttachFixes.cpp:1085,src/Ascension/AscSmallApis.cpp:279,src/Ascension/AscTemplates.cpp:123,src/Ascension/AscTemplates.cpp:126			unported
 0x00C5D718	unknown	src/Ascension/AscAttachFixes.cpp:903			unported
 0x00C5D828	func	src/Ascension/AscAssetQuery.cpp:37,src/Ascension/AscAssetQuery.cpp:53,src/Ascension/AscAttachFixes.cpp:785,src/Ascension/AscGlobalsB.cpp:35,src/Ascension/AscGlobalsB.cpp:38,src/Ascension/AscGlobalsC.cpp:155,src/Ascension/AscGlobalsJ.cpp:814,src/Ascension/AscItemCollections.cpp:343,src/Ascension/AscItemCollections.cpp:354,src/Ascension/AscItemStats.cpp:181,src/Ascension/AscModelMethods.cpp:445,src/Ascension/AscMysticEnchant.cpp:373,src/Ascension/AscMysticEnchant.cpp:377,src/Ascension/AscSmallApis.cpp:214,src/Ascension/AscSpellTokens.cpp:173,src/Ascension/AscSpellTokens.cpp:175,src/Ascension/AscTooltipScaling.cpp:81,WotLKExtensions/src/Data/MiscAddresses.hpp:21			unported
 0x00C5D938	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:22			unported
 0x00C5DA48	unknown	src/Ascension/AscAssetQuery.cpp:37,src/Ascension/AscAssetQuery.cpp:54,src/Ascension/AscAttachFixes.cpp:857,src/Ascension/AscGlobalsB.cpp:40,src/Ascension/AscGlobalsB.cpp:43,src/Ascension/AscSmallApis.cpp:254,src/Ascension/AscSmallApis.cpp:259,src/Ascension/AscSmallApis.cpp:278,src/Ascension/AscTemplates.cpp:71,src/Ascension/AscTemplates.cpp:74,src/Ascension/AscTemporalContracts.cpp:15,src/Ascension/AscTemporalContracts.cpp:62,src/Ascension/AscTemporalContracts.cpp:65			unported
 0x00C5DBE0	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:23			unported
-0x00C5DE88	unknown	src/Ascension/AscCacheFiles.cpp:4,src/Ascension/AscCacheFiles.cpp:39,src/Ascension/AscRealmData.cpp:335,src/Ascension/AscRealmData.cpp:340			unported
-0x00C5DE9C	unknown	src/Ascension/AscBridgeStore.cpp:52,src/Ascension/AscBridgeStore.cpp:56,src/Ascension/AscDbc.cpp:42,src/Ascension/AscDbc.cpp:46,src/Ascension/AscDbcReaders.cpp:50,src/Ascension/AscDbcReaders.cpp:53			unported
-0x00C5DEA0	unknown	src/Ascension/AscClientDbcPatch.cpp:254,src/Ascension/AscClientDbcPatch.cpp:273			unported
-0x00C5DF84	unknown	src/Ascension/AscCursor.cpp:118,src/Ascension/AscGraphics.cpp:54			unported
-0x00C5DF88	func	src/Ascension/AscCursor.cpp:93,src/Ascension/AscCursor.cpp:178,src/Ascension/AscFontRender.cpp:322,src/Ascension/AscGraphics.cpp:567,src/Ascension/AscGraphics.cpp:569,src/Ascension/AscRuntime.cpp:114,src/Ascension/AscSceneTransform.cpp:43,src/Ascension/AscSceneTransform.cpp:46,src/Ascension/AscSceneTransform.cpp:48,src/Ascension/AscUnitSelect.cpp:23,src/Ascension/AscUnitSelect.cpp:222			unported
+0x00C5DE88	data	src/Ascension/AscCacheFiles.cpp:4,src/Ascension/AscCacheFiles.cpp:39,src/Ascension/AscRealmData.cpp:335,src/Ascension/AscRealmData.cpp:340	s_localeCode	WoW/Source/Client_CVar.cpp:139	mapped
+0x00C5DE9C	data	src/Ascension/AscBridgeStore.cpp:52,src/Ascension/AscBridgeStore.cpp:56,src/Ascension/AscDbc.cpp:42,src/Ascension/AscDbc.cpp:46,src/Ascension/AscDbcReaders.cpp:50,src/Ascension/AscDbcReaders.cpp:53	s_locale	WoW/Source/Client.cpp:272	mapped
+0x00C5DEA0	data	src/Ascension/AscClientDbcPatch.cpp:254,src/Ascension/AscClientDbcPatch.cpp:273	g_clientDbPerformCompress	WoW/Source/DB/DBClient/DBClient.cpp:12	mapped
+0x00C5DF84	data	src/Ascension/AscCursor.cpp:118,src/Ascension/AscGraphics.cpp:54	s_lockVertexCount	Engine/Source/Gx/Gx.cpp:60	mapped
+0x00C5DF88	data	src/Ascension/AscCursor.cpp:93,src/Ascension/AscCursor.cpp:178,src/Ascension/AscFontRender.cpp:322,src/Ascension/AscGraphics.cpp:567,src/Ascension/AscGraphics.cpp:569,src/Ascension/AscRuntime.cpp:114,src/Ascension/AscSceneTransform.cpp:43,src/Ascension/AscSceneTransform.cpp:46,src/Ascension/AscSceneTransform.cpp:48,src/Ascension/AscUnitSelect.cpp:23,src/Ascension/AscUnitSelect.cpp:222	g_theGxDevicePtr	Engine/Source/Gx/CGxDevice/CGxDevice.cpp:78	mapped
 0x00C79C9E	unknown	src/Ascension/AscCrashContext.cpp:329,src/Ascension/AscWorldEntryTweaks.cpp:15,src/Ascension/AscWorldEntryTweaks.cpp:100			unported
-0x00C79CF4	unknown	src/Ascension/AscScript.cpp:162			unported
-0x00C79D08	unknown	src/Ascension/AscCacheFiles.cpp:4,src/Ascension/AscCacheFiles.cpp:36,src/Ascension/AscRealmData.cpp:335,src/Ascension/AscRealmData.cpp:338			unported
-0x00C7D2C8	unknown	src/Ascension/AscCursor.cpp:5,src/Ascension/AscCursor.cpp:50			unported
-0x00C9D538	unknown	src/Ascension/AscMisc.cpp:53			unported
-0x00C9EB2C	unknown	src/Ascension/AscMisc.cpp:49			unported
-0x00CA0690	unknown	src/Ascension/AscItemStats.cpp:22,src/Ascension/AscItemStats.cpp:107			unported
-0x00CA0ADC	unknown	src/Ascension/AscRuntime.cpp:180,src/Ascension/AscRuntime.cpp:181			unported
+0x00C79CF4	data	src/Ascension/AscScript.cpp:162	ClientServices::s_currentConnection	WoW/Source/WowSvcs/WowSvcsClient/ClientServices.cpp:176	mapped
+0x00C79D08	data	src/Ascension/AscCacheFiles.cpp:4,src/Ascension/AscCacheFiles.cpp:36,src/Ascension/AscRealmData.cpp:335,src/Ascension/AscRealmData.cpp:338	ClientServices::s_realmNameVar	WoW/Source/WowSvcs/WowSvcsClient/ClientServices_CVar.cpp:19	mapped
+0x00C7D2C8	data	src/Ascension/AscCursor.cpp:5,src/Ascension/AscCursor.cpp:50	g_widthPixels	Engine/Source/Gxu/GxuFontMain.cpp:97	mapped
+0x00C9D538	data	src/Ascension/AscMisc.cpp:53	s_bindMapId	WoW/Source/Object/ObjectClient/Player_C.cpp:226	mapped
+0x00C9EB2C	data	src/Ascension/AscMisc.cpp:49	s_bindPosition	WoW/Source/Object/ObjectClient/Player_C.cpp:337	mapped
+0x00CA0690	data	src/Ascension/AscItemStats.cpp:22,src/Ascension/AscItemStats.cpp:107	s_nextLootRollId	WoW/Source/Object/ObjectClient/LootRoll.cpp:30	mapped
+0x00CA0ADC	data	src/Ascension/AscRuntime.cpp:180,src/Ascension/AscRuntime.cpp:181	CMissileCollision::s_head	WoW/Source/Object/ObjectClient/UnitMissileTrajectory_C.cpp:103	mapped
 0x00CA0DE0	unknown	src/Ascension/AscTooltipScaling.cpp:179			unported
-0x00CA0FE8	unknown	src/Ascension/AscClientOptions.cpp:219,src/Ascension/AscClientOptions.cpp:227			unported
-0x00CA11DC	unknown	src/Ascension/AscCamera.cpp:10,src/Ascension/AscCamera.cpp:11,src/Ascension/AscCamera.cpp:112,src/Ascension/AscUnitSelect.cpp:17,src/Ascension/AscUnitSelect.cpp:127			unported
-0x00CA1204	unknown	src/Ascension/AscNamePlates.cpp:50,src/Ascension/AscNamePlates.cpp:384,src/Ascension/AscNamePlates.cpp:396			unported
-0x00CA1238	unknown	src/Ascension/AscMovementForce.cpp:74			unported
-0x00CA12C4	unknown	src/Ascension/AscUnitSelect.cpp:13,src/Ascension/AscUnitSelect.cpp:100,src/Ascension/AscUnitSelect.cpp:260,src/Ascension/AscUnitSelect.cpp:322,src/Ascension/AscUnitSelect.cpp:356			unported
-0x00CA1394	unknown	src/Ascension/AscGlobalsJ.cpp:87,src/Ascension/AscGlobalsJ.cpp:94			unported
-0x00CA19FC	unknown	src/Ascension/AscGlobalsI.cpp:18,src/Ascension/AscGlobalsI.cpp:23			unported
-0x00CD774C	unknown	src/Ascension/AscGraphics.cpp:51,src/Ascension/AscGraphics.cpp:133,WotLKExtensions/src/Data/MiscAddresses.hpp:10			unported
+0x00CA0FE8	data	src/Ascension/AscClientOptions.cpp:219,src/Ascension/AscClientOptions.cpp:227	s_tradeTarget	WoW/Source/Object/ObjectClient/Trade_C.cpp:29	mapped
+0x00CA11DC	data	src/Ascension/AscCamera.cpp:10,src/Ascension/AscCamera.cpp:11,src/Ascension/AscCamera.cpp:112,src/Ascension/AscUnitSelect.cpp:17,src/Ascension/AscUnitSelect.cpp:127	s_trackingTurnRate	WoW/Source/Object/ObjectClient/Unit_C.cpp:327	mapped
+0x00CA1204	data	src/Ascension/AscNamePlates.cpp:50,src/Ascension/AscNamePlates.cpp:384,src/Ascension/AscNamePlates.cpp:396	CGUnit_C::s_namePlateFocus	WoW/Source/Object/ObjectClient/Unit_C.cpp:293	mapped
+0x00CA1238	data	src/Ascension/AscMovementForce.cpp:74	CGUnit_C::s_activeMover	WoW/Source/Object/ObjectClient/Unit_C.cpp:203	mapped
+0x00CA12C4	data	src/Ascension/AscUnitSelect.cpp:13,src/Ascension/AscUnitSelect.cpp:100,src/Ascension/AscUnitSelect.cpp:260,src/Ascension/AscUnitSelect.cpp:322,src/Ascension/AscUnitSelect.cpp:356	CGObject_C::s_selectionTexture	WoW/Source/Object/ObjectClient/Object_C.cpp:74	mapped
+0x00CA1394	data	src/Ascension/AscGlobalsJ.cpp:87,src/Ascension/AscGlobalsJ.cpp:94	s_pendingEntries	WoW/Source/Object/ObjectClient/UnitCombatLog_C.cpp:183	mapped
+0x00CA19FC	data	src/Ascension/AscGlobalsI.cpp:18,src/Ascension/AscGlobalsI.cpp:23	s_registeredCVars	Engine/Source/ConsoleBase/ConsoleVar.cpp:24	mapped
+0x00CD774C	data	src/Ascension/AscGraphics.cpp:51,src/Ascension/AscGraphics.cpp:133,WotLKExtensions/src/Data/MiscAddresses.hpp:10	CWorld::enables	WoW/Source/WorldClient/World.cpp:230	mapped
 0x00CD774D	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:11			unported
 0x00CD774E	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:12			unported
 0x00CD774F	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:13			unported
-0x00CD8580	unknown	src/Ascension/AscRaidVideo.cpp:15,src/Ascension/AscRaidVideo.cpp:35			unported
-0x00CD8594	unknown	src/Ascension/AscRaidVideo.cpp:36			unported
-0x00CD85BC	unknown	src/Ascension/AscRaidVideo.cpp:39			unported
-0x00CD85C0	unknown	src/Ascension/AscRaidVideo.cpp:40			unported
-0x00CD85D4	unknown	src/Ascension/AscRaidVideo.cpp:38			unported
-0x00CD85DC	unknown	src/Ascension/AscGraphics.cpp:55,src/Ascension/AscGraphics.cpp:407,src/Ascension/AscRaidVideo.cpp:37			unported
-0x00CD85E0	unknown	src/Ascension/AscRaidVideo.cpp:42			unported
-0x00D1C4F4	unknown	src/Ascension/AscCrashContext.cpp:142,src/Ascension/AscCrashContext.cpp:142			unported
-0x00D250A0	func	src/Ascension/AscTerrainScale.cpp:4,src/Ascension/AscTerrainScale.cpp:19,src/Ascension/AscTerrainScale.cpp:62			unported
-0x00D2DCD4	unknown	src/Ascension/AscGraphics.cpp:53,src/Ascension/AscGraphics.cpp:452,WotLKExtensions/src/WorldData/OcclusionVolumeData.cpp:18			unported
-0x00D37F98	unknown	src/Ascension/AscGlobalsJ.cpp:1411,src/Ascension/AscGlobalsJ.cpp:1424,src/Ascension/AscGlobalsJ.cpp:1429			unported
+0x00CD8580	data	src/Ascension/AscRaidVideo.cpp:15,src/Ascension/AscRaidVideo.cpp:35	CWorldParam::cvar_farClip	WoW/Source/WorldClient/WorldParam_CVar.cpp:38	mapped
+0x00CD8594	data	src/Ascension/AscRaidVideo.cpp:36	CWorldParam::cvar_particleDensity	WoW/Source/WorldClient/WorldParam_CVar.cpp:50	mapped
+0x00CD85BC	data	src/Ascension/AscRaidVideo.cpp:39	CWorldParam::cvar_groundEffectDensity	WoW/Source/WorldClient/WorldParam_CVar.cpp:80	mapped
+0x00CD85C0	data	src/Ascension/AscRaidVideo.cpp:40	CWorldParam::cvar_groundEffectDist	WoW/Source/WorldClient/WorldParam_CVar.cpp:83	mapped
+0x00CD85D4	data	src/Ascension/AscRaidVideo.cpp:38	CWorldParam::cvar_environmentDetail	WoW/Source/WorldClient/WorldParam_CVar.cpp:98	mapped
+0x00CD85DC	data	src/Ascension/AscGraphics.cpp:55,src/Ascension/AscGraphics.cpp:407,src/Ascension/AscRaidVideo.cpp:37	CWorldParam::cvar_extShadowQuality	WoW/Source/WorldClient/WorldParam_CVar.cpp:104	mapped
+0x00CD85E0	data	src/Ascension/AscRaidVideo.cpp:42	CWorldParam::cvar_projectedTextures	WoW/Source/WorldClient/WorldParam_CVar.cpp:107	mapped
+0x00D1C4F4	data	src/Ascension/AscCrashContext.cpp:142,src/Ascension/AscCrashContext.cpp:142	CDetailDoodad::s_doodadList	WoW/Source/WorldClient/DetailDoodad.cpp:81	mapped
+0x00D250A0	data	src/Ascension/AscTerrainScale.cpp:4,src/Ascension/AscTerrainScale.cpp:19,src/Ascension/AscTerrainScale.cpp:62	CMapRenderChunk::s_vertexShaderConsts	WoW/Source/WorldClient/MapRenderChunk.cpp:130	mapped
+0x00D2DCD4	data	src/Ascension/AscGraphics.cpp:53,src/Ascension/AscGraphics.cpp:452,WotLKExtensions/src/WorldData/OcclusionVolumeData.cpp:18	s_occlusionVolumesInit	WoW/Source/WorldClient/CWorldOcclusion.cpp:48	mapped
+0x00D37F98	data	src/Ascension/AscGlobalsJ.cpp:1411,src/Ascension/AscGlobalsJ.cpp:1424,src/Ascension/AscGlobalsJ.cpp:1429	g_clientGameTime	WoW/Source/Game/GameTime.cpp:8	mapped
 0x00D37F9C	unknown	src/Ascension/AscGlobalsJ.cpp:1411,src/Ascension/AscGlobalsJ.cpp:1423,src/Ascension/AscGlobalsJ.cpp:1428			unported
 0x00D37FC8	unknown	src/Ascension/AscGlobalsJ.cpp:1385,src/Ascension/AscGlobalsJ.cpp:1391,src/Ascension/AscGlobalsJ.cpp:1412,src/Ascension/AscGlobalsJ.cpp:1426,src/Ascension/AscGlobalsJ.cpp:1431			unported
 0x00D37FCC	unknown	src/Ascension/AscGlobalsJ.cpp:1413			unported
@@ -1946,18 +1946,18 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00D38CCC	unknown	src/Ascension/AscZoneLight.cpp:9,src/Ascension/AscZoneLight.cpp:218			unported
 0x00D38E48	unknown	src/Ascension/AscZoneLight.cpp:8,src/Ascension/AscZoneLight.cpp:50			unported
 0x00D38E68	unknown	src/Ascension/AscZoneLight.cpp:14,src/Ascension/AscZoneLight.cpp:49			unported
-0x00D39434	unknown	src/Ascension/AscMisc.cpp:44			unported
-0x00D397D0	unknown	src/Ascension/AscSpellMods.cpp:65			unported
-0x00D3F4E4	unknown	src/Ascension/AscSpellShadow.cpp:9,src/Ascension/AscSpellShadow.cpp:78			unported
-0x00D3F60C	unknown	src/Ascension/AscClientDbcPatch.cpp:222,src/Ascension/AscClientDbcPatch.cpp:238			unported
-0x00D3F798	unknown	src/Ascension/AscSuperTrack.cpp:408,src/Ascension/AscSuperTrack.cpp:421			unported
-0x00D3F79C	unknown	src/Ascension/AscGlobalsJ.cpp:167,src/Ascension/AscGlobalsJ.cpp:172			unported
-0x00D3F7D0	unknown	src/Ascension/AscAttachMisc.cpp:39,src/Ascension/AscRuntime.cpp:36,src/Ascension/AscRuntime.cpp:46,src/Ascension/AscRuntime.cpp:718,src/Ascension/AscRuntime.cpp:779,src/Ascension/AscRuntime.hpp:7			unported
+0x00D39434	data	src/Ascension/AscMisc.cpp:44	s_isIndoors	WoW/Source/Ui/MinimapFrame.cpp:257	mapped
+0x00D397D0	data	src/Ascension/AscSpellMods.cpp:65	s_autoRepeatingSpell	WoW/Source/Magic/MagicClient/Spell_C.cpp:111	mapped
+0x00D3F4E4	data	src/Ascension/AscSpellShadow.cpp:9,src/Ascension/AscSpellShadow.cpp:78	s_targetingSpell	WoW/Source/Magic/MagicClient/Spell_C.cpp:117	mapped
+0x00D3F60C	data	src/Ascension/AscClientDbcPatch.cpp:222,src/Ascension/AscClientDbcPatch.cpp:238	s_skillLineLinkInfoDirty	WoW/Source/Magic/MagicClient/SpellTable.cpp:13	mapped
+0x00D3F798	data	src/Ascension/AscSuperTrack.cpp:408,src/Ascension/AscSuperTrack.cpp:421	s_scriptProfileEnabled	Engine/Source/FrameScript/FrameScript.cpp:30	mapped
+0x00D3F79C	data	src/Ascension/AscGlobalsJ.cpp:167,src/Ascension/AscGlobalsJ.cpp:172	s_inErrorHandler	Engine/Source/FrameScript/FrameScript.cpp:33	mapped
+0x00D3F7D0	data	src/Ascension/AscAttachMisc.cpp:39,src/Ascension/AscRuntime.cpp:36,src/Ascension/AscRuntime.cpp:46,src/Ascension/AscRuntime.cpp:718,src/Ascension/AscRuntime.cpp:779,src/Ascension/AscRuntime.hpp:7	s_scriptEvents	Engine/Source/FrameScript/FrameScript.cpp:42	mapped
 0x00D3F7D4	unknown	src/Ascension/AscExtraActionButton.cpp:159			unported
-0x00D4139C	unknown	src/Ascension/AscAddonTaint.cpp:4,src/Ascension/AscAddonTaint.cpp:5,src/Ascension/AscAddonTaint.cpp:29,src/Ascension/AscAddonTaint.cpp:34,src/Ascension/AscAddonTaint.cpp:35,src/Ascension/AscAddonTaint.cpp:37,src/Ascension/AscGlobalsI.cpp:161,src/Ascension/AscGlobalsI.cpp:164,src/Ascension/AscGlobalsI.cpp:165,src/Ascension/AscGlobalsI.cpp:181,src/Ascension/AscGlobalsJ.cpp:949,src/Ascension/AscGlobalsJ.cpp:953,src/Ascension/AscLibrary.cpp:31,src/Ascension/AscLibrary.cpp:40,src/Ascension/AscLogger.cpp:147,src/Ascension/AscLogger.cpp:153			unported
-0x00D413A0	unknown	src/Ascension/AscLibrary.cpp:32,src/Ascension/AscLibrary.cpp:42			unported
-0x00D413A4	unknown	src/Ascension/AscLibrary.cpp:32,src/Ascension/AscLibrary.cpp:42			unported
-0x00D415B8	unknown	src/Ascension/AscMain.cpp:25,WotLKExtensions/src/Main.cpp:51			unported
-0x00D415BC	unknown	src/Ascension/AscMain.cpp:25,WotLKExtensions/src/Main.cpp:52			unported
-0x00D41620	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:16			unported
+0x00D4139C	data	src/Ascension/AscAddonTaint.cpp:4,src/Ascension/AscAddonTaint.cpp:5,src/Ascension/AscAddonTaint.cpp:29,src/Ascension/AscAddonTaint.cpp:34,src/Ascension/AscAddonTaint.cpp:35,src/Ascension/AscAddonTaint.cpp:37,src/Ascension/AscGlobalsI.cpp:161,src/Ascension/AscGlobalsI.cpp:164,src/Ascension/AscGlobalsI.cpp:165,src/Ascension/AscGlobalsI.cpp:181,src/Ascension/AscGlobalsJ.cpp:949,src/Ascension/AscGlobalsJ.cpp:953,src/Ascension/AscLibrary.cpp:31,src/Ascension/AscLibrary.cpp:40,src/Ascension/AscLogger.cpp:147,src/Ascension/AscLogger.cpp:153	lua_tainted	Engine/Source/lua-5.1/src/lapi.c:37	mapped
+0x00D413A0	data	src/Ascension/AscLibrary.cpp:32,src/Ascension/AscLibrary.cpp:42	lua_taintexpected	Engine/Source/lua-5.1/src/lapi.c:40	mapped
+0x00D413A4	data	src/Ascension/AscLibrary.cpp:32,src/Ascension/AscLibrary.cpp:42	lua_taintedclosure	Engine/Source/lua-5.1/src/lapi.c:43	mapped
+0x00D415B8	data	src/Ascension/AscMain.cpp:25,WotLKExtensions/src/Main.cpp:51	s_textStart	Engine/Source/Os/Win64/System.cpp:53	mapped
+0x00D415BC	data	src/Ascension/AscMain.cpp:25,WotLKExtensions/src/Main.cpp:52	s_textEnd	Engine/Source/Os/Win64/System.cpp:56	mapped
+0x00D41620	data	WotLKExtensions/src/Data/MiscAddresses.hpp:16	s_GxDevWindow	Engine/Source/Os/Win64/Gui.cpp:11	mapped
 0x00DFCBFF	unknown	src/Ascension/AscAttachFixes.cpp:52,src/Ascension/AscAttachFixes.cpp:728,src/Ascension/AscAttachFixes.cpp:769,src/Ascension/AscUnitSelect.cpp:15,src/Ascension/AscUnitSelect.cpp:123			unported

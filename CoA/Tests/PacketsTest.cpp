@@ -110,3 +110,12 @@ COA_TEST(Packets_EraseDropsTheHandler) {
     CHECK(s_calls == 0);
     CHECK(result == 1);
 }
+
+COA_TEST(Packets_GapBetweenStockTableAndCustomRange) {
+    // NetClient's handler table holds 0x51F entries; 0x51F..0x55E belong to neither table.
+    CHECK(!CoA::Packets::InGap(0x51E));
+    CHECK(CoA::Packets::InGap(0x51F));
+    CHECK(CoA::Packets::InGap(0x55E));
+    CHECK(!CoA::Packets::InGap(0x55F));
+    CHECK(!CoA::Packets::InGap(0));
+}

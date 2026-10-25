@@ -35,6 +35,9 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 - **Character advancement `0x726` handler order.** As in the reconstruction: unit parameters are synchronized before
   listeners run.
 - **World headers.** The reconstruction's plaintext-header stub (`0x466BF0`) is disabled there and not ported.
+- **Opcodes 0x51F..0x55E.** The 32-bit client indexes past its 0x51F-entry handler table for these (the DLL widens
+  ProcessMessage's bound at `0x63200D`), reading and writing neighbouring memory. No server sends them; CoA64 treats
+  them as unhandled and ignores registrations for them (`CoA::Packets::InGap`).
 - **Warden.** Unchanged from wowdecomp's x64 client: Warden data is received and dropped. To be revisited.
 
 ## Forced by x64
