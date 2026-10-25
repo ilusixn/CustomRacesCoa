@@ -161,6 +161,9 @@ int32_t CGCurrencyTypes::DisplayListSortCallback(const void* a, const void* b) {
     return SStrSortUTF8I(nameA, nameB, STORM_MAX_STR);
 }
 
+// CoA: AscGlobalsJ.cpp:SetCurrencyShow -- on: the unused category lists every known currency.
+bool g_currencyShowAll = false;
+
 // VERIFY: f01a5b7c manual
 // OFFSET: 0x005B0030
 void CGCurrencyTypes::BuildDisplayList() {
@@ -233,7 +236,8 @@ void CGCurrencyTypes::BuildDisplayList() {
             const char* name;
 
             if (category == CGCurrencyTypes::m_numCategories - 1) {
-                if (!(mask & unused)) {
+                // CoA: AscGlobalsJ.cpp:SetCurrencyShow (Extensions.dll patch 0x5B01C8)
+                if (!g_currencyShowAll && !(mask & unused)) {
                     continue;
                 }
 

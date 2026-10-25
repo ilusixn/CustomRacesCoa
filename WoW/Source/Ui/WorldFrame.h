@@ -212,4 +212,7 @@ class CWorldClickEvent {
     /* 0018 */ MOUSEBUTTON m_button;
 };
 
+// CoA: AscGlobalsJ.cpp:Detour4F5F40 (WorldFrame.cpp).
+extern float (*g_attackDistanceHook)();
+
 #endif

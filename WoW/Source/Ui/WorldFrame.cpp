@@ -650,6 +650,9 @@ uint32_t CGWorldFrame::GetHitTestFilterFlags(int32_t a1) {
     return flags;
 }
 
+// CoA: AscGlobalsJ.cpp:Detour4F5F40 (orig hook 0x4F5F40).
+float (*g_attackDistanceHook)() = nullptr;
+
 // VERIFY: d619b75b manual
 // OFFSET: 0x004F7A50
 void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
@@ -778,7 +781,8 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
         return;
     }
 
-    float range = player->GetMeleeRange(unit);
+    // CoA: AscGlobalsJ.cpp:Detour4F5F40 (orig hook 0x4F5F40, caller 0x4F7FB6) -- SetAttackDistance's range unless it is 0.
+    float range = g_attackDistanceHook && g_attackDistanceHook() != 0.0f ? g_attackDistanceHook() : player->GetMeleeRange(unit);
 
     if (range * range < distance) {
         CursorSetMode(ATTACK_ERROR_CURSOR);

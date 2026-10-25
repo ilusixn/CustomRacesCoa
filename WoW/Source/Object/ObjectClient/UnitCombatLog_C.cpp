@@ -862,9 +862,22 @@ bool CombatLogEntry::MatchesFilter() {
     return false;
 }
 
+// CoA: AscGlobalsJ.cpp:Detour74F910 (orig hook 0x74F910) -- false drops the dispatch.
+bool (*g_combatLogAllowedHook)(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60) = nullptr;
+
 // VERIFY: c77149c7 manual
 // OFFSET: 0x0074F910
 void SendCombatLogEvents() {
+    // CoA: AscGlobalsJ.cpp:Detour74F910 (orig hook 0x74F910)
+    if (g_combatLogAllowedHook) {
+        const CombatLogEntry* e = s_pendingEntries;
+
+        if (!g_combatLogAllowedHook(static_cast<uint32_t>(e->m_event), static_cast<uint32_t>(e->m_spellId), static_cast<uint32_t>(e->m_info.m_values[0]),
+                static_cast<uint32_t>(e->m_info.m_values[1]), static_cast<uint32_t>(e->m_info.m_values[2]))) {
+            return;
+        }
+    }
+
     char text[4096];
     bool logging = CGChat::IsChatLogging(1) != 0;
     lua_State* L = FrameScript_GetContext();

@@ -1037,6 +1037,9 @@ int32_t Script_GetUnitAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info
     return Script_GetAuraInfo(L, index + 1, info);
 }
 
+// CoA: AscGlobalsJ.cpp:UnitAuraAllowHidden -- on: UnitAura also returns the auras the client hides.
+bool g_unitAuraAllowHidden = false;
+
 // VERIFY: f63fded5 manual
 // OFFSET: 0x006147C0
 int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
@@ -1134,7 +1137,8 @@ int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
 
         WOWGUID caster = { 0 };
 
-        if (!CGSpellBook::CanShowAura(&spell, &caster, (auraFlags[i] & 0x8) != 0)) {
+        // CoA: AscGlobalsJ.cpp:UnitAuraAllowHidden (Extensions.dll patch 0x614AF8)
+        if (!CGSpellBook::CanShowAura(&spell, &caster, (auraFlags[i] & 0x8) != 0) && !g_unitAuraAllowHidden) {
             continue;
         }
 

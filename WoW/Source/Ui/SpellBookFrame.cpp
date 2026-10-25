@@ -1482,6 +1482,11 @@ bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* ty
     return false;
 }
 
+// CoA: AscGlobalsJ.cpp:SetAttackTexture / SetRangedAttackTexture (Extensions.dll patch 0x53DC8A, 0x540B66, 0x5209A8 /
+// 0x53DCAC, 0x540B76, 0x5209B8) -- off: the attack (ranged) spells show their own icon.
+bool g_attackTextureEnabled = true;
+bool g_rangedAttackTextureEnabled = true;
+
 // VERIFY: 50e56750 manual
 // OFFSET: 0x0053DC20
 const char* CGSpellBook::GetSpellTexture(int32_t slot, int32_t petSpell) {
@@ -1492,11 +1497,12 @@ const char* CGSpellBook::GetSpellTexture(int32_t slot, int32_t petSpell) {
         return nullptr;
     }
 
-    if (spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
+    // CoA: AscGlobalsJ.cpp:SetAttackTexture (Extensions.dll patch 0x53DC8A)
+    if (g_attackTextureEnabled && spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
         return CGActionBar::GetAttackTexture();
     }
 
-    if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+    if (g_rangedAttackTextureEnabled && (spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {   // CoA: AscGlobalsJ.cpp:SetRangedAttackTexture (Extensions.dll patch 0x53DCAC)
         const char* texture = CGActionBar::GetRangedTexture();
 
         if (texture) {
