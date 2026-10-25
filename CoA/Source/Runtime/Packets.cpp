@@ -29,6 +29,10 @@ void CoA::Packets::Set(uint32_t opcode, Handler handler, void* param) {
     Map().insert_or_assign(opcode, Entry { handler, param });
 }
 
+bool CoA::Packets::Has(uint32_t opcode) {
+    return Map().count(opcode) != 0;
+}
+
 void CoA::Packets::Erase(uint32_t opcode) {
     Map().erase(opcode);
 }

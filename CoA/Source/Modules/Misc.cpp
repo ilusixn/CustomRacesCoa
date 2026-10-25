@@ -37,6 +37,12 @@ namespace {
         return 1;
     }
 
+    // The realm object's +0x48 flag: whether the realm allows addons.
+    int IsAddOnsAllowed(lua_State* L) {
+        CoA::Script::PushBool(L, CoA::RealmInfo::Get().trailingFlag != 0);
+        return 1;
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("", "GetRealmId", GetRealmId),
         COA_NATIVE("", "GetRealmExpansion", GetRealmExpansion),
@@ -44,6 +50,7 @@ namespace {
         COA_NATIVE("", "GetAuctionHouseDepositRateVanity", GetAuctionHouseDepositRateVanity),
         COA_NATIVE("", "HasVisitedArea52ThisSession", HasVisitedArea52ThisSession),
         COA_NATIVE("", "GetAuctionHouseDepositMaxVanity", GetAuctionHouseDepositMaxVanity),
+        COA_NATIVE("", "IsAddOnsAllowed", IsAddOnsAllowed),
     };
 }
 

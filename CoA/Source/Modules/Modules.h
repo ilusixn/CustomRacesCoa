@@ -15,5 +15,17 @@ namespace CoA::Json { void Init(); }
 namespace CoA::LoggerApi { void Init(); }
 namespace CoA::SmallApis { void Init(); }
 namespace CoA::GlueCVars { void Init(); }
+namespace CoA::Profiler { void Init(); }
+namespace CoA::GlobalsH { void Init(); }
+namespace CoA::GlobalsC { void Init(); }
+namespace CoA::PatchData { void Init(); }
+
+// Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
+// runs them; the tests never link them.
+namespace CoA::MiscClient { void Init(); }
+namespace CoA::GlobalsBClient { void Init(); }
+namespace CoA::GlobalsGClient { void Init(); }
+namespace CoA::BindingsClient { void Init(); }
+namespace CoA::LibraryClient { void Init(); }
 
 #endif

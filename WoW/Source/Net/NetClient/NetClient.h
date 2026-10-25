@@ -142,6 +142,8 @@ class NetClient : public WowConnectionResponse {
     void Disconnect();
     void ResetHandler(NETMESSAGE msgId);
     void Send(CDataStore* msg);
+    // CoA: AscProfiler.cpp:SendDetour (orig hook 0x632B50) -- the stock Send body; Send wraps it with the profiler.
+    void SendUnprofiled(CDataStore* msg);
     void SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param);
     void SetLoginData(LoginData* loginData);
 };
