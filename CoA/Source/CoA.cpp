@@ -60,6 +60,8 @@ static const CoA::Module s_modules[] = {
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
     { "AttachFixesClient", CoA::AttachFixesClient::Init },
+    { "AttachLuaClient", CoA::AttachLuaClient::Init },
+    { "AttachMiscClient", CoA::AttachMiscClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

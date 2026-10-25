@@ -862,7 +862,8 @@ static int32_t Script_GetNetStats(lua_State* L) {
     ClientServices::Connection()->GetNetStats(bytesIn, bytesOut, latency);
     lua_pushnumber(L, bytesIn);
     lua_pushnumber(L, bytesOut);
-    lua_pushnumber(L, latency);
+    // CoA: AscAttachLua.cpp:FUN_10a76ff0 (orig hook 0x510AC0), replaced -- the latency reads 0.75 of the measured value.
+    lua_pushnumber(L, latency * 0.75);
     return 3;
 }
 

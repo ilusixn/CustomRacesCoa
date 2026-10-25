@@ -1,4 +1,5 @@
 #include "Spell_C.h"
+#include "CoA/Source/Modules/AttachMisc.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
@@ -6270,6 +6271,16 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
 // VERIFY: 613e78c7 manual
 // OFFSET: 0x00808200
 void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t reason, int32_t misc1, int32_t misc2, bool resetCooldown) {
+    // CoA: AscAttachMisc.cpp:FUN_10a771c0 (orig hook 0x808200) -- a failure 0x55 of a spell with Attributes 0x404,
+    // AttributesEx 0x200 or AttributesEx2 0x100000 presses the attack icon when the player is not swinging.
+    if (spell && CoA::AttachMisc::StopsSwing(static_cast<uint32_t>(spell->m_attributes), static_cast<uint32_t>(spell->m_attributesEx), static_cast<uint32_t>(spell->m_attributesExB), reason)) {
+        if (CGPlayer_C* swinger = ClntObjMgrGetActivePlayerObj()) {
+            if (!swinger->IsInMelee()) {
+                swinger->OnAttackIconPressed(WOWGUID(), 0);
+            }
+        }
+    }
+
     int32_t spellId = cast->m_data.m_spellId;
     bool suppress = false;
 
@@ -9080,6 +9091,23 @@ void Spell_C_ClearPetCooldowns() {
 // VERIFY: b323a3a8 manual
 // OFFSET: 0x00801C90
 int32_t Packet_MSG_CHANNEL_START(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscAttachLua.cpp:FUN_10a4ef40 (orig hook 0x801C90) -- a channel whose spell has AttributesEx3 0x2000 is dropped;
+    // otherwise the packet is read again from the start.
+    {
+        const uint32_t start = msg->m_read;
+        SmartGUID peekGuid;
+        *msg >> peekGuid;
+        uint32_t peekSpell;
+        msg->Get(peekSpell);
+        SpellRec peek;
+
+        if (g_spellDB.GetRecord(peekSpell, &peek) && (peek.m_attributesExC & 0x2000)) {
+            return 1;
+        }
+
+        msg->m_read = start;
+    }
+
     SmartGUID smartGuid;
     *msg >> smartGuid;
     WOWGUID guid = smartGuid;

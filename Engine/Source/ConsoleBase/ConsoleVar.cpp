@@ -297,6 +297,8 @@ int32_t CVar::Delete(const char* fileName) {
 
 // CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640) -- names the DLL lists are skipped (returns 1).
 bool (*g_cvarSaveFilterHook)(const char* name);
+// CoA: set by CoA::AttachMiscClient.
+const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 
 // VERIFY: 158a6024 auto
 // OFFSET: 0x00766640
@@ -399,6 +401,12 @@ bool CVarArrayWrapper::RawGetValue(uint32_t index) const {
 // VERIFY: 8db3b933 auto
 // OFFSET: 0x007668C0
 bool CVar::Set(const char* value, bool setValue, bool setReset, bool setDefault, bool setNeedsSave) {
+    // CoA: AscAttachMisc.cpp:FUN_10a4a780 (orig hook 0x7668C0) -- scriptProfile can only be "0"; nameplateShowEnemies
+    // posts its UI_INFO_MESSAGE.
+    if (g_cvarSetHook) {
+        value = g_cvarSetHook(this, value);
+    }
+
     if (setValue) {
         if (this->m_callback) {
             OsValidateFunctionPointer(reinterpret_cast<const void*>(this->m_callback));

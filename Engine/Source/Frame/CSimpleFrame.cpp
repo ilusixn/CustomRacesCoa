@@ -49,6 +49,9 @@ CDataAllocator CSimpleFrame::s_allocator(sizeof(CSimpleFrame), 100);
 // STATIC: 0x00AC1264
 static float s_dragThreshold = 0.0001f;
 
+// CoA: set by CoA::AttachLuaClient (1 down, 0 up).
+void (*g_globalMouseHook)(int32_t down, uint32_t button);
+
 // VERIFY: fc6506aa manual
 // OFFSET: 0x0048EE40
 static const char* KeyCodeToString(KEY key) {
@@ -1033,6 +1036,12 @@ int32_t CSimpleFrame::OnLayerKeyUp(const CKeyEvent& evt) {
 // VERIFY: f962ad69 auto
 // OFFSET: 0x0048FC30
 int32_t CSimpleFrame::OnLayerMouseDown(const CMouseEvent& evt, const char* btn) {
+    // CoA: AscAttachLua.cpp:FUN_10a46660 (orig hook 0x48FC30) -- GLOBAL_MOUSE_DOWN ("%u", button) first; the client table
+    // never has the event unless an addon registers it while the world loads, so it is normally dropped.
+    if (g_globalMouseHook) {
+        g_globalMouseHook(1, evt.m_data.m_button);
+    }
+
     if (!btn) {
         if (this->m_dragButtons & evt.m_data.m_button) {
             this->m_isMouseDown = 1;
@@ -1060,6 +1069,12 @@ int32_t CSimpleFrame::OnLayerMouseDown(const CMouseEvent& evt, const char* btn) 
 // VERIFY: 9fd49d5d auto
 // OFFSET: 0x0048FCE0
 int32_t CSimpleFrame::OnLayerMouseUp(const CMouseEvent& evt, const char* btn) {
+    // CoA: AscAttachLua.cpp:FUN_10a466f0 (orig hook 0x48FCE0) -- GLOBAL_MOUSE_UP ("%u", button) first; the client table
+    // never has the event unless an addon registers it while the world loads, so it is normally dropped.
+    if (g_globalMouseHook) {
+        g_globalMouseHook(0, evt.m_data.m_button);
+    }
+
     if (!btn) {
         if (this->m_dragButtons & evt.m_data.m_button) {
             this->m_isMouseDown = 0;

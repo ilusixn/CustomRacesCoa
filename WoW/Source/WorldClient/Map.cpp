@@ -2458,7 +2458,7 @@ int32_t CMap::SafeOpen(const char* fileName, SFileImpl** file) {
         DebugLog("CMap::SafeOpen() failed %s\n", fileName);
 
         if (!--tries) {
-            SErrDisplayAppFatal("CMap::SafeOpen() failed %s", fileName);
+            // CoA: AscAttachLua.cpp's installer NOPs 14 bytes at 0x7BD4AF -- no fatal error after the ten tries.
             return 0;
         }
     }
