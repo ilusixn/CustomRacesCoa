@@ -146,7 +146,9 @@ COA_TEST(CA_NativeCategoriesAndTags) {
     lua_State* L = Start({});
     CHECK((Run(L, "local t = C_CharacterAdvancement.GetCategories() return t[1], t[2], t[3]") == V{ "2", "1", "3" }));
     CHECK((Run(L, "local t = C_CharacterAdvancement.GetCategories(true) return t[1], t[2], t[3]") == V{ "3", "1", "2" }));
-    CHECK((Run(L, "return C_CharacterAdvancement.GetCategories(5)") ==
+    // FUN_10176450 validates {boolean} (FUN_10309e50): a number passes and counts as true; a string does not.
+    CHECK((Run(L, "local t = C_CharacterAdvancement.GetCategories(5) return t[1], t[2], t[3]") == V{ "3", "1", "2" }));
+    CHECK((Run(L, "return C_CharacterAdvancement.GetCategories('x')") ==
         V{ "<error> Usage: C_CharacterAdvancement.GetCategories([sortByRequiredLevel])" }));
     CHECK((Run(L, "return C_CharacterAdvancement.GetCategoryDisplayInfo(1)") == V{ "30", "One", "c1", "", "false" }));
     CHECK((Run(L, "return C_CharacterAdvancement.GetCategoryDisplayInfo(2)") == V{ "40", "", "", "two", "true" }));
