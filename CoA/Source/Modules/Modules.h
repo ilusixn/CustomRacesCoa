@@ -41,5 +41,6 @@ namespace CoA::ClassRaceClient { void Init(); }
 namespace CoA::GlobalsJClient { void Init(); }
 namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
+namespace CoA::CharacterCreateClient { void Init(); }
 
 #endif
