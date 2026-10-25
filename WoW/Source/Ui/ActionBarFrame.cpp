@@ -1,5 +1,6 @@
 #include "ActionBarFrame.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -171,7 +172,8 @@ int32_t CGActionBar::GetSpell(uint32_t slot, int32_t& petSpell) {
 
     uint32_t action = CGActionBar::m_slotActions[slot];
 
-    if (action && (action & 0xF0000000) == 0x40000000 && CGActionBar::HasMacro(slot)) {
+    // CoA: AscCAMgr.cpp:Hook5AAB90 (Extensions.dll patch 0x5A8C70) -- jne made jmp while RemoveMacro runs under the hook.
+    if (action && (action & 0xF0000000) == 0x40000000 && !CoA::ClientHooks::getSpellSkipsMacros && CGActionBar::HasMacro(slot)) {
         return CGActionBar::GetMacroSpell(slot, petSpell);
     }
 
@@ -1649,6 +1651,24 @@ void CGActionBar::UpdateOverrideSpellBar() {
 // VERIFY: a5c3e3b2 auto
 // OFFSET: 0x005AAB90
 void CGActionBar::RemoveMacro(int32_t spellId) {
+    // CoA: AscCAMgr.cpp:Hook5AAB90 (orig hook 0x5AAB90) -- nothing for the spell SMSG_REMOVED_SPELL is removing; otherwise
+    // GetSpell's macro test is skipped for the duration.
+    const bool hooked = CoA::ClientHooks::spellPackets.removeMacro != nullptr;
+
+    if (hooked && !CoA::ClientHooks::spellPackets.removeMacro(static_cast<uint32_t>(spellId))) {
+        return;
+    }
+
+    CoA::ClientHooks::getSpellSkipsMacros += hooked;
+
+    struct SkipMacros {
+        bool hooked;
+
+        ~SkipMacros() {
+            CoA::ClientHooks::getSpellSkipsMacros -= this->hooked;
+        }
+    } skipMacros { hooked };
+
     for (uint32_t i = 0; i < 144; i++) {
         int32_t petSpell;
 

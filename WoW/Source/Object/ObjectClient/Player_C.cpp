@@ -4210,9 +4210,13 @@ int32_t Packet_SMSG_INITIAL_SPELLS(void* param, NETMESSAGE msgId, uint32_t time,
     msg->Get(count);
     s_initialSpells.SetCount(count);
 
+    // CoA: AscCAMgr.cpp:OnInitialSpells (orig hook 0x6DF050) -- the spells, for the known set after the client's handling.
+    std::vector<uint32_t> learnedIds;
+
     for (uint16_t i = 0; i < count; i++) {
         msg->Get(s_initialSpells[i].m_spellId);
         msg->Get(s_initialSpells[i].m_slot);
+        learnedIds.push_back(static_cast<uint32_t>(s_initialSpells[i].m_spellId));
     }
 
     msg->Get(count);
@@ -4231,6 +4235,11 @@ int32_t Packet_SMSG_INITIAL_SPELLS(void* param, NETMESSAGE msgId, uint32_t time,
         bool onHold = (categoryCooldown >> 31) & 0x1;
         categoryCooldown &= 0x7FFFFFFF;
         Spell_C_SetCooldownLeft(spellId, itemId, category, spellCooldown, categoryCooldown, onHold, 0);
+    }
+
+    // CoA: AscCAMgr.cpp:OnInitialSpells (orig hook 0x6DF050)
+    if (CoA::ClientHooks::spellPackets.initialSpells) {
+        CoA::ClientHooks::spellPackets.initialSpells(learnedIds.data(), static_cast<uint32_t>(learnedIds.size()));
     }
 
     return 1;
@@ -4342,8 +4351,23 @@ int32_t Packet_Group_18(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 // VERIFY: 33f6984f manual
 // OFFSET: 0x006E7840
 int32_t Packet_SMSG_REMOVED_SPELL(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscCAMgr.cpp:OnRemovedSpell (orig hook 0x6E7840) -- a trailing 0 byte marks the spell while the client
+    // handles it; the known set may drop it first.
+    const bool trailingZero = msg->m_size > msg->m_read + 4 && msg->m_data[msg->m_read + 4 - msg->m_base] == 0;
     uint32_t spellId;
     msg->Get(spellId);
+
+    if (CoA::ClientHooks::spellPackets.removedBefore) {
+        CoA::ClientHooks::spellPackets.removedBefore(spellId, trailingZero);
+    }
+
+    struct RemovedAfter {
+        ~RemovedAfter() {
+            if (CoA::ClientHooks::spellPackets.removedAfter) {
+                CoA::ClientHooks::spellPackets.removedAfter();
+            }
+        }
+    } removedAfter;
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
@@ -4373,6 +4397,9 @@ int32_t Packet_SMSG_LEARNED_SPELL(void* param, NETMESSAGE msgId, uint32_t time, 
         PrefetchSpellVisuals(spellId);
     }
 
+    // CoA: AscCAMgr.cpp:OnLearnedSpell (orig hook 0x6E7D60) -- quiet for a CA entry's spell, then the known set.
+    const bool quiet = CoA::ClientHooks::spellPackets.learnedIsQuiet && CoA::ClientHooks::spellPackets.learnedIsQuiet(spellId);
+    CoA::ClientHooks::suppressLearnMessages += quiet;
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
@@ -4381,6 +4408,12 @@ int32_t Packet_SMSG_LEARNED_SPELL(void* param, NETMESSAGE msgId, uint32_t time, 
         InitialSpellStruct* spell = s_initialSpells.New();
         spell->m_spellId = spellId;
         spell->m_slot = slot;
+    }
+
+    CoA::ClientHooks::suppressLearnMessages -= quiet;
+
+    if (CoA::ClientHooks::spellPackets.learned) {
+        CoA::ClientHooks::spellPackets.learned(spellId);
     }
 
     return 1;
@@ -4398,6 +4431,26 @@ int32_t Packet_SMSG_SUPERCEDED_SPELL(void* param, NETMESSAGE msgId, uint32_t tim
         PrefetchSpellVisuals(newSpellId);
     }
 
+    // CoA: AscCAMgr.cpp:OnSupersededSpell (orig hook 0x6E7E00) -- quiet for a CA entry or a wildcard realm, then the
+    // known set swaps the ranks.
+    const bool quiet = CoA::ClientHooks::spellPackets.supersedeIsQuiet && CoA::ClientHooks::spellPackets.supersedeIsQuiet(oldSpellId, newSpellId);
+    CoA::ClientHooks::suppressLearnMessages += quiet;
+    CoA::ClientHooks::suppressUnlearnMessages += quiet;
+
+    struct Superseded {
+        bool quiet;
+        uint32_t oldSpellId;
+        uint32_t newSpellId;
+
+        ~Superseded() {
+            CoA::ClientHooks::suppressLearnMessages -= this->quiet;
+            CoA::ClientHooks::suppressUnlearnMessages -= this->quiet;
+
+            if (CoA::ClientHooks::spellPackets.superseded) {
+                CoA::ClientHooks::spellPackets.superseded(this->oldSpellId, this->newSpellId);
+            }
+        }
+    } superseded { quiet, oldSpellId, newSpellId };
     CGActionBar::ReplaceSpell(oldSpellId, newSpellId);
     CGSpellBook::ReplaceSpell(oldSpellId, newSpellId);
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
@@ -5764,6 +5817,11 @@ int32_t Packet_SMSG_SEND_UNLEARN_SPELLS(void* param, NETMESSAGE msgId, uint32_t 
         uint32_t spellId;
         msg->Get(spellId);
         CGSpellBook::m_unlearnedSpells.m_data[i] = spellId;
+    }
+
+    // CoA: AscCAMgr.cpp:OnRemovedSpells (orig hook 0x6E2240) -- the spells leave the known set after the client's handling.
+    if (CoA::ClientHooks::spellPackets.removedSpells) {
+        CoA::ClientHooks::spellPackets.removedSpells(reinterpret_cast<const uint32_t*>(CGSpellBook::m_unlearnedSpells.m_data), count);
     }
 
     return 1;
@@ -8030,7 +8088,8 @@ void CGPlayer_C::DelKnownSpell(int32_t spellId, int32_t silent) {
             this->RemoveEquipBypassSkill(spellId);
         }
 
-        if (notify && !(spell.m_attributes & 0x80)) {
+        // CoA: AscCAMgr.cpp:SuppressSupersedeCalls (Extensions.dll patch 0x6E7346, 0x6E7356) -- the messages are NOPed.
+        if (notify && !(spell.m_attributes & 0x80) && !CoA::ClientHooks::suppressUnlearnMessages) {
             if (*spell.m_nameSubtext) {
                 char text[512];
                 SStrPrintf(text, sizeof(text), "%s (%s)", spell.m_name, spell.m_nameSubtext);

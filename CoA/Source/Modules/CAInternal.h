@@ -6,6 +6,7 @@
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include <cstring>
+#include <map>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -144,7 +145,20 @@ namespace CoA::CA::detail {
         std::vector<PairCallback> onLearned;
         std::vector<PairCallback> onRankChanged;
         std::vector<PairCallback> onUnlearned;
+        std::map<uint8_t, uint32_t> credits;               // 0x10bded78 (FUN_101a1c90), category -> amount
     };
+
+    // The suggestion manager (0x10bcc618, FUN_103338f0): weighted entries and stats, and its dirty marks. The lists are
+    // computed by the natives (7b); the core only marks them dirty.
+    struct Suggestions {
+        std::vector<std::pair<uint32_t, uint32_t>> entries;   // +0x00 {entry id, weight}
+        std::vector<std::pair<uint32_t, uint32_t>> stats;     // +0x0C {stat, weight}
+        bool statsDirty = true;                               // +0x18
+        bool spellsDirty = true;                              // +0x19
+        bool dirty = true;                                    // +0x1A
+    };
+
+    Suggestions& Sugg();
 
     Mgr& M();
     Player* FindPlayer(uint64_t guid);   // FUN_1016f700
