@@ -15,6 +15,7 @@ target_link_libraries(CoATests
         BlizzardCore
         lua
         Os
+        ConsoleBase
 )
 
 add_test(NAME CoATests COMMAND CoATests)

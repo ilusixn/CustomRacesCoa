@@ -40,6 +40,7 @@ target_link_options(WowClient PRIVATE "/INCREMENTAL:NO" "/ENTRY:start")
 
 target_link_libraries(WowClient
     PRIVATE
+        CoA
         BLPFile
         Base
         BlizzardCore
