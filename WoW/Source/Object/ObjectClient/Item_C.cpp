@@ -196,14 +196,15 @@ static int32_t OnUpdateDurability(WOWGUID guid, uint32_t fieldOffset, uint32_t f
                     invSlot = (item->m_virtualItem.m_inventoryType != 26) + 15;
                 }
 
-                if (oldDurability > 0) {
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x707BA3) -- jle became jmp: never removed.
+                if (false && oldDurability > 0) {
                     CCharacterComponent::RemoveHandItem(owner->m_worldModel, static_cast<INVENTORY_SLOTS>(invSlot), static_cast<SHEATHE_TYPE>(item->m_virtualItem.m_sheatheType), item->m_virtualItem.m_inventoryType == 14);
 
                     WOWGUID ownerGuid = owner->m_obj->m_guid;
                     CGGameUI::UnitModelUpdate(ownerGuid, 3);
                 }
             } else if (!(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldDurability && !oldDurability) {
-                owner->EquipItem(item);
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x707BE2) -- the EquipItem call is NOPed.
 
                 WOWGUID ownerGuid = owner->m_obj->m_guid;
                 CGGameUI::UnitModelUpdate(ownerGuid, 3);
@@ -1808,7 +1809,8 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
     }
 
     if (slot == 17) {
-        if (bypass != (rec->m_inventoryType == 28)) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x708328) -- je became jmp: the bypass check never refuses.
+        if (false && bypass != (rec->m_inventoryType == 28)) {
             return 0;
         }
 

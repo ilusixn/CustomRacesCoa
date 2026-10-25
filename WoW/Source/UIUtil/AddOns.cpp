@@ -1082,11 +1082,7 @@ bool LoadAddOn(const char* name, bool demandLoad, CStatus* status) {
         uint8_t digest[16];
         MD5Final(digest, &md5);
 
-#ifndef DISABLE_SIGNATURE_CHECKS
-        if (!addon->m_status && memcmp(addon->m_digest, digest, sizeof(digest))) {
-            ClientPostClose(10);
-        }
-#endif
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5F83EC) -- je became jmp: a digest mismatch never closes the client.
 
         lua_gctag = savedTag;
 

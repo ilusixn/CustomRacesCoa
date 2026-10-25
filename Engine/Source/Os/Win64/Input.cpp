@@ -1137,6 +1137,10 @@ static void CALLBACK OsInputCallEventPollProc(HWND hwnd, UINT message, UINT_PTR 
 // OFFSET: 0x00869DB0
 static void CenterMouse() {
     // The offset-editor fix uses the saved cursor point as its relative anchor, keeping the pointer from jumping to screen center.
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x869DB0, 0x869D83, 0x86A62C, 0x86A62F, 0x9296A2) -- the DLL's cave does the same:
+    // the relative-mode anchor is the saved cursor point, nudged one pixel inward within 50 px of an edge, and the
+    // cursor is compared against it in client coordinates. wowdecomp already implements it (5b41f72a); nothing to
+    // change.
     HWND hwnd = static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX));
     RECT clientRect;
     if (!hwnd || !GetClientRect(hwnd, &clientRect)) {

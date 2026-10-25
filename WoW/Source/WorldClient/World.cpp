@@ -1405,7 +1405,8 @@ void DayNight::Update(int32_t reset, const C3Vector* cameraPos) {
     DNInfo* info = DayNight::GetInfo();
     int32_t fogMode = static_cast<uint32_t>(g_theGxDevicePtr->Caps().m_shaderTargets[0]) > 1;
 
-    if (s_mapId < 530) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x781730) -- cmp 0x212 became cmp 0: the fog mode is kept on every map.
+    if (s_mapId < 0) {
         fogMode = 0;
     }
 

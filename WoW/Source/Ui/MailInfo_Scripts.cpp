@@ -125,7 +125,8 @@ static int32_t Script_CheckInbox(lua_State* L) {
         return 0;
     }
 
-    CGMailInfo::m_nextUpdateTime = now + 60000;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x56E499) -- 60000 became 1.
+    CGMailInfo::m_nextUpdateTime = now + 1;
     CGMailInfo::m_commandPending = 1;
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_MAIL_GET_LIST));

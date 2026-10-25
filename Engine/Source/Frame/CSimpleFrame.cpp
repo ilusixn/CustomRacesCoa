@@ -1640,8 +1640,9 @@ void CSimpleFrame::SetFrameLevel(int32_t level, int32_t shiftChildren) {
         this->m_simpleTop->HideFrame(this, 1);
     }
 
-    if (delta > 128) {
-        delta = 128;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x4910DB, 0x4910E2) -- 0x80 became 0x7D0.
+    if (delta > 2000) {
+        delta = 2000;
     }
 
     this->m_level += delta;

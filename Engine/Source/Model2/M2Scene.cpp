@@ -42,7 +42,8 @@ static uint32_t s_doodadHash[251];
 void CM2Scene::SetTime(uint32_t time) {
     this->m_time = time;
     this->m_cache->UpdateShared();
-    this->m_cache->GarbageCollect(0);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x81C9A8) -- push 0 became push 1.
+    this->m_cache->GarbageCollect(1);
 }
 
 // VERIFY: fb95d1fc auto
@@ -50,7 +51,8 @@ void CM2Scene::SetTime(uint32_t time) {
 void CM2Scene::AdvanceTime(uint32_t delta) {
     this->m_time += delta;
     this->m_cache->UpdateShared();
-    this->m_cache->GarbageCollect(0);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x81C9D9) -- push 0 became push 1.
+    this->m_cache->GarbageCollect(1);
     this->m_flags |= 4;
     this->m_timeDelta = delta;
 

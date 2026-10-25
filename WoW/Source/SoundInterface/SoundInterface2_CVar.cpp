@@ -246,7 +246,8 @@ void SI2::RegisterCVars() {
     CVar::Register("ChatAmbienceVolume", "Ambience Volume (0.0 to 1.0)", 0, "0.3", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableSFX", "", 0, "1", EnableSFXHandler, 7, false, nullptr, false);
     CVar::Register("Sound_EnableAmbience", "Enable Ambience", 0, "1", EnableAmbienceHandler, 7, false, nullptr, false);
-    CVar::Register("Sound_EnableErrorSpeech", "error speech", 0, "1", nullptr, 7, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x4D16B7) -- default "0".
+    CVar::Register("Sound_EnableErrorSpeech", "error speech", 0, "0", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableMusic", "Enables music", 0, "1", EnableMusicHandler, 7, false, nullptr, false);
     CVar::Register("Sound_EnableAllSound", "", 0, "1", EnableAllSoundHandler, 7, false, nullptr, false);
     CVar::Register("Sound_MasterVolume", "master volume (0.0 to 1.0)", 0, "1.0", MasterVolumeHandler, 7, false, nullptr, false);
@@ -255,7 +256,8 @@ void SI2::RegisterCVars() {
     CVar::Register("Sound_AmbienceVolume", "Ambience Volume (0.0 to 1.0)", 0, "0.6", AmbienceVolumeHandler, 7, false, nullptr, false);
     CVar::Register("Sound_ListenerAtCharacter", "lock listener at character", 0, "1", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableEmoteSounds", "", 0, "1", nullptr, 7, false, nullptr, false);
-    CVar::Register("Sound_ZoneMusicNoDelay", "", 0, "0", nullptr, 7, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x4D17F8) -- default "1".
+    CVar::Register("Sound_ZoneMusicNoDelay", "", 0, "1", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableArmorFoleySoundForSelf", "", 0, "1", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableArmorFoleySoundForOthers", "", 0, "1", nullptr, 7, false, nullptr, false);
     CVar::Register("Sound_EnableDSPEffects", "", 0, OsGetNumberOfProcessors() <= 1 ? "0" : "1", nullptr, 7, false, nullptr, false);

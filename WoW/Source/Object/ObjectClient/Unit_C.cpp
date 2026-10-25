@@ -1,4 +1,5 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "Unit_C.h"
 #include <cmath>
 #include <new>
@@ -5009,7 +5010,8 @@ void CGUnit_C::OnRightClick() {
                     required = level * 5;
                 }
 
-                if (minPoints < required) {
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x731480) -- jge became jmp: the skill requirement never refuses.
+                if (false && minPoints < required) {
                     CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_SPELL_KNOWN_SI, spell.m_name, required);
                     return;
                 }
@@ -8661,7 +8663,10 @@ void CGUnit_C::UpdateAuraEffectMask() {
         }
 
         for (int32_t effect = 0; effect < 3; effect++) {
-            if (aura->m_flags & (1 << effect)) {
+            // CoA: AscRuntime.cpp:Replace727E70 (orig hook 0x727E70) -- only aura types below 0x140 fit the 40-byte set;
+            // Ascension's higher types would write into the following fields. (The DLL's side map of types below
+            // 0x16E is read by nothing and is not kept.)
+            if ((aura->m_flags & (1 << effect)) && static_cast<uint32_t>(spell.m_effectAura[effect]) < 0x140) {
                 this->m_auraEffectMask[spell.m_effectAura[effect] / 8] |= 1 << (spell.m_effectAura[effect] % 8);
             }
         }
@@ -11954,10 +11959,7 @@ bool CGUnit_C::IsOutdoors() const {
 // VERIFY: b89ed3c2 auto
 // OFFSET: 0x0071C2C0
 int32_t CGUnit_C::GetPredictedHealth() const {
-    if (g_predictedHealthCVar->m_intValue) {
-        return this->m_predictedHealth;
-    }
-
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x71C2C0) -- the predictedHealth branch is NOPed: always the real health.
     return this->m_unit->m_unitFieldHealth;
 }
 
@@ -17960,7 +17962,8 @@ void CGUnit_C::DoPowerRegen(uint32_t elapsed) {
         }
     }
 
-    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == POWER_TYPE_RUNIC_POWER) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x728AA3) -- cmp 6 became cmp 0; AscCAMgr changes it later.
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == static_cast<POWER_TYPE>(CoA::AttachPatches::RuneUiClass())) {
         uint32_t runes = CGRuneInfo::m_predictedRunes;
         uint32_t previous = CGRuneInfo::m_predictedRunes;
         uint32_t now = FrameTime::s_curTimeMs;

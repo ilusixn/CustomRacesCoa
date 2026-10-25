@@ -141,7 +141,8 @@ void CGGuildBankInfo::SwapItems(uint8_t tab, uint32_t slot, WOWGUID item, WOWGUI
         return;
     }
 
-    if (object->IsBound()) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5A5163) -- the IsBound je became jmp: bound items are not refused.
+    if (object->IsBound() && false) {
         if (stats->m_bonding == 4) {
             CGGameUI::DisplayError(ERR_GUILD_BANK_QUEST_ITEM);
         } else {
@@ -161,7 +162,8 @@ void CGGuildBankInfo::SwapItems(uint8_t tab, uint32_t slot, WOWGUID item, WOWGUI
         return;
     }
 
-    if (container == player->m_obj->m_guid && containerSlot < 23) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5A522F) -- jne became jmp: equipped items are not refused.
+    if (false && container == player->m_obj->m_guid && containerSlot < 23) {
         CGGameUI::DisplayError(ERR_GUILD_BANK_EQUIPPED_ITEM);
         return;
     }

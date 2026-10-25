@@ -2578,7 +2578,7 @@ void DayNight::LoadMap(int32_t mapId) {
     DayNight::g_planets.m_moon.m_period = 1.0f;
     DayNight::g_planets.m_moon2.Initialize("Textures\\moon02.blp");
     DayNight::g_planets.m_moon2.m_baseScale = 1.0f;
-    DayNight::g_planets.m_moon2.m_period = 1.7f;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x7F29B9) -- the store is NOPed.
     DayNight::g_stars.Initialize();
     info.m_showSky = 1;
     info.m_flashBlend = 0;
