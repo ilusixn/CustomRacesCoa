@@ -295,9 +295,21 @@ int32_t CVar::Delete(const char* fileName) {
     return 1;
 }
 
+// CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640) -- names the DLL lists are skipped (returns 1).
+bool (*g_cvarSaveFilterHook)(const char* name);
+
 // VERIFY: 158a6024 auto
 // OFFSET: 0x00766640
 int32_t CVar::SaveCvar(const char* name, const char* value, void* arg) {
+    if (g_cvarSaveFilterHook && g_cvarSaveFilterHook(name)) {
+        return 1;
+    }
+
+    return CVar::WriteCvarLine(name, value, arg);
+}
+
+// CoA: AscCVarHooks.cpp:Hook766640 -- SaveCvar's body, which the DLL's own lastCharacterIndex write calls directly.
+int32_t CVar::WriteCvarLine(const char* name, const char* value, void* arg) {
     char line[260];
     SStrPrintf(line, sizeof(line), "SET %s \"%s\"\n", name, value);
 

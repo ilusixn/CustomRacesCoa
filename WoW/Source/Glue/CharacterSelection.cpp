@@ -1,4 +1,5 @@
 #include "CharacterSelection.h"
+#include "CoA/Source/Modules/CVarHooks.h"
 #include <cstring>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Event/Event.h"
@@ -615,6 +616,9 @@ void CCharacterSelection::ShowCharacter() {
 // VERIFY: eafa3254 manual
 // OFFSET: 0x004E4610
 void CCharacterSelection::UpdateCharacterList() {
+    // CoA: AscCVarHooks.cpp:ConfigCache4E4610 (orig hook 0x4E4610) -- config-cache.wtf first.
+    CoA::CVarHooks::BeforeUpdateCharacterList();
+
     ClearAddOnEnableState(nullptr);
     CCharacterSelection::s_characterList.SetCount(0);
 
@@ -669,6 +673,9 @@ void CCharacterSelection::UpdateCharacterList() {
     }
 
     FrameScript_SignalEvent(GLUE_EVENT_CHARACTER_LIST_UPDATE, nullptr);
+
+    // CoA: AscCVarHooks.cpp:Hook4E4610 (orig hook 0x4E4610) -- the -character select, after the body.
+    CoA::CVarHooks::AfterUpdateCharacterList();
 }
 
 // VERIFY: 83731d6e auto

@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/CVarHooks.h"
 #include <cstdio>
 #include <cstring>
 #include "ConsoleDevice.h"
@@ -398,6 +399,9 @@ static bool CVGxStereoSeparationCallback(CVar* var, const char* oldValue, const 
 // VERIFY: dc6233ea auto
 // OFFSET: 0x0076A220
 static bool CVGxResolutionCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
+    // CoA: AscCVarHooks.cpp:Hook76A220 (orig hook 0x76A220) -- the aspect values follow the resolution first.
+    CoA::CVarHooks::BeforeResolution(value);
+
     int32_t width = -1;
     int32_t height = -1;
     char separator;

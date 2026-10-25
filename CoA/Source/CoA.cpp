@@ -37,6 +37,9 @@ static const CoA::Module s_modules[] = {
     { "PatchData", CoA::PatchData::Init },
     { "Specs", CoA::Specs::Init },
     { "LuaDbc", CoA::LuaDbc::Init },
+    { "CharacterList", CoA::CharacterList::Init },
+    { "RealmMerge", CoA::RealmMerge::Init },
+    { "EventPackets", CoA::EventPackets::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -45,6 +48,7 @@ static const CoA::Module s_modules[] = {
     { "SpellTextClient", CoA::SpellTextClient::Init },
     { "ClassRaceClient", CoA::ClassRaceClient::Init },
     { "GlobalsJClient", CoA::GlobalsJClient::Init },
+    { "CVarHooksClient", CoA::CVarHooksClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

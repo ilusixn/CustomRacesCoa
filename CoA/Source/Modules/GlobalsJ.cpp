@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/LuaReg.h"
+#include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Source/Runtime/Read.h"
 #include "CoA/Source/Runtime/Script.h"
@@ -10,6 +11,7 @@
 #include <Windows.h>
 #include <cstdio>
 #include <share.h>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -174,7 +176,100 @@ namespace {
         return 1;
     }
 
+    // ---- character select ---------------------------------------------------------------------------------
+    // Maps 0x10BDB5FC / 0x10BDB61C, keyed by the character's list index; never cleared.
+    struct SelectionMail {
+        bool mail = false;
+        bool storeMail = false;
+    };
+
+    struct SelectionGameMode {
+        uint32_t a = 0;
+        uint32_t b = 0;
+        uint32_t c = 0;
+        bool d = false;
+        uint8_t e = 0;
+    };
+
+    std::unordered_map<uint32_t, SelectionMail> s_selectionMail;
+    std::unordered_map<uint32_t, SelectionGameMode> s_selectionGameMode;
+
+    int32_t OnSelectionMail(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {   // handler_0x0770
+        uint32_t index = CoA::Read::U32(msg);
+        SelectionMail& m = s_selectionMail[index];
+        m.mail = CoA::Read::U8(msg) != 0;
+        m.storeMail = CoA::Read::U8(msg) != 0;
+        return 1;
+    }
+
+    int32_t OnSelectionGameMode(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {   // FUN_100d3910
+        uint32_t index = CoA::Read::U32(msg);
+        SelectionGameMode& g = s_selectionGameMode[index];
+        g.a = CoA::Read::U32(msg);
+        g.b = CoA::Read::U32(msg);
+        g.c = CoA::Read::U32(msg);
+        g.d = CoA::Read::U8(msg) != 0;
+        g.e = CoA::Read::U8(msg);
+        return 1;
+    }
+
+    int GetCharacterSelectionMailData(lua_State* L) {
+        uint32_t index;
+
+        if (!CoA::Script::ReadNumber(L, index)) {
+            return 0;
+        }
+
+        auto it = s_selectionMail.find(index);
+
+        if (it == s_selectionMail.end()) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        CoA::Script::PushBool(L, it->second.mail);
+        CoA::Script::PushBool(L, it->second.storeMail);
+        return 2;
+    }
+
+    int GetCharacterSelectionGameModeData(lua_State* L) {
+        uint32_t index;
+
+        if (!CoA::Script::ReadNumber(L, index)) {
+            return 0;
+        }
+
+        auto it = s_selectionGameMode.find(index);
+
+        if (it == s_selectionGameMode.end()) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        const SelectionGameMode& g = it->second;
+        CoA::Script::PushInt(L, static_cast<int32_t>(g.a));
+        CoA::Script::PushInt(L, static_cast<int32_t>(g.b));
+        CoA::Script::PushInt(L, static_cast<int32_t>(g.c));
+        CoA::Script::PushBool(L, g.d);
+        CoA::Script::PushInt(L, g.e);
+        return 5;
+    }
+
+    // FUN_100dd280(order): CMSG 0x772 {string order, NUL included}.
+    int SetCharacterSelectionSortOrder(lua_State* L) {
+        std::string order;
+
+        if (CoA::Script::ReadString(L, order)) {
+            CoA::Packet(0x772).Data(order.c_str(), static_cast<uint32_t>(order.size() + 1)).Send();
+        }
+
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
+        COA_NATIVE("", "GetCharacterSelectionMailData", GetCharacterSelectionMailData),
+        COA_NATIVE("", "GetCharacterSelectionGameModeData", GetCharacterSelectionGameModeData),
+        COA_NATIVE("", "SetCharacterSelectionSortOrder", SetCharacterSelectionSortOrder),
         COA_NATIVE("", "GetErrorCallstackHeight", GetErrorCallstackHeight),
         COA_NATIVE("", "CanPerformAction", CanPerformAction),
         COA_NATIVE("", "GetKnownAddons", GetKnownAddons),
@@ -253,5 +348,7 @@ void CoA::GlobalsJ::Reset() {
 
 void CoA::GlobalsJ::Init() {
     COA_PACKET(0x94E, CoA::GlobalsJ::OnKnownAddonList);
+    COA_PACKET(0x770, OnSelectionMail);
+    COA_PACKET(0x771, OnSelectionGameMode);
     CoA::LuaReg::AddModule(s_bindings, sizeof(s_bindings) / sizeof(s_bindings[0]));
 }
