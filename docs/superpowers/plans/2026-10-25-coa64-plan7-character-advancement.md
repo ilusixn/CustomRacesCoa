@@ -55,6 +55,37 @@ signal); the glue reset; the known-spell hooks on the five spell packets and 0x5
 the rune patch. Tests: each packet's events and state, Update's sync and auto-learn, the glue reset. Client half:
 `CAClient.cpp` and the decomp edits.
 
-### 7b, 7c
+### 7b (branch `plan7b-ca-natives`)
 
-Planned after 7a merges, from the same reconstruction files.
+The 126 bindings of AscCAMgr.cpp (lines 1549..5357 of the reconstruction), in four files that share
+`CANativesInternal.h` (Usage, entry-table push, id/unit argument readers, the CA_LEARN / CA_UNLEARN name tables).
+Natives are registered from `CoA::CA::Init` through one `CoA::Binding` table per file. Unported modules answer
+through new `CoA::CA::Deps` members with the original's no-data result (BuildCreator export / link decode / seed,
+WildcardRapid active / in flight / reroll pending, WildcardRolls::ArmPoll, Token::AtLeast), each ledgered.
+Client half in `CAClient.cpp`: PickupSpell (spellbook 0xBE8D98 / 0xBE6D88, 0x53BAF0), ChrClasses for GetClassInfo,
+unit tokens to GUIDs.
+
+- **Task 3, read natives** (`CANatives.cpp`): investment / remaining / expected (active and pending), entry and
+  spell type queries, essence costs, class and tab names, entry lists by class, known entries / spells / talent
+  ranks, unit queries, qualities, tags, categories, class info, HasRuneUI, CanUseBrowser, credit amount.
+  Tests: each native's results on the fixture build, nil / usage paths for bad arguments, sort orders.
+- **Task 4, edit natives** (`CAEdit.cpp`): pending-build edits (add / remove / clear / cancel / apply and their Can*
+  forms), the pending summary, direct learn / unlearn / lock and their CMSGs, confirmations, unlearn-all, specs and
+  loadouts, swap and trade. Tests: sent packet bytes, pending-build state, result names, confirm lists.
+- **Task 5, suggestions and inspect** (`CASuggest.cpp`): the suggestion maps and recompute, the tick, SMSG 0x6CE /
+  0x6D2, the context overrides, GetSuggestedStats, CMSG 0x6E1 / SMSG 0x6E2, GetInspectInfo, GetInspectedBuild.
+  Tests: weights (locked doubled), order, the stat fill-in, the inspect round trip.
+- **Task 6, build links** (`CALinks.cpp`): ExportBuild, ImportPendingBuild / ImportPendingBuildID and the URL /
+  link parsing. Tests: URL normalising, link round trip, merge of duplicate entries.
+
+### Review Focus (7b)
+
+1. A native given the wrong argument types prints the original's usage text and returns what the original returns.
+2. Pending-build natives with no pending build (before 0x725) answer without crashing.
+3. Sent CMSGs carry exactly the original's fields and order.
+4. Lists come back in the original's sort order (entry order, talent order, locked first).
+5. Natives reading the active build before world entry use the default build, not a null.
+
+### 7c
+
+Planned after 7b merges.
