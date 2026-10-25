@@ -142,7 +142,8 @@ static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t field
     if (item && item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         int32_t oldItemId = *static_cast<const int32_t*>(oldValue);
         CGActionBar::UpdateItem(oldItemId);
-        g_itemDBCache.Invalidate(oldItemId);
+        // CoA: AscAttachInline.cpp (Extensions.dll patch 0x67A18E) -- the item cache's Invalidate (its only caller is here) returns at
+        // once: je became jmp.
 
         WOWGUID itemGuid = item->m_obj->m_guid;
 

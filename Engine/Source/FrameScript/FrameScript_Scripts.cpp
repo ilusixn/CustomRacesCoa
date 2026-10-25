@@ -718,7 +718,8 @@ static int32_t Script_strlenutf8(lua_State* L) {
 // VERIFY: 28a509c4 auto
 // OFFSET: 0x00819A60
 static int32_t Script_debuglocals(lua_State* L) {
-    if (!s_inErrorHandler) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x819A74) -- jne became jmp: allowed outside the error handler.
+    if (false && !s_inErrorHandler) {
         return 0;
     }
 

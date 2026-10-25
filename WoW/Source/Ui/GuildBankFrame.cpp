@@ -183,7 +183,8 @@ void CGGuildBankInfo::SwapItems(uint8_t tab, uint32_t slot, WOWGUID item, WOWGUI
     msg.Put(static_cast<uint8_t>(slot));
     msg.Put(static_cast<uint32_t>(bankItemId));
 
-    if (!(CGGuildInfo::GetGuildBankTabPermissionsByRankID(tab, player->m_player->m_playerGuildrank) & 2)) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5A52E4, 0x5A5472) -- jne became jmp: the deposit right is not checked.
+    if (!(CGGuildInfo::GetGuildBankTabPermissionsByRankID(tab, player->m_player->m_playerGuildrank) & 2) && false) {
         CGGameUI::DisplayError(ERR_GUILD_PERMISSIONS);
         return;
     }
@@ -241,7 +242,8 @@ void CGGuildBankInfo::SwapBankItems(uint8_t tab, uint32_t slot, int32_t itemId, 
         return;
     }
 
-    if (!(CGGuildInfo::GetGuildBankTabPermissionsByRankID(tab, player->m_player->m_playerGuildrank) & 2)) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5A52E4, 0x5A5472) -- jne became jmp: the deposit right is not checked.
+    if (!(CGGuildInfo::GetGuildBankTabPermissionsByRankID(tab, player->m_player->m_playerGuildrank) & 2) && false) {
         CGGameUI::DisplayError(ERR_GUILD_PERMISSIONS);
         return;
     }

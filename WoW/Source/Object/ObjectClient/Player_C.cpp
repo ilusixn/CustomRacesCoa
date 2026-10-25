@@ -9906,7 +9906,8 @@ void CGPlayer_C::SwapGuildBankItem(int32_t itemId, uint32_t virtualSlot, uint8_t
     uint8_t tabSlot = virtualSlot % 98;
     CDataStore msg;
 
-    if (tab < 6 && CGGuildInfo::m_rankInfo[this->m_player->m_playerGuildrank].m_bankTabStacksPerDay[tab]) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x6DB8F9) -- jne became jmp: the stacks-per-day check never refuses.
+    if (tab < 6 && (true || CGGuildInfo::m_rankInfo[this->m_player->m_playerGuildrank].m_bankTabStacksPerDay[tab])) {
         msg.Put(static_cast<uint32_t>(CMSG_GUILD_BANK_SWAP_ITEMS));
         msg.Put(banker.m_guid);
         msg.Put(static_cast<uint8_t>(0));

@@ -97,7 +97,8 @@ void CGEquipmentManager::CreateEquipmentSet(const char* name, const char* icon) 
         count++;
     }
 
-    if (count >= 10 || CGEquipmentManager::HasSet(name)) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AF809) -- 10 became 20.
+    if (count >= 20 || CGEquipmentManager::HasSet(name)) {
         return;
     }
 
@@ -218,7 +219,8 @@ int32_t CGEquipmentManager::GetNextFreeSetID() {
 
     while (node) {
         if (node->m_set->m_id == id) {
-            if (++id >= 10) {
+            // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AE56B) -- 10 became 20.
+            if (++id >= 20) {
                 return -1;
             }
 
@@ -304,7 +306,8 @@ bool CGEquipmentManager::CanCreateSet() {
         count++;
     }
 
-    return count < 10;
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AF485) -- 10 became 20.
+    return count < 20;
 }
 
 // VERIFY: 816e8bf2 manual
@@ -332,7 +335,8 @@ int32_t Packet_SMSG_EQUIPMENT_SET_LIST(void* param, NETMESSAGE msgId, uint32_t t
         CGEquipmentManager::s_equipmentSets.Clear();
     }
 
-    for (int32_t i = 0; i < static_cast<int32_t>(count) && i < 10; i++) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AF548) -- 10 became 20.
+    for (int32_t i = 0; i < static_cast<int32_t>(count) && i < 20; i++) {
         EQUIPMENT_SET* set = nullptr;
         uint32_t handle;
         void* object = nullptr;

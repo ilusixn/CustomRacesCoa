@@ -407,8 +407,9 @@ CRibbonEmitter::CRibbonEmitter() {
 void CRibbonEmitter::Initialize(float edgesPerSecond, float edgeLifetime, const CImVector& color, const TSGrowableArray<CTexture*>& textures, const TSGrowableArray<CRibbonMat>& materials, const TSGrowableArray<uint32_t>& textureTypes, const CAaRect& texCoords, uint32_t rows, uint32_t cols) {
     float edgesPerSec = ceil(edgesPerSecond);
 
-    if (edgeLifetime < MIN_EDGE_LIFE_SPAN) {
-        edgeLifetime = MIN_EDGE_LIFE_SPAN;
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0xAA2D0E) -- the 0.25 constant (0xAA2D0C, read only here) became 0.
+    if (edgeLifetime < 0.0f) {
+        edgeLifetime = 0.0f;
     }
 
     uint32_t edgeCount = static_cast<uint32_t>(ceil(edgesPerSec * edgeLifetime) + 2.0f);

@@ -1048,7 +1048,8 @@ void InitResistances() {
     if (count != 7) {
         ConsolePrintf("Warning: The Resistances table has the wrong number of entries");
 
-        if (count > 7) {
+        // CoA: AscAttachInline.cpp (Extensions.dll patch 0x634B07) -- jbe became jmp: the table's own count is used.
+        if (false && count > 7) {
             count = 7;
         }
     }
@@ -1132,7 +1133,8 @@ void ClientDBInitialize() {
         switch (cvar->m_intValue) {
             case -1:
             case 1:
-                g_clientDbPerformCompress = 1;
+                // CoA: AscAttachInline.cpp (Extensions.dll patch 0x634E28) -- 1 became 0.
+                g_clientDbPerformCompress = 0;
                 break;
 
             case 0:
