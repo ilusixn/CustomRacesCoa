@@ -18,6 +18,7 @@
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Ui/CGWorldStateInfo.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/MinimapFrame.h"
 #include "WoW/Source/Ui/StableInfo.h"
 #include "WoW/Source/WorldClient/Map.h"
 
@@ -116,6 +117,18 @@ namespace {
 
     int IsRenderDebug(lua_State* L) {   // handler_IsRenderDebug
         CoA::Script::PushBool(L, s_renderDebug);
+        return 1;
+    }
+
+    // Minimap:IsInside: the minimap's indoor flag (0xD39434).
+    int IsInside(lua_State* L) {
+        CoA::Script::PushBool(L, s_isIndoors != 0);
+        return 1;
+    }
+
+    // Minimap:GetViewRadius: MinimapGetViewRadius (0x7F3B90).
+    int GetViewRadius(lua_State* L) {
+        CoA::Script::PushNum(L, MinimapGetViewRadius());
         return 1;
     }
 
@@ -273,6 +286,8 @@ namespace {
         COA_NATIVE("", "IsRenderDebug", IsRenderDebug),
         COA_NATIVE("", "IsKeyDown", IsKeyDown),
         COA_NATIVE("", "FadeScreen", FadeScreen),
+        COA_NATIVE("#Minimap", "IsInside", IsInside),
+        COA_NATIVE("#Minimap", "GetViewRadius", GetViewRadius),
     };
 }
 

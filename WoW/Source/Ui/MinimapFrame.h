@@ -241,4 +241,10 @@ extern CTexture* s_iconTexture;
 
 void MinimapSetZoom(uint32_t zoom);
 
+// CoA: AscPOI.cpp:SetPOIMaxRange (Extensions.dll patch 0xA41E00).
+extern float g_maxPOIDistance;
+
+// CoA: not static -- AscMisc.cpp:IsInside reads it (0xD39434).
+extern uint8_t s_isIndoors;
+
 #endif

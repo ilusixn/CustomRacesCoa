@@ -2066,9 +2066,17 @@ static FrameScript_Method s_ScriptMethods[] = {
     { "IsIgnoringDepth", &Script_IsIgnoringDepth },
 };
 
+// CoA: AscWidget.cpp:RegistrarDetour -- set by WidgetClient.cpp.
+void (*g_widgetMethodsHook)(const char* widget, lua_State* L) = nullptr;
+
 // VERIFY: c7ad299d auto
 // OFFSET: 0x0049E540
 void CSimpleFrame::RegisterScriptMethods(lua_State* L) {
     CScriptRegion::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
+
+    // CoA: AscWidget.cpp:RegistrarDetour (orig hook 0x49E540)
+    if (g_widgetMethodsHook) {
+        g_widgetMethodsHook("Frame", L);
+    }
 }
