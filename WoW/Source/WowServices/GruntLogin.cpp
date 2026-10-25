@@ -58,6 +58,9 @@ bool GruntLogin::Disconnected() {
     return false;
 }
 
+// CoA: AscRealmData.cpp:OpenArchives (Extensions.dll patch 0x8CA5F0).
+uint16_t g_coaLogonBuild = GAME_BUILD;
+
 // VERIFY: ca1d1b53 manual
 // OFFSET: 0x008CA580
 void GruntLogin::GetLogonMethod() {
@@ -74,7 +77,8 @@ void GruntLogin::GetLogonMethod() {
     logon.m_versionMajor = GAME_VERSION_MAJOR;
     logon.m_versionMinor = GAME_VERSION_MINOR;
     logon.m_versionPatch = GAME_VERSION_PATCH;
-    logon.m_build = GAME_BUILD;
+    // CoA: AscRealmData.cpp:OpenArchives (Extensions.dll patch 0x8CA5F0) -- a realm's buildinfo can change it.
+    logon.m_build = g_coaLogonBuild;
     logon.m_locale = SFile::s_locale;
     logon.m_timeZone = OsGetTimeZone();
 

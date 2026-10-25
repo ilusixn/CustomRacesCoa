@@ -206,4 +206,7 @@ void SFileClearAllFileFlags();
 int32_t STORMAPI SFileSetFileBlockEntryMD5(const char* name, const MD5& md5);
 void STORMAPI SFileSetSignatureCallbacks(int32_t enable);
 
+// CoA: AscRealmData.cpp:OpenArchiveDetour (orig hook 0x421950) -- false refuses the archive.
+extern bool (*g_sfileOpenArchiveHook)(const char* path);
+
 #endif
