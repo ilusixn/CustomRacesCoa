@@ -6,6 +6,7 @@
 #include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/Script.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include "Engine/Source/Frame/CSimpleMovieFrame.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/AchievementRec.h"
@@ -289,6 +290,30 @@ namespace {
         return 0;
     }
 
+    // MovieFrame:SetVolume(v) (FUN_101aeca0): v clamped to [0, 1], then SESound::SetVolume (0x879710). The original
+    // calls it with the frame as `this`, so the sound's m_internal is read from the frame's vtable slot and the
+    // write lands in the client's code; here it goes to the frame's own sound (CSimpleMovieFrame::m_sound, +0x29C).
+    int SetVolume(lua_State* L) {
+        lua_rawgeti(L, 1, 0);
+        CSimpleMovieFrame* frame = static_cast<CSimpleMovieFrame*>(lua_touserdata(L, -1));
+        lua_settop(L, -2);
+        float v = static_cast<float>(CheckNumber(L, 2));
+
+        if (v < 0.0f) {
+            v = 0.0f;
+        }
+
+        if (v > 1.0f) {
+            v = 1.0f;
+        }
+
+        if (frame) {
+            frame->m_sound.SetVolume(v);
+        }
+
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("", "LoadWDBCache", LoadWDBCache),
         COA_NATIVE("", "SaveWDBCache", SaveWDBCache),
@@ -309,6 +334,7 @@ namespace {
         COA_NATIVE("", "GetSpellHaste", GetSpellHaste),
         COA_NATIVE("", "GetTitleForQuestID", GetTitleForQuestID),
         COA_NATIVE("", "IsPassiveSpellID", IsPassiveSpellID),
+        COA_NATIVE("#MovieFrame", "SetVolume", SetVolume),
     };
 }
 

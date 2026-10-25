@@ -64,6 +64,11 @@
 #include "Engine/Source/ShaderEffect/Types.h"
 
 static const float MAX_POI_DISTANCE = 694.44446f;
+
+// STATIC: 0x00A41E00
+// CoA: AscPOI.cpp:SetPOIMaxRange (Extensions.dll patch 0xA41E00) -- writable; only the edge-POI distance test reads
+// it (0x7F4664), the distances[] seed is an immediate.
+float g_maxPOIDistance = MAX_POI_DISTANCE;
 static const float ICON_SIZE = 0.0125f;
 
 // STATIC: 0x00ACEBAC
@@ -257,7 +262,8 @@ static int32_t s_poisChanged;
 static char s_dynamicPOINames[4][64];
 
 // STATIC: 0x00D39434
-static uint8_t s_isIndoors;
+// CoA: not static -- AscMisc.cpp:IsInside reads it.
+uint8_t s_isIndoors;
 
 // STATIC: 0x00D39444
 static uint32_t s_numPOIs;
@@ -853,7 +859,8 @@ void UpdatePointsOfInterest() {
         float dx = poi->m_pos[0] - s_playerPosition.x;
         float distance = sqrt(dx * dx + dy * dy);
 
-        if (distance > MAX_POI_DISTANCE && poi != &s_dynamicPOIs[2]) {
+        // CoA: AscPOI.cpp:SetPOIMaxRange (Extensions.dll patch 0xA41E00)
+        if (distance > g_maxPOIDistance && poi != &s_dynamicPOIs[2]) {
             continue;
         }
 
