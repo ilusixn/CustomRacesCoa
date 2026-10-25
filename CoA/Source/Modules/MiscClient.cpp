@@ -1,5 +1,6 @@
 // AscMisc.cpp's client passthroughs: FadeScreen, IsKeyDown, the command line (IsAutoLogin / IsRenderDebug and the
 // launcher's automatic login) and -config.
+#include "CoA/Source/Modules/Misc.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/LuaReg.h"
@@ -9,7 +10,22 @@
 #include "Engine/Source/Frame/CSimpleTop.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/MapRec.h"
+#include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/GameClient/WorldText.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Ui/CGWorldStateInfo.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/StableInfo.h"
+#include "WoW/Source/WorldClient/Map.h"
+
+// WoW/Source/Ui/GameUI.cpp: the interact-range floats at 0xAC8A64 (SetInteractDistance).
+extern float s_duelDistSq;
+extern float s_playerInteractDistSq;
+extern float s_inspectDistSq;
+extern float s_followDistSq;
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -125,7 +141,134 @@ namespace {
         return 1;
     }
 
+    // ---- exe state, read directly ---------------------------------------------------------------------------------
+    int GetZoneId(lua_State* L) {   // 0xBD080C
+        CoA::Script::PushInt(L, CGGameUI::m_areaID);
+        return 1;
+    }
+
+    int GetAreaId(lua_State* L) {   // 0xBD0810
+        CoA::Script::PushInt(L, CGGameUI::m_subzoneID);
+        return 1;
+    }
+
+    int GetActiveMapID(lua_State* L) {   // 0xBD088C
+        CoA::Script::PushInt(L, CGGameUI::m_iCurrentMapID);
+        return 1;
+    }
+
+    int GetBindPosition(lua_State* L) {   // 0xC9EB2C, 0xC9D538
+        C3Vector position;
+        uint32_t mapId;
+        PlayerGetBindPoint(&position, &mapId);
+        CoA::Script::PushNum(L, position.x);
+        CoA::Script::PushNum(L, position.y);
+        CoA::Script::PushNum(L, position.z);
+        CoA::Script::PushInt(L, static_cast<int32_t>(mapId));
+        return 4;
+    }
+
+    // FUN_10a4df90: stable slot n (1-based) of the client's stable list, its pet number; nil past the slot count.
+    int GetStablePetID(lua_State* L) {
+        const int index = static_cast<int>(CoA::Script::CheckNumber(L, 1));
+
+        if (CGStableInfo::m_numSlots < index || index < 1 || index > 6) {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        CoA::Script::PushInt(L, static_cast<int32_t>(CGStableInfo::m_pets[index - 1].m_petNumber));
+        return 1;
+    }
+
+    // handler_SetInteractDistance: the client's interact-range floats at 0xAC8A64 (duel, player interact, inspect,
+    // follow -- squared values written as given); other indices are not written.
+    int SetInteractDistance(lua_State* L) {
+        const int32_t index = CoA::Script::ToInt(CoA::Script::CheckNumber(L, 1));
+        const float distance = static_cast<float>(CoA::Script::CheckNumber(L, 2));
+        float* const ranges[] = { &s_duelDistSq, &s_playerInteractDistSq, &s_inspectDistSq, &s_followDistSq };
+
+        if (index >= 0 && index < 4) {
+            *ranges[index] = distance;
+        }
+
+        return 0;
+    }
+
+    // FUN_10a4e280: the client's world-state value (GetWorldState, 0x548D10).
+    int GetWorldStateNative(lua_State* L) {
+        CoA::Script::PushInt(L, GetWorldState(CoA::Script::ToInt(CoA::Script::CheckNumber(L, 1))));
+        return 1;
+    }
+
+    // handler_ReloadMap: the current map's directory through CMap::Load(directory, 1); returns 1 with nothing pushed.
+    void ReloadCurrentMap() {
+        if (MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID)) {
+            CMap::Load(map->m_directory, 1);
+        }
+    }
+
+    int ReloadMap(lua_State*) {
+        ReloadCurrentMap();
+        return 1;
+    }
+
+    // LoadADT (FUN_10112a00): a one-shot override for the tile (x, y), then the map reloaded; returns 1, nothing pushed.
+    bool s_adtArmed = false;   // DAT_10bc98a0
+    int32_t s_adtX = 0;
+    int32_t s_adtY = 0;
+    std::string s_adtFile;
+
+    int LoadADT(lua_State* L) {
+        const int32_t x = CoA::Script::ToInt(CoA::Script::CheckNumber(L, 1));
+        const int32_t y = CoA::Script::ToInt(CoA::Script::CheckNumber(L, 2));
+        const std::string file = CoA::Script::CheckString(L, 3);
+        s_adtArmed = true;
+        s_adtX = x;
+        s_adtY = y;
+        s_adtFile = file;
+        ReloadCurrentMap();
+        return 1;
+    }
+
+    // CreateWorldText (FUN_10a4ac90): text, x, y, z, ascend, fade-in, fade-out start, duration [, start height 0.018]
+    // [, end height 0.018] [, 1.0]: world text type 5's style and the float at 0xAF4890 (the second icon position's x),
+    // then combat text type 5 on the player's name (PlayerNameCreateText). The original dereferences the player
+    // unchecked; without one nothing is raised.
+    float s_worldTextPosition[3] = {};   // DAT_10d3d7f0
+
+    int CreateWorldText(lua_State* L) {
+        const std::string text = CoA::Script::CheckString(L, 1);
+        WORLDTEXTTYPE* style = WorldTextTypeStyle(5);
+        s_worldTextPosition[0] = static_cast<float>(CoA::Script::CheckNumber(L, 2));
+        s_worldTextPosition[1] = static_cast<float>(CoA::Script::CheckNumber(L, 3));
+        s_worldTextPosition[2] = static_cast<float>(CoA::Script::CheckNumber(L, 4));
+        style->m_ascendDistance = static_cast<float>(CoA::Script::CheckNumber(L, 5));
+        style->m_fadeInTime = static_cast<uint32_t>(static_cast<int64_t>(CoA::Script::CheckNumber(L, 6)));
+        style->m_fadeOutStart = static_cast<uint32_t>(static_cast<int64_t>(CoA::Script::CheckNumber(L, 7)));
+        style->m_duration = static_cast<uint32_t>(static_cast<int64_t>(CoA::Script::CheckNumber(L, 8)));
+        style->m_startHeight = lua_type(L, 9) > 0 ? static_cast<float>(CoA::Script::CheckNumber(L, 9)) : 0.018f;
+        style->m_endHeight = lua_type(L, 10) > 0 ? static_cast<float>(CoA::Script::CheckNumber(L, 10)) : 0.018f;
+        WorldTextIconPositions()[1].x = lua_type(L, 11) > 0 ? static_cast<float>(CoA::Script::CheckNumber(L, 11)) : 1.0f;
+
+        if (CGPlayer_C* player = ClntObjMgrGetActivePlayerObj()) {
+            PlayerNameCreateText(player->m_nameDesc, 5, text.c_str(), nullptr, nullptr);
+        }
+
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
+        COA_NATIVE("", "CreateWorldText", CreateWorldText),
+        COA_NATIVE("", "GetActiveMapID", GetActiveMapID),
+        COA_NATIVE("", "GetAreaId", GetAreaId),
+        COA_NATIVE("", "GetBindPosition", GetBindPosition),
+        COA_NATIVE("", "GetStablePetID", GetStablePetID),
+        COA_NATIVE("", "GetWorldState", GetWorldStateNative),
+        COA_NATIVE("", "GetZoneId", GetZoneId),
+        COA_NATIVE("", "LoadADT", LoadADT),
+        COA_NATIVE("", "ReloadMap", ReloadMap),
+        COA_NATIVE("", "SetInteractDistance", SetInteractDistance),
         COA_NATIVE("", "IsAutoLogin", IsAutoLogin),
         COA_NATIVE("", "IsRenderDebug", IsRenderDebug),
         COA_NATIVE("", "IsKeyDown", IsKeyDown),
@@ -137,4 +280,26 @@ void CoA::MiscClient::Init() {
     CoA::Lifecycle::OnGlueScreen(ApplyCommandLine);
     ApplyConfigFile();
     CoA::LuaReg::AddModule(s_bindings, sizeof(s_bindings) / sizeof(s_bindings[0]));
+}
+
+const char* CoA::MiscClient::TakeAdtOverride(int32_t x, int32_t y) {
+    if (!s_adtArmed || s_adtX != x || s_adtY != y) {
+        return nullptr;
+    }
+
+    s_adtArmed = false;
+    return s_adtFile.c_str();
+}
+
+bool CoA::MiscClient::TakeWorldTextPosition(float position[3]) {
+    const bool set = s_worldTextPosition[0] != 0.0f && s_worldTextPosition[1] != 0.0f && s_worldTextPosition[2] != 0.0f;
+
+    if (set) {
+        position[0] = s_worldTextPosition[0];
+        position[1] = s_worldTextPosition[1];
+        position[2] = s_worldTextPosition[2];
+    }
+
+    s_worldTextPosition[0] = s_worldTextPosition[1] = s_worldTextPosition[2] = 0.0f;
+    return set;
 }

@@ -14831,3 +14831,9 @@ int32_t Packet_SMSG_VOICE_PARENTAL_CONTROLS(void* param, NETMESSAGE msgId, uint3
 int32_t CGPlayer_C::GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const {
     return g_itemDisplayInfoDB.GetRecord(this->GetVirtualItemDisplayID(slot), &rec);
 }
+
+// CoA: AscMisc.cpp:GetBindPosition -- the bind point (0xC9EB2C) and its map (0xC9D538).
+void PlayerGetBindPoint(C3Vector* position, uint32_t* mapId) {
+    *position = s_bindPosition;
+    *mapId = s_bindMapId;
+}

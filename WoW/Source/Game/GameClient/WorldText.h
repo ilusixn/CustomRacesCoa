@@ -75,4 +75,8 @@ uint32_t WorldTextGetType(WORLDTEXTSTRING* text);
 void WorldTextRenderBatch();
 bool WorldTextUpdate(WORLDTEXTSTRING* text, uint32_t time);
 
+// CoA: AscMisc.cpp:CreateWorldText -- the world text styles and icon positions it writes.
+WORLDTEXTTYPE* WorldTextTypeStyle(uint32_t type);
+C3Vector* WorldTextIconPositions();
+
 #endif
