@@ -1,4 +1,5 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "CoA/Source/Modules/BridgeStoreClient.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -1147,6 +1148,10 @@ void ClientDBInitialize() {
     InitWeaponSubclasses();
     SDBItemSubclassInitialize();
     InitLights(1);
+
+    // CoA: AscBridgeStore.cpp:DbcInitDetour (orig hook 0x634E00) -- the DLL's DBC manager: the bridge tables and the
+    // HD model tables.
+    CoA::BridgeStoreClient::AfterClientDBInitialize();
 }
 
 // VERIFY: 144a65d1 auto

@@ -17,6 +17,7 @@
 #include "CoA/Source/Modules/RealmData.h"
 #include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Modules/RealmInfo.h"
+#include "CoA/Source/Runtime/Hd.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Runtime/LuaReg.h"
@@ -328,7 +329,8 @@ namespace {
 
         const char* hd = CoA::Script::CommandLineArg("hd");
 
-        if (hd && strcmp(hd, "0") == 0) {
+        // CoA64: HD also needs the Vulkan (DXVK) renderer.
+        if ((hd && strcmp(hd, "0") == 0) || !CoA::Hd::Available()) {
             for (const char* archive : hdArchives) {
                 if (SStrCmpI(name, archive, STORM_MAX_STR) == 0) {
                     return false;
