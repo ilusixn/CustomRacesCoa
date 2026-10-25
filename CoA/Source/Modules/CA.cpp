@@ -2,6 +2,7 @@
 // manager. The packets, the update and the glue reset are in CAPackets.cpp; the rules in CARules.cpp.
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/CAInternal.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/Config.h"
 #include "CoA/Source/Modules/GameEvents.h"
 #include "CoA/Source/Modules/GameMode.h"
@@ -85,10 +86,13 @@ namespace {
         return it == s_attrs.map.end() ? nullptr : it->second;
     }
 
+    // The client regenerates runes (0x728A20) only for the active player whose display power type (UNIT_FIELD_BYTES_0
+    // byte 3) matches the operand of `cmp ebx, 6` at 0x728AA1. The original writes 10 there while a rune spell is known
+    // (FUN_1016d5b0) and 6 when none is (FUN_10173330). No power type 10 exists (10 is the Hero class ID), so the original
+    // never regenerates runes once any rune spell is known, Death Knights included. Kept (the reconstruction departs from
+    // it with `cmp ebx, ebx`).
     void SetRuneRegeneration(bool runeSpellKnown) {
-        if (s_deps.setRuneRegeneration) {
-            s_deps.setRuneRegeneration(runeSpellKnown);
-        }
+        CoA::AttachPatches::SetRuneUiClass(runeSpellKnown ? 10 : 6);
     }
 
     std::vector<Row>& ListFor(CoA::CA::detail::ClassLists& l, Row r) {

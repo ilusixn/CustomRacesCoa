@@ -34,7 +34,6 @@ namespace CAFixture {
     inline std::map<uint32_t, uint32_t> s_items;
     inline std::set<uint32_t> s_clientSpells;
     inline std::set<uint32_t> s_runeSpells;
-    inline bool s_runeRegen = false;
 
     // A DLL-side struct row and its table's file image. Rows are written at their struct offsets; the file the fake reader
     // serves is the inverse of CoA::Dbc's layout conversion (a localized column fills all 16 locale slots).
@@ -175,6 +174,7 @@ namespace CAFixture {
     //   103  Ability, spell 5200, AE 100, level 20
     //   104 / 105  Ability, choice group 5, wildcard AE 3
     //   110  a mastery (flag 0x1000), spell 5400; 111 carries it (+0x1B0), spell 5401
+    //   120  auto-learned (flag 0x100000), free, spell 5500
     inline void BuildTables() {
         static bool built = false;
 
@@ -191,6 +191,7 @@ namespace CAFixture {
         CaRow(105).Spell(1, 5301).U32(0x74, 5).U32(0x58, 3).Put();
         CaRow(110).Spell(1, 5400).U32(0x124, 0x1000).Put();
         CaRow(111).Spell(1, 5401).U32(0x1B0, 110).Put();
+        CaRow(120).Spell(1, 5500).U32(0x124, 0x100000).Put();   // auto-learned, free
         // ClassTypes: id, name, class, hero, coa, stock, L.
         PutWords(ClassTypeTable(), { 3, ClassTypeTable().Str("Warrior"), 1, 0, 0, 0, 0 });
         PutWords(ClassTypeTable(), { 5, ClassTypeTable().Str("Mage"), 8, 0, 0, 0, 0 });
@@ -250,7 +251,6 @@ namespace CAFixture {
         s_items.clear();
         s_clientSpells.clear();
         s_runeSpells.clear();
-        s_runeRegen = false;
         CoA::CA::Reset();
         CoA::CA::Deps& d = CoA::CA::Dependencies();
         d.activePlayerGuid = [] { return s_hasPlayer ? kPlayer : 0; };
@@ -274,7 +274,6 @@ namespace CAFixture {
         d.spellMaxId = [] { return 100000u; };
         d.firstRank = [](uint32_t spell) { return spell; };
         d.rankChain = NoChain;
-        d.setRuneRegeneration = [](bool on) { s_runeRegen = on; };
         d.wildcardUndesired = [](uint32_t, uint8_t) { return false; };
         CoA::CA::detail::BuildIndex();
     }

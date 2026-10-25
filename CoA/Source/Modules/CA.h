@@ -299,11 +299,15 @@ namespace CoA::CA {
         uint32_t (*spellMaxId)() = nullptr;                    // 0xAD49DC
         uint32_t (*firstRank)(uint32_t spell) = nullptr;       // AscSpellRank::FirstRank
         const std::vector<uint32_t>& (*rankChain)(uint32_t firstRank) = nullptr;   // AscSpellRank::Chain
-        void (*setRuneRegeneration)(bool runeSpellKnown) = nullptr;   // the patch at 0x728AA1
         bool (*wildcardUndesired)(uint32_t id, uint8_t context) = nullptr;   // AscWildcardSets::IsUndesired
     };
 
     Deps& Dependencies();
+
+    // 0x10172650 (ClientHooks::enterWorld): the entry index rebuilt (FUN_1014a530).
+    void EnterWorld();
+    // CA_GetCreditAmount's map (0x10bded78, FUN_101a1c90): category -> amount.
+    uint32_t Credit(uint8_t category);
 
     void Init();
     // Tests only: the manager, the index and the known sets forgotten.

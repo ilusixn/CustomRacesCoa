@@ -142,6 +142,27 @@ namespace CoA::ClientHooks {
     // DAT_10bcbcc8: the crash report's "Last FrameScript_SignalEvent".
     const char* LastSignalEvent();
 
+    // AscCAMgr.cpp's detours on the spell packets (FUN_10172660 / 10172850 / 101729d0 / 101728e0 / 10172b50): each
+    // handler asks before the client's handling and reports after. Unset, the client handles the packet alone.
+    struct SpellPacketHooks {
+        void (*initialSpells)(const uint32_t* spells, uint32_t count) = nullptr;    // 0x6DF050, after
+        bool (*learnedIsQuiet)(uint32_t spell) = nullptr;                          // 0x6E7D60, before
+        void (*learned)(uint32_t spell) = nullptr;                                 // 0x6E7D60, after
+        void (*removedSpells)(const uint32_t* spells, uint32_t count) = nullptr;   // 0x6E2240, after
+        void (*removedBefore)(uint32_t spell, bool trailingZero) = nullptr;        // 0x6E7840, before
+        void (*removedAfter)() = nullptr;                                          // 0x6E7840, after
+        bool (*supersedeIsQuiet)(uint32_t oldSpell, uint32_t newSpell) = nullptr;  // 0x6E7E00, before
+        void (*superseded)(uint32_t oldSpell, uint32_t newSpell) = nullptr;        // 0x6E7E00, after
+        bool (*removeMacro)(uint32_t spell) = nullptr;                             // 0x5AAB90: false skips it
+    };
+    inline SpellPacketHooks spellPackets;
+    // FUN_10308830 / FUN_10308e40: while above zero, the client's learn messages (the three 0x5216F0 calls at
+    // 0x542679 / 0x5427BE / 0x54284E) and unlearn messages (0x6E7346 / 0x6E7356) are NOPed.
+    inline int suppressLearnMessages = 0;
+    inline int suppressUnlearnMessages = 0;
+    // FUN_10193a60: while RemoveMacro runs under the hook, GetSpell's macro test (0x5A8C70) is a jmp.
+    inline int getSpellSkipsMacros = 0;
+
     // 0x102776A0: the alternate list runs on every second SMSG_INITIAL_SPELLS (flag 0x10BE2E38, starting clear).
     void InitialSpellsReceived();
 

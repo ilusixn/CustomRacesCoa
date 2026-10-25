@@ -1,6 +1,7 @@
 #include "SpellBookFrame.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cstdlib>
 #include <cstring>
 #include "Engine/Source/Base/ConvertUTF.h"
@@ -477,7 +478,8 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
     }
 
     if (spell.m_attributes & 0x20) {
-        if (notify) {
+        // CoA: AscCAMgr.cpp:SuppressLearnCalls (Extensions.dll patch 0x542679) -- the message is NOPed.
+        if (notify && !CoA::ClientHooks::suppressLearnMessages) {
             CGGameUI::DisplayError(ERR_LEARN_RECIPE_S, spell.m_name);
         }
 
@@ -506,7 +508,11 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
         }
 
         if (notify) {
-            CGGameUI::DisplayError(ERR_LEARN_COMPANION_S, creature->m_name[0]);
+            // CoA: AscCAMgr.cpp:SuppressLearnCalls (Extensions.dll patch 0x5427BE) -- the message is NOPed.
+            if (!CoA::ClientHooks::suppressLearnMessages) {
+                CGGameUI::DisplayError(ERR_LEARN_COMPANION_S, creature->m_name[0]);
+            }
+
             CGSpellBook::UpdateCompanions();
             FrameScript_SignalEvent(SCRIPT_EVENT_COMPANION_LEARNED, nullptr);
         }
@@ -523,7 +529,10 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
             SStrCopy(name, spell.m_name, sizeof(name));
         }
 
-        CGGameUI::DisplayError(spell.m_attributes & 0x10 ? ERR_LEARN_ABILITY_S : ERR_LEARN_SPELL_S, name);
+        // CoA: AscCAMgr.cpp:SuppressLearnCalls (Extensions.dll patch 0x54284E) -- the message is NOPed.
+        if (!CoA::ClientHooks::suppressLearnMessages) {
+            CGGameUI::DisplayError(spell.m_attributes & 0x10 ? ERR_LEARN_ABILITY_S : ERR_LEARN_SPELL_S, name);
+        }
     }
 
     if (spell.m_attributesExD & 0x8000) {

@@ -53,6 +53,7 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
 namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
+namespace CoA::CAClient { void Init(); }
 namespace CoA::MysticEnchantClient { void Init(); }
 namespace CoA::ExtraActionButtonClient { void Init(); }
 namespace CoA::UnitAddonClient { void Init(); }

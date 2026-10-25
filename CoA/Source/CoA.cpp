@@ -93,6 +93,7 @@ static const CoA::Module s_modules[] = {
     { "UnitAddonClient", CoA::UnitAddonClient::Init },
     { "ExtraActionButtonClient", CoA::ExtraActionButtonClient::Init },
     { "MysticEnchantClient", CoA::MysticEnchantClient::Init },
+    { "CAClient", CoA::CAClient::Init },
     { "ObjectAddonClient", CoA::ObjectAddonClient::Init },
     { "AuraAmountsClient", CoA::AuraAmountsClient::Init },
     { "GameModeClient", CoA::GameModeClient::Init },
