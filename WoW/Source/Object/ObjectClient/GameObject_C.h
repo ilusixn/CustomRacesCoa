@@ -413,4 +413,8 @@ int32_t Packet_SMSG_GAMEOBJECT_CUSTOM_ANIM(void* param, NETMESSAGE msgId, uint32
 int32_t Packet_SMSG_GAMEOBJECT_DESPAWN_ANIM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 int32_t Packet_SMSG_GAMEOBJECT_PAGETEXT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
 
+// CoA: AscPatchData.cpp:Hook713F50 / Hook712400 (GameObject_C.cpp).
+extern void (*g_gameObjectModelLoadedHook)(CGGameObject_C* object, CM2Model* model);
+extern void (*g_gameObjectBaseLoadedHook)(CGGameObject_C* object);
+
 #endif

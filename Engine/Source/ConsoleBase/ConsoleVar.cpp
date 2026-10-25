@@ -297,12 +297,22 @@ int32_t CVar::Delete(const char* fileName) {
 
 // CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640) -- names the DLL lists are skipped (returns 1).
 bool (*g_cvarSaveFilterHook)(const char* name);
+// CoA: set by CoA::GlueCVarsClient (the raid video settings).
+const char* (*g_cvarSaveValueHook)(const char* name, const char* value);
+// CoA: set by CoA::AttachMiscClient.
+const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 
 // VERIFY: 158a6024 auto
 // OFFSET: 0x00766640
 int32_t CVar::SaveCvar(const char* name, const char* value, void* arg) {
     if (g_cvarSaveFilterHook && g_cvarSaveFilterHook(name)) {
         return 1;
+    }
+
+    // CoA: AscRaidVideo.cpp:FUN_102dc5f0 (orig hook 0x766640) -- in a raid the base video CVars keep their own values
+    // in Config.wtf.
+    if (g_cvarSaveValueHook) {
+        value = g_cvarSaveValueHook(name, value);
     }
 
     return CVar::WriteCvarLine(name, value, arg);
@@ -399,6 +409,12 @@ bool CVarArrayWrapper::RawGetValue(uint32_t index) const {
 // VERIFY: 8db3b933 auto
 // OFFSET: 0x007668C0
 bool CVar::Set(const char* value, bool setValue, bool setReset, bool setDefault, bool setNeedsSave) {
+    // CoA: AscAttachMisc.cpp:FUN_10a4a780 (orig hook 0x7668C0) -- scriptProfile can only be "0"; nameplateShowEnemies
+    // posts its UI_INFO_MESSAGE.
+    if (g_cvarSetHook) {
+        value = g_cvarSetHook(this, value);
+    }
+
     if (setValue) {
         if (this->m_callback) {
             OsValidateFunctionPointer(reinterpret_cast<const void*>(this->m_callback));
@@ -762,7 +778,7 @@ void CVar::Destroy() {
     ConsoleCommandUnregister("cvar_reset");
     ConsoleCommandUnregister("cvar_default");
     ConsoleCommandUnregister("cvarlist");
-    s_registeredCVars.Clear();
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x767427) -- the clear is NOPed.
 }
 
 // VERIFY: 917f454a auto

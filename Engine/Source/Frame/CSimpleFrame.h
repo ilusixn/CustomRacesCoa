@@ -222,4 +222,7 @@ class CSimpleFrame : public CScriptRegion {
     void UnregisterForEvents(int32_t a2);
 };
 
+// CoA: AscAttachLua.cpp:FUN_10a46660 / FUN_10a466f0 (orig hook 0x48FC30, 0x48FCE0).
+extern void (*g_globalMouseHook)(int32_t down, uint32_t button);
+
 #endif

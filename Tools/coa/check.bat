@@ -12,6 +12,8 @@ if errorlevel 1 (
 )
 echo BUILD OK
 out\build\x64-Release\bin\CoATests.exe
+rem A crash exits with a negative code, which "errorlevel 1" does not catch.
+if not errorlevel 0 exit /b 1
 if errorlevel 1 exit /b 1
 python -m unittest discover -s Tools/coa/tests -t Tools/coa
 if errorlevel 1 exit /b 1

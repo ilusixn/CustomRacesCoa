@@ -352,6 +352,9 @@ void OsFindTextSectionBounds() {
 
 // OFFSET: 0x0086B5A0
 void OsValidateFunctionPointer(const void* ptr) {
+    // CoA: AscAttachLate.cpp:Nothing (orig hook 0x86B5A0) -- replaced by the DLL's empty stub.
+    return;
+
     if (!s_textStart || !s_textEnd) {
         OsFindTextSectionBounds();
     }

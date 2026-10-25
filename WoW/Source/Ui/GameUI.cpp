@@ -1,4 +1,8 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/GlobalsG.h"
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/CVarHooks.h"
 #include "WoW/Source/DB/Rec/FileDataRec.h"
 #include "WoW/Source/DB/Rec/MovieFileDataRec.h"
@@ -1681,6 +1685,15 @@ int32_t CGGameUI::CanPerformAction(uint32_t action) {
 // VERIFY: a126fb23 manual
 // OFFSET: 0x0052A980
 void CGGameUI::InitializeFrameXML() {
+    // CoA: AscRuntime.cpp:Detour52A980 (orig hook 0x52A980) -- list 0x10BE29EC after, when m_currentlyReloadingUI
+    // was set before the call.
+    const bool reloading = CGGameUI::m_currentlyReloadingUI != 0;
+    auto afterReload = CoA::ClientHooks::OnScopeExit([reloading]() {
+        if (reloading) {
+            CoA::ClientHooks::afterUiReload.Run();
+        }
+    });
+
     CGChat::Pause();
 
     g_taintLogCVar = CVar::Register("taintLog", "Whether taint logging is enabled", 0, "0", SetTaintLogCallback, 5, false, nullptr, false);
@@ -1747,29 +1760,8 @@ void CGGameUI::InitializeFrameXML() {
 
     uint8_t signature[16];
 
-    switch (FrameXML_CheckSignature("Interface\\FrameXML\\FrameXML.toc", "Interface\\FrameXML\\Bindings.xml", InterfaceKey, signature)) {
-        case 0:
-            status.Add(STATUS_WARNING, "FrameXML missing signature");
-            ClientPostClose(10);
-            break;
-
-        case 1:
-            status.Add(STATUS_WARNING, "FrameXML has corrupt signature");
-            ClientPostClose(10);
-            break;
-
-        case 2:
-            status.Add(STATUS_WARNING, "FrameXML is modified or corrupt");
-            ClientPostClose(10);
-            break;
-
-        case 3:
-            break;
-
-        default:
-            ClientPostClose(10);
-            break;
-    }
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52ABD9) -- the result switch is jumped over: no warning, no close.
+    FrameXML_CheckSignature("Interface\\FrameXML\\FrameXML.toc", "Interface\\FrameXML\\Bindings.xml", InterfaceKey, signature);
 
     uint32_t numFiles = 0;
     void* toc;
@@ -1790,11 +1782,8 @@ void CGGameUI::InitializeFrameXML() {
     uint8_t digest[16];
     MD5Final(digest, &md5);
 
-#ifndef DISABLE_SIGNATURE_CHECKS
-    if (memcmp(signature, digest, sizeof(digest))) {
-        ClientPostClose(10);
-    }
-#endif
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52AD43, 0x52AD45) -- je became jmp and the close is NOPed: a digest mismatch
+    // is ignored.
 
     CGGameUI::m_UISimpleParent = static_cast<CSimpleFrame*>(CScriptObject::GetScriptObjectByName("UIParent", CSimpleFrame::GetObjectType()));
 
@@ -2088,8 +2077,10 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
 
     int32_t idleTime = OsGetAsyncTimeMs() - CSimpleTop::s_eventTime;
 
-    if (idleTime - AUTO_SIT_IDLE_TIME >= 0) {
-        if (idleTime - AUTO_LOGOUT_IDLE_TIME < 0) {
+    // CoA: AscGlobalsG.cpp:SetAFKTimer / SetAFKLogoutTimer (Extensions.dll patch 0x52B259, 0x52B25F, 0x52B266) -- the two
+    // compare values are the natives' (stock 300000 / 1800000); SetAFKTimer(0) makes the jl a jmp: never AFK.
+    if (CoA::GlobalsG::AfkEnabled() && idleTime - CoA::GlobalsG::AfkTime() >= 0) {
+        if (idleTime - CoA::GlobalsG::AfkLogoutTime() < 0) {
             if (player) {
                 if (!player->m_unit->m_unitFieldBytes1[0] && !(player->m_unit->m_unitFieldFlags & 0x80000) && !player->IsMounted() && !player->IsAutoTracking()) {
                     player->ChangeStandState(UNIT_SITTING);
@@ -2099,7 +2090,8 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
                     player->SetAFK(nullptr);
                 }
             }
-        } else if (!ClientServices::Connection()->CharacterLoggingOut()) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52B27A) -- jne became jmp: no idle logout unless SetAFKLogoutTimer turned it on.
+        } else if (CoA::AttachPatches::AfkLogoutEnabled() && !ClientServices::Connection()->CharacterLoggingOut()) {
             CGChat::AddChatMessage(FrameScript_GetText("IDLE_MESSAGE", -1, GENDER_NOT_APPLICABLE), 0, 0, 0, 0, 0, nullptr, WOWGUID(), 0, WOWGUID(), 0, 0, 0);
             CGLCD::IdleDisconnectWarning();
             ClientServices::Connection()->CharacterLogout(false, false);
@@ -2697,7 +2689,11 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
                 PlayerNameTriggerColorUpdate(unit->m_nameDesc);
                 unit->UnregisterScript(0x1000);
-                unit->StopNamePlateSpellbar();
+
+                // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x524276)
+                if (!g_namePlateCastBarAll) {
+                    unit->StopNamePlateSpellbar();
+                }
             }
         }
     }
@@ -2770,6 +2766,21 @@ void CGGameUI::AcceptAreaSpiritHeal() {
 // VERIFY: 7e358d82 manual
 // OFFSET: 0x00524BF0
 void CGGameUI::Target(WOWGUID guid) {
+    // CoA: AscRuntime.cpp:Detour524BF0 (orig hook 0x524BF0) -- skipped while a UI reload is requested; list 0x10BE2950
+    // first; after: a morphed target's portrait refreshed (FUN_10111d20), then list 0x10BE2970.
+    if (CGGameUI::m_reloadUIRequested) {
+        return;
+    }
+
+    CoA::ClientHooks::beforeTarget.Run();
+    auto afterTarget = CoA::ClientHooks::OnScopeExit([guid]() {
+        if (guid) {
+            CoA::ClientHooksClient::RefreshMorphPortrait(static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__)));
+        }
+
+        CoA::ClientHooks::afterTarget.Run();
+    });
+
     if (!guid) {
         CGGameUI::unused_BD08CC = 0;
 
@@ -2827,7 +2838,10 @@ void CGGameUI::Target(WOWGUID guid) {
                 unit->ProcessCastNotInterruptible(&spell);
             }
 
-            unit->UpdateSpellCastBars(OsGetAsyncTimeMs());
+            // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x524DC1)
+            if (!g_namePlateCastBarAll) {
+                unit->UpdateSpellCastBars(OsGetAsyncTimeMs());
+            }
 
             if (player) {
                 if (player->CanAttackNow(unit)) {
@@ -3196,9 +3210,10 @@ void CGGameUI::SetCursorSpell(int32_t spellId) {
 
     const char* texture = nullptr;
 
-    if (spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
+    // CoA: AscGlobalsJ.cpp:SetAttackTexture (Extensions.dll patch 0x5209A8)
+    if (g_attackTextureEnabled && spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
         texture = CGActionBar::GetAttackTexture();
-    } else if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+    } else if (g_rangedAttackTextureEnabled && (spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {   // CoA: AscGlobalsJ.cpp:SetRangedAttackTexture (Extensions.dll patch 0x5209B8)
         texture = CGActionBar::GetRangedTexture();
     }
 
@@ -3678,6 +3693,10 @@ void CGGameUI::BeginCinematicInternal(void* param) {
 // VERIFY: 694d44fd manual
 // OFFSET: 0x00528010
 void CGGameUI::EnterWorld() {
+    // CoA: AscRuntime.cpp:EnterWorldDetour (orig hook 0x528010) -- the pre list first, the post list after.
+    CoA::ClientHooks::enterWorld.Run();
+    auto afterEnter = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterEnterWorld.Run(); });
+
     if (CGGameUI::s_inWorld) {
         return;
     }
@@ -4153,6 +4172,9 @@ bool CGGameUI::CanInspect(CGUnit_C* unit) {
 // VERIFY: 1417860a manual
 // OFFSET: 0x005204C0
 void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGroupId, const char* zoneText, const char* subZoneText, const char* realZoneText, int32_t inside) {
+    // CoA: AscRuntime.cpp:Detour5204C0 (orig hook 0x5204C0) -- list 0x10BE290C after, with the first argument.
+    auto afterFeedback = CoA::ClientHooks::OnScopeExit([areaId]() { CoA::ClientHooks::afterZoneFeedback.Run(areaId); });
+
     int32_t newArea = CGGameUI::m_areaID != areaId;
     int32_t hadArea = CGGameUI::m_areaID != 0;
     CGGameUI::m_areaID = areaId;
@@ -4201,7 +4223,8 @@ void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGro
         CGGameUI::m_realZoneText = SStrDupA(realZoneText, __FILE__, __LINE__);
         CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
-        if (player && !(player->m_unit->m_unitFieldFlags & 0x100000) && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x520658) -- the flag 0x100000 test is NOPed.
+        if (player && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
             CGChat::ZoneUpdate();
         }
     }
@@ -6134,7 +6157,8 @@ void LoadPlacedFrames(HOSFILE localFile, HOSFILE cacheFile, void* param) {
             level = -1;
             point = FRAMEPOINT_TOPLEFT;
             y = 0;
-        } else if (!SStrCmpI(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5184E1) -- the compare is NOPed and its jne became jmp: never read.
+        } else if (false) {
             level = SStrToInt(&line[SStrLen("FrameLevel: ")]);
         } else if (!SStrCmpI(line, "Anchor: ", SStrLen("Anchor: "))) {
             StringToFramePoint(&line[SStrLen("Anchor: ")], point);
@@ -7080,7 +7104,8 @@ void CGGameUI::SendRaidDifficultyMessage() {
     MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
 
     if (map && (map->m_flags & 0x100)) {
-        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGGameUI::GetCurrentRaidDifficulty() + 1);
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5247D3) -- the inlined choice is NOPed: always the party's value.
+        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGPartyInfo::m_raidDifficulty + 1);
         CGGameUI::DisplayError(ERR_RAID_LOCKOUT_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
         SStrPrintf(token, sizeof(token), "PLAYER_DIFFICULTY%d", CGPartyInfo::m_dynamicDifficulty + 1);
         CGGameUI::DisplayError(ERR_PLAYER_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
@@ -7470,6 +7495,9 @@ void TaintEventCallback(lua_State* L, int32_t event, const char* name, const cha
 // VERIFY: 559cc5a7 manual
 // OFFSET: 0x00528F00
 void CGGameUI::Shutdown() {
+    // CoA: AscRuntime.cpp:Detour528F00 (orig hook 0x528F00) -- list 0x10BE28CC first.
+    CoA::ClientHooks::beforeShutdown.Run();
+
     CGGameUI::m_accountDataGeneration++;
     g_theGxDevicePtr->RemoveTextureRecreationCallback(UpdateAllPortraits);
     g_theGxDevicePtr->RemoveDeviceRestoredCallback(UpdateAllPortraits);
@@ -7679,8 +7707,7 @@ static void PlacedFrameCallback(HOSFILE file, CSimpleFrame* frame) {
     uint32_t written;
     SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
     OsWriteFile(file, line, SStrLen(line), &written);
-    SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->m_level);
-    OsWriteFile(file, line, SStrLen(line), &written);
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x517EE8) -- the FrameLevel line is NOPed.
     float dx = 0.0f;
     float dy = 0.0f;
     int32_t anchor = 0;
@@ -8125,6 +8152,9 @@ void CCapturePointUIManager::DeleteNode(CapturePointUIManagerNode* node) {
 // VERIFY: 1c2e47fb auto
 // OFFSET: 0x00528C30
 void CGGameUI::LeaveWorld() {
+    // CoA: AscRuntime.cpp:Detour528C30 (orig hook 0x528C30) -- list 0x10BE28AC first.
+    CoA::ClientHooks::leaveWorld.Run();
+
     if (!CGGameUI::s_inWorld) {
         return;
     }
@@ -8162,7 +8192,7 @@ void CGGameUI::LeaveWorld() {
     CGTradeSkillInfo::ClearItemCallbacks();
     CGPetInfo::LeaveWorld();
     CGWorldMap::LeaveWorld();
-    CGReputationInfo::LeaveWorld();
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x528D1E) -- the call is NOPed.
     CGDuelInfo::LeaveWorld();
     CGTabardCreationFrame::Close();
     CGGuildRegistrar::CloseRegistrar();

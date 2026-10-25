@@ -531,7 +531,8 @@ int32_t IsStillLoading() {
 
     CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPE_GAMEOBJECT, __FILE__, __LINE__));
 
-    if (transport) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x409850) -- the jne is NOPed: the screen drops without waiting for it.
+    if (false && transport) {
         CMapBaseObj* object = transport->m_typeData->GetMapObjectTransportID();
 
         if (!object || !World::ObjectIsDrawable(object)) {

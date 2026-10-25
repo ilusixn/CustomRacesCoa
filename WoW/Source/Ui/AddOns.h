@@ -33,6 +33,8 @@ bool LoadAddOn(const char* name, bool demandLoad, CStatus* status);
 uint32_t LoadAddOnFileCount();
 void LoadAddOns(CStatus* status);
 void UnloadAddOns();
+// CoA: AscLibrary.cpp:SaveSavedVariables (FUN_10a70bf0) -- UnloadAddOns' save for one addon only.
+void AddOnsSaveOne(const char* name);
 void SaveAddOnEnableState();
 bool IsAddonVersionCheckEnabled();
 void SetAddonVersionCheck(int32_t enable);

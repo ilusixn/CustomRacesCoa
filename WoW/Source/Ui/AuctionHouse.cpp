@@ -1,4 +1,5 @@
 #include "AuctionHouse.h"
+#include "CoA/Source/Modules/AttachFixesClient.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -2237,6 +2238,9 @@ void CGAuctionHouse::ShutdownGame() {
 // VERIFY: c943a21b manual
 // OFFSET: 0x0076DDE0
 uint32_t CalculateAuctionDeposit(uint32_t depositRate, uint32_t sellPrice, uint32_t runTime) {
+    // CoA: AscAttachFixes.cpp:FUN_10a76870 (orig hook 0x76DDE0) -- replaced: the original below is never reached.
+    return CoA::AttachFixesClient::AuctionDeposit(depositRate, sellPrice, runTime);
+
     for (uint32_t i = 0; i < 3; i++) {
         if (runTime == s_depositRunTimes[i]) {
             uint32_t deposit = static_cast<uint32_t>(static_cast<float>(depositRate * sellPrice / 100) * runTime * 0.0041666669f);

@@ -104,6 +104,11 @@ extern uint32_t s_joystick;
 extern float s_vehicleAimNormPower;
 extern int32_t s_joystickMouseEnabled;
 
+// CoA: AscGlobalsJ.cpp:Custom_HandleTerrainClick (InputControl_Scripts.cpp).
+extern int32_t g_cameraOrSelectAction;
+int32_t CameraOrSelectOrMoveStart(lua_State* L);
+int32_t CameraOrSelectOrMoveStop(lua_State* L);
+
 uint32_t GetJoystick();
 void CheckToCancelCurrentChannelSpell();
 void DescendStart();

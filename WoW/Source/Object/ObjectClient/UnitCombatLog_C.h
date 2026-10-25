@@ -177,4 +177,7 @@ extern CombatLogEntry* s_currentEntry;
 extern CombatLogEntry* s_pendingEntries;
 extern const char* g_spellMissStrings[12];
 
+// CoA: AscGlobalsJ.cpp:Detour74F910 (UnitCombatLog_C.cpp).
+extern bool (*g_combatLogAllowedHook)(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60);
+
 #endif

@@ -1,4 +1,5 @@
 #include "ActionBarFrame.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -1068,6 +1069,13 @@ void CGActionBar::SetAction(int32_t slot, uint32_t action, int32_t sendToServer,
 // VERIFY: 5c508967 manual
 // OFFSET: 0x005AB120
 void CGActionBar::PutActionInSlot(int32_t slot) {
+    // CoA: AscAttachFixes.cpp:sub_10a42770 (orig hook 0x5AB120) -- after a learned spell without a class set (or marked so) the
+    // placement clears the cursor instead.
+    if (CoA::AttachFixes::TakeSkipPutAction()) {
+        CGGameUI::ClearCursor(1, 1);
+        return;
+    }
+
     if (slot < 0 || slot >= sizeof(CGActionBar::m_slotActions) / sizeof(CGActionBar::m_slotActions[0])) {
         return;
     }

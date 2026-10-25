@@ -458,7 +458,9 @@ void SmartScreenRectPositionFrame(SCREENRECTGRIDS grid, CSimpleFrame* frame, CSi
 
     frame->MarkFramePointsUnused();
     float depth = position.z - parent->m_layoutDepth;
-    frame->SetPoint(center ? FRAMEPOINT_CENTER : FRAMEPOINT_TOP, parent, FRAMEPOINT_BOTTOMLEFT, point.x, point.y, 1);
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x615F8C, 0x615F91) -- `and 3; add 1` became `and 7; add 7`: 7 (BOTTOM), or
+    // 14 when centred, a point past the enum that no caller reaches (the only caller passes 0).
+    frame->SetPoint(center ? static_cast<FRAMEPOINT>(14) : FRAMEPOINT_BOTTOM, parent, FRAMEPOINT_BOTTOMLEFT, point.x, point.y, 1);
     frame->SetFrameDepth(depth, true);
 }
 

@@ -47,6 +47,9 @@ void __fastcall UpdateAllPortraits();
 void PortraitInitialize();
 void PortraitShutdown();
 void UpdatePendingPortraits();
+// CoA: AscRuntime.cpp:Detour730290 / Detour524BF0 (orig hook 0x730290, 0x524BF0) -- the cached portrait of a display
+// id marked dirty (s_unitPortraits +0x18 = 1); false when none is cached.
+bool PortraitMarkDirty(uint32_t displayId);
 void SetPortraitTexture(CSimpleTexture* texture, const char* fileName);
 void SetPortraitTexture(CSimpleTexture* texture, uint32_t race, uint32_t sex, WOWGUID guid);
 void SetPortraitTexture(CSimpleTexture* texture, uint32_t displayId, CGPartyPetState* petState);
@@ -55,5 +58,9 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit);
 int32_t ReadyModelForUI(CGUnit_C* unit, uint32_t flags);
 
 extern const char* s_sexNames[3];
+
+// CoA: AscGlobalsJ.cpp:SetMaskTexture / ClearMaskTexture (PortraitButton.cpp).
+extern uint32_t g_portraitMaskSize;
+extern const char* g_portraitMaskPath;
 
 #endif

@@ -252,7 +252,7 @@ int32_t Packet_MSG_GUILD_PERMISSIONS(void* param, NETMESSAGE msgId, uint32_t tim
     msg->Get(reinterpret_cast<uint32_t&>(CGGuildInfo::m_rankInfo[rank].m_bankMoneyPerDay));
     uint8_t numTabs = 0;
     msg->Get(numTabs);
-    CGGuildBankInfo::m_numTabs = numTabs;
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5CBA74) -- the store is NOPed.
 
     for (uint32_t i = 0; i < 6; i++) {
         msg->Get(CGGuildInfo::m_rankInfo[rank].m_bankTabRights[i]);

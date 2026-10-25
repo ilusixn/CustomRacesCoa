@@ -195,7 +195,8 @@ static int32_t Script_OfferPetition(lua_State* L) {
         return 0;
     }
 
-    if (!player->CanCooperate(target)) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5CF2F6) -- jne became jmp: a non-allied target is not refused.
+    if (!player->CanCooperate(target) && false) {
         CGGameUI::DisplayError(ERR_GUILD_NOT_ALLIED);
         return 0;
     }

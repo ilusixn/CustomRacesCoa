@@ -130,8 +130,9 @@ static int32_t s_mainHandItemId;
 // STATIC: 0x00C0E4FC
 static int32_t s_offHandItemId;
 
+// CoA: not static -- Script_TryOn sets it (AscAttachFixes.cpp:FUN_10a4bdc0, orig hook 0x598830).
 // STATIC: 0x00ACF548
-static int32_t s_nextHand = 15;
+int32_t s_nextHand = 15;
 
 // VERIFY: 67467efb auto
 // OFFSET: 0x00597BA0

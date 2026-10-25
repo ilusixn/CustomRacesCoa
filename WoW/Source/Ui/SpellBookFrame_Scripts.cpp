@@ -1217,9 +1217,10 @@ static int32_t Script_GetSpellInfo(lua_State* L) {
 
     const char* texture = "";
 
-    if (spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
+    // CoA: AscGlobalsJ.cpp:SetAttackTexture (Extensions.dll patch 0x540B66)
+    if (g_attackTextureEnabled && spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
         texture = CGActionBar::GetAttackTexture();
-    } else if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+    } else if (g_rangedAttackTextureEnabled && (spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {   // CoA: AscGlobalsJ.cpp:SetRangedAttackTexture (Extensions.dll patch 0x540B76)
         texture = CGActionBar::GetRangedTexture();
     } else {
         SpellIconRec* icon = g_spellIconDB.GetRecord(spell.m_spellIconID);

@@ -129,17 +129,21 @@ static int32_t Script_GetMacroSpell(lua_State* L) {
         return 0;
     }
 
+    // CoA: AscAttachLua.cpp:FUN_10a76c10 (orig hook 0x567450), replaced -- the spell's name, rank and id; nil x 3 for
+    // an unknown spell.
     SpellRec spell;
 
     if (g_spellDB.GetRecord(macro->m_spellID, &spell)) {
-        lua_pushstring(L, spell.m_name);
-        lua_pushstring(L, spell.m_nameSubtext);
+        lua_pushstring(L, spell.m_name ? spell.m_name : "");
+        lua_pushstring(L, spell.m_nameSubtext ? spell.m_nameSubtext : "");
+        lua_pushinteger(L, macro->m_spellID);
     } else {
+        lua_pushnil(L);
         lua_pushnil(L);
         lua_pushnil(L);
     }
 
-    return 2;
+    return 3;
 }
 
 // VERIFY: cbd63495 auto

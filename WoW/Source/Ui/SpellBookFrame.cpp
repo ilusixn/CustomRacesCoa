@@ -1,4 +1,6 @@
 #include "SpellBookFrame.h"
+#include "CoA/Source/Modules/AttachFixesClient.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cstdlib>
 #include <cstring>
 #include "Engine/Source/Base/ConvertUTF.h"
@@ -672,7 +674,11 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
             }
         }
 
-        if (player && player->m_unit->m_unitFieldLevel <= 10 && CGSpellBook::GetSpellProgressionRank(&spell) <= 1 && !(spell.m_attributes & 0x40) && !(spell.m_attributesExB & 0x10) && !SpellRec::HasAura(&spell, 36)) {
+        // CoA: AscAttachFixes.cpp:FUN_10a43820 (orig hook 0x6E7B00) -- the je on the player at 0x542D4E becomes jmp 0x542DA2
+        // (placed, the checks skipped) or jmp 0x542DEB (not placed) while the player's AddKnownSpell asks for it.
+        const CoA::AttachFixes::Placement placement = CoA::AttachFixes::PlacementJump();
+
+        if ((placement == CoA::AttachFixes::Placement::Always && player) || (placement == CoA::AttachFixes::Placement::Stock && player && player->m_unit->m_unitFieldLevel <= 10 && CGSpellBook::GetSpellProgressionRank(&spell) <= 1 && !(spell.m_attributes & 0x40) && !(spell.m_attributesExB & 0x10) && !SpellRec::HasAura(&spell, 36))) {
             int32_t offset = GetActionBarPageOffset(player, &spell);
 
             for (int32_t slot = offset; slot < offset + 12; slot++) {
@@ -1476,6 +1482,11 @@ bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* ty
     return false;
 }
 
+// CoA: AscGlobalsJ.cpp:SetAttackTexture / SetRangedAttackTexture (Extensions.dll patch 0x53DC8A, 0x540B66, 0x5209A8 /
+// 0x53DCAC, 0x540B76, 0x5209B8) -- off: the attack (ranged) spells show their own icon.
+bool g_attackTextureEnabled = true;
+bool g_rangedAttackTextureEnabled = true;
+
 // VERIFY: 50e56750 manual
 // OFFSET: 0x0053DC20
 const char* CGSpellBook::GetSpellTexture(int32_t slot, int32_t petSpell) {
@@ -1486,11 +1497,12 @@ const char* CGSpellBook::GetSpellTexture(int32_t slot, int32_t petSpell) {
         return nullptr;
     }
 
-    if (spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
+    // CoA: AscGlobalsJ.cpp:SetAttackTexture (Extensions.dll patch 0x53DC8A)
+    if (g_attackTextureEnabled && spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
         return CGActionBar::GetAttackTexture();
     }
 
-    if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+    if (g_rangedAttackTextureEnabled && (spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {   // CoA: AscGlobalsJ.cpp:SetRangedAttackTexture (Extensions.dll patch 0x53DCAC)
         const char* texture = CGActionBar::GetRangedTexture();
 
         if (texture) {
@@ -1893,6 +1905,16 @@ uint32_t CGSpellBook::GetShapeshiftForm(int32_t requireForm) {
 // VERIFY: cfe23c3b manual
 // OFFSET: 0x0053D580
 int32_t CGSpellBook::CanShowAura(const SpellRec* spell, const WOWGUID* caster, bool helpful) {
+    // CoA: AscAttachFixes.cpp:sub_10a44b50 (orig hook 0x53D580) -- the listed spells are not shown in a battleground or
+    // arena (Map.dbc InstanceType 3 / 4).
+    if (CoA::AttachFixes::RefusedInPvP(static_cast<uint32_t>(spell->m_id))) {
+        const int32_t instanceType = CoA::AttachFixesClient::CurrentMapInstanceType();
+
+        if (instanceType == 3 || instanceType == 4) {
+            return 0;
+        }
+    }
+
     if ((spell->m_attributes & 0x80) || (spell->m_attributesEx & 0x10000000)) {
         return 0;
     }

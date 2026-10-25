@@ -1,4 +1,5 @@
 #include "ClassTrainerFrame.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Ui/ChatFrame.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -65,6 +66,11 @@ void CGClassTrainer::InitializeGame() {
 // VERIFY: a50c2177 auto
 // OFFSET: 0x005940E0
 void CGClassTrainer::SetTrainer(const WOWGUID& trainer, TRAINER_TYPE type) {
+    // CoA: AscAttachFixes.cpp:FUN_10a42aa0 (orig hook 0x5940E0) -- clearing the trainer tells the server (CMSG 0x741).
+    if (!trainer) {
+        CoA::AttachFixes::SendGuidCleared(CGClassTrainer::m_trainer.m_guid);
+    }
+
     if (trainer == CGClassTrainer::m_trainer) {
         return;
     }

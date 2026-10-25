@@ -308,3 +308,8 @@ void SpellTableDestroy() {
     s_skillLineRecAllocator.Clear(typeid(SKILLLINEREC).raw_name(), SLOG_OBJECT, 1);
     s_skillLineLinkInfo.m_count = 0;
 }
+
+// CoA: AscClientDbcPatch.cpp:On934 sets the client byte 0xD3F60C after a SkillLineAbility patch.
+void SpellTableMarkSkillLineLinkInfoDirty() {
+    s_skillLineLinkInfoDirty = true;
+}

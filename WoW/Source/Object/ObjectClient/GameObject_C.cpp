@@ -1,4 +1,7 @@
 #include "GameObject_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include <string>
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include <cmath>
 #include <cstring>
@@ -569,6 +572,18 @@ int32_t CGGameObject_C::GetModelFileName(const char** name) const {
 // OFFSET: 0x0070CDF0
 const char* CGGameObject_C::GetObjectName() const {
     if (this->m_stats) {
+        // CoA: AscAttachFixes.cpp:FUN_10a42b80 (orig hook 0x70CDF0) -- a "$CN" name takes the creator's name over its first
+        // three characters, kept in the cache (the original writes it into the cached string; a fresh copy here, which
+        // a longer name cannot overrun).
+        if (this->m_stats->m_name[0] && SStrStr(this->m_stats->m_name[0], "$CN")) {
+            std::string text = this->m_stats->m_name[0];
+
+            if (CoA::AttachFixes::ReplaceNameToken(text, GetObjectNameFromGuid(this->m_gameObject->m_createdBy))) {
+                // (One kept copy per stats record: a token past position 0 stays and is renamed on every call.)
+                this->m_stats->m_name[0] = CoA::AttachFixes::KeepName(this->m_stats, text);
+            }
+        }
+
         return this->m_stats->m_name[0];
     }
 
@@ -757,6 +772,17 @@ int32_t CGGameObject_C::ShouldFadeIn() const {
 void CGGameObject_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& hidden) {
     CGObject_C::ShouldRender(flags, render, hidden);
     this->m_typeData->ShouldRender(flags, render, hidden);
+
+    // CoA: AscAttachFixes.cpp:FUN_10a42d60 (orig hook 0x70B960) -- after a non-zero result the object's name is created once
+    // (ObjectNameCreate) and its draw callback updated. The result is eax, which the types' empty ShouldRender leave as
+    // flags.
+    if (flags) {
+        if (!this->m_nameDesc) {
+            this->m_nameDesc = ObjectNameCreate(this->m_obj->m_guid);
+        }
+
+        PlayerNameUpdateDrawCallback(this->m_nameDesc);
+    }
 }
 
 // VERIFY: 981f9d46 manual
@@ -2683,9 +2709,25 @@ C4Quaternion CGGameObject_C::GetRotation() const {
     return this->m_passenger.GetRotation();
 }
 
+// CoA: AscPatchData.cpp:Hook713F50 / Hook712400 (orig hook 0x713F50, 0x712400) -- run after ModelLoaded / LoadBaseObject.
+void (*g_gameObjectModelLoadedHook)(CGGameObject_C* object, CM2Model* model) = nullptr;
+void (*g_gameObjectBaseLoadedHook)(CGGameObject_C* object) = nullptr;
+
 // VERIFY: 7b5a289f manual
 // OFFSET: 0x00713F50
 void CGGameObject_C::ModelLoaded(CM2Model* model) {
+    // CoA: AscPatchData.cpp:Hook713F50 (orig hook 0x713F50) -- after the body, whichever way it returns.
+    struct After {
+        CGGameObject_C* object;
+        CM2Model* model;
+
+        ~After() {
+            if (g_gameObjectModelLoadedHook) {
+                g_gameObjectModelLoadedHook(this->object, this->model);
+            }
+        }
+    } after { this, model };
+
     CAaBox box = model->GetBoundingBox();
     this->m_height = box.t.z - box.b.z;
 
@@ -2879,7 +2921,8 @@ void CGGameObject_C::Reenable() {
         ClntObjMgrHideObject(this->m_obj->m_guid);
     }
 
-    if (this->m_gameObject->m_typeID == 33) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x70ED92) -- the type 33 jne is NOPed: every type.
+    if (true || this->m_gameObject->m_typeID == 33) {
         if (this->m_nameDesc) {
             PlayerNameDelete(this->m_nameDesc);
         }
@@ -2946,6 +2989,11 @@ void CGGameObject_C::LoadBaseObject(GameObjectStats_C* stats) {
     }
 
     this->CheckForPassiveHighlight();
+
+    // CoA: AscPatchData.cpp:Hook712400 (orig hook 0x712400)
+    if (g_gameObjectBaseLoadedHook) {
+        g_gameObjectBaseLoadedHook(this);
+    }
 }
 
 // VERIFY: ac5cb052 manual
@@ -3835,6 +3883,9 @@ int32_t CGGameObject_C::FloatingTooltip() const {
 // VERIFY: 3b7ec338 manual
 // OFFSET: 0x0070F680
 void CGGameObject_C::UseObject() {
+    // CoA: AscRuntime.cpp:Detour70F680 (orig hook 0x70F680) -- the use callbacks after, with the object.
+    auto afterUse = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::gameObjectUsed.Run(this); });
+
     GAME_ERROR_TYPE error;
     float distance;
     const char* errorText = nullptr;

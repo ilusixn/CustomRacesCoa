@@ -299,83 +299,94 @@ static int32_t Script_DoTradeSkill(lua_State* L) {
 // VERIFY: 7c0942ae manual
 // OFFSET: 0x005DB2A0
 static int32_t Script_GetTradeSkillInfo(lua_State* L) {
-    if (!lua_isnumber(L, 1)) {
-        luaL_error(L, "Usage: GetTradeSkillInfo(index)");
-        return 0;
-    }
+    // CoA: AscAttachLua.cpp:FUN_10a770a0 (orig hook 0x5DB2A0) -- one more value: the entry's spell id.
+    const uint32_t entry = static_cast<uint32_t>(static_cast<int32_t>(lua_tonumber(L, 1)));
+    const int32_t result = [&]() -> int32_t {
+        if (!lua_isnumber(L, 1)) {
+            luaL_error(L, "Usage: GetTradeSkillInfo(index)");
+            return 0;
+        }
 
-    uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
-    TradeSkillInfo* info;
+        uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+        TradeSkillInfo* info;
 
-    if (index < CGTradeSkillInfo::m_numDisplayEntries && (info = CGTradeSkillInfo::m_displayList.m_data[index])) {
-        if (info->m_spellId == -1) {
-            bool skillHeader = info->m_itemClass == -1 && info->m_itemSubClass == -1;
-            ItemSubClassRec* rec = nullptr;
+        if (index < CGTradeSkillInfo::m_numDisplayEntries && (info = CGTradeSkillInfo::m_displayList.m_data[index])) {
+            if (info->m_spellId == -1) {
+                bool skillHeader = info->m_itemClass == -1 && info->m_itemSubClass == -1;
+                ItemSubClassRec* rec = nullptr;
 
-            if (!skillHeader) {
-                for (int32_t i = 0; i < g_itemSubClassDB.m_numRecords; i++) {
-                    ItemSubClassRec* subClass = g_itemSubClassDB.GetRecordByIndex(i);
+                if (!skillHeader) {
+                    for (int32_t i = 0; i < g_itemSubClassDB.m_numRecords; i++) {
+                        ItemSubClassRec* subClass = g_itemSubClassDB.GetRecordByIndex(i);
 
-                    if (subClass->m_classID == info->m_itemClass && subClass->m_subClassID == info->m_itemSubClass) {
-                        rec = subClass;
-                        break;
+                        if (subClass->m_classID == info->m_itemClass && subClass->m_subClassID == info->m_itemSubClass) {
+                            rec = subClass;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (skillHeader || rec) {
-                if (skillHeader) {
-                    SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID);
+                if (skillHeader || rec) {
+                    if (skillHeader) {
+                        SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID);
 
-                    if (skillLine) {
-                        lua_pushstring(L, skillLine->m_alternateVerb);
+                        if (skillLine) {
+                            lua_pushstring(L, skillLine->m_alternateVerb);
+                        } else {
+                            lua_pushnil(L);
+                        }
                     } else {
-                        lua_pushnil(L);
+                        lua_pushstring(L, rec->m_verboseName && *rec->m_verboseName ? rec->m_verboseName : rec->m_displayName);
                     }
-                } else {
-                    lua_pushstring(L, rec->m_verboseName && *rec->m_verboseName ? rec->m_verboseName : rec->m_displayName);
-                }
 
-                lua_pushstring(L, "header");
-                lua_pushnumber(L, 0.0);
+                    lua_pushstring(L, "header");
+                    lua_pushnumber(L, 0.0);
 
-                if (CGTradeSkillInfo::IsCollapsedHeader(index)) {
+                    if (CGTradeSkillInfo::IsCollapsedHeader(index)) {
+                        lua_pushnil(L);
+                    } else {
+                        lua_pushnumber(L, 1.0);
+                    }
+
                     lua_pushnil(L);
-                } else {
-                    lua_pushnumber(L, 1.0);
+                    return 5;
                 }
+            } else {
+                SpellRec spell;
 
-                lua_pushnil(L);
-                return 5;
-            }
-        } else {
-            SpellRec spell;
-
-            if (g_spellDB.GetRecord(info->m_spellId, &spell)) {
-                lua_pushstring(L, spell.m_name);
-                lua_pushstring(L, s_difficultyNames[info->m_difficulty]);
-                lua_pushnumber(L, info->m_numAvailable);
-                lua_pushnil(L);
-
-                SkillLineRec* skillLine;
-
-                if (spell.m_effect[0] == SPELL_EFFECT_CREATE_ITEM || spell.m_effect[0] == SPELL_EFFECT_CREATE_ITEM_2 || spell.m_effect[0] == SPELL_EFFECT_CREATE_RANDOM_ITEM || !(skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID))) {
+                if (g_spellDB.GetRecord(info->m_spellId, &spell)) {
+                    lua_pushstring(L, spell.m_name);
+                    lua_pushstring(L, s_difficultyNames[info->m_difficulty]);
+                    lua_pushnumber(L, info->m_numAvailable);
                     lua_pushnil(L);
-                } else {
-                    lua_pushstring(L, skillLine->m_alternateVerb);
-                }
 
-                return 5;
+                    SkillLineRec* skillLine;
+
+                    if (spell.m_effect[0] == SPELL_EFFECT_CREATE_ITEM || spell.m_effect[0] == SPELL_EFFECT_CREATE_ITEM_2 || spell.m_effect[0] == SPELL_EFFECT_CREATE_RANDOM_ITEM || !(skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID))) {
+                        lua_pushnil(L);
+                    } else {
+                        lua_pushstring(L, skillLine->m_alternateVerb);
+                    }
+
+                    return 5;
+                }
             }
         }
+
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushnumber(L, 0.0);
+        lua_pushnil(L);
+        lua_pushnil(L);
+        return 5;
+    }();
+
+    if (static_cast<int32_t>(entry) > 0 && entry <= CGTradeSkillInfo::m_displayList.Count() && CGTradeSkillInfo::m_displayList.m_data[entry - 1]) {
+        lua_pushinteger(L, CGTradeSkillInfo::m_displayList.m_data[entry - 1]->m_spellId);
+        return result + 1;
     }
 
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    return 5;
+    return result;
 }
 
 // VERIFY: 5c82d036 auto
@@ -460,28 +471,34 @@ static int32_t Script_GetTradeSkillNumMade(lua_State* L) {
 // VERIFY: c6337250 manual
 // OFFSET: 0x005DB810
 static int32_t Script_GetTradeSkillLine(lua_State* L) {
-    SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID);
+    // CoA: AscAttachLua.cpp:FUN_10a77100 (orig hook 0x5DB810) -- one more value: the skill line id.
+    const int32_t result = [&]() -> int32_t {
+        SkillLineRec* skillLine = g_skillLineDB.GetRecord(CGTradeSkillInfo::m_skillLineID);
 
-    if (!skillLine) {
-        lua_pushstring(L, "UNKNOWN");
-        lua_pushnumber(L, 0.0);
-        lua_pushnumber(L, 0.0);
+        if (!skillLine) {
+            lua_pushstring(L, "UNKNOWN");
+            lua_pushnumber(L, 0.0);
+            lua_pushnumber(L, 0.0);
+            return 3;
+        }
+
+        lua_pushstring(L, skillLine->m_displayName);
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+        int32_t rank;
+
+        if (player && CGTradeSkillInfo::m_playerGuid == player->m_obj->m_guid) {
+            rank = player->GetSkillValue(player->GetSkillIndex(CGTradeSkillInfo::m_skillLineID));
+        } else {
+            rank = CGTradeSkillInfo::m_skillRank;
+        }
+
+        lua_pushnumber(L, rank);
+        lua_pushnumber(L, CGTradeSkillInfo::GetSkillMaxRank());
         return 3;
-    }
+    }();
 
-    lua_pushstring(L, skillLine->m_displayName);
-    CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
-    int32_t rank;
-
-    if (player && CGTradeSkillInfo::m_playerGuid == player->m_obj->m_guid) {
-        rank = player->GetSkillValue(player->GetSkillIndex(CGTradeSkillInfo::m_skillLineID));
-    } else {
-        rank = CGTradeSkillInfo::m_skillRank;
-    }
-
-    lua_pushnumber(L, rank);
-    lua_pushnumber(L, CGTradeSkillInfo::GetSkillMaxRank());
-    return 3;
+    lua_pushinteger(L, CGTradeSkillInfo::m_skillLineID);
+    return result + 1;
 }
 
 // VERIFY: aadc4baa auto

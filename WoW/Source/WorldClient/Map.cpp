@@ -1,4 +1,5 @@
 #include "Map.h"
+#include "CoA/Source/Modules/Misc.h"
 #include "WoW/Source/WorldClient/WorldLightingConstants.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include "Engine/Source/ShaderEffect/ShadowCache.h"
@@ -2458,7 +2459,7 @@ int32_t CMap::SafeOpen(const char* fileName, SFileImpl** file) {
         DebugLog("CMap::SafeOpen() failed %s\n", fileName);
 
         if (!--tries) {
-            SErrDisplayAppFatal("CMap::SafeOpen() failed %s", fileName);
+            // CoA: AscAttachLua.cpp's installer NOPs 14 bytes at 0x7BD4AF -- no fatal error after the ten tries.
             return 0;
         }
     }
@@ -4162,6 +4163,12 @@ CTexture* CMap::LoadTexture(const char* fileName) {
 // VERIFY: fedf0bee auto
 // OFFSET: 0x007D9A20
 void CMap::LoadArea(CMapArea* area) {
+    // CoA: AscMisc.cpp:FUN_10112920 (orig hook 0x7D9A20) -- the tile LoadADT armed loads its file instead, once.
+    if (const char* file = CoA::MiscClient::TakeAdtOverride(area->m_index.x, area->m_index.y)) {
+        area->Load(file);
+        return;
+    }
+
     char fileName[256];
     SStrPrintf(fileName, sizeof(fileName), "%s\\%s_%d_%d.adt", CMap::mapPath, CMap::mapName, area->m_index.x, area->m_index.y);
     area->Load(fileName);

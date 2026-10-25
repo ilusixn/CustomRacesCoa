@@ -125,7 +125,8 @@ static int32_t Script_CheckInbox(lua_State* L) {
         return 0;
     }
 
-    CGMailInfo::m_nextUpdateTime = now + 60000;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x56E499) -- 60000 became 1.
+    CGMailInfo::m_nextUpdateTime = now + 1;
     CGMailInfo::m_commandPending = 1;
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_MAIL_GET_LIST));
@@ -954,7 +955,8 @@ static int32_t Script_SendMail(lua_State* L) {
     const char* body = lua_isstring(L, 3) ? lua_tolstring(L, 3, nullptr) : "";
     int32_t stationery = CGMailInfo::m_selectedStationery;
 
-    if (!stationery) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5709E8) -- the je is NOPed: no stationery is no refusal.
+    if (false && !stationery) {
         return 0;
     }
 

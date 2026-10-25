@@ -74,6 +74,10 @@ void CoA::Events::ResetQueue() {
     s_custom.clear();
 }
 
+const std::vector<const char*>& CoA::Events::CustomNames() {
+    return s_custom;
+}
+
 const char** CoA::Events::ExtendList(const char** names, uint32_t& count) {
     if (count == 0x29) {
         s_glue.assign(names, names + count);

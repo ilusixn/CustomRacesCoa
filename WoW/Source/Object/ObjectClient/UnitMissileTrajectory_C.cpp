@@ -1,4 +1,5 @@
 #include "UnitMissileTrajectory_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <new>
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -120,6 +121,9 @@ inline CMissileCollision::CMissileCollision() {
 // VERIFY: dba3ae87 manual
 // OFFSET: 0x006FC0F0
 void CMissileCollision::RemoveUnitFromSystem(CGUnit_C* unit) {
+    // CoA: AscRuntime.cpp:Detour6FC0F0 (orig hook 0x6FC0F0) -- list 0x10BE2BEC first, with the object.
+    CoA::ClientHooks::objectFree.Run(unit);
+
     for (CMissileCollision* collision = CMissileCollision::s_head; collision; collision = collision->m_next) {
         uint32_t i = 0;
 

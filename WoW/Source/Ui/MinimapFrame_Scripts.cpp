@@ -184,7 +184,8 @@ static int32_t Script_GetTrackingInfo(lua_State* L) {
 // VERIFY: e417bf52 manual
 // OFFSET: 0x0057BF50
 static int32_t Script_GetZoomLevels(lua_State* L) {
-    lua_pushnumber(L, static_cast<uint32_t>(MinimapGetZoomLevels()));
+    // CoA: AscAttachFixes.cpp:sub_10a4e9f0 (orig hook 0x7F3B60) -- MinimapGetZoomLevels gives 8, not 6, to this caller (0x57BF59).
+    lua_pushnumber(L, static_cast<uint32_t>(8));
     return 1;
 }
 

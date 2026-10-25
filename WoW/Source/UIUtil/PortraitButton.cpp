@@ -334,13 +334,20 @@ static int32_t QueuePortraitUpdate(CGUnit_C* unit, uint32_t flags) {
     return 1;
 }
 
+// CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x6194ED, 0x617721, 0x61779F, 0x619546, 0x619548, 0x61773A,
+// 0x6177A6, 0x6177B2, 0x61935B, 0x61770A) -- a mask path re-points the portrait alpha mask: its size, read again
+// every time, and portraits rebuilt instead of cached. nullptr: the stock 128 / 64 masks.
+uint32_t g_portraitMaskSize = 0;
+const char* g_portraitMaskPath = nullptr;
+
 // VERIFY: 0ce6a9ac manual
 // OFFSET: 0x006176A0
 static TSFixedArray<uint8_t>* GetAlphaMask(uint32_t size) {
     static TSFixedArray<uint8_t> s_alphaMasks[2];
     TSFixedArray<uint8_t>* mask = &s_alphaMasks[size == 64];
 
-    if (mask->m_count) {
+    // CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x61770A)
+    if (mask->m_count && !g_portraitMaskPath) {
         return mask;
     }
 
@@ -349,8 +356,9 @@ static TSFixedArray<uint8_t>* GetAlphaMask(uint32_t size) {
     CTgaFile tga;
     const char* tgaName = nullptr;
 
-    if (size == 128) {
-        tgaName = "Interface\\CharacterFrame\\TempPortraitAlphaMask.tga";
+    // CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x617721, 0x61773A)
+    if (size == (g_portraitMaskPath ? g_portraitMaskSize : 128)) {
+        tgaName = g_portraitMaskPath ? g_portraitMaskPath : "Interface\\CharacterFrame\\TempPortraitAlphaMask.tga";
     } else if (size == 64) {
         tgaName = "Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.tga";
     }
@@ -364,10 +372,11 @@ static TSFixedArray<uint8_t>* GetAlphaMask(uint32_t size) {
     CBLPFile blp;
     const char* blpName = nullptr;
 
-    if (size == 128) {
-        blpName = "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
+    // CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x61779F, 0x6177A6, 0x6177B2)
+    if (size == (g_portraitMaskPath ? g_portraitMaskSize : 128)) {
+        blpName = g_portraitMaskPath ? g_portraitMaskPath : "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
     } else if (size == 64) {
-        blpName = "Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.blp";
+        blpName = g_portraitMaskPath ? g_portraitMaskPath : "Interface\\CharacterFrame\\TempPortraitAlphaMaskSmall.blp";
     }
 
     if (blp.Open(blpName, 1)) {
@@ -468,7 +477,8 @@ void SetPortraitTexture(CSimpleTexture* texture, const char* fileName) {
 
     ITEMPORTRAIT* portrait = s_itemPortraits.Ptr(fileName);
 
-    if (portrait) {
+    // CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x61935B)
+    if (portrait && !g_portraitMaskPath) {
         texture->SetTexture(portrait->m_texture);
         return;
     }
@@ -494,14 +504,18 @@ void SetPortraitTexture(CSimpleTexture* texture, const char* fileName) {
 
         blp.Unlock(0);
         blp.Close();
-        TSFixedArray<uint8_t>* mask = GetAlphaMask(64);
+        // CoA: AscGlobalsJ.cpp:SetMaskTexture (Extensions.dll patch 0x6194ED, 0x619546, 0x619548) -- the texture size is the
+        // original's sign-extended push imm8.
+        const uint32_t maskSize = g_portraitMaskPath ? g_portraitMaskSize : 64;
+        const uint32_t textureSize = static_cast<uint32_t>(static_cast<int32_t>(static_cast<int8_t>(maskSize)));
+        TSFixedArray<uint8_t>* mask = GetAlphaMask(maskSize);
 
         for (uint32_t i = 0; i < portrait->m_texels.Count(); i++) {
             portrait->m_texels.m_data[i].a = mask->m_data[i];
         }
 
         CGxTexFlags flags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-        CTexture* portraitTexture = TextureCreate(64, 64, GxTex_Argb8888, GxTex_Argb8888, flags, &portrait->m_texels, TextureUpdate, "Portrait2", 0);
+        CTexture* portraitTexture = TextureCreate(textureSize, textureSize, GxTex_Argb8888, GxTex_Argb8888, flags, &portrait->m_texels, TextureUpdate, "Portrait2", 0);
         texture->SetTexture(portraitTexture);
         portrait->m_texture = portraitTexture;
     }
@@ -859,4 +873,16 @@ void PortraitShutdown() {
     s_itemPortraits.Clear();
     s_pendingPortraits.Clear();
     s_freePortraits.Clear();
+}
+
+// CoA: FUN_10111d20's portrait lookup (0x6F6020 on 0xC5CE30).
+bool PortraitMarkDirty(uint32_t displayId) {
+    UNITPORTRAIT* portrait = s_unitPortraits.Ptr(displayId, HASHKEY_DWORD{ displayId });
+
+    if (!portrait) {
+        return false;
+    }
+
+    portrait->m_cache.m_dirty = 1;
+    return true;
 }

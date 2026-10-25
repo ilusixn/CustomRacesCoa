@@ -1,4 +1,5 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "CoA/Source/Modules/SmallApisClient.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -1192,9 +1193,13 @@ void DayNight::SetDirection() {
     float sinAzimuth = CMath::sin_(azimuth);
     float cosAzimuth = CMath::cos_(azimuth);
 
-    DayNight::g_dnInfo.m_light1.m_dir.x = cosAzimuth * sinElevation;
-    DayNight::g_dnInfo.m_light1.m_dir.y = sinElevation * sinAzimuth;
-    DayNight::g_dnInfo.m_light1.m_dir.z = cosElevation;
+    // CoA: AscSmallApis.cpp:FUN_1026c920 (Extensions.dll patch 0x7EECA0, 0x7EECA9, 0x7EECB2) -- after C_Sun set a
+    // component the three stores are NOPed for good.
+    if (!CoA::SmallApisClient::SunFrozen()) {
+        DayNight::g_dnInfo.m_light1.m_dir.x = cosAzimuth * sinElevation;
+        DayNight::g_dnInfo.m_light1.m_dir.y = sinElevation * sinAzimuth;
+        DayNight::g_dnInfo.m_light1.m_dir.z = cosElevation;
+    }
 }
 
 // VERIFY: 3766e44c manual
@@ -2578,7 +2583,7 @@ void DayNight::LoadMap(int32_t mapId) {
     DayNight::g_planets.m_moon.m_period = 1.0f;
     DayNight::g_planets.m_moon2.Initialize("Textures\\moon02.blp");
     DayNight::g_planets.m_moon2.m_baseScale = 1.0f;
-    DayNight::g_planets.m_moon2.m_period = 1.7f;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x7F29B9) -- the store is NOPed.
     DayNight::g_stars.Initialize();
     info.m_showSky = 1;
     info.m_flashBlend = 0;

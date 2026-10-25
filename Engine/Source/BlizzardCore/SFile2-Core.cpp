@@ -189,6 +189,9 @@ const char* SFile::GetDataPath() {
 // CoA: AscRealmData.cpp:OpenArchiveDetour (orig hook 0x421950).
 bool (*g_sfileOpenArchiveHook)(const char* path);
 
+// CoA: AscAttachFixes.cpp:FUN_10a6b960 (orig hook 0x424B50).
+void (*g_sfileOpenFailedHook)(const char* name);
+
 // VERIFY: 2f5c6797 manual
 // OFFSET: 0x00421950
 int32_t STORMAPI SFile::OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive) {
@@ -1035,6 +1038,19 @@ int32_t STORMAPI SFile::FileExistsEx(const char* name, uint32_t flags) {
 // VERIFY: 8c71c618 manual
 // OFFSET: 0x00424B50
 int32_t STORMAPI SFile::OpenEx(SArchive* archive, const char* name, uint32_t flags, SFileImpl** result) {
+    // CoA: AscAttachFixes.cpp:FUN_10a6b960 (orig hook 0x424B50) -- a failed open (no file left in *result) is logged once to
+    // MissingFiles.
+    struct FailedOpen {
+        const char* name;
+        SFileImpl** result;
+
+        ~FailedOpen() {
+            if (!*this->result && g_sfileOpenFailedHook) {
+                g_sfileOpenFailedHook(this->name);
+            }
+        }
+    } failedOpen = { name, result };
+
     Blizzard::File::SetLastErrorStack(nullptr);
 
     if (CheckIfStreamingAndTrial() && System_SFile2::s_soundCacheArchive && Blizzard::String::FindI(name, ".wav", 0x7FFFFFFF)) {

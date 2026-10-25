@@ -579,7 +579,7 @@ const char* ClientServices::GetErrorToken(int32_t errorCode) {
 // VERIFY: c031479f auto
 // OFFSET: 0x006B0F90
 int32_t ClientServices::CharacterValidateName(const char* name) {
-    // CoA: AscAttachFixes.cpp (Extensions.dll patch 0x6B0F90) -- replaced: every name passes; the server decides.
+    // CoA: AscAttachFixes.cpp:sub_10a4aae0 (orig hook 0x6B0F90) -- replaced: every name passes (0x57); the server decides.
     return CHAR_NAME_SUCCESS;
 }
 

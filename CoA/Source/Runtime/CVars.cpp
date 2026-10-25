@@ -1,6 +1,7 @@
 #include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include <cstring>
 #include <vector>
 
 namespace {
@@ -21,6 +22,21 @@ namespace {
 
 void CoA::CVars::Queue(const CoA::CVarEntry& entry, bool world) {
     (world ? s_world : s_glue).push_back(entry);
+}
+
+bool CoA::CVars::SetCallback(const char* name, bool (*callback)(CVar* var, const char* oldValue, const char* value, void* arg)) {
+    bool found = false;
+
+    for (std::vector<CoA::CVarEntry>* list : { &s_glue, &s_world }) {
+        for (CoA::CVarEntry& e : *list) {
+            if (strcmp(e.name, name) == 0) {
+                e.callback = callback;
+                found = true;
+            }
+        }
+    }
+
+    return found;
 }
 
 void CoA::CVars::Reset() {

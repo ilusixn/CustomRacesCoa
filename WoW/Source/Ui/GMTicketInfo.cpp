@@ -72,9 +72,12 @@ void CGGMTicketInfo::CreateTicket(const char* text, int32_t needResponse, uint32
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
-    if (!player || !IsTicketTextValid(text)) {
+    if (!player) {
         return;
     }
+
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5AC94D) -- the je is NOPed: the text check no longer refuses.
+    IsTicketTextValid(text);
 
     C3Vector position = player->GetPosition();
     int32_t continent = CGPlayer_C::GetNewContinentID();

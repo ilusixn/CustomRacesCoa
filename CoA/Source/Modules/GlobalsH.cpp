@@ -1,4 +1,4 @@
-// More GLOBAL bindings, mostly request senders (port of AscGlobalsH.cpp). Ported so far: the glue-state natives.
+// More GLOBAL bindings, mostly request senders (port of AscGlobalsH.cpp); AbandonSkillID is in GlobalsHClient.cpp.
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "CoA/Source/Runtime/Packet.h"
@@ -60,7 +60,49 @@ namespace {
         return OpenUrl(L, "https://project-ascension.fandom.com/wiki/Project_Ascension_Wiki/");
     }
 
+    int SendDraftSkip(lua_State*) {
+        CoA::Packet(0x74D).Send();
+        return 0;
+    }
+
+    int RedraftAbilities(lua_State*) {
+        CoA::Packet(0x74E).Send();
+        return 0;
+    }
+
+    int SendDraftModeSpellSelection(lua_State* L) {
+        CoA::Packet(0x74C).U32(static_cast<uint32_t>(ArgInt(L, 1))).Send();
+        return 0;
+    }
+
+    int DeleteStablePet(lua_State* L) {
+        CoA::Packet(0x67C).U32(static_cast<uint32_t>(static_cast<int>(lua_tonumber(L, 1)))).Send();
+        return 0;
+    }
+
+    int RequestStatisticQuery(lua_State* L) {
+        uint32_t id;
+
+        if (CoA::Script::ReadNumber(L, id)) {
+            CoA::Packet(0x777).U32(id).Send();
+        }
+
+        return 0;
+    }
+
+    // CMSG 0x523 { u8 2, u32 item } -- the vanity-collection flavour of the delivery request.
+    int RequestDeliverVanityCollectionItem(lua_State* L) {
+        CoA::Packet(0x523).U8(2).U32(static_cast<uint32_t>(ArgInt(L, 1))).Send();
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
+        COA_NATIVE("", "DeleteStablePet", DeleteStablePet),
+        COA_NATIVE("", "RedraftAbilities", RedraftAbilities),
+        COA_NATIVE("", "RequestDeliverVanityCollectionItem", RequestDeliverVanityCollectionItem),
+        COA_NATIVE("", "RequestStatisticQuery", RequestStatisticQuery),
+        COA_NATIVE("", "SendDraftModeSpellSelection", SendDraftModeSpellSelection),
+        COA_NATIVE("", "SendDraftSkip", SendDraftSkip),
         COA_NATIVE("", "CharacterActivate", CharacterActivate),
         COA_NATIVE("", "CharacterDeactivate", CharacterDeactivate),
         COA_NATIVE("", "GetCallstackHeight", GetCallstackHeight),

@@ -1,4 +1,5 @@
 #include "Tooltip.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -136,8 +137,12 @@ int32_t CGTooltip::s_objectType;
 // STATIC: 0x00AD2D08
 int32_t CGTooltip::s_metatable = LUA_NOREF;
 
+// CoA: AscGlobalsJ.cpp:SetItemQualityColor (orig writes the string 0xAD2A84[q] points at) -- writable copies of the
+// literals; 6 and 7 share one, as the original's pooled "|cffe6cc80".
+static char s_itemQualityColorBuffers[7][11] = { "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000", "|cffe6cc80" };
+
 // STATIC: 0x00AD2A84
-static const char* s_itemQualityColorStrings[8] = { "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000", "|cffe6cc80", "|cffe6cc80" };
+static const char* s_itemQualityColorStrings[8] = { s_itemQualityColorBuffers[0], s_itemQualityColorBuffers[1], s_itemQualityColorBuffers[2], s_itemQualityColorBuffers[3], s_itemQualityColorBuffers[4], s_itemQualityColorBuffers[5], s_itemQualityColorBuffers[6], s_itemQualityColorBuffers[6] };
 
 // STATIC: 0x00AD2D2C
 uint32_t s_tooltipTitleColor = 0xFFFFD200;
@@ -793,6 +798,12 @@ const char* CGTooltip::GetItemQualityColorString(uint32_t quality) {
     }
 
     return s_itemQualityColorStrings[quality];
+}
+
+// CoA: AscGlobalsJ.cpp:SetItemQualityColor -- `color` over the quality's string (its length, no NUL) and the colour.
+void CGTooltip::SetItemQualityColor(uint32_t quality, const char* color, uint32_t argb) {
+    memcpy(const_cast<char*>(s_itemQualityColorStrings[quality]), color, strlen(color));
+    s_itemQualityColors[quality] = argb;
 }
 
 // VERIFY: 217f6dcb manual
@@ -2068,7 +2079,8 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
     CVar* questTracking = CVar::Lookup("showQuestTrackingTooltips");
 
-    if (creature && questTracking && questTracking->m_intValue) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x621EC1) -- the value's je is NOPed.
+    if (creature && questTracking) {
         uint32_t summonedHigh = unit ? static_cast<uint32_t>(unit->m_unit->m_unitFieldSummonedby.m_guid >> 32) : 0;
 
         if (!unit || (summonedHigh & 0xF0000000) || !((summonedHigh & 0xF07FFFFF) | static_cast<uint32_t>(unit->m_unit->m_unitFieldSummonedby.m_guid))) {
@@ -6371,7 +6383,8 @@ static void AddItemSellPrice(CGTooltip* tooltip, const ItemStats_C* stats, CGIte
         return;
     }
 
-    if (item->GetEnchantmentSpell(0) && !item->HasOnUseEnchant() && item->GetUsableSpellCharges() < -1) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x62D779) -- je became jmp: never.
+    if (item->GetEnchantmentSpell(0) && false && !item->HasOnUseEnchant() && item->GetUsableSpellCharges() < -1) {
         price = price * item->GetCurrentSpellCharges() / item->GetUsableSpellCharges();
     }
 
@@ -7456,7 +7469,11 @@ void CGTooltip::AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size) {
             Spell_C_GetMinMaxPoints(&spell, i, &skill, &maxSkill, 0, 0, 0, 0);
 
             if (skill > 0) {
-                int32_t level = unit->m_unit->m_unitFieldLevel;
+                // CoA: AscAttachFixes.cpp:FUN_10a44c30 (orig hook 0x620EE0) -- the level is the unit's addon field 86 for
+                // the call (the client's own until the ObjectAddon module is ported).
+                uint32_t addonLevel = 0;
+                bool (*addonField)(uint64_t, uint32_t, uint32_t&) = CoA::AttachFixes::Dependencies().unitAddonField;
+                int32_t level = addonField && addonField(unit->m_obj->m_guid.m_guid, 86, addonLevel) ? static_cast<int32_t>(addonLevel) : static_cast<int32_t>(unit->m_unit->m_unitFieldLevel);
                 int32_t required;
 
                 if (level <= 10) {
@@ -7911,7 +7928,8 @@ void CGTooltip::SetObject(const WOWGUID& guid) {
     }
     CVar* questTracking = CVar::Lookup("showQuestTrackingTooltips");
 
-    if (questTracking && questTracking->m_intValue) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x626ABF) -- the value's je is NOPed.
+    if (questTracking) {
         QuestLogLeaderBoardParams params;
         params.m_questCallback = TooltipObjectCallback;
         params.m_objectCallback = TooltipObjectCallback;

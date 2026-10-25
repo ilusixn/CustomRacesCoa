@@ -136,4 +136,8 @@ bool GetSlotFromLua(lua_State* L, uint32_t* slot, int32_t* petSpell, int32_t* ty
 bool HasPetSpell(int32_t spellId);
 extern TSGrowableArray<int32_t> s_openLockSpells;
 
+// CoA: AscGlobalsJ.cpp:SetAttackTexture / SetRangedAttackTexture (SpellBookFrame.cpp).
+extern bool g_attackTextureEnabled;
+extern bool g_rangedAttackTextureEnabled;
+
 #endif

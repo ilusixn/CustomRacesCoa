@@ -35,7 +35,8 @@ int32_t RealmConnection::HandleCharEnum(uint32_t msgId, uint32_t time, CDataStor
 
     int32_t invalid = 0;
 
-    if (count > 10) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x464C4F) -- the cap 10 became 0x80.
+    if (count > 0x80) {
         count = 0;
         invalid = 1;
     }

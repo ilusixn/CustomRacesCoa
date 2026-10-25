@@ -1,4 +1,5 @@
 #include "Item_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/Ui/ItemSocketInfo.h"
 #include "WoW/Source/Ui/LootFrame.h"
@@ -142,7 +143,8 @@ static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t field
     if (item && item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         int32_t oldItemId = *static_cast<const int32_t*>(oldValue);
         CGActionBar::UpdateItem(oldItemId);
-        g_itemDBCache.Invalidate(oldItemId);
+        // CoA: AscAttachInline.cpp (Extensions.dll patch 0x67A18E) -- the item cache's Invalidate (its only caller is here) returns at
+        // once: je became jmp.
 
         WOWGUID itemGuid = item->m_obj->m_guid;
 
@@ -196,14 +198,15 @@ static int32_t OnUpdateDurability(WOWGUID guid, uint32_t fieldOffset, uint32_t f
                     invSlot = (item->m_virtualItem.m_inventoryType != 26) + 15;
                 }
 
-                if (oldDurability > 0) {
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x707BA3) -- jle became jmp: never removed.
+                if (false && oldDurability > 0) {
                     CCharacterComponent::RemoveHandItem(owner->m_worldModel, static_cast<INVENTORY_SLOTS>(invSlot), static_cast<SHEATHE_TYPE>(item->m_virtualItem.m_sheatheType), item->m_virtualItem.m_inventoryType == 14);
 
                     WOWGUID ownerGuid = owner->m_obj->m_guid;
                     CGGameUI::UnitModelUpdate(ownerGuid, 3);
                 }
             } else if (!(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldDurability && !oldDurability) {
-                owner->EquipItem(item);
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x707BE2) -- the EquipItem call is NOPed.
 
                 WOWGUID ownerGuid = owner->m_obj->m_guid;
                 CGGameUI::UnitModelUpdate(ownerGuid, 3);
@@ -1501,6 +1504,9 @@ WOWGUID CGItem_C::s_bindOnUseItem;
 // VERIFY: 92b5a602 manual
 // OFFSET: 0x00708C20
 int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
+    // CoA: AscRuntime.cpp:Detour708C20 (orig hook 0x708C20) -- the use callbacks after, with the item.
+    auto afterUse = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::itemUsed.Run(this); });
+
     if ((this->m_obj->m_type & TYPE_CONTAINER) || (this->m_itemFlags & 1)) {
         return 0;
     }
@@ -1808,7 +1814,8 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
     }
 
     if (slot == 17) {
-        if (bypass != (rec->m_inventoryType == 28)) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x708328) -- je became jmp: the bypass check never refuses.
+        if (false && bypass != (rec->m_inventoryType == 28)) {
             return 0;
         }
 

@@ -109,7 +109,8 @@ static int32_t Script_ConvertToRaid(lua_State* L) {
     if (CGPartyInfo::m_members[0] && CGPartyInfo::m_leader == ClntObjMgrGetActivePlayer()) {
         CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
-        if (player && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) >= 10) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x574A5F) -- level 10 became 0.
+        if (player && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) >= 0) {
             CDataStore msg;
             msg.Put(static_cast<uint32_t>(CMSG_GROUP_RAID_CONVERT));
             msg.Finalize();

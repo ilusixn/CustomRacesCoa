@@ -2525,7 +2525,9 @@ int32_t CGChat::OnChannelNotify(void* param, NETMESSAGE msgId, uint32_t time, CD
             if (!channel || channel->m_unk9C) {
                 SStrCopy(text, "YOU_JOINED", sizeof(text));
             } else {
-                SStrCopy(text, "YOU_CHANGED", sizeof(text));
+                // CoA: AscAttachLate.cpp (Extensions.dll patch 0x50E260) -- the copy is NOPed; the original's stack buffer keeps whatever it
+                // held, here an empty string.
+                text[0] = '\0';
 
                 if (!s_activeDisplayChannelType && !SStrCmpUTF8I(channel->m_name, CGChat::s_activeDisplayChannelName, STORM_MAX_STR)) {
                     SetCurrentActiveDisplayChannel(nullptr, 0);

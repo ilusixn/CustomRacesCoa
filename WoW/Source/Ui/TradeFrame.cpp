@@ -1,4 +1,7 @@
 #include "TradeFrame.h"
+#include "WoW/Source/Ui/GossipInfo.h"
+#include "WoW/Source/Ui/MailInfo.h"
+#include "WoW/Source/Ui/MerchantFrame.h"
 #include <cstring>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/Types.h"
@@ -566,7 +569,9 @@ void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, int32_t bagResult, int
                     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), TYPE_PLAYER, __FILE__, __LINE__));
 
                     if (unit) {
-                        if (unit->IsDeadOrGhost() || CGGameUI::m_inCinematic || !CGGameUI::m_hasControl || CGAuctionHouse::m_auctioneer) {
+                        // CoA: AscAttachLate.cpp:Hook6DAC10 (orig hook 0x6DAC10), from 0x587455 -- "dead" while a gossip, merchant
+                        // or mailbox is open.
+                        if ((CGGossipInfo::m_gossip || CGMerchantInfo::m_merchant || CGMailInfo::m_object) || unit->IsDeadOrGhost() || CGGameUI::m_inCinematic || !CGGameUI::m_hasControl || CGAuctionHouse::m_auctioneer) {
                             Trade_C_PlayerBusy();
                         } else if (CVar::Lookup("BlockTrades")->m_intValue) {
                             Trade_C_PlayerBusy();

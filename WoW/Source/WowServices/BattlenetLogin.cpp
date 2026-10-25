@@ -39,7 +39,8 @@ char BattlenetLogin::s_monolithicPlatform[5];
 // VERIFY: 4bbf2db9 auto
 // OFFSET: 0x008C51D0
 void BattlenetAssert(const char* message, const char* file, int32_t line) {
-    SErrDisplayErrorFmt(0x85100000, file ? file : "", line, 0, 1, "Internal Battle.net Error: %s", message ? message : "");
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x8C51F0) -- the format became "    %s".
+    SErrDisplayErrorFmt(0x85100000, file ? file : "", line, 0, 1, "    %s", message ? message : "");
     abort();
 }
 
