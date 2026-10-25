@@ -209,4 +209,7 @@ void STORMAPI SFileSetSignatureCallbacks(int32_t enable);
 // CoA: AscRealmData.cpp:OpenArchiveDetour (orig hook 0x421950) -- false refuses the archive.
 extern bool (*g_sfileOpenArchiveHook)(const char* path);
 
+// CoA: AscAttachFixes.cpp:FUN_10a6b960 (orig hook 0x424B50) -- called with the name of each failed SFile::OpenEx.
+extern void (*g_sfileOpenFailedHook)(const char* name);
+
 #endif

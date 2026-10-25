@@ -1,4 +1,5 @@
 #include "MerchantFrame.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cstddef>
 #include <cstdlib>
 #include "WoW/Source/Object/Player.h"
@@ -66,6 +67,11 @@ int32_t CGMerchantInfo::GetRepairCost(CGItem_C* item) {
 // VERIFY: 476fd930 auto
 // OFFSET: 0x00584600
 void CGMerchantInfo::CloseMerchant() {
+    // CoA: AscAttachFixes.cpp:0x10A43590 (orig hook 0x584600) -- closing a merchant tells the server (CMSG 0x741).
+    if (CGMerchantInfo::m_merchant) {
+        CoA::AttachFixes::SendGuidCleared(CGMerchantInfo::m_merchant.m_guid);
+    }
+
     if (!CGMerchantInfo::m_merchant) {
         return;
     }

@@ -1,4 +1,6 @@
 #include "GossipInfo.h"
+#include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/Profiler.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/GameUI.h"
@@ -53,6 +55,14 @@ void CGGossipInfo::InitializeGame() {
 // VERIFY: 8d00a6fa manual
 // OFFSET: 0x0058A550
 void CGGossipInfo::SetGossip(const WOWGUID& guid) {
+    // CoA: AscAttachFixes.cpp:FUN_10a42e60 (orig hook 0x58A550) -- closing a gossip tells the server (CMSG 0x741), unless
+    // inside SMSG 0x19F / 0x1B1 / 0x188 / 0x18D.
+    const int32_t opcode = CoA::Profiler::CurrentOpcode();
+
+    if (CGGossipInfo::m_gossip && !guid && opcode != 0x19F && opcode != 0x1B1 && opcode != 0x188 && opcode != 0x18D) {
+        CoA::AttachFixes::SendGuidCleared(CGGossipInfo::m_gossip.m_guid);
+    }
+
     if (guid == CGGossipInfo::m_gossip) {
         return;
     }

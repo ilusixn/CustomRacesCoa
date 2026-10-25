@@ -58,6 +58,7 @@ static const CoA::Module s_modules[] = {
     { "RealmDataClient", CoA::RealmDataClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
+    { "AttachFixesClient", CoA::AttachFixesClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

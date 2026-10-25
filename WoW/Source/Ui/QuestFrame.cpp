@@ -1,4 +1,6 @@
 #include "QuestFrame.h"
+#include "CoA/Source/Modules/Profiler.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -155,6 +157,12 @@ QuestGiverQuest CGQuestInfo::m_availableQuests[32];
 // VERIFY: 63c859fb manual
 // OFFSET: 0x0058CA70
 void CGQuestInfo::QuestGiverFinished(int32_t keepOpen, uint32_t questId, int32_t notify) {
+    // CoA: AscAttachFixes.cpp:FUN_10a449f0 (orig hook 0x58CA70) -- (0, x, 1) tells the server (CMSG 0x741 {the quest giver}),
+    // unless inside SMSG 0x17D.
+    if (keepOpen == 0 && notify == 1 && CoA::Profiler::CurrentOpcode() != 0x17D) {
+        CoA::AttachFixes::SendGuidCleared(CGQuestInfo::m_npc.m_guid);
+    }
+
     if (!CGQuestInfo::m_npc) {
         return;
     }

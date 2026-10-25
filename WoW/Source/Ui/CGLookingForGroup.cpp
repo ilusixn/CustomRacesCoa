@@ -1,4 +1,5 @@
 #include "LFGInfo.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
@@ -121,7 +122,8 @@ int32_t PushDungeonEncounterInfo(lua_State* L, int32_t mapId, int32_t difficulty
 // VERIFY: f5aceb4b auto
 // OFFSET: 0x00553B50
 uint32_t FilterRolesByClass(uint8_t roles) {
-    ChrClassesRec* rec = g_chrClassesDB.GetRecord(ClientServices::GetCharacterClass());
+    // CoA: AscAttachFixes.cpp:FUN_10a4aaf0 (orig hook 0x6B1080) -- the class ChrClassesRoles.dbc's roles stand for.
+    ChrClassesRec* rec = g_chrClassesDB.GetRecord(CoA::AttachFixes::LfgRoleClass(ClientServices::GetCharacterClass()));
     return roles & s_classRoles[rec->m_id - 1];
 }
 

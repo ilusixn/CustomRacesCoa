@@ -1,4 +1,5 @@
 #include "WoW/Source/DB/Rec/SpellRec.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "WoW/Source/Client.h"
 
@@ -378,6 +379,11 @@ bool SpellRec::Read(SFileImpl* file, const char* stringBuffer) {
         this->m_nameSubtext = "";
         this->m_description = "";
         this->m_auraDescription = "";
+    }
+
+    // CoA: AscAttachFixes.cpp:sub_10a760e0 (orig hook 0x8A65E0) -- the aura types of the three effects are clamped.
+    for (uint32_t i = 0; i < 3; i++) {
+        CoA::AttachFixes::ClampSpellEffect(this->m_effectAura[i], this->m_effectMiscValue[i]);
     }
 
     return true;

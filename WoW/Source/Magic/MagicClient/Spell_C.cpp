@@ -1,4 +1,5 @@
 #include "Spell_C.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -5428,6 +5429,11 @@ static bool Spell_C_IsSpellPending(int32_t spellId) {
 // VERIFY: a0204cde manual
 // OFFSET: 0x00806030
 bool Spell_C_IsCurrentSpell(int32_t spellId) {
+    // CoA: AscAttachFixes.cpp:sub_10a77190 (orig hook 0x806030) -- never current for SpellCustomAttr +0x14 bit 0x400000.
+    if (CoA::AttachFixes::CustomAttr(static_cast<uint32_t>(spellId), 0x14) & 0x400000) {
+        return false;
+    }
+
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(spellId, &spell)) {
@@ -6059,11 +6065,16 @@ void Spell_C_StartSpellCooldown(const SpellRec* spell, CGUnit_C* unit) {
         recovery = (recovery + flat) * pct / 100;
     }
 
-    if (spell->m_startRecoveryCategory == 133 && time == 1500 && spell->m_defenseType != 2 && spell->m_defenseType != 3 && !(spell->m_attributes & 0x12)) {
+    // CoA: AscAttachFixes.cpp:FUN_10a77240 (orig hook 0x805D70) -- SpellCustomAttr +0x18 & 0x10 makes the jne at 0x805DDD a
+    // jmp (every spell's global cooldown scales with cast speed), +0x14 & 0x800000 the jbe at 0x805E2D (no 1-1.5 s clamp).
+    const bool alwaysScaled = (CoA::AttachFixes::CustomAttr(static_cast<uint32_t>(spell->m_id), 0x18) & 0x10) != 0;
+    const bool unclamped = (CoA::AttachFixes::CustomAttr(static_cast<uint32_t>(spell->m_id), 0x14) & 0x800000) != 0;
+
+    if (alwaysScaled || (spell->m_startRecoveryCategory == 133 && time == 1500 && spell->m_defenseType != 2 && spell->m_defenseType != 3 && !(spell->m_attributes & 0x12))) {
         float scaled = recovery * unit->m_unit->m_unitModCastSpeed;
         recovery = CMath::fint_(scaled - 0.5f);
 
-        if (static_cast<uint32_t>(recovery - 1000) > 500) {
+        if (!unclamped && static_cast<uint32_t>(recovery - 1000) > 500) {
             recovery = recovery - 1000 < 0 ? 1000 : 1500;
         }
     }
