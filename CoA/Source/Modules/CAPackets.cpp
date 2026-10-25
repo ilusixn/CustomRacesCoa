@@ -701,6 +701,7 @@ void CoA::CA::Init() {
     InitEdit();
     InitSuggest();
     InitLinks();
+    CoA::CAFilter::Init();
     COA_EVENT("ASCENSION_CA_SPECIALIZATION_ACTIVE_ID_CHANGED");
     COA_EVENT("ASCENSION_KNOWN_ENTRY_UPDATED");
     COA_EVENT("ASCENSION_ENTRY_UPDATED");

@@ -245,6 +245,10 @@ namespace {
         return false;
     }
 
+    std::string SpellDescription(uint32_t spell) {
+        return CoA::SpellText::Description(spell, true, true, 0);
+    }
+
     bool SpellKnownForText(uint32_t spell, bool includeRanks) {
         return CoA::CA::SpellKnown(spell, includeRanks);
     }
@@ -273,6 +277,9 @@ void CoA::CAClient::Init() {
     d.unitTokenGuid = UnitTokenGuid;
     d.rankNumber = CoA::SpellRank::RankNumber;
     d.pickupFromSpellbook = PickupFromSpellbook;
+    d.spellName = CoA::SpellText::Name;
+    d.spellForms = CoA::SpellText::FormText;
+    d.spellDescription = SpellDescription;
 
     CoA::ClientHooks::SpellPacketHooks& h = CoA::ClientHooks::spellPackets;
     h.initialSpells = InitialSpells;

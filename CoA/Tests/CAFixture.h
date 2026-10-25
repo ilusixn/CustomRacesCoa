@@ -236,11 +236,11 @@ namespace CAFixture {
         CaRow(120).Spell(1, 5500).U32(0x124, 0x100000).Put();   // auto-learned, free
         CaRow(121).Spell(1, 5600).U32(0x1D8, 3).U32(0x1E4, 7).U32(0x1F0, 5).Put();   // cast requirement: 5 points
         CaRow(122).Spell(1, 5601).U32(0xA0, 5).U32(0x44, 3).Put();               // 5 points in class 3 / tab 7, quality cost 3
-        CaRow(130).Spell(1, 5700).U32(0x124, 0x20000).Put();                     // DISPLAY_ENTRY
+        CaRow(130).Spell(1, 5700).U32(0x124, 0x20000).U32(0x1C8, 2).Put();                     // DISPLAY_ENTRY
         CaRow(131).Spell(1, 5701).U32(0x124, 8).Put();                           // DISABLED
         CaRow(132).Spell(1, 5702).Byte(0xE0, 1).Put();                     // starting nodes 132 / 133
-        CaRow(133).Spell(1, 5703).Byte(0xE0, 1).Put();
-        CaRow(134).Spell(1, 5704).U32(0xE4, 100).Put();                          // connected to 100
+        CaRow(133).Spell(1, 5703).Byte(0xE0, 1).U32(0x1C8, 2).Put();   // category 2
+        CaRow(134).Spell(1, 5704).U32(0xE4, 100).U32(0x1C8, 2).Put();                          // connected to 100
         CaRow(135).Spell(1, 5705).U32(0x74, 9).Put();                            // choice group 9: 135 / 136
         CaRow(136).Spell(1, 5706).U32(0x74, 9).Put();
         CaRow(139).Spell(1, 5709).U32(0x88, 50).Put();                           // needs 50 AE invested

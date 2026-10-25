@@ -53,6 +53,11 @@ namespace CoA::CA::detail {
     void InitSuggest();   // CASuggest.cpp
     void InitLinks();     // CALinks.cpp
     void ResetSuggest();  // tests: the suggestion lists, maps and dirty marks back to their start
+    // FUN_10333650: up to ten suggested entries the active build lacks, in weight order, limited to a category (row
+    // +0x1C8..+0x1D0) unless it is 0. FUN_10333770: up to `max` suggested entries whose row is (or is not) an ability,
+    // optionally skipping known ones.
+    std::vector<uint32_t> SuggestedFor(uint32_t category);
+    std::vector<uint32_t> SuggestedEntries(bool abilities, uint32_t max, bool skipKnown);
 }
 
 #endif
