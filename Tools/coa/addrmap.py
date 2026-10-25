@@ -18,8 +18,11 @@ CLIENT_LO = 0x00401000
 CLIENT_HI = 0x00DFFFFF
 COLUMNS = ['addr', 'kind', 'recon_refs', 'decomp_symbol', 'decomp_file:line', 'status']
 
-OFFSET_RE = re.compile(r'//\s*OFFSET:\s*0x([0-9A-Fa-f]+)')
+OFFSET_RE = re.compile(r'//\s*OFFSET:\s*(\[[^\]]*\]|0x[0-9A-Fa-f]+)')
+STATIC_RE = re.compile(r'//\s*STATIC:\s*0x([0-9A-Fa-f]+)')
+HEX_RE = re.compile(r'0x([0-9A-Fa-f]+)')
 SYMBOL_RE = re.compile(r'([A-Za-z_~][\w:~]*)\s*\(')
+DATA_SYMBOL_RE = re.compile(r'([A-Za-z_][\w:]*)\s*(?:\[[^\]]*\]\s*)*(?:=[^;]*)?(?:\{[^;]*)?;')
 ADDR_RE = re.compile(r'(?<![\w.])0x([0-9A-Fa-f]{6,8})\b')
 SOURCE_EXT = ('.c', '.cpp', '.h', '.hpp', '.inc')
 SKIP_DIRS = {'.git', 'out', 'build', 'ThirdParty', 'third_party', 'bin', '.superpowers'}
@@ -44,25 +47,44 @@ def walk_sources(root):
                 yield os.path.join(dirpath, name)
 
 
-def index_offsets(root):
-    """addr -> (symbol, path, line) for every `// OFFSET:` tag; line is the declaration line (1-based)."""
+def _scan_tags(root):
+    """addr -> (symbol, path, line, kind) for every `// OFFSET:` (func, a single address or a bracketed list of
+    template instances) and `// STATIC:` (data) tag; line is the declaration line (1-based)."""
     index = {}
     for path in walk_sources(root):
         with open(path, encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
         for i, line in enumerate(lines):
             m = OFFSET_RE.search(line)
+            kind = 'func'
             if not m:
-                continue
+                m = STATIC_RE.search(line)
+                kind = 'data'
+                if not m:
+                    continue
+                addrs = [int(m.group(1), 16)]
+            else:
+                addrs = [int(a, 16) for a in HEX_RE.findall(m.group(1))]
             for j in range(i + 1, min(i + 6, len(lines))):
                 text = lines[j].strip()
-                if not text or text.startswith('//'):
+                if not text or text.startswith('//') or text.startswith('template'):
                     continue
-                s = SYMBOL_RE.search(text)
+                s = (DATA_SYMBOL_RE if kind == 'data' else SYMBOL_RE).search(text)
                 if s:
-                    index[int(m.group(1), 16)] = (s.group(1), path, j + 1)
+                    for addr in addrs:
+                        index[addr] = (s.group(1), path, j + 1, kind)
                 break
     return index
+
+
+def index_offsets(root):
+    """addr -> (symbol, path, line) for every OFFSET and STATIC tag."""
+    return {a: v[:3] for a, v in _scan_tags(root).items()}
+
+
+def index_kinds(root):
+    """addr -> 'func' (OFFSET) or 'data' (STATIC)."""
+    return {a: v[3] for a, v in _scan_tags(root).items()}
 
 
 def scan_recon(root):
@@ -87,14 +109,14 @@ scan_recon.hints = {}
 
 
 def build(decomp_root, recon_root):
-    index = index_offsets(decomp_root)
+    index = _scan_tags(decomp_root)
     refs = scan_recon(recon_root)
     rows = {}
     for addr, where in refs.items():
         if addr in index:
-            symbol, path, line = index[addr]
+            symbol, path, line, kind = index[addr]
             location = f'{os.path.relpath(path, decomp_root).replace(os.sep, "/")}:{line}'
-            rows[addr] = Row(addr, 'func', where, symbol, location, 'mapped')
+            rows[addr] = Row(addr, kind, where, symbol, location, 'mapped')
         else:
             rows[addr] = Row(addr, scan_recon.hints.get(addr, 'unknown'), where)
     return rows

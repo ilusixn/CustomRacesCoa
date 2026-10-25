@@ -10,6 +10,11 @@ class CDataStore;
 // stock NetClient table. NetClient::SetMessageHandler / ProcessMessage call in here.
 namespace CoA::Packets {
     constexpr int32_t FIRST_CUSTOM = 0x55F;
+    constexpr uint32_t STOCK_TABLE_SIZE = 0x51F;   // NetClient::m_handlers (NUM_MSG_TYPES)
+
+    // 0x51F..0x55E: past the stock handler table, below the DLL's range. The 32-bit client indexes past its table
+    // there; CoA64 treats these opcodes as unhandled (CoA/DIFFERENCES.md).
+    bool InGap(uint32_t opcode);
 
     typedef int32_t (*Handler)(void* param, uint32_t opcode, uint32_t time, CDataStore* msg);
 

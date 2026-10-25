@@ -21,6 +21,10 @@ namespace {
     };
 }
 
+bool CoA::Packets::InGap(uint32_t opcode) {
+    return opcode >= CoA::Packets::STOCK_TABLE_SIZE && opcode < static_cast<uint32_t>(CoA::Packets::FIRST_CUSTOM);
+}
+
 void CoA::Packets::Set(uint32_t opcode, Handler handler, void* param) {
     Map().insert_or_assign(opcode, Entry { handler, param });
 }
