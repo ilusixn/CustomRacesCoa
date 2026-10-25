@@ -8,7 +8,7 @@
 #define GAME_BUILD_DATE "Jun 24 2010"
 #define GAME_BUILD_TIME "23:54:57"
 
-#define CLIENT_NAME "Waystone"
+#define CLIENT_NAME "CoA64"
 
 #define GAME_VERSION_XSTR(x) #x
 #define GAME_VERSION_STR(x) GAME_VERSION_XSTR(x)
