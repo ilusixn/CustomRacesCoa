@@ -51,6 +51,7 @@ static const CoA::Module s_modules[] = {
     { "CharacterCreate", CoA::CharacterCreate::Init },
     { "ObjectAddon", CoA::ObjectAddon::Init },
     { "AuraAmounts", CoA::AuraAmounts::Init },
+    { "GameMode", CoA::GameMode::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -77,6 +78,7 @@ static const CoA::Module s_modules[] = {
     { "ClientDbcPatchClient", CoA::ClientDbcPatchClient::Init },
     { "ObjectAddonClient", CoA::ObjectAddonClient::Init },
     { "AuraAmountsClient", CoA::AuraAmountsClient::Init },
+    { "GameModeClient", CoA::GameModeClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
