@@ -122,3 +122,19 @@ class ScanCoaTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class GlueStateCoverageTest(unittest.TestCase):
+    def test_glue_state_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, 'BindingStates.generated.inc')
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write('static const StateName kGlueBindings[] = {\n    {"", "A"},\n    {"C_X", "B"},\n};\n'
+                        'static const StateName kWorldBindings[] = {\n    {"", "W"},\n};\n')
+            glue = inventory.parse_glue_bindings(path)
+        self.assertEqual(glue, {('', 'A'), ('C_X', 'B')})
+        have = inventory.Inventory()
+        have.natives.add(('', 'A', ''))
+        text = inventory.report(inventory.Inventory(), have, glue)
+        self.assertIn('natives (glue state): 1/2', text)
+        self.assertIn('`C_X.B`', text)
