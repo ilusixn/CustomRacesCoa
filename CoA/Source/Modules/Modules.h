@@ -30,6 +30,7 @@ namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
 namespace CoA::ObjectAddon { void Init(); }
 namespace CoA::AuraAmounts { void Init(); }
+namespace CoA::GameMode { void Init(); }
 namespace CoA::BridgeStore { void Init(); }
 namespace CoA::VanityCollection { void Init(); }
 namespace CoA::MythicPlus { void Init(); }
@@ -44,6 +45,7 @@ namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
 namespace CoA::ObjectAddonClient { void Init(); }
 namespace CoA::AuraAmountsClient { void Init(); }
+namespace CoA::GameModeClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
 namespace CoA::BindingsClient { void Init(); }
 namespace CoA::LibraryClient { void Init(); }
