@@ -41,6 +41,11 @@ namespace CoATest {
         std::vector<uint8_t> data;
     };
 
+    // A WDBC file: each row is its dwords (all rows the same length), then the string block (offset 0 is "").
+    std::vector<uint8_t> Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings);
+    // A localized-string block of a WDBC row: the offset in all 16 locale slots, then the flags dword.
+    std::vector<uint32_t> Loc(uint32_t offset);
+
     // Feeds a payload to a handler with the CoA::Packets::Handler signature.
     int32_t Deliver(int32_t (*handler)(void*, uint32_t, uint32_t, CDataStore*), uint32_t opcode, Bytes& bytes, CDataStore** out = nullptr);
 

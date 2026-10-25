@@ -47,6 +47,10 @@ void CoA::Dbc::SetFileReader(CoA::Dbc::FileReader reader) {
     s_reader = reader;
 }
 
+bool CoA::Dbc::ReadFile(const char* path, std::vector<uint8_t>& out) {
+    return s_reader && s_reader(path, out);
+}
+
 void CoA::Dbc::SetLocaleSlot(uint32_t (*slot)()) {
     s_localeSlot = slot;
 }
@@ -122,7 +126,24 @@ void CoA::Dbc::Table::Load() {
 
     // The DLL's struct is the file row with each localized block (16 locale offsets + flags) reduced to the offset
     // for this client's locale. Byte fields ('b') are packed in the file but the struct keeps natural alignment.
-    if (const char* spec = LayoutFor(this->m_path)) {
+    const char* spec = LayoutFor(this->m_path);
+
+    if (spec) {
+        uint32_t fileWidth = 0;
+
+        for (const char* c = spec; *c; ++c) {
+            fileWidth += *c == 'b' ? 1 : *c == 'L' ? 68 : 4;
+        }
+
+        if (fileWidth != this->m_rowSize) {
+            // The DLL's row parser assumes the layout; a file of another width would be read past its rows.
+            CoA::Log::Printf("%s: row size %u does not match its layout (%u); rows kept as in the file", this->m_path.c_str(),
+                this->m_rowSize, fileWidth);
+            spec = nullptr;
+        }
+    }
+
+    if (spec) {
         uint32_t structSize = 0;
 
         for (const char* c = spec; *c; ++c) {

@@ -19,6 +19,8 @@ namespace CoA::Profiler { void Init(); }
 namespace CoA::GlobalsH { void Init(); }
 namespace CoA::GlobalsC { void Init(); }
 namespace CoA::PatchData { void Init(); }
+namespace CoA::Specs { void Init(); }
+namespace CoA::LuaDbc { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -27,5 +29,8 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
 namespace CoA::BindingsClient { void Init(); }
 namespace CoA::LibraryClient { void Init(); }
+namespace CoA::SpellTextClient { void Init(); }
+namespace CoA::ClassRaceClient { void Init(); }
+namespace CoA::GlobalsJClient { void Init(); }
 
 #endif
