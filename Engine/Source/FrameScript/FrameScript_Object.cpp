@@ -8,6 +8,9 @@
 // STATIC: 0x00D3F778
 int32_t FrameScript_Object::s_objectTypes;
 
+// CoA: set by CoA::AttachFixesClient.
+void (*g_registerScriptEventHook)(const char* name);
+
 // VERIFY: 53798b75 auto
 // OFFSET: 0x00482AA0
 const char* FrameScript_Object::GetDisplayName() {
@@ -198,6 +201,12 @@ int32_t FrameScript_Object::IsScriptEventRegistered(const char* name) {
 // VERIFY: 3ab070bd manual
 // OFFSET: 0x0081B380
 int32_t FrameScript_Object::RegisterScriptEvent(const char* name) {
+    // CoA: AscAttachFixes.cpp:sub_10a4c700 (orig hook 0x81B380) -- while the world UI loads an unknown name is added to the
+    // custom events first.
+    if (g_registerScriptEventHook) {
+        g_registerScriptEventHook(name);
+    }
+
     FrameScript_EventObject* event = s_scriptEventsHash.Ptr(name);
 
     if (!event) {

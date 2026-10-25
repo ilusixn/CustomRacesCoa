@@ -380,7 +380,8 @@ void NetClient::GetNetStats(float& bytesIn, float& bytesOut, uint32_t& latency) 
     uint32_t end = this->m_latencyEnd;
 
     while (index != end) {
-        if (index >= 16) {
+        // CoA: AscAttachInline.cpp (Extensions.dll patch 0x632163) -- 0x10 became 8.
+        if (index >= 8) {
             index = 0;
 
             if (!end) {
@@ -508,12 +509,13 @@ void NetClient::HandlePong(WowConnection* connection, CDataStore* msg) {
 
     this->m_latency[this->m_latencyEnd++] = OsGetAsyncTimeMs() - this->m_pingSent;
 
-    if (this->m_latencyEnd >= 16) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x63264A, 0x63266A) -- 0x10 became 8 (both).
+    if (this->m_latencyEnd >= 8) {
         this->m_latencyEnd = 0;
     }
 
     if (this->m_latencyEnd == this->m_latencyStart) {
-        if (++this->m_latencyStart >= 16) {
+        if (++this->m_latencyStart >= 8) {
             this->m_latencyStart = 0;
         }
     }
@@ -725,7 +727,8 @@ void NetClient::HandleIdle() {
     s_idleStats[2] = s_stats[1];
     s_idleStats[3] = s_stats[4];
 
-    if (static_cast<int32_t>(OsGetAsyncTimeMs() - this->m_pingSent - 30000) >= 0) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x632DE5) -- 30000 became 5000.
+    if (static_cast<int32_t>(OsGetAsyncTimeMs() - this->m_pingSent - 5000) >= 0) {
         this->Ping();
     }
 }

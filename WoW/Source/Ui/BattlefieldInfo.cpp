@@ -941,7 +941,8 @@ void CGBattlefieldInfo::RequestPlayerPositions() {
     msg.Put(static_cast<uint32_t>(MSG_BATTLEGROUND_PLAYER_POSITIONS));
     msg.Finalize();
     ClientServices::Send2(&msg);
-    CGBattlefieldInfo::m_positionUpdateTime = now + 5000;
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x54CFD4) -- 5000 became 500.
+    CGBattlefieldInfo::m_positionUpdateTime = now + 500;
 }
 
 // VERIFY: 68e8812a auto

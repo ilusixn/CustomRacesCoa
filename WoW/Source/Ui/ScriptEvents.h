@@ -60,4 +60,7 @@ extern const int32_t s_unitSexValues[3];
 
 extern const char* s_vehicleSkinNames[2];
 
+// CoA: AscGlobalsJ.cpp:UnitAuraAllowHidden (ScriptEvents.cpp).
+extern bool g_unitAuraAllowHidden;
+
 #endif

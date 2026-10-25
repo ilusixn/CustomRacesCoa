@@ -1,4 +1,5 @@
 #include "ChatBubbleFrame.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -176,7 +177,8 @@ bool CGChatBubbleFrame::Update(CGUnit_C* player, CGUnit_C* unit) {
     C3Vector position = unit->IsInVehicle() ? unit->m_vehiclePassenger->ComputeInterpolatedUnitPosition() : unit->GetPosition();
     C3Vector delta = player->GetPosition() - position;
 
-    if (World::QueryObjectVisible(entity) && delta.y * delta.y + delta.x * delta.x + delta.z * delta.z < 625.0f) {
+    // CoA: AscAttachFixes.cpp:FUN_10a44e70 (orig hook 0x720010) -- 0xA104B0, as the last chat bubble left it.
+    if (World::QueryObjectVisible(entity) && delta.y * delta.y + delta.x * delta.x + delta.z * delta.z < CoA::AttachFixes::ChatBubbleRangeSq()) {
         if (this->GetEffectiveAlpha() != 255) {
             this->FadeIn();
         }

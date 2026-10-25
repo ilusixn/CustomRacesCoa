@@ -1,4 +1,5 @@
 #include "Effect_C.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cstring>
 #include <cmath>
 #include "Engine/Source/Storm/H/storm.h"
@@ -556,6 +557,11 @@ void CEffect::ReleaseLightningRef() {
 // VERIFY: e6c5c900 manual
 // OFFSET: 0x006F9260
 void CEffect::AddSpecialEffect(int32_t type, const WOWGUID& target, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param)) {
+    // CoA: AscAttachFixes.cpp:sub_10a42740 (orig hook 0x6F9260) -- swallowed once after a creature's level update.
+    if (CoA::AttachFixes::TakeSkipSpecialEffect()) {
+        return;
+    }
+
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit || static_cast<uint32_t>(type) >= NUM_UNITEFFECTSPECIALS) {

@@ -113,6 +113,8 @@ class CGTooltip : public CSimpleFrame {
     static void DestroyScriptMetaTable();
     static const CImVector* GetItemQualityColor(uint32_t quality);
     static const char* GetItemQualityColorString(uint32_t quality);
+    // CoA: AscGlobalsJ.cpp:SetItemQualityColor.
+    static void SetItemQualityColor(uint32_t quality, const char* color, uint32_t argb);
     static const char* CreateItemLink(int32_t itemId, uint32_t quality, int32_t enchant, const int32_t* gems, int32_t randomPropertiesId, int32_t seed);
     static const char* GetItemHyperlinkString(CGItem_C* item);
     static const uint32_t* GetThreatStateColor(uint32_t status);

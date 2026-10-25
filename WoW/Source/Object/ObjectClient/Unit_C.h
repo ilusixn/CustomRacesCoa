@@ -1162,4 +1162,9 @@ float CreatureSoundDataGetFidgetDelayMax(const CreatureSoundDataRec* rec);
 
 int32_t MissileTrajectoryObjectCallback(void* param, uint32_t flags, uint64_t param64, uintptr_t param32);
 
+// CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Unit_C.cpp).
+extern bool g_namePlateCastBarAll;
+// CoA: AscGlobalsJ.cpp:Detour7385C0 (Unit_C.cpp).
+extern int32_t (*g_attackAnimationHook)();
+
 #endif

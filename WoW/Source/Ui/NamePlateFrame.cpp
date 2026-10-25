@@ -1,4 +1,6 @@
 #include "NamePlateFrame.h"
+#include "CoA/Source/Modules/GlobalsG.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Frame/CSimpleRender.h"
@@ -40,6 +42,21 @@ static CImVector s_hostileColor = CImVector(0x00, 0x00, 0xFF, 0xFF);
 static CImVector s_levelTextColor = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
 
 // STATIC: 0x00B2DA20
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5f0e0, Extensions.dll patch 0x98EE8B) -- the nameplates read the DLL's 33-entry
+// table (CoA::AttachPatches::kClassColours); the client's original 12 follow, unused.
+static CImVector s_coaClassColors[33];
+
+static bool InitCoAClassColors() {
+    for (int32_t i = 0; i < 33; i++) {
+        uint32_t argb = CoA::AttachPatches::kClassColours[i];
+        s_coaClassColors[i] = CImVector(argb & 0xFF, (argb >> 8) & 0xFF, (argb >> 16) & 0xFF, argb >> 24);
+    }
+
+    return true;
+}
+
+static bool s_coaClassColorsReady = InitCoAClassColors();
+
 static CImVector s_classColors[12] = {
     CImVector(0x00, 0x00, 0x00, 0xFF),
     CImVector(0x6D, 0x9B, 0xC6, 0xFF),
@@ -55,9 +72,11 @@ static CImVector s_classColors[12] = {
     CImVector(0x0A, 0x7C, 0xFF, 0xFF),
 };
 
+// CoA: read through CoA::GlobalsG::NamePlateHeight() (SetNamePlateScaleY writes the original's float).
 // STATIC: 0x00B2DA70
 static float s_namePlateHeight = 0.025f;
 
+// CoA: read through CoA::GlobalsG::NamePlateWidth() (SetNamePlateScaleX writes the original's float).
 // STATIC: 0x00B2DA74
 static float s_namePlateWidth = 0.1f;
 
@@ -359,7 +378,7 @@ void CGNamePlateFrame::UpdateColorDisplay(CGUnit_C* unit) {
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (g_ShowClassColorInNameplateCVar->m_intValue && (unit->m_obj->m_type & TYPE_PLAYER) && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
-        this->m_healthBarColor = s_classColors[unit->m_unit->m_unitFieldBytes0[1]];
+        this->m_healthBarColor = s_coaClassColors[unit->m_unit->m_unitFieldBytes0[1]];
     } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
         this->m_healthBarColor = s_hostileColor;
     } else if (unit->m_obj->m_type & TYPE_PLAYER) {
@@ -481,14 +500,16 @@ void CGNamePlateFrame::SetCastBarValues(float minValue, float maxValue, float va
 void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     this->m_guid = unit->m_obj->m_guid;
     this->m_unitNameText->SetVertexColor(CImVector(0xFF, 0xFF, 0xFF, 0xFF));
-    this->SetWidth(s_namePlateWidth);
-    this->SetHeight(s_namePlateHeight);
+    // CoA: AscGlobalsG.cpp:SetNamePlateScaleX / Y (Extensions.dll patch 0xB2DA74, 0xB2DA70) -- the natives' values
+    // (stock 0.1 / 0.025).
+    this->SetWidth(CoA::GlobalsG::NamePlateWidth());
+    this->SetHeight(CoA::GlobalsG::NamePlateHeight());
 
-    float barOffsetX = s_namePlateWidth * 0.031f;
-    float barOffsetY = s_namePlateHeight * 0.125f;
+    float barOffsetX = CoA::GlobalsG::NamePlateWidth() * 0.031f;
+    float barOffsetY = CoA::GlobalsG::NamePlateHeight() * 0.125f;
     this->m_healthBar->SetPoint(FRAMEPOINT_BOTTOMLEFT, this, FRAMEPOINT_BOTTOMLEFT, barOffsetX, barOffsetY, 1);
-    this->m_healthBar->SetWidth(s_namePlateWidth * 0.804f);
-    this->m_healthBar->SetHeight(s_namePlateHeight * 0.281f);
+    this->m_healthBar->SetWidth(CoA::GlobalsG::NamePlateWidth() * 0.804f);
+    this->m_healthBar->SetHeight(CoA::GlobalsG::NamePlateHeight() * 0.281f);
     this->m_healthBar->SetUnit(unit);
 
     this->m_castBarBorder->SetWidth(this->GetWidth());
@@ -500,8 +521,8 @@ void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     this->m_castBarShield->SetPoint(FRAMEPOINT_CENTER, this->m_castBarBorder, FRAMEPOINT_CENTER, 0.0f, -(this->m_castBarShield->GetHeight() * 0.5f), 1);
 
     this->m_castBar->SetPoint(FRAMEPOINT_BOTTOMRIGHT, this->m_castBarBorder, FRAMEPOINT_BOTTOMRIGHT, -barOffsetX, barOffsetY, 1);
-    this->m_castBar->SetWidth(s_namePlateWidth * 0.804f);
-    this->m_castBar->SetHeight(s_namePlateHeight * 0.281f);
+    this->m_castBar->SetWidth(CoA::GlobalsG::NamePlateWidth() * 0.804f);
+    this->m_castBar->SetHeight(CoA::GlobalsG::NamePlateHeight() * 0.281f);
     this->m_castBar->SetMinMaxValues(0.0f, 0.0f);
     this->m_castBar->SetValue(0.0f);
 
@@ -509,8 +530,8 @@ void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     castColor.Set(1.0f, 0.7f, 0.0f, 1.0f);
     this->m_castBar->SetStatusBarColor(castColor);
 
-    float levelOffsetX = s_namePlateWidth * -0.092f;
-    float levelOffsetY = s_namePlateHeight * 0.284f;
+    float levelOffsetX = CoA::GlobalsG::NamePlateWidth() * -0.092f;
+    float levelOffsetY = CoA::GlobalsG::NamePlateHeight() * 0.284f;
     this->m_levelText->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_BOTTOMRIGHT, levelOffsetX, levelOffsetY, 1);
     this->m_castBarIcon->SetPoint(FRAMEPOINT_CENTER, this->m_castBarBorder, FRAMEPOINT_BOTTOMLEFT, -levelOffsetX, levelOffsetY, 1);
     this->m_namePlateGlow->SetAllPoints(this, 1);

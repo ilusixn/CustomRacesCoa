@@ -1,4 +1,5 @@
 #include "WoW/Source/WorldClient/WorldConstants.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "MinimapFrame.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Services/Texture.h"
@@ -224,10 +225,12 @@ const TrackingTypeInfo CGMinimapFrame::s_trackingTypes[15] = {
 };
 
 // STATIC: 0x00A41E04
-static const uint32_t s_outdoorZoomTiles[6] = { 14, 12, 10, 8, 6, 4 };
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5b790) -- every reference reads the DLL's 8-entry table.
+static const int32_t* const s_outdoorZoomTiles = CoA::AttachPatches::kLevels;
 
 // STATIC: 0x00A41E1C
-static const float s_indoorZoomRadius[6] = { 150.0f, 120.0f, 90.0f, 60.0f, 40.0f, 25.0f };
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5b790) -- every reference reads the DLL's 8-entry table.
+static const float* const s_indoorZoomRadius = CoA::AttachPatches::kDistances;
 
 // STATIC: 0x00AF4E48
 static int32_t s_mapId = -1;
@@ -706,7 +709,8 @@ void CGMinimapFrame::InitializeGame() {
 int32_t CGMinimapFrame::CountAvailableTrackingTypes() {
     int32_t count = 0;
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
-    uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x57E9A8) -- mov cl, [class] became mov cl, 3.
+    uint32_t classMask = player ? 1u << 3 : 0;
 
     for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
         uint32_t mask = CGMinimapFrame::s_trackingTypes[i].m_classMask;
@@ -724,7 +728,9 @@ int32_t CGMinimapFrame::CountAvailableTrackingTypes() {
 const TrackingTypeInfo* CGMinimapFrame::GetTrackingTypeByIndex(int32_t index) {
     int32_t count = 0;
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
-    uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x57EB27, 0x57EB32, 0x57EB2D) -- the class load is NOPed (cl = 3) and the second
+    // row's NOPs fall into `mov esi, 1`'s immediate and the shl: the mask is 0x90909001, as the patched bytes run.
+    uint32_t classMask = player ? 0x90909001u : 0;
 
     for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
         uint32_t mask = CGMinimapFrame::s_trackingTypes[i].m_classMask;
@@ -3579,7 +3585,8 @@ void MinimapSetZoom(uint32_t zoom) {
     uint8_t indoors = s_isIndoors;
     int32_t* current = indoors ? &s_indoorZoom : &s_outdoorZoom;
     int32_t previous = *current;
-    *current = zoom >= 5 ? 5 : zoom;
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x7F3AFD, 0x7F3B03) -- the clamp 5 became 7.
+    *current = zoom >= CoA::AttachPatches::kMaxMinimapZoom ? CoA::AttachPatches::kMaxMinimapZoom : zoom;
 
     if (previous != *current) {
         s_updateFlags |= 0x1;

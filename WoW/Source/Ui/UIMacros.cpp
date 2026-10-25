@@ -59,7 +59,8 @@ uint32_t CGUIMacros::m_numMacros[2];
 static uint32_t s_maxMacroID[2];
 
 // STATIC: 0x00A0F82C
-static const uint32_t s_maxMacros[2] = { 36, 18 };
+// CoA: AscAttachPatches.cpp (Extensions.dll patch 0xA0F830) -- 18 character macros became 36.
+static const uint32_t s_maxMacros[2] = { 36, 36 };
 
 // STATIC: 0x00A0F834
 static const uint32_t s_macroIDBase[2] = { 0, 0x1000000 };
@@ -668,7 +669,7 @@ int32_t CGUIMacros::SetMacroBody(MACRONODE* macro, const char* body) {
     char* cursor = macro->m_body;
     int32_t chars;
 
-    for (uint32_t i = 0; sgetu8(reinterpret_cast<const uint8_t*>(cursor), &chars) != 0xFFFFFFFF && i < 256; i++) {
+    for (uint32_t i = 0; sgetu8(reinterpret_cast<const uint8_t*>(cursor), &chars) != 0xFFFFFFFF && i < 512; i++) {   // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5663D4): 0x100 -> 0x200
         cursor += chars;
     }
 

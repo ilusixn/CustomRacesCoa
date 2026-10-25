@@ -1,4 +1,5 @@
 #include "CoA/Source/CoA.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Modules/Account.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
@@ -28,6 +29,8 @@ static const CoA::Module s_modules[] = {
     { "Misc", CoA::Misc::Init },
     { "GlobalsB", CoA::GlobalsB::Init },
     { "GlobalsD", CoA::GlobalsD::Init },
+    { "GlobalsG", CoA::GlobalsG::Init },
+    { "Bindings", CoA::Bindings::Init },
     { "GlobalsJ", CoA::GlobalsJ::Init },
     { "Json", CoA::Json::Init },
     { "LoggerApi", CoA::LoggerApi::Init },
@@ -57,6 +60,19 @@ static const CoA::Module s_modules[] = {
     { "CVarHooksClient", CoA::CVarHooksClient::Init },
     { "RealmDataClient", CoA::RealmDataClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
+    { "AttachLateClient", CoA::AttachLateClient::Init },
+    { "AttachFixesClient", CoA::AttachFixesClient::Init },
+    { "AttachLuaClient", CoA::AttachLuaClient::Init },
+    { "AttachMiscClient", CoA::AttachMiscClient::Init },
+    { "ProfilerClient", CoA::ProfilerClient::Init },
+    { "GlueCVarsClient", CoA::GlueCVarsClient::Init },
+    { "GlobalsCClient", CoA::GlobalsCClient::Init },
+    { "GlobalsDClient", CoA::GlobalsDClient::Init },
+    { "GlobalsHClient", CoA::GlobalsHClient::Init },
+    { "SmallApisClient", CoA::SmallApisClient::Init },
+    { "EventPacketsClient", CoA::EventPacketsClient::Init },
+    { "PatchDataClient", CoA::PatchDataClient::Init },
+    { "ClientDbcPatchClient", CoA::ClientDbcPatchClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
@@ -76,6 +92,7 @@ void CoA::Attach() {
     g_createEventsHook = CoA::Events::ExtendList;
     CoA::Events::RegisterNames();
     CoA::Events::InstallClient();
+    CoA::ClientHooks::InstallClient();
     // AscDbc: custom tables read through the client's SFile.
     CoA::Dbc::InstallClient();
     CoA::ClientState::InstallClient();

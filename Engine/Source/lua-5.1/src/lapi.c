@@ -574,8 +574,14 @@ LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
 
 // VERIFY: acb69a7d manual
 // OFFSET: 0x0084E400
+/* CoA: set by CoA::AttachFixesClient (the int3 tamper report). */
+void (*g_luaPushCClosureHook)(lua_CFunction fn);
+
 LUA_API void lua_pushcclosure (lua_State *L, lua_CFunction fn, int n) {
   Closure *cl;
+  // CoA: AscAttachFixes.cpp:sub_10a78a30 (orig hook 0x84E400) -- a function starting with int3 is reported (CMSG 0x51F).
+  if (g_luaPushCClosureHook)
+    g_luaPushCClosureHook(fn);
   lua_lock(L);
   luaC_checkGC(L);
   api_checknelems(L, n);

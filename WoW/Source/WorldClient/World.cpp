@@ -1,4 +1,5 @@
 #include "World.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
@@ -1405,7 +1406,8 @@ void DayNight::Update(int32_t reset, const C3Vector* cameraPos) {
     DNInfo* info = DayNight::GetInfo();
     int32_t fogMode = static_cast<uint32_t>(g_theGxDevicePtr->Caps().m_shaderTargets[0]) > 1;
 
-    if (s_mapId < 530) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x781730) -- cmp 0x212 became cmp 0: the fog mode is kept on every map.
+    if (s_mapId < 0) {
         fogMode = 0;
     }
 
@@ -1535,7 +1537,8 @@ void CWorld::Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position) {
     bool prepareAll = true;
     bool preload = false;
 
-    if (World::s_farClip - World::s_prevFarClip > 10.0f) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x783310) -- jne became jmp: no preload when the far clip grows.
+    if (false && World::s_farClip - World::s_prevFarClip > 10.0f) {
         prepareAll = false;
         preload = true;
     }
@@ -2154,7 +2157,9 @@ void CWorldScene::AddDoodadDefModelToModelScene(CMapDoodadDef* doodadDef) {
 
     float alpha = 1.0f;
 
-    if ((CWorld::enables & Enable_NoFullAlpha) && !(flags & 0x800)) {
+    // CoA: AscGraphics.cpp:FUN_10261d60 (Extensions.dll patch 0x791D6A) -- lodObjectCull other than "1" makes the jne a
+    // jmp: the fade block never runs.
+    if (CoA::Graphics::LodObjectCull() && (CWorld::enables & Enable_NoFullAlpha) && !(flags & 0x800)) {
         float dx = doodadDef->m_sphere.c.x - CWorldScene::s_activeWorldView.x;
         float dy = doodadDef->m_sphere.c.y - CWorldScene::s_activeWorldView.y;
         float dz = doodadDef->m_sphere.c.z - CWorldScene::s_activeWorldView.z;
@@ -4410,7 +4415,9 @@ void CWorldScene::RenderEntitys() {
 
         CM2Model* model = entity->m_model;
 
-        if (model && model->IsLoaded(0, 0) && !(entity->m_staticFlags & 0x4)) {
+        // CoA: AscGraphics.cpp:FUN_1025e290 (Extensions.dll patch 0x793A45) -- entityShadows other than "1" makes the je on
+        // the model a jmp: the entity is not drawn in this pass.
+        if (CoA::Graphics::EntityShadows() && model && model->IsLoaded(0, 0) && !(entity->m_staticFlags & 0x4)) {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ entity->m_funcParam64 }, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {

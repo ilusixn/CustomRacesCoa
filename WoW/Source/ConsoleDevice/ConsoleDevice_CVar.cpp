@@ -544,7 +544,8 @@ void RegisterGxCVars() {
     char value[260];
 
     s_cvWidescreen = CVar::Register("widescreen", "Allow widescreen support", 0, "1", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
-    s_cvGxWindow = CVar::Register("gxWindow", "toggle fullscreen/window", 3, window ? "1" : "0", CVGxWindowCallback, CATEGORY_GRAPHICS, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x76A67A) -- jne became jmp: default "1".
+    s_cvGxWindow = CVar::Register("gxWindow", "toggle fullscreen/window", 3, "1", CVGxWindowCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvGxMaximize = CVar::Register("gxMaximize", "maximize game window", 3, window ? "1" : "0", CVGxMaximizeCallback, CATEGORY_GRAPHICS, false, nullptr, false);
 
     SStrPrintf(value, sizeof(value), "%s", s_formatToInt[format.m_colorFormat]);
@@ -578,4 +579,8 @@ void RegisterGxCVars() {
     s_cvVideoOptionsVersion = CVar::Register("videoOptionsVersion", "Video options version", 3, "0", CVVideoOptionsVersionCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvWindowResizeLock = CVar::Register("windowResizeLock", "prevent resizing in windowed mode", 1, "0", CVGxWindowResizeLockCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvFixedFunction = CVar::Register("fixedFunction", "Force fixed function rendering", 3, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
+
+    // CoA: AscAttachFixes.cpp:0x10A76B40 (orig hook 0x76A630) -- after the stock gx CVars: gxMonitor, the monitor
+    // CGxDeviceD3d::DeviceSetFormat centres the window on (0: none).
+    CVar::Register("gxMonitor", nullptr, 1, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
 }

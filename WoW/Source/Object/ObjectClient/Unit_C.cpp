@@ -1,4 +1,15 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/GlobalsG.h"
+#include "CoA/Source/Modules/AnimationCount.h"
+#include <algorithm>
+#include <vector>
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/AttachFixesClient.h"
+#include <intrin.h>
+#include "CoA/Source/Modules/AttachLate.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "Unit_C.h"
 #include <cmath>
 #include <new>
@@ -619,6 +630,11 @@ int32_t UnitScaleUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 80a48461 manual
 // OFFSET: 0x00730050
 int32_t UnitLevelUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    // CoA: AscAttachFixes.cpp:sub_10a76810 (orig hook 0x730050) -- after a creature's (not a player's) level update the next
+    // special effect is swallowed once (CEffect::AddSpecialEffect).
+    CGObject_C* updated = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
+    CoA::AttachFixes::UnitLevelUpdated(updated && updated->m_typeId == ID_UNIT);
+
     uint32_t oldLevel = *static_cast<const uint32_t*>(oldValue);
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
@@ -640,7 +656,8 @@ int32_t SheatheStateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSi
 
     uint32_t oldState = *static_cast<const uint32_t*>(oldValue);
 
-    if (unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() || unit->m_sheatheState == oldState) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x737AE0) -- jne became jmp: always applied.
+    if (true || unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() || unit->m_sheatheState == oldState) {
         unit->SetSheatheState(unit->m_unit->m_unitFieldBytes2[0], 1, 1);
     }
 
@@ -1056,15 +1073,16 @@ int32_t CGUnit_C::DisplayInfoNeedsUpdate() {
 // VERIFY: 503fd361 manual
 // OFFSET: 0x0073E410
 void CGUnit_C::UpdateDisplayInfo(int32_t force) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73E42E, 0x73E72C, 0x73E749) -- 506 is the loaded AnimationData row count.
     if (!force && !this->DisplayInfoNeedsUpdate()) {
         return;
     }
 
-    int32_t deathAnim = ANIM_COUNT;
+    int32_t deathAnim = CoA::AnimationCount::Rows();
     this->m_wheelMask = 0;
 
     if (this->IsDeadOrAttachmentDying()) {
-        int32_t behavior = ANIM_COUNT;
+        int32_t behavior = CoA::AnimationCount::Rows();
         AnimationDataRec* animRec = g_animationDataDB.GetRecord(this->GetCurrentTorsoAnimId());
 
         if (animRec) {
@@ -1159,12 +1177,12 @@ void CGUnit_C::UpdateDisplayInfo(int32_t force) {
         this->m_clientFlags &= ~0x2000000;
     }
 
-    if (deathAnim != ANIM_COUNT) {
+    if (deathAnim != CoA::AnimationCount::Rows()) {
         this->PlayBaseAnimation(deathAnim, 0);
     } else {
         uint32_t currentAnim = this->GetCurrentTorsoAnimId();
 
-        if (!currentAnim && torsoAnim != ANIM_COUNT && torsoAnim != 0xFFFFFFFF && this->m_movementData.IsFalling()) {
+        if (!currentAnim && torsoAnim != CoA::AnimationCount::Rows() && torsoAnim != 0xFFFFFFFF && this->m_movementData.IsFalling()) {
             this->PlayBaseAnimation(torsoAnim, 0);
         } else {
             bool dying = false;
@@ -1607,6 +1625,8 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
         }
 
         // WoWFix335 npc-turn-attack-anim: original calls UpdateBaseAnimation(0, -1) when CanPlayTurnAnim() is nonzero
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
         if (sequence != wanted) {
             this->CanPlayTurnAnim();
         }
@@ -1624,8 +1644,9 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
 // VERIFY: 8308766d manual
 // OFFSET: 0x0071D940
 int32_t IsEmoteAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D967) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 60:
@@ -1668,8 +1689,9 @@ int32_t IsEmoteAnim(uint32_t animId) {
 // VERIFY: 8dffe07d manual
 // OFFSET: 0x0071D380
 int32_t IsSpellCastAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D3A7) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 2:
@@ -2285,7 +2307,8 @@ void CGUnit_C::PlayFallLandAnimation(uint32_t oldFlags, int32_t jumping) {
                 return;
             }
 
-            if (!(flags & 0x2) && !(flags & 0x100) && !this->IsRunning()) {
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73D394) -- jne became jmp: this branch is never taken.
+            if (false && !(flags & 0x2) && !(flags & 0x100) && !this->IsRunning()) {
                 this->PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
                 this->PlayBaseAnimation(ANIM_JUMP_LAND_RUN, 0);
                 return;
@@ -2361,8 +2384,9 @@ void CGUnit_C::SendSplineDone(uint32_t time, uint32_t splineId) {
 // VERIFY: 0a448404 manual
 // OFFSET: 0x0071D590
 int32_t IsMeleeAttackAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D5B7) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 10:
@@ -2646,6 +2670,7 @@ int32_t CGUnit_C::ChooseShuffleAnim(uint32_t mask, uint32_t* anim) {
 // VERIFY: acc35172 manual
 // OFFSET: 0x0071E1F0
 int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E25C) -- 506 is the loaded AnimationData row count.
     if (!(this->m_animationState & 0x40) || this->m_mountModel) {
         return (mask & ~0x1FF) == 0;
     }
@@ -2675,7 +2700,7 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
         case UNIT_SLEEPING:
             standAnim = (this->m_animStandState != UNIT_STANDING) + 99;
 
-            if (standAnim == ANIM_COUNT) {
+            if (standAnim == CoA::AnimationCount::Rows()) {
                 return 1;
             }
 
@@ -2704,7 +2729,7 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
         case UNIT_KNEEL:
             standAnim = (this->m_animStandState != UNIT_STANDING) + 114;
 
-            if (standAnim == ANIM_COUNT) {
+            if (standAnim == CoA::AnimationCount::Rows()) {
                 return 1;
             }
 
@@ -2723,7 +2748,8 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
 // VERIFY: c45e9335 auto
 // OFFSET: 0x00724500
 uint32_t CGUnit_C::ChooseAnimation(uint32_t mask, uint32_t* animFlags, int32_t* usedDefault) {
-    uint32_t anim = ANIM_COUNT;
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x724518) -- 506 is the loaded AnimationData row count.
+    uint32_t anim = CoA::AnimationCount::Rows();
 
     if (this->ChooseDeathAnim(mask, &anim, animFlags) || this->ChooseSpecialIdleAnim(mask, &anim) || (this->m_vehiclePassenger && this->m_vehiclePassenger->PickHighPriorityAnimation(mask, &anim))) {
         return anim;
@@ -2756,13 +2782,14 @@ uint32_t CGUnit_C::ChooseAnimation(uint32_t mask, uint32_t* animFlags, int32_t* 
 // VERIFY: bb382509 manual
 // OFFSET: 0x0073AC30
 void CGUnit_C::UpdateBaseAnimation(uint32_t animFlags, int32_t mask) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73AC63) -- 506 is the loaded AnimationData row count.
     if (this->m_worldModel && !this->m_worldModel->IsLoaded(0, 0)) {
         return;
     }
 
     uint32_t anim = this->ChooseAnimation(mask, &animFlags, nullptr);
 
-    if (anim == ANIM_COUNT) {
+    if (anim == CoA::AnimationCount::Rows()) {
         if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) {
             this->PlayBaseAnimation(ANIM_STAND, animFlags);
         }
@@ -3706,8 +3733,9 @@ int32_t IsSpellPrecastAnim(uint32_t animId) {
 // VERIFY: f7572fcd manual
 // OFFSET: 0x0071D800
 int32_t IsUpperBodyAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D827) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 2:
@@ -3909,8 +3937,9 @@ int32_t IsFishingAnim(uint32_t animId) {
 // VERIFY: 5b0ed408 manual
 // OFFSET: 0x0071D2E0
 int32_t IsRangedWeaponAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D307) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 46:
@@ -3971,6 +4000,7 @@ int32_t AnimationData::FindIdByBehaviorAndTier(uint32_t behavior, int32_t tier, 
 // VERIFY: fea936b3 manual
 // OFFSET: 0x007176F0
 uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7177F9) -- 506 is the loaded AnimationData row count.
     int32_t tier = this->m_animTier;
 
     if (!(this->m_modelFlags & 0x40000) || (this->m_modelFlags & 0x20000) || !this->GetObjectModel() || !this->GetObjectModel()->IsLoaded(0, 0)) {
@@ -3986,20 +4016,19 @@ uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
     }
 
     uint32_t result = static_cast<uint16_t>(animId);
-    int32_t visited[ANIM_COUNT];
-    memset(visited, 0, sizeof(visited));
+    std::vector<int32_t> visited(CoA::AnimationCount::Rows() > 506 ? CoA::AnimationCount::Rows() : 506, 0);
     uint32_t current = animId;
 
     while (!AnimationData::FindIdByBehaviorAndTier(current, tier, &result) || !model->IsSequenceLoaded(result)) {
         AnimationDataRec* rec = g_animationDataDB.GetRecord(current);
 
-        if (current >= ANIM_COUNT || visited[current] || !rec || static_cast<int32_t>(current) == rec->m_fallback) {
+        if (current >= CoA::AnimationCount::Rows() || visited[current] || !rec || static_cast<int32_t>(current) == rec->m_fallback) {
             if (this->FindDefaultAnimForTier(tier, &result)) {
                 return result;
             }
 
             tier = s_animTierFallback[tier];
-            memset(visited, 0, sizeof(visited));
+            std::fill(visited.begin(), visited.end(), 0);
             current = animId;
             continue;
         }
@@ -4209,11 +4238,12 @@ void CGUnit_C::ProcessAnimationEvent(M2BoneSequenceInfo* slot, uint32_t currentA
 // VERIFY: 745c0966 manual
 // OFFSET: 0x00723E30
 int32_t CGUnit_C::ShouldSplitTorsoAnimation(uint32_t animId, uint32_t currentAnim) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x723E65) -- 506 is the loaded AnimationData row count.
     if (currentAnim == 0xFFFFFFFF) {
         return 0;
     }
 
-    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && this->m_vehiclePassenger->GetLowerAnim(this->m_vehiclePassenger->m_seatRec) != ANIM_COUNT) {
+    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && this->m_vehiclePassenger->GetLowerAnim(this->m_vehiclePassenger->m_seatRec) != CoA::AnimationCount::Rows()) {
         return 1;
     }
 
@@ -4358,6 +4388,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
 // VERIFY: 4d39ab41 manual
 // OFFSET: 0x007385C0
 void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x738E7F) -- 506 is the loaded AnimationData row count.
     if (!(this->m_modelFlags & 0x40000) || (this->m_modelFlags & 0x20000) || !this->GetObjectModel() || !this->m_worldModel) {
         return;
     }
@@ -4627,7 +4658,7 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         const VehicleSeatRec* seat = this->GetPassengerSeatRec();
         int32_t lowerAnim = this->m_vehiclePassenger->GetLowerAnim(seat);
 
-        if (lowerAnim != ANIM_COUNT) {
+        if (lowerAnim != CoA::AnimationCount::Rows()) {
             bool moveBaseToTorso = true;
 
             if (updateTorso) {
@@ -4702,79 +4733,85 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
 // VERIFY: 3458f5db manual
 // OFFSET: 0x00729C70
 int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
-    const WOWGUID* controllerGuid = this->m_unit->m_unitFieldCharmedby.m_guid ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
-    CGUnit_C* controller = nullptr;
+    // CoA: AscAttachFixes.cpp:sub_10a45c90 (orig hook 0x729C70) -- the creature name rules apply after the client
+    // agreed.
+    const int32_t result = [&]() -> int32_t {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
+        const WOWGUID* controllerGuid = this->m_unit->m_unitFieldCharmedby.m_guid ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
+        CGUnit_C* controller = nullptr;
 
-    if (controllerGuid->m_guid) {
-        controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPE_UNIT, __FILE__, __LINE__));
-    }
-
-    if (!this->CanBeTargetted() || (CGGameUI::m_visible && (this->m_namePlateFrame || this->m_chatBubble))) {
-        return 0;
-    }
-
-    if (this->IsControlledByViewer()) {
-        return flags & 0x1;
-    }
-
-    if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
-        return 1;
-    }
-
-    if (this->m_obj->m_type & TYPE_PLAYER) {
-        if (player->CanCooperate(this)) {
-            return (flags >> 7) & 0x1;
+        if (controllerGuid->m_guid) {
+            controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPE_UNIT, __FILE__, __LINE__));
         }
 
-        if ((flags & 0x10) && !(this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
-            return 1;
-        }
-
-        return 0;
-    }
-
-    if (controller && (controller->m_obj->m_type & TYPE_PLAYER)) {
-        bool friendly = !player->CanAttack(this);
-
-        if (!friendly && (this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+        if (!this->CanBeTargetted() || (CGGameUI::m_visible && (this->m_namePlateFrame || this->m_chatBubble))) {
             return 0;
         }
 
-        if ((this->HasCreator() && !this->HasSummoner() && (this->m_unit->m_unitFieldFlags & 0x200)) || this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
+        if (this->IsControlledByViewer()) {
+            return flags & 0x1;
+        }
+
+        if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
+            return 1;
+        }
+
+        if (this->m_obj->m_type & TYPE_PLAYER) {
+            if (player->CanCooperate(this)) {
+                return (flags >> 7) & 0x1;
+            }
+
+            if ((flags & 0x10) && !(this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        if (controller && (controller->m_obj->m_type & TYPE_PLAYER)) {
+            bool friendly = !player->CanAttack(this);
+
+            if (!friendly && (this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+                return 0;
+            }
+
+            if ((this->HasCreator() && !this->HasSummoner() && (this->m_unit->m_unitFieldFlags & 0x200)) || this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
+                return (flags >> 10) & 0x1;
+            }
+
+            if (this->GetCreatureType() == 11) {
+                return friendly ? (flags >> 9) & 0x1 : (flags >> 6) & 0x1;
+            }
+
+            if (this->GetCreatorGuid()) {
+                return (flags >> 12) & 0x1;
+            }
+
+            CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPE_UNIT, __FILE__, __LINE__));
+
+            if (player->CanCooperate(this)) {
+                return (flags >> 8) & 0x1;
+            }
+
+            if (charmer && charmer->GetTransportGUID() == this->m_obj->m_guid.m_guid && (player == charmer || player->CanCooperate(charmer))) {
+                return (flags >> 8) & 0x1;
+            }
+
+            return (flags >> 5) & 0x1;
+        }
+
+        if ((this->m_unit->m_unitFieldBytes1[2] & 0x2) && player->CanAttack(this)) {
+            return 0;
+        }
+
+        if (this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
             return (flags >> 10) & 0x1;
         }
 
-        if (this->GetCreatureType() == 11) {
-            return friendly ? (flags >> 9) & 0x1 : (flags >> 6) & 0x1;
-        }
+        return (flags >> 1) & 0x1;
+    }();
 
-        if (this->GetCreatorGuid()) {
-            return (flags >> 12) & 0x1;
-        }
-
-        CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPE_UNIT, __FILE__, __LINE__));
-
-        if (player->CanCooperate(this)) {
-            return (flags >> 8) & 0x1;
-        }
-
-        if (charmer && charmer->GetTransportGUID() == this->m_obj->m_guid.m_guid && (player == charmer || player->CanCooperate(charmer))) {
-            return (flags >> 8) & 0x1;
-        }
-
-        return (flags >> 5) & 0x1;
-    }
-
-    if ((this->m_unit->m_unitFieldBytes1[2] & 0x2) && player->CanAttack(this)) {
-        return 0;
-    }
-
-    if (this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
-        return (flags >> 10) & 0x1;
-    }
-
-    return (flags >> 1) & 0x1;
+    return CoA::AttachFixesClient::CreatureName(this, result);
 }
 
 // VERIFY: 9e068ef2 manual
@@ -5009,7 +5046,8 @@ void CGUnit_C::OnRightClick() {
                     required = level * 5;
                 }
 
-                if (minPoints < required) {
+                // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x731480) -- jge became jmp: the skill requirement never refuses.
+                if (false && minPoints < required) {
                     CGGameUI::DisplayError(ERR_USE_LOCKED_WITH_SPELL_KNOWN_SI, spell.m_name, required);
                     return;
                 }
@@ -6276,11 +6314,27 @@ float CGUnit_C::GetMaxCameraHeight() const {
 // VERIFY: 5cc27cbd auto
 // OFFSET: 0x00718A00
 uint32_t CGUnit_C::GetCreatureClassification() const {
-    if (!this->m_creatureCacheEntry || this->m_unit->m_unitFieldPetnumber) {
-        return 0;
+    uint32_t rank = 0;
+
+    if (this->m_creatureCacheEntry && !this->m_unit->m_unitFieldPetnumber) {
+        rank = this->m_creatureCacheEntry->m_rank;
     }
 
-    return this->m_creatureCacheEntry->m_rank;
+    // CoA: AscAttachFixes.cpp:FUN_10a452a0 (orig hook 0x718A00) -- under the active challenge's rule 0x6D a creature's
+    // normal (0) or trivial (5) reads as elite (1), rare (4) as rare elite (2).
+    bool (*hasRule)(uint32_t) = CoA::AttachFixes::Dependencies().challengeHasRule;
+
+    if (this->m_typeId == ID_UNIT && hasRule && hasRule(0x6D)) {
+        if (rank == 0 || rank == 5) {
+            return 1;
+        }
+
+        if (rank == 4) {
+            return 2;
+        }
+    }
+
+    return rank;
 }
 
 // VERIFY: d337d178 auto
@@ -7758,13 +7812,14 @@ int32_t IsDeadOrDyingAnim(uint32_t animId) {
 // VERIFY: e05af72f auto
 // OFFSET: 0x007176B0
 int32_t GetAnimBehaviorId(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7176DD) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
 
     if (rec) {
         return rec->m_behaviorID;
     }
 
-    return 506;
+    return CoA::AnimationCount::Rows();
 }
 
 // VERIFY: 211bd0bd auto
@@ -8230,6 +8285,7 @@ void CGUnit_C::CreateFishingLineEffect() {
 // VERIFY: ef43f122 manual
 // OFFSET: 0x00724200
 int32_t CGUnit_C::ChooseFallAnim(uint32_t* anim) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x724255) -- 506 is the loaded AnimationData row count.
     int32_t falling = this->m_movementData.IsFalling();
 
     if (!falling) {
@@ -8237,7 +8293,7 @@ int32_t CGUnit_C::ChooseFallAnim(uint32_t* anim) const {
     }
 
     uint32_t current = (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) ? this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF) : 0xFFFFFFFF;
-    *anim = IsAirborneAnim(current) ? ANIM_COUNT : ANIM_FALL;
+    *anim = IsAirborneAnim(current) ? CoA::AnimationCount::Rows() : ANIM_FALL;
     return 1;
 }
 
@@ -8368,9 +8424,10 @@ float CGUnit_C::GetSmoothFacing() const {
 // VERIFY: 7a726f02 manual
 // OFFSET: 0x0071E340
 void CGUnit_C::ChooseDefaultAnim(uint32_t& anim, int32_t force) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E360) -- 506 is the loaded AnimationData row count.
     CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
 
-    if (passenger && passenger->m_state == 3 && passenger->GetLowerAnim(passenger->m_seatRec) != 506) {
+    if (passenger && passenger->m_state == 3 && passenger->GetLowerAnim(passenger->m_seatRec) != CoA::AnimationCount::Rows()) {
         return;
     }
 
@@ -8643,7 +8700,8 @@ void CGUnit_C::ToggleRunModeLocal(uint32_t eventTime) {
 // VERIFY: cf000702 manual
 // OFFSET: 0x0071F890
 bool CGUnit_C::CanAssist(const CGCorpse_C* corpse) const {
-    return this->UnitReaction(corpse) >= UNIT_REACTION_FRIENDLY;
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x71F89E) -- cmp 4 became cmp 0.
+    return this->UnitReaction(corpse) >= 0;
 }
 
 // VERIFY: 2fefd292 manual
@@ -8661,7 +8719,10 @@ void CGUnit_C::UpdateAuraEffectMask() {
         }
 
         for (int32_t effect = 0; effect < 3; effect++) {
-            if (aura->m_flags & (1 << effect)) {
+            // CoA: AscRuntime.cpp:Replace727E70 (orig hook 0x727E70) -- only aura types below 0x140 fit the 40-byte set;
+            // Ascension's higher types would write into the following fields. (The DLL's side map of types below
+            // 0x16E is read by nothing and is not kept.)
+            if ((aura->m_flags & (1 << effect)) && static_cast<uint32_t>(spell.m_effectAura[effect]) < 0x140) {
                 this->m_auraEffectMask[spell.m_effectAura[effect] / 8] |= 1 << (spell.m_effectAura[effect] % 8);
             }
         }
@@ -8701,6 +8762,7 @@ void CGUnit_C::ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, void* para
 // VERIFY: 97aaae3a manual
 // OFFSET: 0x0071E5B0
 void CGUnit_C::UpdateObjectEffectAnimationStates() {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E603, 0x71E63A, 0x71E653) -- 506 is the loaded AnimationData row count.
     if (!this->m_effectManager) {
         return;
     }
@@ -8713,7 +8775,7 @@ void CGUnit_C::UpdateObjectEffectAnimationStates() {
             return;
         }
 
-        if (sequences[0].m_sequenceId < 506) {
+        if (sequences[0].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[0].m_sequenceId = this->m_mountModel->ResolveSequenceFallback(sequences[0].m_sequenceId);
         }
     }
@@ -8723,11 +8785,11 @@ void CGUnit_C::UpdateObjectEffectAnimationStates() {
             return;
         }
 
-        if (sequences[1].m_sequenceId < 506) {
+        if (sequences[1].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[1].m_sequenceId = this->m_worldModel->ResolveSequenceFallback(sequences[1].m_sequenceId);
         }
 
-        if (sequences[2].m_sequenceId < 506) {
+        if (sequences[2].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[2].m_sequenceId = this->m_worldModel->ResolveSequenceFallback(sequences[2].m_sequenceId);
         }
     }
@@ -9617,6 +9679,9 @@ CGUnit_C::CGUnit_C(uint32_t time, const CClientObjCreate& create)
       m_predictedHealth(this->m_unit->m_unitFieldHealth),
       m_powerRegenRemainder(0),
       m_manaRegenInterruptTime(0) {
+    // CoA: AscRuntime.cpp:Detour73F660 (orig hook 0x73F660) -- list 0x10BE2BCC after, with the unit.
+    auto afterCreate = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterUnitCreated.Run(this); });
+
     this->m_movement = &this->m_movementData;
     this->m_animStateFlags = 0;
     this->m_clientFlags = 0x400000;
@@ -11640,12 +11705,20 @@ bool CGUnit_C::CanAutoDismount() const {
     return !(this->m_movement->m_flags & MOVEMENTFLAG_FLYING) || g_autoDismountFlyingCVar->m_intValue;
 }
 
+// CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x720E68, 0x524DC1, 0x524276) -- on: every unit's
+// name plate shows its cast bar, not only the target's.
+bool g_namePlateCastBarAll = false;
+
+// CoA: AscGlobalsJ.cpp:Detour7385C0 (orig hook 0x7385C0).
+int32_t (*g_attackAnimationHook)() = nullptr;
+
 // VERIFY: 2732ecd1 manual
 // OFFSET: 0x00720E50
 void CGUnit_C::UpdateSpellCastBars(uint32_t time) {
     CGNamePlateFrame* namePlate = this->m_namePlateFrame;
 
-    if (!namePlate || this->m_obj->m_guid != CGGameUI::m_lockedTarget) {
+    // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x720E68)
+    if (!namePlate || (!g_namePlateCastBarAll && this->m_obj->m_guid != CGGameUI::m_lockedTarget)) {
         return;
     }
 
@@ -11948,16 +12021,18 @@ void CGUnit_C::HandleNPCFeedback() {
 // VERIFY: e4a08d14 manual
 // OFFSET: 0x0071B7F0
 bool CGUnit_C::IsOutdoors() const {
+    // CoA: AscAttachFixes.cpp:sub_10a456d0 (orig hook 0x71B7F0) -- a call from outside the image is reported (CMSG 0x51F).
+    if (CoA::AttachFixesClient::CalledFromOutside(_ReturnAddress())) {
+        CoA::AttachFixes::SendTamperReport("IsOutdoors");
+    }
+
     return World::QueryOutdoors(this->m_worldObject) != 0;
 }
 
 // VERIFY: b89ed3c2 auto
 // OFFSET: 0x0071C2C0
 int32_t CGUnit_C::GetPredictedHealth() const {
-    if (g_predictedHealthCVar->m_intValue) {
-        return this->m_predictedHealth;
-    }
-
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x71C2C0) -- the predictedHealth branch is NOPed: always the real health.
     return this->m_unit->m_unitFieldHealth;
 }
 
@@ -13418,6 +13493,14 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
     }
 
     if (!skipAnimation) {
+        // CoA: AscGlobalsJ.cpp:Detour7385C0 (orig hook 0x7385C0, caller 0x75520B) -- the player's swing uses
+        // SetAttackAnimation's animation unless it is 0.
+        if (g_attackAnimationHook && this == ClntObjMgrGetActivePlayerObj()) {
+            if (const int32_t attack = g_attackAnimationHook()) {
+                anim = attack;
+            }
+        }
+
         this->PlayBaseAnimation(anim, 0);
     }
 
@@ -14447,6 +14530,7 @@ void CGUnit_C::AnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequen
 // VERIFY: a0318ed7 manual
 // OFFSET: 0x0073BBD0
 void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73BC36) -- 506 is the loaded AnimationData row count.
     if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) {
         this->m_vehiclePassenger->OnAnimEnd(boneId);
     }
@@ -14456,7 +14540,7 @@ void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenc
     }
 
     AnimationDataRec* anim = g_animationDataDB.GetRecord(sequenceId);
-    int32_t behavior = anim ? anim->m_behaviorID : 506;
+    int32_t behavior = anim ? anim->m_behaviorID : CoA::AnimationCount::Rows();
 
     if (behavior == 1 || behavior == 131 || behavior == 468) {
         if (!this->m_lootableTime) {
@@ -14570,6 +14654,7 @@ void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenc
 // VERIFY: 9cc99e71 manual
 // OFFSET: 0x0073B510
 void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73B548, 0x73B58C, 0x73B5DB, 0x73BA62) -- 506 is the loaded AnimationData row count.
     CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
 
     if (passenger && passenger->m_state == 3 && this->m_unit->m_unitFieldHealth > 0) {
@@ -14578,7 +14663,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         if (seat) {
             bool ride;
 
-            if (passenger->GetLowerAnim(seat) != 506) {
+            if (passenger->GetLowerAnim(seat) != CoA::AnimationCount::Rows()) {
                 ride = (seat->m_flags & 0x2) && (static_cast<int32_t>(sequenceId) == seat->m_rideAnimStart || static_cast<int32_t>(sequenceId) == seat->m_rideAnimLoop);
             } else {
                 ride = (seat->m_flags & 0x4) && (static_cast<int32_t>(sequenceId) == seat->m_rideUpperAnimStart || static_cast<int32_t>(sequenceId) == seat->m_rideUpperAnimLoop);
@@ -14591,9 +14676,9 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         }
     }
 
-    uint32_t next = 506;
+    uint32_t next = CoA::AnimationCount::Rows();
     AnimationDataRec* anim = g_animationDataDB.GetRecord(sequenceId);
-    int32_t behavior = anim ? anim->m_behaviorID : 506;
+    int32_t behavior = anim ? anim->m_behaviorID : CoA::AnimationCount::Rows();
 
     if (behavior >= 458 && behavior <= 460) {
         this->PlayBaseAnimation(464, 16);
@@ -14662,7 +14747,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 97: {
             next = (this->GetClientStandState() != UNIT_SITTING) + 97;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14674,7 +14759,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 100: {
             next = (this->GetClientStandState() != UNIT_SLEEPING) + 100;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14763,7 +14848,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 115: {
             next = (this->GetClientStandState() != UNIT_KNEEL) + 115;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14812,7 +14897,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 464: {
             this->ChooseDefaultAnim(next, 1);
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14853,6 +14938,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
 // VERIFY: 81228148 manual
 // OFFSET: 0x00737BD0
 void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x737CC8, 0x737CEC, 0x737D12) -- 506 is the loaded AnimationData row count.
     if (sequenceId == 15) {
         return;
     }
@@ -14889,16 +14975,16 @@ void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t seque
         torso.m_sequenceId = anim;
         CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
         const VehicleSeatRec* seat = passenger ? passenger->m_seatRec : nullptr;
-        int32_t ridingLower = passenger && passenger->m_state == 3 && passenger->GetLowerAnim(seat) != 506;
+        int32_t ridingLower = passenger && passenger->m_state == 3 && passenger->GetLowerAnim(seat) != CoA::AnimationCount::Rows();
 
         if (static_cast<int32_t>(boneId) == this->m_torsoKeyBone) {
-            if (!usedDefault && chosen == 506 && ridingLower) {
+            if (!usedDefault && chosen == CoA::AnimationCount::Rows() && ridingLower) {
                 this->UpdateObjectEffectAnimationStates();
                 return;
             }
         }
 
-        if (static_cast<int32_t>(boneId) != this->m_torsoKeyBone || !ridingLower || this->m_vehiclePassenger->GetUpperAnim(seat) == 506) {
+        if (static_cast<int32_t>(boneId) != this->m_torsoKeyBone || !ridingLower || this->m_vehiclePassenger->GetUpperAnim(seat) == CoA::AnimationCount::Rows()) {
             uint32_t current = this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF);
 
             if (!IsUpperBodyAnim(anim) || !this->ShouldSplitTorsoAnimation(anim, current) || anim == current) {
@@ -15518,6 +15604,18 @@ bool CGUnit_C::AffectedByAura(int32_t auraType, const SpellRec* spell) const {
 // VERIFY: d821b797 manual
 // OFFSET: 0x00726160
 bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
+    // CoA: AscAttachLate.cpp:Replace726160 (orig hook 0x726160) -- replaced: the chain walk with a fatal error on a self-superseding
+    // spell.
+    static CGUnit_C* s_unit;
+    s_unit = this;
+    return CoA::AttachLate::KnowsHigherRank(static_cast<uint32_t>(spellId),
+        [](uint32_t spell, uint32_t& supercededBy) {
+            SkillLineAbilityRec* row = s_unit->LookupAbility(static_cast<int32_t>(spell));
+            supercededBy = row ? static_cast<uint32_t>(row->m_supercededBySpell) : 0;
+            return row != nullptr;
+        },
+        [](uint32_t spell) { return s_unit->IsSpellKnown(static_cast<int32_t>(spell)) != 0; });
+
     SkillLineAbilityRec* ability = this->LookupAbility(spellId);
 
     if (!ability) {
@@ -15542,6 +15640,7 @@ bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
 // VERIFY: 9c1e6376 manual
 // OFFSET: 0x0073AB90
 void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73ABC3) -- 506 is the loaded AnimationData row count.
     EmotesRec* rec = g_emotesDB.GetRecord(emote);
 
     if (!rec) {
@@ -15550,7 +15649,7 @@ void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
 
     int32_t anim = rec->m_animID;
 
-    if (anim < 0 || anim >= 506) {
+    if (anim < 0 || anim >= CoA::AnimationCount::Rows()) {
         return;
     }
 
@@ -16515,6 +16614,11 @@ void CGUnit_C::ScanAuraSpellsOnDisplayUpdate() {
 // VERIFY: 975b5867 manual
 // OFFSET: 0x00724820
 void CGUnit_C::AddAuraEffect(uint32_t index, const SpellRec* spell) {
+    // CoA: AscRuntime.cpp:Detour724820 (orig hook 0x724820) -- the first false from the list skips the call.
+    if (!CoA::ClientHooks::addAuraEffect.AllPass(this, index, spell)) {
+        return;
+    }
+
     uint32_t count = this->m_handItemSpellIds.m_count == 0xFFFFFFFF ? this->m_handItemSpellIds.m_dynamic.m_count : this->m_handItemSpellIds.m_count;
 
     if (index >= count) {
@@ -16667,6 +16771,11 @@ handItems:
 // VERIFY: e85d416f manual
 // OFFSET: 0x0071E930
 void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
+    // CoA: AscRuntime.cpp:Detour71E930 (orig hook 0x71E930) -- the first false from the list skips the call.
+    if (!CoA::ClientHooks::removeAuraEffect.AllPass(this, index, spell)) {
+        return;
+    }
+
     uint32_t count = this->m_handItemSpellIds.m_count == 0xFFFFFFFF ? this->m_handItemSpellIds.m_dynamic.m_count : this->m_handItemSpellIds.m_count;
 
     if (index >= count) {
@@ -16888,6 +16997,10 @@ void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
     }
 
     // WoWFix335 missing-pre-cast-animation: original ends with UpdateBaseAnimation(0, -1)
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
+    // nothing to change (the destructor is implicit here).
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
+    // nothing to change (the destructor is implicit here).
 }
 
 // VERIFY: 47ba34f4 auto
@@ -17960,7 +18073,8 @@ void CGUnit_C::DoPowerRegen(uint32_t elapsed) {
         }
     }
 
-    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == POWER_TYPE_RUNIC_POWER) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x728AA3) -- cmp 6 became cmp 0; AscCAMgr changes it later.
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == static_cast<POWER_TYPE>(CoA::AttachPatches::RuneUiClass())) {
         uint32_t runes = CGRuneInfo::m_predictedRunes;
         uint32_t previous = CGRuneInfo::m_predictedRunes;
         uint32_t now = FrameTime::s_curTimeMs;
@@ -18252,7 +18366,8 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
         this->m_fishingLineEffect = nullptr;
     }
 
-    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x72E59D) -- jne became jmp: never.
+    if (false && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         CGGameUI::CloseLoot(true, (this->m_movement->m_flags & 0xC0100F) != 0, false);
     }
 }
@@ -19543,6 +19658,10 @@ void CGUnit_C::ChatBubbleRemove() {
 // VERIFY: 82092375 auto
 // OFFSET: 0x00720010
 void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
+    // CoA: AscAttachFixes.cpp:FUN_10a44e70 (orig hook 0x720010) -- the client's squared bubble distance (0xA104B0) is set
+    // first: 170^2 in a dungeon or raid, else 100^2, for types 0xC / 0xE / 0x33; else 25^2.
+    CoA::AttachFixes::SetChatBubbleRange(type, CoA::AttachFixesClient::CurrentMapInstanceType());
+
     if (this->m_namePlateFrame || !text || !*text || !this->m_worldObject) {
         return;
     }
@@ -19568,7 +19687,7 @@ void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
 
             C3Vector delta = this->GetPosition() - player->GetPosition();
 
-            if (delta.y * delta.y + delta.z * delta.z + delta.x * delta.x <= 625.0f) {
+            if (delta.y * delta.y + delta.z * delta.z + delta.x * delta.x <= CoA::AttachFixes::ChatBubbleRangeSq()) {
                 CImVector color = CGChat::GetChatColor(type);
                 this->ChatBubbleRemove();
                 this->m_chatBubble = CGChatBubbleFrame::GetNewChatBubble(CGWorldFrame::s_currentWorldFrame);
@@ -20160,7 +20279,8 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
 
         if (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue) {
             C3Vector position = frame->m_position;
-            frame->SetPoint(FRAMEPOINT_TOP, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x725915) -- point 1 (TOP) became 7 (BOTTOM).
+            frame->SetPoint(FRAMEPOINT_BOTTOM, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
             frame->SetFrameDepth(position.z - worldFrame->m_layoutDepth, true);
         } else {
             C3Vector position = frame->m_position;
@@ -20419,7 +20539,9 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
     if (!map || map->m_instanceType != 4) {
         C3Vector delta = this->GetPosition() - target->GetPosition();
 
-        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > MAX_NAMEPLATE_DIST_SQUARED) {
+        // CoA: AscGlobalsG.cpp:SetNamePlateRange (Extensions.dll patch 0xADAA7C) -- the squared range is the native's (stock
+        // 1681).
+        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > CoA::GlobalsG::NamePlateRangeSq()) {
             return 0;
         }
     }
@@ -21200,8 +21322,9 @@ void CGUnit_C::UpdateCritterDisplay() {
 // VERIFY: b7b739bd manual
 // OFFSET: 0x0071D450
 static int32_t IsWeaponAnimBehavior(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D477) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* animation = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = animation ? animation->m_behaviorID : 506;
+    int32_t behavior = animation ? animation->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 16:
@@ -21544,7 +21667,8 @@ void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
         CGWorldFrame::GetActiveCamera()->AddShakeById(this->m_modelData->m_footstepShakeSize, position);
     }
 
-    if (distanceSquared > 625.0f || (this->m_movement->m_flags & 0x2) || (this->m_modelData->m_flags & 0x1) || !CGUnit_C::s_cvShowFootPrintParticles->m_intValue) {
+    // CoA: AscAttachFixes.cpp:FUN_10a44e70 (orig hook 0x720010) -- 0xA104B0, as the last chat bubble left it.
+    if (distanceSquared > CoA::AttachFixes::ChatBubbleRangeSq() || (this->m_movement->m_flags & 0x2) || (this->m_modelData->m_flags & 0x1) || !CGUnit_C::s_cvShowFootPrintParticles->m_intValue) {
         return;
     }
 
@@ -22240,7 +22364,8 @@ void CGUnit_C::Dismount() {
     msg.Finalize();
     ClientServices::Send2(&msg);
 
-    if (!this->m_mountDisplayId) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x74135D) -- je became jmp: the client-side mount is never destroyed here.
+    if (true || !this->m_mountDisplayId) {
         return;
     }
 
@@ -22513,7 +22638,8 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 // OFFSET: 0x00727400
 bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
-        if (CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x727431) -- jne became jmp: AUTOFOLLOW_END is not signalled here.
+        if (false && CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
             FrameScript_SignalEvent(SCRIPT_EVENT_AUTOFOLLOW_END, nullptr);
         }
 
@@ -23669,6 +23795,10 @@ void CGUnit_C::FillPartyMemberPetState(CGPartyPetState* state) {
 // VERIFY: 80a37933 manual
 // OFFSET: 0x00730290
 void CGUnit_C::OnReceiveMirrorImageDataFromServer(CDataStore* msg) {
+    // CoA: AscRuntime.cpp:Detour730290 (orig hook 0x730290) -- after: a morphed unit's portrait refreshed
+    // (FUN_10111d20).
+    auto afterMirror = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooksClient::RefreshMorphPortrait(this); });
+
     ComponentData data;
     this->m_clientFlags &= ~0x20000;
 

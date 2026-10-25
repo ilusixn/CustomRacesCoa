@@ -91,6 +91,9 @@ static D3DLIGHT9 s_d3dLight;
 // STATIC: 0x00C60760
 static int32_t s_isIdent;
 
+// CoA: set by CoA::AttachFixesClient (the gxMonitor centring).
+void (*g_gxDeviceSetFormatHook)();
+
 // VERIFY: 271a03c4 manual
 // OFFSET: 0x0068FA60
 void CGxDeviceD3d::IBufUnlock(CGxBuf* buf) {
@@ -2830,6 +2833,13 @@ int32_t CGxDeviceD3d::DeviceSetFormat(const CGxFormat& format) {
 
     if (this->ICreateWindow(createFormat) && this->ICreateD3dDevice(createFormat) && CGxDevice::DeviceSetFormat(createFormat)) {
         this->ISetWindowFocus(1);
+
+        // CoA: AscAttachFixes.cpp:FUN_10a46400 (orig hook 0x6904D0) -- after the original: centre the window on
+        // monitor gxMonitor.
+        if (g_gxDeviceSetFormatHook) {
+            g_gxDeviceSetFormatHook();
+        }
+
         return 1;
     }
 
@@ -2841,6 +2851,10 @@ int32_t CGxDeviceD3d::DeviceSetFormat(const CGxFormat& format) {
     }
 
     this->m_hwnd = nullptr;
+
+    if (g_gxDeviceSetFormatHook) {
+        g_gxDeviceSetFormatHook();
+    }
 
     return 0;
 }

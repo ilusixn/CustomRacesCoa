@@ -50,4 +50,7 @@ int32_t Script_GetCurrencyListInfo(lua_State* L);
 void CurrencyTypesRegisterScriptFunctions();
 void CurrencyTypesUnregisterScriptFunctions();
 
+// CoA: AscGlobalsJ.cpp:SetCurrencyShow (CurrencyTypes.cpp).
+extern bool g_currencyShowAll;
+
 #endif

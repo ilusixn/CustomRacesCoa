@@ -1,4 +1,7 @@
 #include "Bag_C.h"
+#include "WoW/Source/Object/ObjectClient/AuraData.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Common/ComponentCore/Types.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -606,6 +609,33 @@ CGItem_C* CGBag_C::FindItemOfType(int32_t itemId, WOWGUID& container, uint32_t& 
 // VERIFY: 98f5a653 auto
 // OFFSET: 0x00754D00
 int32_t CGBag_C::GetItemTypeCount(int32_t itemId, uint32_t flags) {
+    // CoA: AscAttachFixes.cpp:sub_10a42820 (orig hook 0x754D00) -- 1000 when an aura on the player has an effect of aura type
+    // 0x100 whose misc values name the item (the first such effect decides).
+    if (CGPlayer_C* player = ClntObjMgrGetActivePlayerObj()) {
+        for (uint32_t i = 0; i < player->GetAuraCount(); ++i) {
+            AuraData* aura = player->GetAura(i);
+            SpellRec rec;
+
+            if (!aura || !g_spellDB.GetRecord(aura->m_spellId, &rec)) {
+                continue;
+            }
+
+            for (uint32_t e = 0; e < 3; ++e) {
+                if (rec.m_effectAura[e] != 0x100) {
+                    continue;
+                }
+
+                for (uint32_t m = 0; m < 3; ++m) {
+                    if (rec.m_effectMiscValue[m] == itemId) {
+                        return 1000;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
     if (itemId == -2) {
         return this->GetNumFreeInvSlots();
     }

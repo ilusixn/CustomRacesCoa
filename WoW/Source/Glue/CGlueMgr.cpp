@@ -195,13 +195,15 @@ CHARACTER_INFO* CGlueMgr::m_characterInfo;
 int32_t CGlueMgr::m_rereadTOS;
 
 // STATIC: 0x00B6AF54
-int32_t CGlueMgr::m_acceptedTOS;
+// CoA: AscAttachPatches.cpp (Extensions.dll patch 0xB6AF54) -- 1 at attach.
+int32_t CGlueMgr::m_acceptedTOS = 1;
 
 // STATIC: 0x00B6AF58
 int32_t CGlueMgr::m_rereadEULA;
 
 // STATIC: 0x00B6AF5C
-int32_t CGlueMgr::m_acceptedEULA;
+// CoA: AscAttachPatches.cpp (Extensions.dll patch 0xB6AF5C) -- 1 at attach.
+int32_t CGlueMgr::m_acceptedEULA = 1;
 
 // STATIC: 0x00B6AF60
 int32_t CGlueMgr::m_rereadTerminationWithoutNotice;

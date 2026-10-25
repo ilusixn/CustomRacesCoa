@@ -1,4 +1,8 @@
 #include "Object_C.h"
+#include "CoA/Source/Runtime/ClientHooksClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/AttachFixesClient.h"
+#include "WoW/Source/Object/ObjectClient/DynamicObject_C.h"
 #include "WoW/Source/UIUtil/Types.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -384,6 +388,9 @@ void CGObject_C::UpdateEffectAttachments() {
 // VERIFY: 8c88711b auto
 // OFFSET: 0x00743EC0
 void CGObject_C::PreAnimate(CGWorldFrame* frame) {
+    // CoA: AscRuntime.cpp:Detour743EC0 (orig hook 0x743EC0) -- list 0x10BE2CF8 after, with the object.
+    auto afterPreAnimate = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterPreAnimate.Run(this); });
+
     if (CGGameUI::m_lockedTarget == this->m_obj->m_guid && ClntObjMgrGetActivePlayer() != this->m_obj->m_guid && CGObject_C::s_cvObjectSelectionCircle->m_intValue) {
         frame->m_trackedEffectGuidA = this->m_obj->m_guid;
     }
@@ -675,7 +682,8 @@ void CGObject_C::Render() {
 // VERIFY: edc3c913 auto
 // OFFSET: 0x004D5F70
 int32_t CGObject_C::GetSelectionHighlightColor(CImVector* color) const {
-    *reinterpret_cast<uint32_t*>(color) = 0xFFFFFFFF;
+    // CoA: AscAttachFixes.cpp:sub_10a43730 (orig hook 0x4D5F70) -- replaced: always 0xFFFFFF00.
+    *reinterpret_cast<uint32_t*>(color) = 0xFFFFFF00;
     return 1;
 }
 
@@ -801,6 +809,12 @@ int32_t CGObject_C::UpdateObjectNameString(int32_t flags, char* buffer, uint32_t
 // VERIFY: 9000471f auto
 // OFFSET: 0x00743530
 int32_t CGObject_C::ShouldRenderObjectName(uint32_t flags) const {
+    // CoA: AscAttachFixes.cpp:sub_10a437c0 (orig hook 0x743530) -- a quest-relevant game object's name shows while UnitNameGO is
+    // on.
+    if (CoA::AttachFixesClient::ForceGameObjectName(this)) {
+        return 1;
+    }
+
     if (this->m_interactIcon) {
         return 0;
     }
@@ -1258,18 +1272,9 @@ void CGObject_C::ClearEffectList(int32_t all) {
         return;
     }
 
-    SpellRec spell;
-    CEffect* effect = this->m_effectList;
-
-    while (effect) {
-        CEffect* next = effect->m_next;
-
-        if (!g_spellDB.GetRecord(effect->m_spellId, &spell) || !(spell.m_attributesExC & 0x100000)) {
-            effect->MoveToDestroyList();
-        }
-
-        effect = next;
-    }
+    // CoA: AscRuntime.cpp:Replace744AC0 (orig hook 0x744AC0), replaced -- without `all` only what list 0x10BE2D78
+    // votes out goes (stock: every effect whose spell lacks attribute 0x100000).
+    CoA::ClientHooksClient::FilterEffects(this);
 }
 
 // VERIFY: 82510f34 manual
@@ -1376,7 +1381,10 @@ void CGObject_C::Initialize() {
 // OFFSET: 0x00744A50
 void CGObject_C::PostInit(uint32_t time, const CClientObjCreate& create, bool a3) {
     this->m_modelFlags |= 0x40000;
-    this->DoFade(this->GetBaseAlpha(), this->ShouldFadeIn() ? 1000 : 0);
+    // CoA: AscAttachFixes.cpp:sub_10a43760 (orig hook 0x744A50), with FUN_10a3d840's rewrite of 0x744A55 -- ShouldFadeIn is
+    // replaced by a flag: no fade-in for the dynamic object of spell 93306, a fade-in for everything else.
+    const bool noFade = this->m_typeId == ID_DYNAMICOBJECT && static_cast<CGDynamicObject_C*>(this)->m_dynamicObject->m_spellID == 0x16C7A;
+    this->DoFade(this->GetBaseAlpha(), !noFade ? 1000 : 0);
     this->RefreshInteractIcon();
     this->m_scaleChangeTime = 0;
 

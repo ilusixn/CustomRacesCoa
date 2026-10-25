@@ -34,6 +34,8 @@ uint32_t CSimpleTop::s_eventTime;
 
 // CoA: AscRuntime.cpp (orig hook 0x495810).
 void (*g_paintScreenHook)();
+// CoA: set by CoA::ClientHooks::InstallClient (0 key down, 1 key up, 2 key repeat).
+void (*g_keyEventHook)(int32_t kind, const void* data);
 
 // VERIFY: 29e70871 auto
 // OFFSET: 0x00495810
@@ -336,6 +338,11 @@ int32_t CSimpleTop::OnIme(const void* data, void* param) {
 // VERIFY: 81128119 manual
 // OFFSET: 0x004943C0
 int32_t CSimpleTop::OnKeyDown(const void* data, void* param) {
+    // CoA: AscRuntime.cpp:Detour4943C0 (orig hook 0x4943C0) -- the in-world key list first.
+    if (g_keyEventHook) {
+        g_keyEventHook(0, data);
+    }
+
     const EVENT_DATA_KEY* keyData = static_cast<const EVENT_DATA_KEY*>(data);
     CSimpleTop* top = static_cast<CSimpleTop*>(param);
     int32_t handled = 0;
@@ -379,6 +386,11 @@ int32_t CSimpleTop::OnKeyDown(const void* data, void* param) {
 // VERIFY: ab5a5ea6 manual
 // OFFSET: 0x00494490
 int32_t CSimpleTop::OnKeyUp(const void* data, void* param) {
+    // CoA: AscRuntime.cpp:Detour494490 (orig hook 0x494490) -- the in-world key list first.
+    if (g_keyEventHook) {
+        g_keyEventHook(1, data);
+    }
+
     const EVENT_DATA_KEY* keyData = static_cast<const EVENT_DATA_KEY*>(data);
     CSimpleTop* top = static_cast<CSimpleTop*>(param);
     CSimpleFrame* frame = top->m_keydownCapture[keyData->m_key];
@@ -404,6 +416,11 @@ int32_t CSimpleTop::OnKeyUp(const void* data, void* param) {
 // VERIFY: 060c6392 manual
 // OFFSET: 0x00494530
 int32_t CSimpleTop::OnKeyDownRepeat(const void* data, void* param) {
+    // CoA: AscRuntime.cpp:Detour494530 (orig hook 0x494530) -- the in-world key list first.
+    if (g_keyEventHook) {
+        g_keyEventHook(2, data);
+    }
+
     const EVENT_DATA_KEY* keyData = static_cast<const EVENT_DATA_KEY*>(data);
     CSimpleTop* top = static_cast<CSimpleTop*>(param);
     CSimpleFrame* frame = top->m_keydownCapture[keyData->m_key];

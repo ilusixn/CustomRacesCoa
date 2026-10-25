@@ -168,10 +168,10 @@ static int32_t Script_NewGMTicket(lua_State* L) {
         return 0;
     }
 
-    if (CGGameUI::CanPerformAction(17)) {
-        const char* text = lua_tolstring(L, 1, nullptr);
-        CGGMTicketInfo::CreateTicket(text, lua_toboolean(L, 2), 0);
-    }
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5AD0B0) -- the test/je is NOPed: asked, never refused.
+    CGGameUI::CanPerformAction(17);
+    const char* text = lua_tolstring(L, 1, nullptr);
+    CGGMTicketInfo::CreateTicket(text, lua_toboolean(L, 2), 0);
 
     return 0;
 }

@@ -422,7 +422,8 @@ static bool ValidateCameraAngularSpeed(CVar* var, const char* oldValue, const ch
 static bool ValidateCameraLinearSpeed(CVar* var, const char* oldValue, const char* value, void* arg) {
     float speed = SStrToFloat(value);
 
-    if (speed >= 0.0027777778f && speed <= 50.0f) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5FD886) -- the upper-bound jp is NOPed.
+    if (speed >= 0.0027777778f) {
         return true;
     }
 

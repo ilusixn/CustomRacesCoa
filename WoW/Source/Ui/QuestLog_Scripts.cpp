@@ -1,4 +1,5 @@
 #include "QuestLog.h"
+#include "CoA/Source/Modules/AttachLate.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -834,6 +835,12 @@ static int32_t Script_GetQuestLogRewardHonor(lua_State* L) {
     }
 
     lua_pushinteger(L, honor);
+
+    // CoA: AscAttachLate.cpp:Hook5E4B70 (orig hook 0x5E4B70) -- after it: stack slot 1 (the pushed value, or the first
+    // argument when there is one) scaled by the realm's first rate is the only result.
+    float value = static_cast<float>(lua_tonumber(L, 1));
+    lua_settop(L, 0);
+    lua_pushinteger(L, CoA::AttachLate::ScaleByRealmRate(value));
     return 1;
 }
 

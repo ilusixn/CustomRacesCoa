@@ -1,4 +1,6 @@
 #include <cstdint>
+#include "CoA/Source/Modules/AttachMisc.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include <cstdio>
@@ -532,6 +534,9 @@ void ZoneDebugDestroy() {
 // VERIFY: a6d33d4d auto
 // OFFSET: 0x00402910
 static void WowClientDestroy() {
+    // CoA: AscRuntime.cpp:Detour402910 (orig hook 0x402910) -- list 0x10BE2A8C after.
+    auto afterDestroy = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterClientDestroy.Run(); });
+
     ValidateNameDestroy();
     DeclinedWordsDestroy();
     SpellVisualsShutdown();
@@ -599,6 +604,9 @@ uint8_t GetClientExpansionLevel() {
 // VERIFY: 45dcce86 auto
 // OFFSET: 0x00402B20
 void SetPaths() {
+    // CoA: AscRuntime.cpp:Detour402B20 (orig hook 0x402B20) -- list 0x10BE2ACC after.
+    auto afterSetPaths = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterSetPaths.Run(); });
+
     SFile::DisableSFileCheckDisk();
     SFile::EnableDirectAccess(0);
 
@@ -998,6 +1006,10 @@ static int32_t Packet_SMSG_NEW_WORLD(void* param, NETMESSAGE msgId, uint32_t tim
 // VERIFY: 1eb347a4 auto
 // OFFSET: 0x00403DE0
 static int32_t Packet_SMSG_LOGIN_VERIFY_WORLD(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscAttachMisc.cpp:FUN_10a4f080 (orig hook 0x403DE0) -- an empty CMSG 0x53B, then the auto-quest pop-ups and
+    // chat checks are emptied.
+    CoA::AttachMisc::LoginVerifyWorld();
+
     uint32_t zoneID;
     C3Vector position = { 0.0f, 0.0f, 0.0f };
     float rotation;

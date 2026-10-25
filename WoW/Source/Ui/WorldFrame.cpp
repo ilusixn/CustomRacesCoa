@@ -1,4 +1,5 @@
 #include "WorldFrame.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include <cstring>
 #include <typeinfo>
@@ -448,6 +449,9 @@ void CGWorldFrame::SetCameraTarget(CGObject_C* target, int32_t freeLook) {
 // VERIFY: 412d637a manual
 // OFFSET: 0x004F6F90
 void CGWorldFrame::ClearTrackedObjects() {
+    // CoA: AscRuntime.cpp:Detour4F6F90 (orig hook 0x4F6F90) -- list 0x10BE2AAC after.
+    auto afterClear = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterClearTrackedObjects.Run(); });
+
     if (this->m_trackedEffectGuidA) {
         CGObject_C* object = ClntObjMgrObjectPtr(this->m_trackedEffectGuidA, TYPE_OBJECT, __FILE__, __LINE__);
 
@@ -646,6 +650,9 @@ uint32_t CGWorldFrame::GetHitTestFilterFlags(int32_t a1) {
     return flags;
 }
 
+// CoA: AscGlobalsJ.cpp:Detour4F5F40 (orig hook 0x4F5F40).
+float (*g_attackDistanceHook)() = nullptr;
+
 // VERIFY: d619b75b manual
 // OFFSET: 0x004F7A50
 void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
@@ -774,7 +781,8 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
         return;
     }
 
-    float range = player->GetMeleeRange(unit);
+    // CoA: AscGlobalsJ.cpp:Detour4F5F40 (orig hook 0x4F5F40, caller 0x4F7FB6) -- SetAttackDistance's range unless it is 0.
+    float range = g_attackDistanceHook && g_attackDistanceHook() != 0.0f ? g_attackDistanceHook() : player->GetMeleeRange(unit);
 
     if (range * range < distance) {
         CursorSetMode(ATTACK_ERROR_CURSOR);

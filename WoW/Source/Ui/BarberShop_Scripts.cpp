@@ -69,6 +69,11 @@ static int32_t Script_GetBarberShopStyleInfo(lua_State* L) {
 // VERIFY: 1b6918c6 auto
 // OFFSET: 0x0052ED60
 static int32_t Script_GetBarberShopTotalCost(lua_State* L) {
+    // CoA: AscAttachLate.cpp:Hook52ED60 (orig hook 0x52ED60) -- nothing until all three current styles are set.
+    if (!CGBarberShop::m_currentHairStyle || !CGBarberShop::m_currentFacialHair || !CGBarberShop::m_currentSkinColor) {
+        return 0;
+    }
+
     lua_pushinteger(L, CGBarberShop::GetTotalCost());
     return 1;
 }

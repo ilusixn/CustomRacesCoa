@@ -1,4 +1,6 @@
 #include "Player_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -3052,6 +3054,9 @@ static int32_t AuraVisionUpdateHandler(WOWGUID guid, void* param) {
 // VERIFY: ef96589a manual
 // OFFSET: 0x006E7F50
 void CGPlayer_C::PostInitActivePlayer() {
+    // CoA: AscRuntime.cpp:Detour6E7F50 (orig hook 0x6E7F50) -- list 0x10BE2DB8 after, with the player.
+    auto afterInit = CoA::ClientHooks::OnScopeExit([this]() { CoA::ClientHooks::afterActivePlayerInit.Run(this); });
+
     this->m_movementData.m_flags |= 0x200;
     this->SetActiveMirrorHandlers();
     SI2::InitVocalErrorSounds(this->m_unit->m_unitFieldBytes0[0], this->m_player->m_playerBytes3[0]);
@@ -4196,6 +4201,9 @@ int32_t Packet_Group_10(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 // VERIFY: 5322b599 manual
 // OFFSET: 0x006DF050
 int32_t Packet_SMSG_INITIAL_SPELLS(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscRuntime.cpp:Detour6DF050 (orig hook 0x6DF050) -- list 0x10BE28EC on every second packet.
+    CoA::ClientHooks::InitialSpellsReceived();
+
     uint8_t talentSpec;
     msg->Get(talentSpec);
     uint16_t count;
@@ -4743,6 +4751,22 @@ int16_t CGPlayer_C::GetSkillModifier(int32_t index) {
 // VERIFY: c0b0e280 auto
 // OFFSET: 0x006E7B00
 void CGPlayer_C::AddKnownSpell(int32_t spellId, int32_t a2, int32_t a3, int32_t a4) {
+    // CoA: AscAttachFixes.cpp:FUN_10a43820 (orig hook 0x6E7B00) -- the learned spell's class set and custom attributes
+    // pick the action-bar placement of CGSpellBook::AddKnownSpell (the je at 0x542D4E) for the call.
+    struct PlacementScope {
+        ~PlacementScope() {
+            CoA::AttachFixes::EndAddKnownSpell();
+        }
+    } placementScope;
+
+    {
+        SpellRec learned;
+
+        if (g_spellDB.GetRecord(spellId, &learned)) {
+            CoA::AttachFixes::BeginAddKnownSpell(spellId, learned.m_spellClassSet, CGSpellBook::GetSpellProgressionRank(&learned));
+        }
+    }
+
     if (spellId > g_spellDB.m_maxID) {
         SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
         return;
@@ -6109,6 +6133,15 @@ void CGPlayer_C::TalkToBinder(const WOWGUID& guid) {
 // VERIFY: 525e9f8e manual
 // OFFSET: 0x006D23C0
 void __stdcall CGPlayer_C::TalkToGuildBanker(const WOWGUID& guid) {
+    // CoA: AscAttachFixes.cpp:sub_10a449b0 (orig hook 0x6D23C0) -- only while no banker is open, and then the bank state is
+    // reset (CGGuildBankInfo::EnterWorld, tab 0) first.
+    if (CGGuildBankInfo::m_banker) {
+        return;
+    }
+
+    CGGuildBankInfo::EnterWorld();
+    CGGuildBankInfo::m_currentTab = 0;
+
     if (CGGuildBankInfo::m_banker && CGGuildBankInfo::m_banker == guid) {
         return;
     }
@@ -6881,7 +6914,7 @@ void CGPlayer_C::BuyItem(WOWGUID vendor, const MerchantItem* item, uint32_t coun
 
 // VERIFY: 604e7050 manual
 // OFFSET: 0x006DC3F0
-int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
+int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error, bool checkLevel) {
     error = ERR_MAX_VALUE;
 
     if (!stats) {
@@ -6891,7 +6924,9 @@ int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
 
     CGUnitData* unit = this->m_unit;
 
-    if (static_cast<int32_t>(stats->m_requiredLevel) > static_cast<int32_t>(unit->m_unitFieldLevel) || !((1 << (unit->m_unitFieldBytes0[1] - 1)) & stats->m_allowableClass) || !((1 << (unit->m_unitFieldBytes0[0] - 1)) & stats->m_allowableRace)) {
+    // CoA: AscAttachFixes.cpp:FUN_10a442f0 (orig hook 0x6DC3F0) -- the required level is checked only for
+    // Script_GetMerchantItemInfo (0x584FBE); 0x6DC41D is NOPed for every other caller.
+    if ((checkLevel && static_cast<int32_t>(stats->m_requiredLevel) > static_cast<int32_t>(unit->m_unitFieldLevel)) || !((1 << (unit->m_unitFieldBytes0[1] - 1)) & stats->m_allowableClass) || !((1 << (unit->m_unitFieldBytes0[0] - 1)) & stats->m_allowableRace)) {
         error = ERR_CANT_USE_ITEM;
         return 0;
     }
@@ -8336,6 +8371,7 @@ void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
     Spell_C_CancelAutoRepeat(true);
     Spell_C_ClearLastAutoRangedCombatError();
     // WoWFix335 melee-swing-right-click: original ends with UpdateBaseAnimation(0x40, -1)
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x6E2867) -- the same call is NOPed by the DLL; nothing to change.
 }
 
 // VERIFY: d5f87a32 manual
@@ -9905,7 +9941,8 @@ void CGPlayer_C::SwapGuildBankItem(int32_t itemId, uint32_t virtualSlot, uint8_t
     uint8_t tabSlot = virtualSlot % 98;
     CDataStore msg;
 
-    if (tab < 6 && CGGuildInfo::m_rankInfo[this->m_player->m_playerGuildrank].m_bankTabStacksPerDay[tab]) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x6DB8F9) -- jne became jmp: the stacks-per-day check never refuses.
+    if (tab < 6 && (true || CGGuildInfo::m_rankInfo[this->m_player->m_playerGuildrank].m_bankTabStacksPerDay[tab])) {
         msg.Put(static_cast<uint32_t>(CMSG_GUILD_BANK_SWAP_ITEMS));
         msg.Put(banker.m_guid);
         msg.Put(static_cast<uint8_t>(0));
@@ -10935,6 +10972,7 @@ void AreaTriggersInitialize(uint32_t mapId) {
 // VERIFY: f1281917 manual
 // OFFSET: 0x006DBE30
 int32_t AreaTriggerCheck(const void* data, void* param) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x6DBE41) -- push 0x64 rewritten as 0x64: unchanged.
     s_areaTriggerTimer = ClientSetTimer(100, AreaTriggerCheck, nullptr);
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
@@ -11065,7 +11103,8 @@ int32_t CGPlayer_C::UpdateMountedCollisionBox(float mountHeight, int32_t force) 
         box.b.y = box.b.y - this->m_movementData.m_collisionRadius;
         box.t.y = box.t.y + this->m_movementData.m_collisionRadius;
 
-        if (this->m_movementData.CollisionBoxDoesntFit(box)) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x6D7856) -- je became jmp: the fit check never refuses.
+        if (this->m_movementData.CollisionBoxDoesntFit(box) && false) {
             return 0;
         }
     }
@@ -14791,4 +14830,10 @@ int32_t Packet_SMSG_VOICE_PARENTAL_CONTROLS(void* param, NETMESSAGE msgId, uint3
 // OFFSET: 0x006DC7E0
 int32_t CGPlayer_C::GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const {
     return g_itemDisplayInfoDB.GetRecord(this->GetVirtualItemDisplayID(slot), &rec);
+}
+
+// CoA: AscMisc.cpp:GetBindPosition -- the bind point (0xC9EB2C) and its map (0xC9D538).
+void PlayerGetBindPoint(C3Vector* position, uint32_t* mapId) {
+    *position = s_bindPosition;
+    *mapId = s_bindMapId;
 }

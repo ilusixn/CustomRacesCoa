@@ -1,4 +1,7 @@
 #include "VehiclePassenger_C.h"
+#include "CoA/Source/Modules/AnimationCount.h"
+#include <algorithm>
+#include <vector>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -381,6 +384,7 @@ void CVehiclePassenger_C::ComputeSeatOffset(const VehicleSeatRec* seat, CM2Model
 // VERIFY: ac9be9b7 auto
 // OFFSET: 0x007485B0
 int32_t CVehiclePassenger_C::ChooseSeatExitAnim(uint32_t flags, uint32_t* anim) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7485F7) -- 506 is the loaded AnimationData row count.
     uint32_t state = this->m_state;
 
     if (state != 3 && this->m_unit->m_unit->m_unitFieldHealth > 0) {
@@ -405,7 +409,7 @@ int32_t CVehiclePassenger_C::ChooseSeatExitAnim(uint32_t flags, uint32_t* anim) 
         exitAnim = seat->m_rideUpperAnimStart;
     }
 
-    if (exitAnim != 506) {
+    if (exitAnim != CoA::AnimationCount::Rows()) {
         *anim = exitAnim;
         return 1;
     }
@@ -416,8 +420,9 @@ int32_t CVehiclePassenger_C::ChooseSeatExitAnim(uint32_t flags, uint32_t* anim) 
 // VERIFY: f673db8c auto
 // OFFSET: 0x00747B20
 int32_t CVehiclePassenger_C::GetLowerAnim(const VehicleSeatRec* seat) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x747BA8) -- 506 is the loaded AnimationData row count.
     if (!seat) {
-        return 506;
+        return CoA::AnimationCount::Rows();
     }
 
     int32_t anim;
@@ -426,14 +431,14 @@ int32_t CVehiclePassenger_C::GetLowerAnim(const VehicleSeatRec* seat) const {
         case 1:
         case 2: {
             if (!(seat->m_flags & 0x1)) {
-                return 506;
+                return CoA::AnimationCount::Rows();
             }
 
             if ((this->m_flags & 0x2) || (anim = seat->m_enterAnimStart) == -1) {
                 anim = seat->m_enterAnimLoop;
 
                 if (anim == -1) {
-                    return 506;
+                    return CoA::AnimationCount::Rows();
                 }
             }
 
@@ -442,14 +447,14 @@ int32_t CVehiclePassenger_C::GetLowerAnim(const VehicleSeatRec* seat) const {
 
         case 3: {
             if (!(seat->m_flags & 0x2)) {
-                return 506;
+                return CoA::AnimationCount::Rows();
             }
 
             if ((this->m_flags & 0x2) || (anim = seat->m_rideAnimStart) == -1) {
                 anim = seat->m_rideAnimLoop;
 
                 if (anim == -1) {
-                    return 506;
+                    return CoA::AnimationCount::Rows();
                 }
             }
 
@@ -459,14 +464,14 @@ int32_t CVehiclePassenger_C::GetLowerAnim(const VehicleSeatRec* seat) const {
         case 4:
         case 5: {
             if (!this->m_unit->ShouldUseVehicleSeatExitAnimation(seat)) {
-                return 506;
+                return CoA::AnimationCount::Rows();
             }
 
             if ((this->m_flags & 0x2) || (anim = seat->m_exitAnimStart) == -1) {
                 anim = seat->m_exitAnimLoop;
 
                 if (anim == -1) {
-                    return 506;
+                    return CoA::AnimationCount::Rows();
                 }
             }
 
@@ -474,7 +479,7 @@ int32_t CVehiclePassenger_C::GetLowerAnim(const VehicleSeatRec* seat) const {
         }
 
         default: {
-            return 506;
+            return CoA::AnimationCount::Rows();
         }
     }
 
@@ -494,6 +499,7 @@ CGUnit_C* CVehiclePassenger_C::GetStoredRootVehicleUnit() const {
 // VERIFY: 4f73af22 manual
 // OFFSET: 0x00748620
 void CVehiclePassenger_C::StartMirroringVehicleAnims() {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7486F6, 0x748763) -- 506 is the loaded AnimationData row count.
     if (this->m_transitionSeat >= 8) {
         return;
     }
@@ -521,7 +527,7 @@ void CVehiclePassenger_C::StartMirroringVehicleAnims() {
     M2BoneSequenceInfo info;
     vehicleModel->GetBoneSequenceInfo(0xFFFFFFFF, info);
 
-    if (info.m_sequenceId >= 506) {
+    if (info.m_sequenceId >= CoA::AnimationCount::Rows()) {
         model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
     } else {
         model->SetBoneSequence(0xFFFFFFFF, info.m_sequenceId, info.m_variationIndex, info.m_time, info.m_speed, 1, 1);
@@ -538,7 +544,7 @@ void CVehiclePassenger_C::StartMirroringVehicleAnims() {
 
             vehicleModel->GetBoneSequenceInfo(bone, info);
 
-            if (info.m_sequenceId < 506) {
+            if (info.m_sequenceId < CoA::AnimationCount::Rows()) {
                 model->SetBoneSequence(bone, info.m_sequenceId, info.m_variationIndex, info.m_time, info.m_speed, 1, 1);
                 continue;
             }
@@ -675,9 +681,10 @@ C3Vector CVehiclePassenger_C::ComputeStartWorldPosition(const C3Vector& offset, 
 // VERIFY: b021a3dc auto
 // OFFSET: 0x007484E0
 void CVehiclePassenger_C::OnAnimEnd(uint32_t anim) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7484F1) -- 506 is the loaded AnimationData row count.
     const VehicleSeatRec* seat = this->m_seatRec;
 
-    if (this->GetLowerAnim(seat) != 506 && seat && this->m_state == 3 && (seat->m_flags & 0x4)) {
+    if (this->GetLowerAnim(seat) != CoA::AnimationCount::Rows() && seat && this->m_state == 3 && (seat->m_flags & 0x4)) {
         int32_t upper;
 
         if ((this->m_flags & 0x4) || (upper = seat->m_rideUpperAnimStart) == -1) {
@@ -706,6 +713,7 @@ void CVehiclePassenger_C::OnAnimEnd(uint32_t anim) {
 // VERIFY: 9156af0b auto
 // OFFSET: 0x00748560
 int32_t CVehiclePassenger_C::PickHighPriorityAnimation(int32_t unused_a2, uint32_t* anim) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x74858C) -- 506 is the loaded AnimationData row count.
     if ((this->m_state == 0 || this->m_state == 3) && this->m_unit->m_unit->m_unitFieldHealth > 0) {
         return 0;
     }
@@ -716,7 +724,7 @@ int32_t CVehiclePassenger_C::PickHighPriorityAnimation(int32_t unused_a2, uint32
 
     int32_t lower = this->GetLowerAnim(this->m_seatRec);
 
-    if (lower == 506) {
+    if (lower == CoA::AnimationCount::Rows()) {
         return 0;
     }
 
@@ -1042,6 +1050,7 @@ static void SignalVehicleTransitionEvent(WOWGUID guid, const VehicleRec* vehicle
 // VERIFY: 01220e79 manual
 // OFFSET: 0x007489C0
 void CVehiclePassenger_C::SetState(uint32_t state, CGUnit_C* vehicle, uint8_t seat, VehicleSeatRec* seatRec, uint32_t time, WOWGUID relativeGuid) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x748F6F) -- 506 is the loaded AnimationData row count.
     if (this->m_flags & 0x800) {
         this->m_flags &= ~0x800;
 
@@ -1238,7 +1247,7 @@ void CVehiclePassenger_C::SetState(uint32_t state, CGUnit_C* vehicle, uint8_t se
     this->m_flags &= ~0x1;
     CVehicle_C* vehicleObject = vehicle ? vehicle->m_vehicle : nullptr;
 
-    if (this->m_state == 3 && vehicleObject && seatRec && (seatRec->m_flags & 0x20000) && seatRec->m_vehicleRideAnimLoop < 506) {
+    if (this->m_state == 3 && vehicleObject && seatRec && (seatRec->m_flags & 0x20000) && seatRec->m_vehicleRideAnimLoop < CoA::AnimationCount::Rows()) {
         CVehicle_C* boneVehicle = vehicleObject->FindVehicleToPlayBoneAnim();
 
         if (boneVehicle->PlayBoneAnim(seatRec->m_vehicleEnterAnimBone, seatRec->m_vehicleRideAnimLoop)) {

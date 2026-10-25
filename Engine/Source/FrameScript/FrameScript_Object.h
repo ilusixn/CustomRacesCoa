@@ -53,4 +53,7 @@ class FrameScript_Object {
     void UnregisterScriptObject(const char* name);
 };
 
+// CoA: AscAttachFixes.cpp:sub_10a4c700 (orig hook 0x81B380) -- sees each RegisterScriptEvent name first.
+extern void (*g_registerScriptEventHook)(const char* name);
+
 #endif

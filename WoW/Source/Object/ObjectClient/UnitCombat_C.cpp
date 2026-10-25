@@ -543,7 +543,8 @@ void CGUnit_C::ClearAttackRound() {
 
     CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPE_UNIT, __FILE__, __LINE__));
 
-    if (target) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x7561BF) -- je became jmp: never played.
+    if (false && target) {
         target->PlayVictimWorldFeedback(this->m_lastAttackRound);
     }
 

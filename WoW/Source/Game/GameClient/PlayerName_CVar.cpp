@@ -29,7 +29,8 @@ bool ObjectNameShowCallback(CVar* var, const char* oldValue, const char* value, 
 // OFFSET: 0x007E6150
 void PlayerNameRegisterCVars() {
     CVar::Register("UnitNameOwn", nullptr, 0x10, "0", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x1), false);
-    CVar::Register("UnitNameNPC", nullptr, 0x10, "0", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x2), false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x7E617E) -- default "1".
+    CVar::Register("UnitNameNPC", nullptr, 0x10, "1", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x2), false);
     CVar::Register("UnitNamePlayerGuild", nullptr, 0x10, "1", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x4), false);
     CVar::Register("UnitNamePlayerPVPTitle", nullptr, 0x10, "1", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x8), false);
     CVar::Register("UnitNameEnemyPlayerName", nullptr, 0x10, "1", ObjectNameShowCallback, CATEGORY_GAME, false, reinterpret_cast<void*>(0x10), false);

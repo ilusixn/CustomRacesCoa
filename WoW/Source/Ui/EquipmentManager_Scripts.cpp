@@ -379,7 +379,8 @@ static const char* s_equipmentSetIconPath = "Interface\\Icons\\";
 static int32_t Script_GetEquipmentSetInfo(lua_State* L) {
     int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
 
-    if (static_cast<uint32_t>(index - 1) > 9) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AF142) -- 9 became 0x14.
+    if (static_cast<uint32_t>(index - 1) > 20) {
         luaL_error(L, "Usage: GetEquipmentSetInfo(setIndex)");
         return 0;
     }
@@ -598,7 +599,8 @@ static int32_t Script_SaveEquipmentSet(lua_State* L) {
     }
 
     if (!CGEquipmentManager::CanCreateSet()) {
-        luaL_error(L, "Too many sets! You can only have %d sets", 10);
+        // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5AFB64) -- 10 became 20.
+        luaL_error(L, "Too many sets! You can only have %d sets", 20);
         return 0;
     }
 
