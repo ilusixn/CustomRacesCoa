@@ -46,6 +46,8 @@ namespace CoA::ClientDbcPatchClient { void Init(); }
 namespace CoA::ObjectAddonClient { void Init(); }
 namespace CoA::AuraAmountsClient { void Init(); }
 namespace CoA::GameModeClient { void Init(); }
+namespace CoA::GlobalsEClient { void Init(); }
+namespace CoA::WorldMapClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
 namespace CoA::BindingsClient { void Init(); }
 namespace CoA::LibraryClient { void Init(); }
