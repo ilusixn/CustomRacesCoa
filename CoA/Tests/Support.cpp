@@ -64,10 +64,10 @@ namespace {
     }
 }
 
-std::vector<uint8_t> CoATest::Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings) {
+std::vector<uint8_t> CoATest::Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings, uint32_t columns) {
     std::string block = std::string(1, '\0') + strings;
-    uint32_t columns = rows.empty() ? 0 : static_cast<uint32_t>(rows[0].size());
-    std::vector<uint32_t> words = { 0x43424457, static_cast<uint32_t>(rows.size()), columns, columns * 4, static_cast<uint32_t>(block.size()) };
+    uint32_t dwords = rows.empty() ? 0 : static_cast<uint32_t>(rows[0].size());
+    std::vector<uint32_t> words = { 0x43424457, static_cast<uint32_t>(rows.size()), columns ? columns : dwords, dwords * 4, static_cast<uint32_t>(block.size()) };
 
     for (const auto& row : rows) {
         words.insert(words.end(), row.begin(), row.end());

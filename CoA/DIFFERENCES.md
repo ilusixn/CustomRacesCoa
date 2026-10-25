@@ -42,8 +42,14 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 
 ## Forced by x64
 
-- **MemoryBridge / `MMgr64.exe`.** Dropped. The six bridged DBCs (Creature, Quest, ItemAddon, Vanity, SpellAffect,
-  Mythic) load in-process.
+- **MemoryBridge / `MMgr64.exe`.** No helper process: its table server runs in-process with the same semantics
+  (result codes, the 0xFEFD0-byte reply limit with batch halving, PatchRecord 0x73 always refused, so server patches
+  of bridged rows never take effect, as on the 32-bit client). The six bridged DBCs (Creature, Quest, ItemAddon,
+  VanityCollection, SpellAffect, MythicKeystones) keep their 32-bit rows in the tables; the cached records handed to
+  callers are x64 structs with string pointers. The memory commands and the start-up self-test are gone.
+- **HD content.** The eight HD archives and the ten HD model tables load only while the DXVK (Vulkan) renderer is
+  active (`CoA::Hd`), and never with `-hd 0`. HD tables are read through the client's own record readers (x64
+  records) and applied right after each one loads.
 - **`DivxTac.dll` and the account kill switch.** Not loaded: a 64-bit process cannot load the 32-bit DLL.
 - **Discord.** Needs the x64 `discord_game_sdk.dll`; without it the feature is off.
 - **Realm-data DLLs.** The hot-swap's `LoadLibraryA` of `*.dll` under `Data\<path>` only succeeds for x64 DLLs;

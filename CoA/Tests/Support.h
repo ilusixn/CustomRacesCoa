@@ -42,7 +42,8 @@ namespace CoATest {
     };
 
     // A WDBC file: each row is its dwords (all rows the same length), then the string block (offset 0 is "").
-    std::vector<uint8_t> Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings);
+    // columns: the header's field count when it is not one per dword (a 64-bit column).
+    std::vector<uint8_t> Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings, uint32_t columns = 0);
     // A localized-string block of a WDBC row: the offset in all 16 locale slots, then the flags dword.
     std::vector<uint32_t> Loc(uint32_t offset);
 

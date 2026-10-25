@@ -55,6 +55,10 @@ void CoA::Dbc::SetLocaleSlot(uint32_t (*slot)()) {
     s_localeSlot = slot;
 }
 
+uint32_t CoA::Dbc::LocaleSlot() {
+    return s_localeSlot ? s_localeSlot() : 0;
+}
+
 CoA::Dbc::Table::Table(const char* path) : m_path(path) {
 }
 
@@ -152,7 +156,7 @@ void CoA::Dbc::Table::Load() {
 
         structSize = (structSize + 3) & ~3u;
         std::vector<uint8_t> converted(static_cast<size_t>(this->m_count) * structSize);
-        uint32_t slot = s_localeSlot ? s_localeSlot() : 0;
+        uint32_t slot = CoA::Dbc::LocaleSlot();
 
         for (uint32_t i = 0; i < this->m_count; ++i) {
             const uint8_t* src = &this->m_rows[static_cast<size_t>(i) * this->m_rowSize];

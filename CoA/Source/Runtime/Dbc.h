@@ -62,6 +62,7 @@ namespace CoA::Dbc {
     bool ReadFile(const char* path, std::vector<uint8_t>& out);
     // The locale slot (0..15) a localized string column keeps (FUN_101b0c80); defaults to 0.
     void SetLocaleSlot(uint32_t (*slot)());
+    uint32_t LocaleSlot();
 
     // DbcClient.cpp: the SFile reader and the client's locale.
     void InstallClient();

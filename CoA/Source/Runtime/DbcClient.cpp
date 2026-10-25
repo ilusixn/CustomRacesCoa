@@ -19,7 +19,7 @@ namespace {
     }
 
     // FUN_101b0c80: which of the 16 locale slots this client reads (s_locale, jump table 0x101b0d38).
-    uint32_t LocaleSlot() {
+    uint32_t ClientLocaleSlot() {
         static const uint32_t map[] = { 0, 2, 3, 4, 6, 8, 9, 10, 11 };
         uint32_t locale = static_cast<uint32_t>(s_locale);
         return locale <= 8 ? map[locale] : 15;
@@ -28,5 +28,5 @@ namespace {
 
 void CoA::Dbc::InstallClient() {
     CoA::Dbc::SetFileReader(ReadFromArchives);
-    CoA::Dbc::SetLocaleSlot(LocaleSlot);
+    CoA::Dbc::SetLocaleSlot(ClientLocaleSlot);
 }
