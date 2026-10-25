@@ -694,3 +694,16 @@ void DBCache_ClearPending() {
     g_arenaTeamCache.ClearPending();
     g_danceCache.ClearPending();
 }
+
+// CoA: AscEventPackets.cpp:On58E / On58F / On590 repeat these over a counted batch.
+int32_t DBCacheReceiveCreature(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return ReceiveCreature(param, msgId, time, msg);
+}
+
+int32_t DBCacheReceiveSingleItem(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return ReceiveSingleItem(param, msgId, time, msg);
+}
+
+int32_t DBCacheReceiveQuest(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    return ReceiveQuest(param, msgId, time, msg);
+}
