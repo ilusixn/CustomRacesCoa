@@ -500,4 +500,7 @@ M2ModelTrack<T>::M2ModelTrack() {
     memset(&this->m_currentValue, 0, sizeof(T));
 }
 
+// CoA: AscAnimationCount.cpp -- the 506 the Engine sites compare with; CoA sets the loaded row count.
+extern uint32_t g_animationCount;
+
 #endif

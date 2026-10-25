@@ -162,6 +162,7 @@ static int32_t Script_SetModelScale(lua_State* L) {
 // VERIFY: ffa3052c manual
 // OFFSET: 0x009607E0
 static int32_t Script_SetSequence(lua_State* L) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x960843, 0x96085D) -- 506 is the loaded AnimationData row count.
     CSimpleModel* model = static_cast<CSimpleModel*>(FrameScript_GetObjectThis(L, CSimpleModel::GetObjectType()));
 
     if (!lua_isnumber(L, 2)) {
@@ -172,9 +173,9 @@ static int32_t Script_SetSequence(lua_State* L) {
 
     uint32_t sequence = static_cast<uint32_t>(lua_tonumber(L, 2));
 
-    if (sequence >= 506) {
+    if (sequence >= g_animationCount) {
         const char* name = model->GetName();
-        luaL_error(L, "Error: %s:SetSequence(sequence) exceeds valid range of 0 - %d", name ? name : "<unnamed>", 506);
+        luaL_error(L, "Error: %s:SetSequence(sequence) exceeds valid range of 0 - %d", name ? name : "<unnamed>", g_animationCount);
         return 0;
     }
 
