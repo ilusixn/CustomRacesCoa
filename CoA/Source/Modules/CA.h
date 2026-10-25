@@ -304,6 +304,13 @@ namespace CoA::CA {
         uint32_t (*rankNumber)(uint32_t spell) = nullptr;                      // AscSpellRank::RankNumber
         // The spellbook slot holding the spell picked up (0xBE8D98 / 0xBE6D88, 0x53BAF0(slot, 0)); false if none.
         bool (*pickupFromSpellbook)(uint32_t spell) = nullptr;
+        // Modules not ported yet; unset answers as the original does with no data (false / nothing).
+        bool (*tokenAtLeast)(uint32_t token, uint32_t count) = nullptr;     // AscToken::AtLeast(token, count, 0)
+        bool (*specHasCreatorBuild)(int32_t spec) = nullptr;                // AscBuildCreator::SpecHasActiveBuild
+        bool (*wildcardRollActive)() = nullptr;                             // AscWildcardRapid::Active
+        bool (*wildcardRollInFlight)() = nullptr;                           // AscWildcardRapid::InFlight
+        void (*wildcardMarkRerollPending)() = nullptr;                      // AscWildcardRapid::MarkRerollPending
+        void (*wildcardArmPoll)() = nullptr;                                // AscWildcardRolls::ArmPoll
     };
 
     Deps& Dependencies();

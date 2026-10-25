@@ -94,22 +94,22 @@ std::string CoA::CA::detail::TabName(uint32_t tab) {
     return "INVALID_TAB_TYPE_" + std::to_string(tab);
 }
 
-namespace {
-    void SetInt(lua_State* L, const char* k, int32_t v) {
-        lua_pushstring(L, k);
-        lua_pushinteger(L, v);
-        lua_settable(L, -3);
-    }
+void CoA::CA::detail::SetInt(lua_State* L, const char* k, int32_t v) {
+    lua_pushstring(L, k);
+    lua_pushinteger(L, v);
+    lua_settable(L, -3);
+}
 
+void CoA::CA::detail::SetStr(lua_State* L, const char* k, const std::string& v) {
+    lua_pushstring(L, k);
+    lua_pushstring(L, v.c_str());
+    lua_settable(L, -3);
+}
+
+namespace {
     void SetNum(lua_State* L, const char* k, float v) {
         lua_pushstring(L, k);
         lua_pushnumber(L, v);
-        lua_settable(L, -3);
-    }
-
-    void SetStr(lua_State* L, const char* k, const std::string& v) {
-        lua_pushstring(L, k);
-        lua_pushstring(L, v.c_str());
         lua_settable(L, -3);
     }
 
