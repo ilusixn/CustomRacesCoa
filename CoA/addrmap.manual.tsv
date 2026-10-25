@@ -1,1 +1,8 @@
 addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
+0x00542679	data		CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:481	mapped
+0x005427BE	data		CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:511	mapped
+0x0054284E	data		CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:532	mapped
+0x005A8C70	data		CoA::ClientHooks::getSpellSkipsMacros	WoW/Source/Ui/ActionBarFrame.cpp:175	mapped
+0x006E7346	data		CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
+0x006E7356	data		CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
+0x00728AA1	data		CoA::AttachPatches::SetRuneUiClass	CoA/Source/Modules/AttachPatches.cpp:42	mapped
