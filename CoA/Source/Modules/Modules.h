@@ -33,6 +33,7 @@ namespace CoA::AuraAmounts { void Init(); }
 namespace CoA::GameMode { void Init(); }
 namespace CoA::SpellActivationOverlay { void Init(); }
 namespace CoA::SuperTrack { void Init(); }
+namespace CoA::GroupFinder { void Init(); }
 namespace CoA::BridgeStore { void Init(); }
 namespace CoA::VanityCollection { void Init(); }
 namespace CoA::MythicPlus { void Init(); }
@@ -52,6 +53,7 @@ namespace CoA::GlobalsEClient { void Init(); }
 namespace CoA::WorldMapClient { void Init(); }
 namespace CoA::SpellActivationOverlayClient { void Init(); }
 namespace CoA::SuperTrackClient { void Init(); }
+namespace CoA::GroupFinderClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
 namespace CoA::BindingsClient { void Init(); }
 namespace CoA::LibraryClient { void Init(); }
