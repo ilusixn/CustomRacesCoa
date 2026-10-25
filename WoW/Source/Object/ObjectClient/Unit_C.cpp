@@ -1,4 +1,5 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AnimationCount.h"
 #include <algorithm>
 #include <vector>
@@ -20522,7 +20523,9 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
     if (!map || map->m_instanceType != 4) {
         C3Vector delta = this->GetPosition() - target->GetPosition();
 
-        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > MAX_NAMEPLATE_DIST_SQUARED) {
+        // CoA: AscGlobalsG.cpp:SetNamePlateRange (Extensions.dll patch 0xADAA7C) -- the squared range is the native's (stock
+        // 1681).
+        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > CoA::GlobalsG::NamePlateRangeSq()) {
             return 0;
         }
     }
