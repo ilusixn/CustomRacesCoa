@@ -5,6 +5,7 @@
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Events.h"
+#include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/Packets.h"
@@ -739,6 +740,12 @@ void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     if (!entering) {
         s_errorCallstackHeight = 0;
         return;
+    }
+
+    // CoA64 diagnostic (not in the original; only with -extlog): the error text, so world-entry errors can be measured.
+    if (CoA::Log::Enabled()) {
+        const char* message = lua_tostring(L, -1);
+        CoA::Log::Printf("Lua error: %s", message ? message : "(no message)");
     }
 
     lua_Debug ar;
