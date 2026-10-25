@@ -155,3 +155,11 @@ Remaining errors, by count:
 | 1 | InterfaceOptionsPanels.lua:1105 `InterfaceOptionsSocialPanelProfanityFilterText` | open; check against the 32-bit baseline |
 
 Fatal.txt still lists the unhandled appearance packets (0x69A / 0x69D / 0x6A2), which belong to the Appearance module.
+
+## Plan 6 result (mystic enchant)
+
+Capture 2026-10-25, `-extlog 1`, about 2 minutes in world. The C_MysticEnchant errors (3,686) are gone. GameTooltip.lua
+now gets past line 606 and stops at line 633 on `C_Appearance` (3,188, the same per-tooltip-update path), so
+Appearance moves up the order. The other remaining errors are as in the Plan 5 table (Tutorial 10, SpellApi 5,
+Challenge 5, DraftMode 3, CAMgr `GetEntryBySpellID` 3, Manastorm 3, CAMgr `GetTalentsByClass` 2, LootLockout 2, one
+each for the rest). Fatal.txt also lists an unhandled opcode 0x726 (1830) besides the appearance packets.
