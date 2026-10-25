@@ -12,6 +12,8 @@ namespace CoA::AttachFixesClient {
     // FUN_1008de00 / FUN_1008e050: an unfinished quest in the log still needs this creature / game object (entry)
     // killed or used, or one of its quest items collected.
     bool QuestRelevant(CGPlayer_C* player, uint32_t entry, bool gameObject);
+    // FUN_1008d8c0: how many of an item the player carries in the backpack and the four equipped bags.
+    int32_t CountCarried(CGPlayer_C* player, uint32_t itemId);
 
     // 0x743530 (CGObject_C::ShouldRenderObjectName): a game object's name shows when UnitNameGO is on and it is
     // quest-relevant.

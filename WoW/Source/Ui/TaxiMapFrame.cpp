@@ -704,3 +704,9 @@ void CGTaxiMap::LeaveWorld() {
     CGTaxiMap::FreeRouteLines();
     CGTaxiMap::CloseMap();
 }
+
+// CoA: AscSmallApis.cpp:C_Taxi.GetCurrentTaxiNodeID -- the original reads the pointer at 0xC0D7EC as its value; here the
+// current node's id (0 without one).
+int32_t TaxiMapCurrentNodeId() {
+    return s_currentNode ? s_currentNode->m_id : 0;
+}
