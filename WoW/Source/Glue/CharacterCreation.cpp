@@ -394,7 +394,8 @@ int32_t CCharacterCreation::GetExistingClassIndex() {
 // VERIFY: 6c4329fd manual
 // OFFSET: 0x004E0F50
 int32_t CCharacterCreation::GetRandomClassID() {
-    int32_t classes[10];
+    // CoA: Ascension.exe patch 0x4E0F55 -- room for 30 classes (0x78 bytes) instead of 10
+    int32_t classes[30];
     int32_t count = 0;
     uint8_t expansion = ClientServices::Connection()->m_accountExpansion;
 

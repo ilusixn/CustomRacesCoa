@@ -274,12 +274,7 @@ static int32_t Script_GetScreenHeight(lua_State* L) {
 // VERIFY: bb3dc1d7 auto
 // OFFSET: 0x004DCCF0
 static int32_t Script_ScanDLLStart(lua_State* L) {
-    if (!lua_isstring(L, 1) || !lua_isstring(L, 2)) {
-        luaL_error(L, "Usage: ScanDLLStart(\"VersionURL\", \"DLLURL\")");
-        return 0;
-    }
-
-    CGlueMgr::ScanDLLStart(lua_tolstring(L, 1, nullptr), lua_tolstring(L, 2, nullptr));
+    // CoA: Ascension.exe patch 0x4DCCF0 -- the body is `mov eax, 0; ret`: no usage check, no scan
     return 0;
 }
 

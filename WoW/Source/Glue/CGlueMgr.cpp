@@ -730,21 +730,11 @@ void CGlueMgr::Resume() {
     uint8_t expectedDigest[16];
 
     switch (FrameXML_CheckSignature("Interface\\GlueXML\\GlueXML.toc", nullptr, InterfaceKey, expectedDigest)) {
-        case 0: {
-            status.Add(STATUS_WARNING, "GlueXML missing signature");
-            break;
-        }
-
-        case 1: {
-            status.Add(STATUS_WARNING, "GlueXML has corrupt signature");
-            break;
-        }
-
-        case 2: {
-            status.Add(STATUS_WARNING, "GlueXML is modified or corrupt");
-            break;
-        }
-
+        // CoA: Ascension.exe patch 0x4DA7FC/0x4DA809/0x4DA816 -- a missing, corrupt or modified signature
+        // jumps straight to loading the frames, without the status warning
+        case 0:
+        case 1:
+        case 2:
         case 3: {
             FrameXML_FreeHashNodes();
             FrameXML_CreateFrames("Interface\\GlueXML\\GlueXML.toc", nullptr, &md5, &status);
@@ -752,11 +742,7 @@ void CGlueMgr::Resume() {
             uint8_t digest[16];
             MD5Final(digest, &md5);
 
-#ifndef DISABLE_SIGNATURE_CHECKS
-            if (memcmp(expectedDigest, digest, sizeof(digest))) {
-                break;
-            }
-#endif
+            // CoA: Extensions.dll patch 0x4DA8EB (AscAttachPatches) -- the digest mismatch exit is removed
 
             FrameScript_SignalEvent(GLUE_EVENT_FRAMES_LOADED, nullptr);
             CGlueMgr::InitializeFFX();
