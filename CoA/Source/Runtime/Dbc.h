@@ -35,6 +35,9 @@ namespace CoA::Dbc {
         void Upsert(uint32_t id, const std::vector<uint8_t>& row);
         uint32_t AddString(const char* s);
 
+        // Tests only: forget the loaded file and every patch, so the next read loads it again through the reader.
+        void Unload();
+
     private:
         void Load();
 
