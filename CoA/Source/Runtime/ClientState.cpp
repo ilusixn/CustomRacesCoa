@@ -38,3 +38,29 @@ const char* CoA::ClientState::BasePath() {
 void CoA::ClientState::SetBasePathProbe(const char* (*probe)()) {
     s_basePath = probe;
 }
+
+CoA::ClientState::Data& CoA::ClientState::Probes() {
+    static Data data;
+    return data;
+}
+
+uint32_t CoA::ClientState::ItemDisplayId(uint32_t item) {
+    return Probes().itemDisplayId ? Probes().itemDisplayId(item) : 0;
+}
+
+const char* CoA::ClientState::ItemIcon(uint32_t item) {
+    const char* icon = Probes().itemIcon ? Probes().itemIcon(item) : nullptr;
+    return icon ? icon : "";
+}
+
+uint8_t CoA::ClientState::CharacterClass() {
+    return Probes().characterClass ? Probes().characterClass() : 0;
+}
+
+uint8_t CoA::ClientState::CharacterRace() {
+    return Probes().characterRace ? Probes().characterRace() : 0;
+}
+
+int32_t CoA::ClientState::SpellMechanic(uint32_t spell) {
+    return Probes().spellMechanic ? Probes().spellMechanic(spell) : -1;
+}
