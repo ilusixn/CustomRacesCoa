@@ -1,0 +1,19 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-10-25-coa64-plan7-character-advancement.md
+Pre-flight: 7a Task 2 consumes Task 1's Build / manager API (CA.h, CAInternal.h) -- same author, same headers.
+7a Task 1: Ruling: a unit is passed by GUID (0 = the build's owner, resolved through Deps::unitExists) instead of the client object pointer -- cost if wrong: none, every unit read goes through Deps.
+7a Task 1: Ruling: BAD_ABILITY (learn and unlearn slot 3) runs without a row; the rule functions read the row's fields only when there is one (the reconstruction read flags/id up front and faulted on an unknown id; the original's slot-3 check does not read the row) -- cost if wrong: none.
+7a Task 1: Ruling: the CA tests serve WDBC files through the Dbc file reader (one fixed row set per process) because Dbc::Upsert keeps the original's index-growth bug, which drops the old highest id on each grow -- cost if wrong: none (test setup only).
+7a Task 1: Ruling: SpellRank (FirstRank / Chain) is read through Deps, since its implementation is client-side -- cost if wrong: none.
+Task 1: complete (commits 49ef17c..99940db, tests: cmd //c Tools\coa\check.bat → OK)
+7a Task 2: Ruling: rune regeneration keeps the original's operand (10 while a rune spell is known, 6 when none, via AttachPatches::SetRuneUiClass); the reconstruction's deliberate departure (`cmp ebx, ebx`) is not taken -- cost if wrong: runes do not regenerate once a rune spell is known, as in the original.
+7a Task 2: Ruling: the NOPed 0x5216F0 call sites become ClientHooks::suppressLearnMessages / suppressUnlearnMessages counters checked around the three learn and two unlearn DisplayError calls; the 0x5A8C70 jne->jmp becomes ClientHooks::getSpellSkipsMacros while the hooked RemoveMacro runs -- cost if wrong: none (same calls skipped).
+7a Task 2: Ruling: the 0x6E2240 hook reports the spells after the client reads them; a packet with another opcode (the handler's early return) reports none, where the original's detour read the packet regardless -- cost if wrong: none observed (the handler is registered only for SMSG_SEND_UNLEARN_SPELLS).
+7a Task 2: Ruling: 0x726 with an entry count larger than the bytes left is ignored (deviation: the original reads past the buffer) -- cost if wrong: a malformed packet leaves the old entries.
+7a Task 2: Ruling: wildcardUndesired (AscWildcardSets) is unset until Wildcard is ported (false: no entry is undesired) -- cost if wrong: suggestion weights ignore undesired entries until then.
+Task 2: complete (commits 99940db..a7a752d, tests: cmd //c Tools\coa\check.bat → OK)
+Final review (7a, Opus): no Critical; Important #1 test strength; Minors 2-4.
+Final: fixed Important #1 test strength -- CAEdgeTest.cpp (rule slots 4/10/12/13/37/38/40, cache read, truncated 0x726, short 0x725/0x728/0x64A, 0x64A in-place patch, callback order, Update level sync, failing cast requirement, glue drops inspect records); mutations of cache lookup, callback order, pending level sync and the truncated reset each CAUGHT; suite 310/310
+Final: fixed Minor 2 truncated 0x726 skipped ResetPendingBuild -- CA_KnownEntriesTruncated RED->GREEN, suite 310/310
+Final: Ruling: short 0x725 / 0x728 read missing fields as 0 and still signal -- the original checks no read there; CA_ShortPackets pins it -- cost if wrong: a bogus event on a malformed server packet
+Final: Ruling: SMSG_REMOVED_SPELL trailing-byte test (Player_C.cpp:4356) tests m_size > m_read + 4 (the byte after the spell must exist), where the original tests m_size > 4 from the buffer start and can read one byte past the payload -- reading past the payload is undefined in the decomp -- cost if wrong: a 4-byte packet whose stale next byte happened to be 0 no longer marks the spell, so its macros are removed as stock
+Final: fixed Minor 4 stale addrmap -- the seven CA patch sites resolved in addrmap.manual.tsv, map regenerated
