@@ -41,6 +41,18 @@ TSHashTable<FrameScript_EventObject, HASHKEY_CONSTSTRI> s_scriptEventsHash;
 // STATIC: 0x00D3F7D0
 static TSFixedArray<FrameScript_EventObject*> s_scriptEvents;
 
+// CoA: set by CoA::Attach (CoA::Events::ExtendList); the engine does not link the CoA code itself
+const char** (*g_createEventsHook)(const char** names, uint32_t& count);
+
+// CoA: the DLL reads the event table at 0xD3F7D0 directly (AscRuntime.cpp:EventId / EventName)
+uint32_t FrameScript_GetEventCount() {
+    return s_scriptEvents.Count();
+}
+
+FrameScript_EventObject* FrameScript_GetEvent(uint32_t index) {
+    return index < s_scriptEvents.Count() ? s_scriptEvents[index] : nullptr;
+}
+
 // STATIC: 0x00D3F7E0
 static char s_printIndent[128];
 
@@ -1607,6 +1619,11 @@ void FrameScript_SignalEvent(uint32_t index, const char* format, ...) {
 // VERIFY: 2207d978 manual
 // OFFSET: 0x0081B5F0
 void FrameScript_CreateEvents(const char** names, uint32_t count) {
+    // CoA: AscRuntime.cpp:RegisterEventsDetour (orig hook 0x81B5F0) -- the glue and world lists get the custom events
+    if (g_createEventsHook) {
+        names = g_createEventsHook(names, count);
+    }
+
     s_scriptEvents.SetCount(count);
 
     for (uint32_t i = 0; i < count; i++) {
