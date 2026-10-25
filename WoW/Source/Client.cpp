@@ -286,6 +286,11 @@ int32_t s_isPvPRealm;
 // STATIC: 0x00B2F9A0
 static int32_t s_gameInitialized;
 
+// CoA: the DLL reads 0xB2F9A0 directly (AscRegistry.cpp:LuaSetupDetour)
+int32_t ClientGameInitialized() {
+    return s_gameInitialized;
+}
+
 // STATIC: 0x00B2F9A8
 static int32_t s_clientTaxiBenchIsOnTaxi;
 

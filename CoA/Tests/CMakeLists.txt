@@ -13,6 +13,8 @@ target_link_libraries(CoATests
         Base
         Storm
         BlizzardCore
+        lua
+        Os
 )
 
 add_test(NAME CoATests COMMAND CoATests)

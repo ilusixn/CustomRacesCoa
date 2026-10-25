@@ -14,7 +14,7 @@ import sys
 from dataclasses import dataclass, field
 
 ROW_RE = re.compile(r'^\|\s*`([^`]+)`\s*\|\s*([^|]*?)\s*\|')
-NATIVE_RE = re.compile(r'COA_NATIVE\(\s*"([^"]*)"\s*,\s*"([^"]+)"\s*,\s*(?:CoA::LuaState::)?(\w+)')
+NATIVE_RE = re.compile(r'COA_NATIVE\(\s*"([^"]*)"\s*,\s*"([^"]+)"')
 PACKET_RE = re.compile(r'COA_PACKET\(\s*(0x[0-9A-Fa-f]+|\d+)')
 CVAR_RE = re.compile(r'COA_CVAR\(\s*"([^"]+)"')
 EVENT_RE = re.compile(r'COA_EVENT\(\s*"([^"]+)"')
@@ -98,8 +98,9 @@ def scan_coa(root):
                     inv.patches.add(int(addr, 16))
             if not in_coa:
                 continue
-            for ns, fn, state in NATIVE_RE.findall(text):
-                inv.natives.add((ns, fn, state.lower()))
+            # The state is not declared per native; it comes from BindingStates.generated.inc.
+            for ns, fn in NATIVE_RE.findall(text):
+                inv.natives.add((ns, fn, ''))
             inv.packets.update(int(op, 0) for op in PACKET_RE.findall(text))
             inv.cvars.update(CVAR_RE.findall(text))
             inv.events.update(EVENT_RE.findall(text))

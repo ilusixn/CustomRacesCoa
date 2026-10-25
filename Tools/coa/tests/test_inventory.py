@@ -104,14 +104,15 @@ class ScanCoaTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             os.makedirs(os.path.join(root, 'CoA', 'Source'))
             with open(os.path.join(root, 'CoA', 'Source', 'A.cpp'), 'w', encoding='utf-8') as f:
-                f.write('COA_NATIVE("C_Chat", "Foo", World, Foo);\n'
+                f.write('    COA_NATIVE("C_Chat", "Foo", Foo),\n'
+                        '    COA_NATIVE("", "AbandonSkillID", AbandonSkillID),\n'
                         'COA_PACKET(0x563, OnLoyalty);\n'
                         'COA_CVAR("showToolsUI", "", 0x1, "0", &s_showTools, false);\n'
                         'COA_EVENT("ACTIVE_MANASTORM_UPDATED");\n'
                         '// CoA: AscAddonTaint.cpp:Hook (orig hook 0x488540)\n'
                         '// CoA: Extensions.dll patch 0x4DA8EB (AscAttachPatches) -- removed\n')
             inv = inventory.scan_coa(root)
-            self.assertEqual(inv.natives, {('C_Chat', 'Foo', 'world')})
+            self.assertEqual({(ns, name) for ns, name, _ in inv.natives}, {('C_Chat', 'Foo'), ('', 'AbandonSkillID')})
             self.assertEqual(inv.packets, {0x563})
             self.assertEqual(inv.cvars, {'showToolsUI'})
             self.assertEqual(inv.events, {'ACTIVE_MANASTORM_UPDATED'})

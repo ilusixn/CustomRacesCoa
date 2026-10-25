@@ -139,5 +139,6 @@ int32_t GatherAdditionalChecks(uint8_t* check1, uint8_t* check2, uint8_t* check3
 void ClientUpdateTaxiBenchmarkMode();
 void ClientKillTimer(uint32_t id, EVENTHANDLERFUNC handler, const char* name);
 void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param);
+int32_t ClientGameInitialized();
 
 #endif
