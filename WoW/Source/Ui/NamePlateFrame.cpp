@@ -1,4 +1,5 @@
 #include "NamePlateFrame.h"
+#include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include <new>
 #include <typeinfo>
@@ -71,9 +72,11 @@ static CImVector s_classColors[12] = {
     CImVector(0x0A, 0x7C, 0xFF, 0xFF),
 };
 
+// CoA: read through CoA::GlobalsG::NamePlateHeight() (SetNamePlateScaleY writes the original's float).
 // STATIC: 0x00B2DA70
 static float s_namePlateHeight = 0.025f;
 
+// CoA: read through CoA::GlobalsG::NamePlateWidth() (SetNamePlateScaleX writes the original's float).
 // STATIC: 0x00B2DA74
 static float s_namePlateWidth = 0.1f;
 
@@ -497,14 +500,16 @@ void CGNamePlateFrame::SetCastBarValues(float minValue, float maxValue, float va
 void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     this->m_guid = unit->m_obj->m_guid;
     this->m_unitNameText->SetVertexColor(CImVector(0xFF, 0xFF, 0xFF, 0xFF));
-    this->SetWidth(s_namePlateWidth);
-    this->SetHeight(s_namePlateHeight);
+    // CoA: AscGlobalsG.cpp:SetNamePlateScaleX / Y (Extensions.dll patch 0xB2DA74, 0xB2DA70) -- the natives' values
+    // (stock 0.1 / 0.025).
+    this->SetWidth(CoA::GlobalsG::NamePlateWidth());
+    this->SetHeight(CoA::GlobalsG::NamePlateHeight());
 
-    float barOffsetX = s_namePlateWidth * 0.031f;
-    float barOffsetY = s_namePlateHeight * 0.125f;
+    float barOffsetX = CoA::GlobalsG::NamePlateWidth() * 0.031f;
+    float barOffsetY = CoA::GlobalsG::NamePlateHeight() * 0.125f;
     this->m_healthBar->SetPoint(FRAMEPOINT_BOTTOMLEFT, this, FRAMEPOINT_BOTTOMLEFT, barOffsetX, barOffsetY, 1);
-    this->m_healthBar->SetWidth(s_namePlateWidth * 0.804f);
-    this->m_healthBar->SetHeight(s_namePlateHeight * 0.281f);
+    this->m_healthBar->SetWidth(CoA::GlobalsG::NamePlateWidth() * 0.804f);
+    this->m_healthBar->SetHeight(CoA::GlobalsG::NamePlateHeight() * 0.281f);
     this->m_healthBar->SetUnit(unit);
 
     this->m_castBarBorder->SetWidth(this->GetWidth());
@@ -516,8 +521,8 @@ void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     this->m_castBarShield->SetPoint(FRAMEPOINT_CENTER, this->m_castBarBorder, FRAMEPOINT_CENTER, 0.0f, -(this->m_castBarShield->GetHeight() * 0.5f), 1);
 
     this->m_castBar->SetPoint(FRAMEPOINT_BOTTOMRIGHT, this->m_castBarBorder, FRAMEPOINT_BOTTOMRIGHT, -barOffsetX, barOffsetY, 1);
-    this->m_castBar->SetWidth(s_namePlateWidth * 0.804f);
-    this->m_castBar->SetHeight(s_namePlateHeight * 0.281f);
+    this->m_castBar->SetWidth(CoA::GlobalsG::NamePlateWidth() * 0.804f);
+    this->m_castBar->SetHeight(CoA::GlobalsG::NamePlateHeight() * 0.281f);
     this->m_castBar->SetMinMaxValues(0.0f, 0.0f);
     this->m_castBar->SetValue(0.0f);
 
@@ -525,8 +530,8 @@ void CGNamePlateFrame::Initialize(CGUnit_C* unit) {
     castColor.Set(1.0f, 0.7f, 0.0f, 1.0f);
     this->m_castBar->SetStatusBarColor(castColor);
 
-    float levelOffsetX = s_namePlateWidth * -0.092f;
-    float levelOffsetY = s_namePlateHeight * 0.284f;
+    float levelOffsetX = CoA::GlobalsG::NamePlateWidth() * -0.092f;
+    float levelOffsetY = CoA::GlobalsG::NamePlateHeight() * 0.284f;
     this->m_levelText->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_BOTTOMRIGHT, levelOffsetX, levelOffsetY, 1);
     this->m_castBarIcon->SetPoint(FRAMEPOINT_CENTER, this->m_castBarBorder, FRAMEPOINT_BOTTOMLEFT, -levelOffsetX, levelOffsetY, 1);
     this->m_namePlateGlow->SetAllPoints(this, 1);

@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachPatches.h"
@@ -2076,8 +2077,10 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
 
     int32_t idleTime = OsGetAsyncTimeMs() - CSimpleTop::s_eventTime;
 
-    if (idleTime - AUTO_SIT_IDLE_TIME >= 0) {
-        if (idleTime - AUTO_LOGOUT_IDLE_TIME < 0) {
+    // CoA: AscGlobalsG.cpp:SetAFKTimer / SetAFKLogoutTimer (Extensions.dll patch 0x52B259, 0x52B25F, 0x52B266) -- the two
+    // compare values are the natives' (stock 300000 / 1800000); SetAFKTimer(0) makes the jl a jmp: never AFK.
+    if (CoA::GlobalsG::AfkEnabled() && idleTime - CoA::GlobalsG::AfkTime() >= 0) {
+        if (idleTime - CoA::GlobalsG::AfkLogoutTime() < 0) {
             if (player) {
                 if (!player->m_unit->m_unitFieldBytes1[0] && !(player->m_unit->m_unitFieldFlags & 0x80000) && !player->IsMounted() && !player->IsAutoTracking()) {
                     player->ChangeStandState(UNIT_SITTING);
