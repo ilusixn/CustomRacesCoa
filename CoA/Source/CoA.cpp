@@ -1,5 +1,6 @@
 #include "CoA/Source/CoA.h"
 #include "CoA/Source/Runtime/Log.h"
+#include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Events.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "CoA/Source/Runtime/Logger.h"
@@ -23,6 +24,8 @@ void CoA::Attach() {
     // AscRuntime::InstallHooks: the event table extension (orig hook 0x81B5F0) and the DLL's own event names.
     g_createEventsHook = CoA::Events::ExtendList;
     CoA::Events::RegisterNames();
+    // AscDbc: custom tables read through the client's SFile.
+    CoA::Dbc::InstallClient();
 
     for (const CoA::Module& module : s_modules) {
         if (!module.init) {
