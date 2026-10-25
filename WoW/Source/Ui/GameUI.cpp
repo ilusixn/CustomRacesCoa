@@ -7660,8 +7660,7 @@ static void PlacedFrameCallback(HOSFILE file, CSimpleFrame* frame) {
     uint32_t written;
     SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
     OsWriteFile(file, line, SStrLen(line), &written);
-    SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->m_level);
-    OsWriteFile(file, line, SStrLen(line), &written);
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x517EE8) -- the FrameLevel line is NOPed.
     float dx = 0.0f;
     float dy = 0.0f;
     int32_t anchor = 0;

@@ -1536,7 +1536,8 @@ void CWorld::Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position) {
     bool prepareAll = true;
     bool preload = false;
 
-    if (World::s_farClip - World::s_prevFarClip > 10.0f) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x783310) -- jne became jmp: no preload when the far clip grows.
+    if (false && World::s_farClip - World::s_prevFarClip > 10.0f) {
         prepareAll = false;
         preload = true;
     }

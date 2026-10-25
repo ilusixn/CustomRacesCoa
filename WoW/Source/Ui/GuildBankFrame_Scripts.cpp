@@ -471,7 +471,8 @@ static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
         Spell_C_StopTargeting();
     }
 
-    if (!CGGuildInfo::GetNumGuildBankTabItemWithdrawalsByRankID(tab, player->m_player->m_playerGuildrank)) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5A6506) -- jne became jmp: withdrawals are not checked.
+    if (!CGGuildInfo::GetNumGuildBankTabItemWithdrawalsByRankID(tab, player->m_player->m_playerGuildrank) && false) {
         CGGameUI::DisplayError(ERR_GUILD_PERMISSIONS);
         return 0;
     }
@@ -606,7 +607,8 @@ static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
     uint32_t rank = player->m_player->m_playerGuildrank;
     uint8_t rights = CGGuildInfo::GetGuildBankTabPermissionsByRankID(tab, rank);
 
-    if (rights & 1) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x5A6956) -- the je is NOPed: always viewable.
+    if (true || (rights & 1)) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);

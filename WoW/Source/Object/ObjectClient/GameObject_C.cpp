@@ -2879,7 +2879,8 @@ void CGGameObject_C::Reenable() {
         ClntObjMgrHideObject(this->m_obj->m_guid);
     }
 
-    if (this->m_gameObject->m_typeID == 33) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x70ED92) -- the type 33 jne is NOPed: every type.
+    if (true || this->m_gameObject->m_typeID == 33) {
         if (this->m_nameDesc) {
             PlayerNameDelete(this->m_nameDesc);
         }

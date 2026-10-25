@@ -22267,7 +22267,8 @@ void CGUnit_C::Dismount() {
     msg.Finalize();
     ClientServices::Send2(&msg);
 
-    if (!this->m_mountDisplayId) {
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x74135D) -- je became jmp: the client-side mount is never destroyed here.
+    if (true || !this->m_mountDisplayId) {
         return;
     }
 
