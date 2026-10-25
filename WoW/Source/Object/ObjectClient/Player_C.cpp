@@ -1,4 +1,5 @@
 #include "Player_C.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -4743,6 +4744,22 @@ int16_t CGPlayer_C::GetSkillModifier(int32_t index) {
 // VERIFY: c0b0e280 auto
 // OFFSET: 0x006E7B00
 void CGPlayer_C::AddKnownSpell(int32_t spellId, int32_t a2, int32_t a3, int32_t a4) {
+    // CoA: AscAttachFixes.cpp:FUN_10a43820 (orig hook 0x6E7B00) -- the learned spell's class set and custom attributes
+    // pick the action-bar placement of CGSpellBook::AddKnownSpell (the je at 0x542D4E) for the call.
+    struct PlacementScope {
+        ~PlacementScope() {
+            CoA::AttachFixes::EndAddKnownSpell();
+        }
+    } placementScope;
+
+    {
+        SpellRec learned;
+
+        if (g_spellDB.GetRecord(spellId, &learned)) {
+            CoA::AttachFixes::BeginAddKnownSpell(spellId, learned.m_spellClassSet, CGSpellBook::GetSpellProgressionRank(&learned));
+        }
+    }
+
     if (spellId > g_spellDB.m_maxID) {
         SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
         return;
@@ -6109,6 +6126,15 @@ void CGPlayer_C::TalkToBinder(const WOWGUID& guid) {
 // VERIFY: 525e9f8e manual
 // OFFSET: 0x006D23C0
 void __stdcall CGPlayer_C::TalkToGuildBanker(const WOWGUID& guid) {
+    // CoA: AscAttachFixes.cpp:sub_10a449b0 (orig hook 0x6D23C0) -- only while no banker is open, and then the bank state is
+    // reset (CGGuildBankInfo::EnterWorld, tab 0) first.
+    if (CGGuildBankInfo::m_banker) {
+        return;
+    }
+
+    CGGuildBankInfo::EnterWorld();
+    CGGuildBankInfo::m_currentTab = 0;
+
     if (CGGuildBankInfo::m_banker && CGGuildBankInfo::m_banker == guid) {
         return;
     }
@@ -6881,7 +6907,7 @@ void CGPlayer_C::BuyItem(WOWGUID vendor, const MerchantItem* item, uint32_t coun
 
 // VERIFY: 604e7050 manual
 // OFFSET: 0x006DC3F0
-int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
+int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error, bool checkLevel) {
     error = ERR_MAX_VALUE;
 
     if (!stats) {
@@ -6891,7 +6917,9 @@ int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error) {
 
     CGUnitData* unit = this->m_unit;
 
-    if (static_cast<int32_t>(stats->m_requiredLevel) > static_cast<int32_t>(unit->m_unitFieldLevel) || !((1 << (unit->m_unitFieldBytes0[1] - 1)) & stats->m_allowableClass) || !((1 << (unit->m_unitFieldBytes0[0] - 1)) & stats->m_allowableRace)) {
+    // CoA: AscAttachFixes.cpp:FUN_10a442f0 (orig hook 0x6DC3F0) -- the required level is checked only for
+    // Script_GetMerchantItemInfo (0x584FBE); 0x6DC41D is NOPed for every other caller.
+    if ((checkLevel && static_cast<int32_t>(stats->m_requiredLevel) > static_cast<int32_t>(unit->m_unitFieldLevel)) || !((1 << (unit->m_unitFieldBytes0[1] - 1)) & stats->m_allowableClass) || !((1 << (unit->m_unitFieldBytes0[0] - 1)) & stats->m_allowableRace)) {
         error = ERR_CANT_USE_ITEM;
         return 0;
     }

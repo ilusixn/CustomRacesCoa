@@ -579,4 +579,8 @@ void RegisterGxCVars() {
     s_cvVideoOptionsVersion = CVar::Register("videoOptionsVersion", "Video options version", 3, "0", CVVideoOptionsVersionCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvWindowResizeLock = CVar::Register("windowResizeLock", "prevent resizing in windowed mode", 1, "0", CVGxWindowResizeLockCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvFixedFunction = CVar::Register("fixedFunction", "Force fixed function rendering", 3, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
+
+    // CoA: AscAttachFixes.cpp:0x10A76B40 (orig hook 0x76A630) -- after the stock gx CVars: gxMonitor, the monitor
+    // CGxDeviceD3d::DeviceSetFormat centres the window on (0: none).
+    CVar::Register("gxMonitor", nullptr, 1, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
 }

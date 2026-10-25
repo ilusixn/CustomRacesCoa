@@ -1,4 +1,6 @@
 #include "GameObject_C.h"
+#include <string>
+#include "CoA/Source/Modules/AttachFixes.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include <cmath>
 #include <cstring>
@@ -569,6 +571,19 @@ int32_t CGGameObject_C::GetModelFileName(const char** name) const {
 // OFFSET: 0x0070CDF0
 const char* CGGameObject_C::GetObjectName() const {
     if (this->m_stats) {
+        // CoA: AscAttachFixes.cpp:FUN_10a42b80 (orig hook 0x70CDF0) -- a "$CN" name takes the creator's name over its first
+        // three characters, kept in the cache (the original writes it into the cached string; a fresh copy here, which
+        // a longer name cannot overrun).
+        if (this->m_stats->m_name[0] && SStrStr(this->m_stats->m_name[0], "$CN")) {
+            std::string text = this->m_stats->m_name[0];
+
+            if (CoA::AttachFixes::ReplaceNameToken(text, GetObjectNameFromGuid(this->m_gameObject->m_createdBy))) {
+                char* copy = static_cast<char*>(malloc(text.size() + 1));
+                memcpy(copy, text.c_str(), text.size() + 1);
+                this->m_stats->m_name[0] = copy;
+            }
+        }
+
         return this->m_stats->m_name[0];
     }
 
@@ -757,6 +772,17 @@ int32_t CGGameObject_C::ShouldFadeIn() const {
 void CGGameObject_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& hidden) {
     CGObject_C::ShouldRender(flags, render, hidden);
     this->m_typeData->ShouldRender(flags, render, hidden);
+
+    // CoA: AscAttachFixes.cpp:FUN_10a42d60 (orig hook 0x70B960) -- after a non-zero result the object's name is created once
+    // (ObjectNameCreate) and its draw callback updated. The result is eax, which the types' empty ShouldRender leave as
+    // flags.
+    if (flags) {
+        if (!this->m_nameDesc) {
+            this->m_nameDesc = ObjectNameCreate(this->m_obj->m_guid);
+        }
+
+        PlayerNameUpdateDrawCallback(this->m_nameDesc);
+    }
 }
 
 // VERIFY: 981f9d46 manual

@@ -1,4 +1,5 @@
 #include "Tooltip.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -7458,7 +7459,11 @@ void CGTooltip::AddSkinnableText(CGUnit_C* unit, char* buffer, uint32_t size) {
             Spell_C_GetMinMaxPoints(&spell, i, &skill, &maxSkill, 0, 0, 0, 0);
 
             if (skill > 0) {
-                int32_t level = unit->m_unit->m_unitFieldLevel;
+                // CoA: AscAttachFixes.cpp:FUN_10a44c30 (orig hook 0x620EE0) -- the level is the unit's addon field 86 for
+                // the call (the client's own until the ObjectAddon module is ported).
+                uint32_t addonLevel = 0;
+                bool (*addonField)(uint64_t, uint32_t, uint32_t&) = CoA::AttachFixes::Dependencies().unitAddonField;
+                int32_t level = addonField && addonField(unit->m_obj->m_guid.m_guid, 86, addonLevel) ? static_cast<int32_t>(addonLevel) : static_cast<int32_t>(unit->m_unit->m_unitFieldLevel);
                 int32_t required;
 
                 if (level <= 10) {

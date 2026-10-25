@@ -1,4 +1,5 @@
 #include "UnitCombatLog_C.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cstring>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -1809,6 +1810,10 @@ int32_t CombatLog::HandleSpellLogExecute(CDataStore* msg, int32_t timeOffset) {
 // VERIFY: ae480a8e manual
 // OFFSET: 0x00751F70
 void UnitCombatLogHeal(const WOWGUID& casterGuid, const WOWGUID& targetGuid, int32_t spellId, int32_t amount, int32_t overheal, int32_t absorbed, bool crit, bool periodic, uint32_t timeOffset) {
+    // CoA: AscAttachFixes.cpp:FUN_10a761e0 (orig hook 0x751F70) -- the periodic-heal combat text name (s_combatTextTypes[27],
+    // read by SendHealEvent) becomes PERIODIC_HEAL_CRIT for a crit, else PERIODIC_HEAL.
+    s_combatTextTypes[27] = crit ? "PERIODIC_HEAL_CRIT" : "PERIODIC_HEAL";
+
     if (!amount && !overheal && !absorbed) {
         return;
     }

@@ -1,4 +1,7 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/AttachFixesClient.h"
+#include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "Unit_C.h"
@@ -621,6 +624,11 @@ int32_t UnitScaleUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 80a48461 manual
 // OFFSET: 0x00730050
 int32_t UnitLevelUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    // CoA: AscAttachFixes.cpp:sub_10a76810 (orig hook 0x730050) -- after a creature's (not a player's) level update the next
+    // special effect is swallowed once (CEffect::AddSpecialEffect).
+    CGObject_C* updated = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
+    CoA::AttachFixes::UnitLevelUpdated(updated && updated->m_typeId == ID_UNIT);
+
     uint32_t oldLevel = *static_cast<const uint32_t*>(oldValue);
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
@@ -4708,79 +4716,85 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
 // VERIFY: 3458f5db manual
 // OFFSET: 0x00729C70
 int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
-    const WOWGUID* controllerGuid = this->m_unit->m_unitFieldCharmedby.m_guid ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
-    CGUnit_C* controller = nullptr;
+    // CoA: AscAttachFixes.cpp:sub_10a45c90 (orig hook 0x729C70) -- the creature name rules apply after the client
+    // agreed.
+    const int32_t result = [&]() -> int32_t {
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
+        const WOWGUID* controllerGuid = this->m_unit->m_unitFieldCharmedby.m_guid ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
+        CGUnit_C* controller = nullptr;
 
-    if (controllerGuid->m_guid) {
-        controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPE_UNIT, __FILE__, __LINE__));
-    }
-
-    if (!this->CanBeTargetted() || (CGGameUI::m_visible && (this->m_namePlateFrame || this->m_chatBubble))) {
-        return 0;
-    }
-
-    if (this->IsControlledByViewer()) {
-        return flags & 0x1;
-    }
-
-    if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
-        return 1;
-    }
-
-    if (this->m_obj->m_type & TYPE_PLAYER) {
-        if (player->CanCooperate(this)) {
-            return (flags >> 7) & 0x1;
+        if (controllerGuid->m_guid) {
+            controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPE_UNIT, __FILE__, __LINE__));
         }
 
-        if ((flags & 0x10) && !(this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
-            return 1;
-        }
-
-        return 0;
-    }
-
-    if (controller && (controller->m_obj->m_type & TYPE_PLAYER)) {
-        bool friendly = !player->CanAttack(this);
-
-        if (!friendly && (this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+        if (!this->CanBeTargetted() || (CGGameUI::m_visible && (this->m_namePlateFrame || this->m_chatBubble))) {
             return 0;
         }
 
-        if ((this->HasCreator() && !this->HasSummoner() && (this->m_unit->m_unitFieldFlags & 0x200)) || this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
+        if (this->IsControlledByViewer()) {
+            return flags & 0x1;
+        }
+
+        if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
+            return 1;
+        }
+
+        if (this->m_obj->m_type & TYPE_PLAYER) {
+            if (player->CanCooperate(this)) {
+                return (flags >> 7) & 0x1;
+            }
+
+            if ((flags & 0x10) && !(this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        if (controller && (controller->m_obj->m_type & TYPE_PLAYER)) {
+            bool friendly = !player->CanAttack(this);
+
+            if (!friendly && (this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
+                return 0;
+            }
+
+            if ((this->HasCreator() && !this->HasSummoner() && (this->m_unit->m_unitFieldFlags & 0x200)) || this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
+                return (flags >> 10) & 0x1;
+            }
+
+            if (this->GetCreatureType() == 11) {
+                return friendly ? (flags >> 9) & 0x1 : (flags >> 6) & 0x1;
+            }
+
+            if (this->GetCreatorGuid()) {
+                return (flags >> 12) & 0x1;
+            }
+
+            CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPE_UNIT, __FILE__, __LINE__));
+
+            if (player->CanCooperate(this)) {
+                return (flags >> 8) & 0x1;
+            }
+
+            if (charmer && charmer->GetTransportGUID() == this->m_obj->m_guid.m_guid && (player == charmer || player->CanCooperate(charmer))) {
+                return (flags >> 8) & 0x1;
+            }
+
+            return (flags >> 5) & 0x1;
+        }
+
+        if ((this->m_unit->m_unitFieldBytes1[2] & 0x2) && player->CanAttack(this)) {
+            return 0;
+        }
+
+        if (this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
             return (flags >> 10) & 0x1;
         }
 
-        if (this->GetCreatureType() == 11) {
-            return friendly ? (flags >> 9) & 0x1 : (flags >> 6) & 0x1;
-        }
+        return (flags >> 1) & 0x1;
+    }();
 
-        if (this->GetCreatorGuid()) {
-            return (flags >> 12) & 0x1;
-        }
-
-        CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPE_UNIT, __FILE__, __LINE__));
-
-        if (player->CanCooperate(this)) {
-            return (flags >> 8) & 0x1;
-        }
-
-        if (charmer && charmer->GetTransportGUID() == this->m_obj->m_guid.m_guid && (player == charmer || player->CanCooperate(charmer))) {
-            return (flags >> 8) & 0x1;
-        }
-
-        return (flags >> 5) & 0x1;
-    }
-
-    if ((this->m_unit->m_unitFieldBytes1[2] & 0x2) && player->CanAttack(this)) {
-        return 0;
-    }
-
-    if (this->GetCreatureType() == 8 || this->GetCreatureType() == 12) {
-        return (flags >> 10) & 0x1;
-    }
-
-    return (flags >> 1) & 0x1;
+    return CoA::AttachFixesClient::CreatureName(this, result);
 }
 
 // VERIFY: 9e068ef2 manual
@@ -6283,11 +6297,27 @@ float CGUnit_C::GetMaxCameraHeight() const {
 // VERIFY: 5cc27cbd auto
 // OFFSET: 0x00718A00
 uint32_t CGUnit_C::GetCreatureClassification() const {
-    if (!this->m_creatureCacheEntry || this->m_unit->m_unitFieldPetnumber) {
-        return 0;
+    uint32_t rank = 0;
+
+    if (this->m_creatureCacheEntry && !this->m_unit->m_unitFieldPetnumber) {
+        rank = this->m_creatureCacheEntry->m_rank;
     }
 
-    return this->m_creatureCacheEntry->m_rank;
+    // CoA: AscAttachFixes.cpp:FUN_10a452a0 (orig hook 0x718A00) -- under the active challenge's rule 0x6D a creature's
+    // normal (0) or trivial (5) reads as elite (1), rare (4) as rare elite (2).
+    bool (*hasRule)(uint32_t) = CoA::AttachFixes::Dependencies().challengeHasRule;
+
+    if (this->m_typeId == ID_UNIT && hasRule && hasRule(0x6D)) {
+        if (rank == 0 || rank == 5) {
+            return 1;
+        }
+
+        if (rank == 4) {
+            return 2;
+        }
+    }
+
+    return rank;
 }
 
 // VERIFY: d337d178 auto
@@ -11959,6 +11989,11 @@ void CGUnit_C::HandleNPCFeedback() {
 // VERIFY: e4a08d14 manual
 // OFFSET: 0x0071B7F0
 bool CGUnit_C::IsOutdoors() const {
+    // CoA: AscAttachFixes.cpp:sub_10a456d0 (orig hook 0x71B7F0) -- a call from outside the image is reported (CMSG 0x51F).
+    if (CoA::AttachFixesClient::CalledFromOutside(_ReturnAddress())) {
+        CoA::AttachFixes::SendTamperReport("IsOutdoors");
+    }
+
     return World::QueryOutdoors(this->m_worldObject) != 0;
 }
 
@@ -19569,6 +19604,10 @@ void CGUnit_C::ChatBubbleRemove() {
 // VERIFY: 82092375 auto
 // OFFSET: 0x00720010
 void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
+    // CoA: AscAttachFixes.cpp:FUN_10a44e70 (orig hook 0x720010) -- the client's squared bubble distance (0xA104B0) is set
+    // first: 170^2 in a dungeon or raid, else 100^2, for types 0xC / 0xE / 0x33; else 25^2.
+    CoA::AttachFixes::SetChatBubbleRange(type, CoA::AttachFixesClient::CurrentMapInstanceType());
+
     if (this->m_namePlateFrame || !text || !*text || !this->m_worldObject) {
         return;
     }
@@ -19594,7 +19633,7 @@ void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
 
             C3Vector delta = this->GetPosition() - player->GetPosition();
 
-            if (delta.y * delta.y + delta.z * delta.z + delta.x * delta.x <= 625.0f) {
+            if (delta.y * delta.y + delta.z * delta.z + delta.x * delta.x <= CoA::AttachFixes::ChatBubbleRangeSq()) {
                 CImVector color = CGChat::GetChatColor(type);
                 this->ChatBubbleRemove();
                 this->m_chatBubble = CGChatBubbleFrame::GetNewChatBubble(CGWorldFrame::s_currentWorldFrame);
@@ -21571,7 +21610,8 @@ void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
         CGWorldFrame::GetActiveCamera()->AddShakeById(this->m_modelData->m_footstepShakeSize, position);
     }
 
-    if (distanceSquared > 625.0f || (this->m_movement->m_flags & 0x2) || (this->m_modelData->m_flags & 0x1) || !CGUnit_C::s_cvShowFootPrintParticles->m_intValue) {
+    // CoA: AscAttachFixes.cpp:FUN_10a44e70 (orig hook 0x720010) -- 0xA104B0, as the last chat bubble left it.
+    if (distanceSquared > CoA::AttachFixes::ChatBubbleRangeSq() || (this->m_movement->m_flags & 0x2) || (this->m_modelData->m_flags & 0x1) || !CGUnit_C::s_cvShowFootPrintParticles->m_intValue) {
         return;
     }
 

@@ -317,7 +317,8 @@ static int32_t Script_GetMerchantItemInfo(lua_State* L) {
 
     int32_t error;
 
-    if ((player && stats && !player->CanUseItem(stats, error)) || !affordable) {
+    // CoA: AscAttachFixes.cpp:FUN_10a442f0 (orig hook 0x6DC3F0) -- this caller keeps the required-level check.
+    if ((player && stats && !player->CanUseItem(stats, error, true)) || !affordable) {
         lua_pushnil(L);
     } else {
         lua_pushnumber(L, 1.0);

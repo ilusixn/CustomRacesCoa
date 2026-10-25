@@ -37,6 +37,9 @@ static const float s_lightGridScale = 0.05f;
 // STATIC: 0x00D40DA0
 static uint32_t s_doodadHash[251];
 
+// CoA: set by CoA::AttachFixesClient (the SMSG 0x65C marker path).
+const char* (*g_m2DuplicateModelHook)();
+
 // VERIFY: abe62346 auto
 // OFFSET: 0x0081C990
 void CM2Scene::SetTime(uint32_t time) {
@@ -1540,6 +1543,16 @@ CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
 // VERIFY: 5dcce774 auto
 // OFFSET: 0x0081F970
 CM2Model* CM2Scene::DuplicateModel(CM2Model* source, uint32_t flags) {
+    // CoA: AscAttachFixes.cpp:sub_10a46590 (orig hook 0x81F970) -- while SMSG 0x65C rebuilds a marker, the marker path's
+    // model is created and duplicated instead of the source.
+    if (g_m2DuplicateModelHook) {
+        const char* path = g_m2DuplicateModelHook();
+
+        if (path && *path) {
+            source = this->CreateModel(path, 0);
+        }
+    }
+
     if (!source) {
         return nullptr;
     }

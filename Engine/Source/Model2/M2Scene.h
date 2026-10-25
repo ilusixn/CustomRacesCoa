@@ -133,6 +133,9 @@ class CM2Scene {
 extern const uint32_t s_blendModes[3][M2BLEND_COUNT];
 extern const uint32_t s_localLighting[M2BLEND_COUNT];
 
+// CoA: AscAttachFixes.cpp:sub_10a46590 (orig hook 0x81F970) -- a path not "" replaces the model DuplicateModel copies.
+extern const char* (*g_m2DuplicateModelHook)();
+
 uint32_t ParticleBlendToM2Blend(uint32_t blend);
 uint32_t ParticleFlagsToM2Flags(uint32_t flags);
 void M2BlendBoneMatrices(const C44Matrix* bones, ubyte4 weights, ubyte4 indices, C44Matrix* result);

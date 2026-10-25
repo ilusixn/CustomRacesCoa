@@ -1,4 +1,5 @@
 #include "LFGInfo.h"
+#include "CoA/Source/Modules/AttachFixes.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -120,7 +121,8 @@ static int32_t Script_GetLFGDeserterExpiration(lua_State* L) {
 // VERIFY: b4e04149 auto
 // OFFSET: 0x005548F0
 static int32_t Script_GetAvailableRoles(lua_State* L) {
-    ChrClassesRec* rec = g_chrClassesDB.GetRecord(ClientServices::GetCharacterClass());
+    // CoA: AscAttachFixes.cpp:FUN_10a4aaf0 (orig hook 0x6B1080) -- the class ChrClassesRoles.dbc's roles stand for.
+    ChrClassesRec* rec = g_chrClassesDB.GetRecord(CoA::AttachFixes::LfgRoleClass(ClientServices::GetCharacterClass()));
     uint8_t roles = CGLookingForGroup::GetClassRoles(rec->m_id);
     lua_pushboolean(L, roles & 0x2);
     lua_pushboolean(L, roles & 0x4);
@@ -145,7 +147,8 @@ static int32_t Script_SetLFGRoles(lua_State* L) {
         roles |= 0x8;
     }
 
-    ChrClassesRec* rec = g_chrClassesDB.GetRecord(ClientServices::GetCharacterClass());
+    // CoA: AscAttachFixes.cpp:FUN_10a4aaf0 (orig hook 0x6B1080) -- the class ChrClassesRoles.dbc's roles stand for.
+    ChrClassesRec* rec = g_chrClassesDB.GetRecord(CoA::AttachFixes::LfgRoleClass(ClientServices::GetCharacterClass()));
     s_cvLfgSelectedRoles->Set(roles & CGLookingForGroup::GetClassRoles(rec->m_id), true, false, false, true);
     FrameScript_SignalEvent(SCRIPT_EVENT_LFG_ROLE_UPDATE, nullptr);
     return 0;

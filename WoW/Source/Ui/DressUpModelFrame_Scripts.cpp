@@ -43,7 +43,19 @@ static int32_t Script_Dress(lua_State* L) {
 
 // VERIFY: 9c209306 auto
 // OFFSET: 0x00598830
+// DressUpModelFrame.cpp (0xACF548).
+extern int32_t s_nextHand;
+
 static int32_t Script_TryOn(lua_State* L) {
+    // CoA: AscAttachFixes.cpp:FUN_10a4bdc0 (orig hook 0x598830) -- a hand of 16 / 17 (argument 3) makes the next hand 15 / 16.
+    if (lua_type(L, 3) == LUA_TNUMBER) {
+        const int32_t hand = static_cast<int32_t>(lua_tonumber(L, 3));
+
+        if (hand == 0x10 || hand == 0x11) {
+            s_nextHand = static_cast<uint8_t>(hand - 1);
+        }
+    }
+
     CGDressUpModelFrame* frame = static_cast<CGDressUpModelFrame*>(FrameScript_GetObjectThis(L, CGDressUpModelFrame::GetObjectType()));
 
     if (lua_isnumber(L, 2)) {
