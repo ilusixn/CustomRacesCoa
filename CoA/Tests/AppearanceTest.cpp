@@ -4,7 +4,7 @@
 using namespace AppearanceFixture;
 
 namespace {
-    const std::vector<uint32_t> kNone = { 0, 0, 0, 0, 0, 0, 0, 0 };   // one per category index 0..7
+    const std::vector<uint32_t> kNone = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };   // one per category index 0..9
 
     std::vector<uint8_t> Apply697(const std::vector<uint32_t>& pending) {
         CoATest::Bytes b;
@@ -30,7 +30,7 @@ COA_TEST(Appearance_PendingAndApply) {
     CoATest::StopRecordingSignals();
     CHECK((CoATest::Signals() == V{ "PENDING_APPEARANCE_CHANGED" }));
     CHECK((Run(L, "return C_Appearance.GetPendingAppearance(1), C_Appearance.HasPendingAppearances()") == V{ "100", "true" }));
-    CHECK((Sent(L, "return C_Appearance.ApplyPendingAppearances(true)") == Packets { Apply697({ 0, 100, 0, 0, 0, 0, 0, 0 }) }));
+    CHECK((Sent(L, "return C_Appearance.ApplyPendingAppearances(true)") == Packets { Apply697({ 0, 100, 0, 0, 0, 0, 0, 0, 0, 0 }) }));
     CHECK((Feed(0x698, CoATest::Bytes().Str("APPLY_APPEARANCES_OK")) == V{ "APPLY_PENDING_APPEARANCE_RESULT:true,APPLY_APPEARANCES_OK" }));
     CHECK((Run(L, "return C_Appearance.GetAppearanceForCategory(1), C_Appearance.HasPendingAppearances()") == V{ "100", "false" }));
     Run(L, "C_Appearance.SetPendingAppearance(1, 0)");
@@ -48,7 +48,7 @@ COA_TEST(Appearance_Validator) {
     CHECK((can("1, 100") == V{ "false", "APPLY_APPEARANCES_NOT_COLLECTED", "store/ascension/12/game", "store/ascension/12/checkout" }));
     Collect({ 100, 101, 102, 104, 105, 106, 107 });
     CHECK((can("1, 100") == V{ "true", "nil", "nil", "nil" }));
-    CHECK((can("9, 100") == V{ "false", "APPLY_APPEARANCES_OUT_OF_RANGE", "nil", "nil" }));
+    CHECK((can("11, 100") == V{ "false", "APPLY_APPEARANCES_OUT_OF_RANGE", "nil", "nil" }));
     CHECK((can("1, 999") == V{ "false", "APPLY_APPEARANCES_BAD_APPEARANCE", "nil", "nil" }));
     CHECK((can("1, 106") == V{ "false", "APPLY_APPEARANCES_NOT_REALM_APPROPRIATE", "nil", "nil" }));
     CHECK((can("2, 100") == V{ "false", "APPLY_APPEARANCES_BAD_CATEGORY", "nil", "nil" }));
@@ -87,13 +87,13 @@ COA_TEST(Appearance_PetNeedsConfirmation) {
     Teardown(L);
 }
 
-// An item set expands into its parts: robe (inventory type 20) counts as chest; the set is collected only when every
-// part is.
+// An item set expands into its parts: robe (inventory type 20) counts as chest, the necklace (inventory type 2) is not a
+// tracked set slot; the set is collected only when every part is.
 COA_TEST(Appearance_ItemSets) {
     lua_State* L = Setup();
     Current(kNone);
     Collect({ 100 });
-    CHECK((Run(L, "local t = C_ItemSet.GetAppearances(50) return #t, t[1], t[2], t[3]") == V{ "6", "100", "101", "0" }));
+    CHECK((Run(L, "local t = C_ItemSet.GetAppearances(50) return #t, t[1], t[2], t[3], t[8]") == V{ "8", "100", "101", "0", "0" }));
     CHECK((Run(L, "return C_ItemSet.GetItemSetNumCollected(50)") == V{ "1", "2" }));
     CHECK((Run(L, "return C_ItemSet.GetItemSetNumCollected(51)") == V{ "nil", "nil" }));
     CHECK((Run(L, "return C_AppearanceCollection.IsAppearanceCollected(103)") == V{ "false" }));
@@ -170,13 +170,39 @@ COA_TEST(Appearance_VisualInvalidAndGlue) {
     Teardown(L);
 }
 
-// The 0x724820 predicate: with others' appearances hidden, a flagged spell is kept off everyone but the player.
+// The glue screen keeps the outfits and visibility but drops the browser's category (no pages).
+COA_TEST(Appearance_GlueKeepsOutfits) {
+    lua_State* L = Setup();
+    CoATest::Bytes outfits;
+    outfits.U32(1).Str("Tank").U32(1).U32(0);
+    Feed(0x69D, outfits);
+    Run(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, {})");
+    CHECK((Run(L, "return C_AppearanceCollection.GetCategoryMaxPages()") == V{ "1" }));
+    CoA::Lifecycle::RunGlueScreen();
+    CHECK((Run(L, "return C_AppearanceCollection.GetCategoryMaxPages(), unpack(C_AppearanceOutfit.GetAppearanceOutfits())") == V{ "0", "Tank" }));
+    Teardown(L);
+}
+
+// The 0x724820 predicate: with others' appearances hidden, a flagged spell (SpellCustomAttr +0x14 & 0x2000000) is kept
+// off everyone but the player.
 COA_TEST(Appearance_AuraPredicate) {
     lua_State* L = Setup();
-    const uint32_t spell = 1234;
-    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(2), 0, &spell));   // others visible
+    const uint32_t flagged = 1234;
+    const uint32_t plain = 1235;
+    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(2), 0, &flagged));   // others visible
     Feed(0x6A2, CoATest::Bytes().U8(1).U8(0));
-    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(1), 0, &spell));   // the player
-    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(2), 0, &spell));   // no custom attr row
+    CHECK(!CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(2), 0, &flagged));  // hidden: blocked
+    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(1), 0, &flagged));   // the player
+    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(reinterpret_cast<void*>(2), 0, &plain));     // no custom attr row
+    Teardown(L);
+}
+
+// A count past the bytes left reads nothing (Ruling: the 0x726 guard).
+COA_TEST(Appearance_OversizedCounts) {
+    lua_State* L = Setup();
+    Feed(0x69A, CoATest::Bytes().U32(1000).U32(5).U32(100));
+    CHECK((Run(L, "return C_Appearance.GetAppearanceForCategory(1)") == V{ "nil" }));
+    Feed(0x699, CoATest::Bytes().U32(1000).U32(100).U32(1));
+    CHECK((Run(L, "return C_AppearanceCollection.IsAppearanceCollected(100)") == V{ "false" }));
     Teardown(L);
 }

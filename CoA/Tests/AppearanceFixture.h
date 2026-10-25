@@ -6,10 +6,15 @@
 //
 //   Categories  1 Head (ITEM, inv 1)   2 Chest (ITEM, inv 5)   3 Sets (ITEM_SET)   4 Pets (COSMETIC_PET, tier 1)
 //               5 Mounts (MOUNT)       6 Glows (SPELL_VISUAL, spell 500)           7 Mage hats (ITEM, class 8 only)
+//               8 Neck (ITEM, inv 2: not a set slot)                            9 Toys (TOY)
 //   Appearances 100 head 1000   101 chest 1001   102 thrown 1002   103 set 50   104 pet creature 77
 //               105 visual 9000 (category 6)     106 head, no realm gate        107 mount
+//               108 head 1004   109 neck 1005
 //   Items       1000 helm (armor, head)  1001 robe (armor, inv 20 = chest)  1002 thrown (weapon 0x10)  1003 alt helm
+//               1004 second helm  1005 necklace (inv 2)
+//   Set 50      items 1000, 1001, 1005; SpellCustomAttr: spell 1234 flagged +0x14 & 0x2000000
 #include "CoA/Source/Modules/Appearance.h"
+#include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/RealmInfo.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
@@ -77,6 +82,8 @@ namespace AppearanceFixture {
             row(5, "APPEARANCE_TYPE_MOUNT", "Mounts", 0, 0, "icon_mounts", 1),
             row(6, "APPEARANCE_TYPE_SPELL_VISUAL", "Glows", 500, 0, "icon_glows", 1),
             row(7, "APPEARANCE_TYPE_ITEM", "Mage hats", 0, 1, "icon_mage", 0x80),
+            row(8, "APPEARANCE_TYPE_ITEM", "Neck", 0, 2, "icon_neck", 1),
+            row(9, "APPEARANCE_TYPE_TOY", "Toys", 0, 0, "icon_toys", 1),
         };
         return CoATest::Wdbc(rows, s.block, 10);
     }
@@ -100,6 +107,8 @@ namespace AppearanceFixture {
             row(105, 0, spell, 0, 6, 9000, 1),
             row(106, 1000, item, 1000, 1, 1000, 0),
             row(107, 0, creature, 0, 5, 0, 1),
+            row(108, 1004, item, 1004, 1, 1004, 1),
+            row(109, 1005, item, 1005, 8, 1005, 1),
         };
         return CoATest::Wdbc(rows, s.block);
     }
@@ -123,7 +132,7 @@ namespace AppearanceFixture {
         } else if (is("ItemSetAppearances.dbc")) {
             out = CoATest::Wdbc({ { 1, 50, 103 } }, std::string(1, '\0'));
         } else if (is("ItemAppearances.dbc")) {
-            out = CoATest::Wdbc({ { 1, 1000, 100 }, { 2, 1001, 101 }, { 3, 1002, 102 }, { 4, 1003, 100 } }, std::string(1, '\0'));
+            out = CoATest::Wdbc({ { 1, 1000, 100 }, { 2, 1001, 101 }, { 3, 1002, 102 }, { 4, 1003, 100 }, { 5, 1004, 108 }, { 6, 1005, 109 } }, std::string(1, '\0'));
         } else if (is("SeasonalAppearances.dbc")) {
             // id, appearance, season, chapter, order, gates x5
             out = CoATest::Wdbc({ { 1, 100, 1, 1, 2, 1, 0, 0, 0, 0 }, { 2, 101, 1, 2, 1, 1, 0, 0, 0, 0 }, { 3, 105, 2, 1, 1, 1, 0, 0, 0, 0 },
@@ -133,6 +142,9 @@ namespace AppearanceFixture {
             out = Details();
         } else if (is("Appearances.dbc")) {
             out = Appearances();
+        } else if (is("SpellCustomAttr.dbc")) {
+            // FUN_1020b080 maps ids 2*min .. max+min-1: rows 1 and 2 put only row 2 (spell 1234) in the map.
+            out = CoATest::Wdbc({ { 1, 1, 0, 0, 0, 0, 0, 0 }, { 2, 1234, 0, 0, 0, 0x2000000, 0, 0 } }, std::string());
         } else if (is("GlobalStrings.dbc")) {
             out = GlobalStrings();
         } else {
@@ -144,7 +156,7 @@ namespace AppearanceFixture {
 
     inline const char* const kTables[] = { "DBFilesClient/AppearanceCategories.dbc", "DBFilesClient/Appearances.dbc",
         "DBFilesClient/AppearanceDetails.dbc", "DBFilesClient/ItemAppearances.dbc", "DBFilesClient/ItemSetAppearances.dbc",
-        "DBFilesClient/SeasonalAppearances.dbc", "DBFilesClient\\GlobalStrings.dbc", "DBFilesClient/UICameras.dbc" };
+        "DBFilesClient/SeasonalAppearances.dbc", "DBFilesClient\\GlobalStrings.dbc", "DBFilesClient/UICameras.dbc", "DBFilesClient\\SpellCustomAttr.dbc" };
 
     inline void UnloadTables() {
         for (const char* path : kTables) {
@@ -167,7 +179,7 @@ namespace AppearanceFixture {
 
     inline bool Item(uint32_t id, CoA::Appearance::ItemRecord& out) {
         static const std::map<uint32_t, CoA::Appearance::ItemRecord> items = {
-            { 1000, { 4, 1, 1 } }, { 1001, { 4, 1, 20 } }, { 1002, { 2, 0x10, 1 } }, { 1003, { 4, 1, 1 } } };
+            { 1000, { 4, 1, 1 } }, { 1001, { 4, 1, 20 } }, { 1002, { 2, 0x10, 1 } }, { 1003, { 4, 1, 1 } }, { 1004, { 4, 1, 1 } }, { 1005, { 4, 0, 2 } } };
         auto it = items.find(id);
 
         if (it == items.end()) {
@@ -180,7 +192,7 @@ namespace AppearanceFixture {
 
     inline const std::map<uint32_t, std::string>& Names() {
         static const std::map<uint32_t, std::string> names = {
-            { 1000, "Iron Helm" }, { 1001, "Robe of Stars" }, { 1002, "Throwing Axe" }, { 1003, "Copper Helm" } };
+            { 1000, "Iron Helm" }, { 1001, "Robe of Stars" }, { 1002, "Throwing Axe" }, { 1003, "Copper Helm" }, { 1004, "Bronze Helm" }, { 1005, "Pendant" } };
         return names;
     }
 
@@ -211,6 +223,7 @@ namespace AppearanceFixture {
             out.name = "Tier Set";
             out.items[0] = 1000;
             out.items[1] = 1001;
+            out.items[2] = 1005;
             return true;
         };
         d.itemSetRange = [](uint32_t& lo, uint32_t& hi) {
@@ -239,13 +252,15 @@ namespace AppearanceFixture {
         };
         d.isActivePlayer = [](void* unit) { return unit == reinterpret_cast<void*>(1); };
         CoA::Appearance::Init();
+        CoA::CA::RebuildSpellCustomAttr();
         return CoATest::NewState(false);
     }
 
     inline void Teardown(lua_State* L) {
         lua_close(L);
-        UnloadTables();
         CoA::Dbc::SetFileReader(nullptr);
+        CoA::CA::RebuildSpellCustomAttr();   // drop CA's pointers into our SpellCustomAttr rows before they go
+        UnloadTables();
     }
 
     inline V Feed(uint32_t opcode, CoATest::Bytes bytes) {

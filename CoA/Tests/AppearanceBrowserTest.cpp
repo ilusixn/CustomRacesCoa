@@ -29,8 +29,8 @@ COA_TEST(AppearanceBrowser_TypesAndCategories) {
     lua_State* L = Setup();
     CHECK((Run(L, "return unpack(C_AppearanceCollection.GetAppearanceTypes())") ==
         V{ "APPEARANCE_TYPE_ITEM", "APPEARANCE_TYPE_SPELL_VISUAL", "APPEARANCE_TYPE_COSMETIC_PET", "APPEARANCE_TYPE_ITEM_SET", "APPEARANCE_TYPE_MOUNT",
-            "APPEARANCE_TYPE_OUTFIT" }));
-    CHECK((Run(L, "return unpack(C_AppearanceCollection.GetCategoriesForType('APPEARANCE_TYPE_ITEM'))") == V{ "1", "2" }));
+            "APPEARANCE_TYPE_TOY", "APPEARANCE_TYPE_OUTFIT" }));
+    CHECK((Run(L, "return unpack(C_AppearanceCollection.GetCategoriesForType('APPEARANCE_TYPE_ITEM'))") == V{ "1", "2", "8" }));
     s_class = 8;
     CHECK((Run(L, "return unpack(C_AppearanceCollection.GetCategoriesForType('APPEARANCE_TYPE_ITEM'))") == V{ "7" }));
     CHECK((Run(L, "return unpack(C_AppearanceCollection.GetCategoriesForType('APPEARANCE_TYPE_OUTFIT'))") == V{ "-2" }));
@@ -43,16 +43,36 @@ COA_TEST(AppearanceBrowser_TypesAndCategories) {
 // against its items' names (alternates included), filters by collected state and pages by 18.
 COA_TEST(AppearanceBrowser_Filter) {
     lua_State* L = Setup();
-    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, {})") == V{ "100" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, {})") == V{ "100", "108" }));
     CHECK((Run(L, "return C_AppearanceCollection.GetCategoryMaxPages()") == V{ "1" }));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'copper', {}, {})") == V{ "100" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'helm', {}, {})") == V{ "100", "108" }));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'zzz', {}, {})") == V{}));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = true }, {})") == V{}));
     Collect({ 100 });
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = true }, {})") == V{ "100" }));
+    // OR within a group (collected / uncollected), AND across groups (with the web-store filter: only 100 has a product).
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = true, FILTER_UNCOLLECTED = true }, {})") ==
+        V{ "100", "108" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_UNCOLLECTED = true, FILTER_AVAILABLE_ON_THE_WEB_STORE = true }, {})") ==
+        V{}));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(3, 'tier', {}, {})") == V{ "103" }));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, {})", 2) == V{}));
     CHECK((Run(L, "return C_AppearanceCollection.GetCategoryAppearances(0)") == V{}));
+    Teardown(L);
+}
+
+// The sorts: a SORT_* key comes before the filter key; names sort by length first (so DESC keeps a shorter name first).
+COA_TEST(AppearanceBrowser_Sorts) {
+    lua_State* L = Setup();
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, { SORT_ID_DESC = true })") == V{ "108", "100" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, { SORT_ID_ASC = true })") == V{ "100", "108" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, { SORT_ALPHABETICAL_DESC = true })") == V{ "100", "108" }));
+    CoATest::Bytes collected;
+    collected.U32(2).U32(100).U32(5).U32(108).U32(9);
+    Feed(0x699, collected);
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, { SORT_RECENTLY_COLLECTED_DESC = true })") == V{ "108", "100" }));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', {}, { SORT_RECENTLY_COLLECTED_ASC = true })") == V{ "100", "108" }));
     Teardown(L);
 }
 
@@ -60,7 +80,7 @@ COA_TEST(AppearanceBrowser_Filter) {
 COA_TEST(AppearanceBrowser_CollectedCount) {
     lua_State* L = Setup();
     Collect({ 100, 101 });
-    CHECK((Run(L, "return C_AppearanceCollection.GetCollectedCount(1)") == V{ "1", "3" }));   // 100, 102, 106 are in 1
+    CHECK((Run(L, "return C_AppearanceCollection.GetCollectedCount(1)") == V{ "1", "4" }));   // 100, 102, 106, 108 are in 1
     // Category 0 matches every empty category slot in the collected count; the total is only counted above 0.
     CHECK((Run(L, "return C_AppearanceCollection.GetCollectedCount(0)") == V{ "2", "0" }));
     Teardown(L);
@@ -83,6 +103,10 @@ COA_TEST(AppearanceBrowser_Outfits) {
     }
 
     CHECK((Sent(L, "return C_AppearanceOutfit.SaveOutfit('PvP')") == Packets { CoATest::Expected(0x69E, save) }));
+    // A failed save changes nothing and keeps the pending name: the next OK stores the outfit under it.
+    CHECK((Feed(0x69F, CoATest::Bytes().Str("SAVE_APPEARANCE_OUTFIT_UNKNOWN")) ==
+        V{ "APPEARANCE_OUTFIT_SAVED_RESULT:false,SAVE_APPEARANCE_OUTFIT_UNKNOWN" }));
+    CHECK((Run(L, "return unpack(C_AppearanceOutfit.GetAppearanceOutfits())") == V{ "Tank" }));
     CHECK((Feed(0x69F, CoATest::Bytes().Str("SAVE_APPEARANCE_OUTFIT_OK")) == V{ "APPEARANCE_OUTFIT_SAVED_RESULT:true,SAVE_APPEARANCE_OUTFIT_OK" }));
     CHECK((Run(L, "return C_AppearanceOutfit.GetCurrentOutfitName()") == V{ "PvP" }));
     Run(L, "C_AppearanceOutfit.SetPendingOutfit('Tank')");
