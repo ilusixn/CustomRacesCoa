@@ -20,6 +20,8 @@
 #include "WoW/Source/Ui/ActionBarFrame.h"
 #include "WoW/Source/Ui/CGWorldStateInfo.h"
 #include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
+#include "WoW/Source/Ui/SpellBookFrame.h"
 
 namespace {
     CGUnit_C* UnitOf(uint64_t guid) {
@@ -223,6 +225,26 @@ namespace {
         lua_setfield(L, LUA_GLOBALSINDEX, "IsItemAction");
     }
 
+    bool UnitTokenGuid(const char* token, uint64_t& guid) {
+        WOWGUID g;
+        const bool found = Script_GetGUIDFromToken(token, g, false);
+        guid = found ? g.m_guid : 0;
+        return found;
+    }
+
+    // handler_PickupSpell: the spellbook slot (0xBE8D98 count, 0xBE6D88 ids) holding the spell, picked up with
+    // 0x53BAF0(slot, 0).
+    bool PickupFromSpellbook(uint32_t spell) {
+        for (uint32_t i = 0; i < s_numSpells; ++i) {
+            if (static_cast<uint32_t>(s_spellList[i]) == spell) {
+                CGSpellBook::PickupSpell(static_cast<int32_t>(i), 0);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool SpellKnownForText(uint32_t spell, bool includeRanks) {
         return CoA::CA::SpellKnown(spell, includeRanks);
     }
@@ -248,6 +270,9 @@ void CoA::CAClient::Init() {
     d.spellMaxId = SpellMaxId;
     d.firstRank = CoA::SpellRank::FirstRank;
     d.rankChain = CoA::SpellRank::Chain;
+    d.unitTokenGuid = UnitTokenGuid;
+    d.rankNumber = CoA::SpellRank::RankNumber;
+    d.pickupFromSpellbook = PickupFromSpellbook;
 
     CoA::ClientHooks::SpellPacketHooks& h = CoA::ClientHooks::spellPackets;
     h.initialSpells = InitialSpells;
