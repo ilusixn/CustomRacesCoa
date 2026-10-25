@@ -92,3 +92,36 @@ Modules that world entry showed come first. The rest follow by size, as remainin
    (`#Minimap`, `#MovieFrame`), the software cursor (AscCursor: SetAttackCursor), and the small remainder
    (≤ 5 each).
 8. Then the DXVK plan (HD patches, `HDPatch.xml`), then Warden.
+
+## Plan 4 result (world-entry errors)
+
+Measured 2026-10-25 at commit 7471b11 (`out/baseline/x64/{Extensions,Fatal,FrameXML}-plan4.*`, screenshot
+`out/baseline/x64/8-world-plan4.png`). Character in Un'Goro Crater, 3 minutes in the world, client responsive.
+
+- **Gone:**
+  - Every unhandled packet of the eight Plan 4 modules: AuraAmounts 0x673 (202 before), ObjectAddon 0x578 (63),
+    GameMode 0x90B.
+  - The Lua errors from GetCustomGameMode, GetMapIDByZoneID, GetUnitPrimaryStat and C_SpellActivationOverlay.
+  - The SuggestInvite / SuperTrackerUtil FrameXML errors.
+  - The Blizzard_CombatLog "Corrupt" dialog. Ascension.exe always accepts add-on signatures (0x816625 / 0x81663E /
+    0x816694 / 0x81675F); CoA64 now does the same (user-approved, CoA/DIFFERENCES.md).
+- **Left, owned by later plans:**
+  - Packets: SMSG_CA_AVAILABLE_CREDITS_UPDATE, 0x725 / 0x726 (AscCAMgr, Plan 5); SMSG_TOKEN_UPDATE (AscToken); the
+    challenge lists (AscChallenge); SMSG_CALLBOARD_CACHE_CONFIG_UPDATE (AscCallboardCache).
+  - Lua: `SpecializationUtil.lua:65` GetActiveSpecID (AscCAMgr, Plan 5).
+- **Open, probable cause the HD archives:**
+  - The Sound Kit Player frame. `patch-B.MPQ`'s `FrameXML.toc` (line 349) loads
+    `Ascension_DebugTools\Ascension_DebugTools.xml`, whose `SoundKitBrowser` frame is not hidden.
+  - "Couldn't open HDPatch.xml".
+  - These point to a newer `FrameXML.toc` in one of the eight HD archives CoA64 refuses until DXVK (patch-4, 5, Q, R,
+    U, V, X, Z; the 32-bit client's `-hd 0` refuses the same set).
+  - Confirming this needs a 32-bit `-hd 0` baseline while the account is free. It was attempted, but the account was
+    in use.
+- **Open, realm mode** (LootCollector prints "WR mode"):
+  - The realm "Pale Reach" is not in LootCollector's name list, so it decides from `C_GameMode:IsGameModeActive`,
+    `C_CharacterCreate.CanCreateArchetype`, `C_Player.IsCustomClass` and `C_Player.IsHero`.
+  - One of those still answers differently. These are FrameXML Lua wrappers, possibly from the same HD-archive
+    FrameXML, or over a CA native (Plan 5).
+  - Re-check after the `-hd 0` baseline.
+- **Still printing "too many errors"** about every 10 s: the source is not captured (add-on errors outside C_Logger).
+  Plan 5 starts by capturing them.
