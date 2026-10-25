@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/Events.h"
 #include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/LuaReg.h"
+#include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "Engine/Source/lua-5.1/src/lualib.h"
@@ -76,6 +77,16 @@ std::vector<uint8_t> CoATest::Wdbc(const std::vector<std::vector<uint32_t>>& row
     std::vector<uint8_t> out(words.size() * 4);
     memcpy(out.data(), words.data(), out.size());
     out.insert(out.end(), block.begin(), block.end());
+    return out;
+}
+
+CoATest::Bytes CoATest::Compressed(const Bytes& plain) {
+    uint32_t size = static_cast<uint32_t>(plain.data.size() + plain.data.size() / 100 + 64);
+    std::vector<uint8_t> z(size);
+    zlib_compress(z.data(), &size, plain.data.data(), static_cast<uint32_t>(plain.data.size()), 6);
+    Bytes out;
+    out.U32(static_cast<uint32_t>(plain.data.size()));
+    out.Raw(z.data(), size);
     return out;
 }
 
