@@ -1795,3 +1795,34 @@ bool IsAddOnUpdateAvailable(const char* name) {
     UIADDON* addon = s_addons.Ptr(name);
     return addon ? addon->m_outOfDate : false;
 }
+
+// CoA: AscLibrary.cpp:SaveSavedVariables (FUN_10a70bf0) -- every other loaded addon is marked not loading for the save
+// (UnloadAddOns writes only the loading ones), then restored, and the named addon is marked loading.
+void AddOnsSaveOne(const char* name) {
+    TSGrowableArray<UIADDON*> cleared;
+
+    for (uint32_t i = 0; i < GetNumAddOns(); i++) {
+        const char* other = GetAddOnByIndex(i);
+
+        if (!SStrCmpI(other, name, STORM_MAX_STR)) {
+            continue;
+        }
+
+        UIADDON* addon = s_addons.Ptr(other);
+
+        if (addon && addon->m_loading) {
+            addon->m_loading = false;
+            *cleared.New() = addon;
+        }
+    }
+
+    UnloadAddOns();
+
+    for (uint32_t i = 0; i < cleared.Count(); i++) {
+        cleared.m_data[i]->m_loading = true;
+    }
+
+    if (UIADDON* addon = s_addons.Ptr(name)) {
+        addon->m_loading = true;
+    }
+}
