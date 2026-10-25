@@ -35,11 +35,16 @@ static const CoA::Module s_modules[] = {
     { "GlobalsH", CoA::GlobalsH::Init },
     { "GlobalsC", CoA::GlobalsC::Init },
     { "PatchData", CoA::PatchData::Init },
+    { "Specs", CoA::Specs::Init },
+    { "LuaDbc", CoA::LuaDbc::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
     { "BindingsClient", CoA::BindingsClient::Init },
     { "LibraryClient", CoA::LibraryClient::Init },
+    { "SpellTextClient", CoA::SpellTextClient::Init },
+    { "ClassRaceClient", CoA::ClassRaceClient::Init },
+    { "GlobalsJClient", CoA::GlobalsJClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

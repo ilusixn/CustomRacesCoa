@@ -10,18 +10,20 @@
 #include <cstring>
 
 namespace {
-    // GlobalStrings.dbc: {id, flags, key, value} rows; bit 0 = glue, bit 1 = world.
+    // GlobalStrings.dbc, layout "dddL": id, flags (bit 0 = glue, bit 1 = world), key, then the localized value.
     bool ReadGlobalStrings(const char* path, std::vector<uint8_t>& out) {
         if (strstr(path, "GlobalStrings.dbc") == nullptr) {
             return false;
         }
 
-        const char strings[] = "\0GLUE_ONLY\0glue text\0WORLD_ONLY\0world text";
-        uint32_t header[] = { 0x43424457, 2, 4, 16, sizeof(strings) };
-        uint32_t rows[] = { 1, 1, 1, 11, 2, 2, 21, 32 };
-        out.assign(reinterpret_cast<const uint8_t*>(header), reinterpret_cast<const uint8_t*>(header) + sizeof(header));
-        out.insert(out.end(), reinterpret_cast<const uint8_t*>(rows), reinterpret_cast<const uint8_t*>(rows) + sizeof(rows));
-        out.insert(out.end(), strings, strings + sizeof(strings));
+        std::string strings = std::string("GLUE_ONLY") + '\0' + "glue text" + '\0' + "WORLD_ONLY" + '\0' + "world text";
+        std::vector<uint32_t> glue = { 1, 1, 1 };
+        std::vector<uint32_t> world = { 2, 2, 21 };
+        std::vector<uint32_t> glueValue = CoATest::Loc(11);
+        std::vector<uint32_t> worldValue = CoATest::Loc(32);
+        glue.insert(glue.end(), glueValue.begin(), glueValue.end());
+        world.insert(world.end(), worldValue.begin(), worldValue.end());
+        out = CoATest::Wdbc({ glue, world }, strings);
         return true;
     }
 

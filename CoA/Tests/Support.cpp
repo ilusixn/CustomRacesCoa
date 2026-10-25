@@ -64,6 +64,27 @@ namespace {
     }
 }
 
+std::vector<uint8_t> CoATest::Wdbc(const std::vector<std::vector<uint32_t>>& rows, const std::string& strings) {
+    std::string block = std::string(1, '\0') + strings;
+    uint32_t columns = rows.empty() ? 0 : static_cast<uint32_t>(rows[0].size());
+    std::vector<uint32_t> words = { 0x43424457, static_cast<uint32_t>(rows.size()), columns, columns * 4, static_cast<uint32_t>(block.size()) };
+
+    for (const auto& row : rows) {
+        words.insert(words.end(), row.begin(), row.end());
+    }
+
+    std::vector<uint8_t> out(words.size() * 4);
+    memcpy(out.data(), words.data(), out.size());
+    out.insert(out.end(), block.begin(), block.end());
+    return out;
+}
+
+std::vector<uint32_t> CoATest::Loc(uint32_t offset) {
+    std::vector<uint32_t> slots(16, offset);
+    slots.push_back(0);
+    return slots;
+}
+
 CoATest::TempCwd::TempCwd() {
     static uint32_t counter = 0;
     _getcwd(this->previous, sizeof(this->previous));

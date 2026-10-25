@@ -58,6 +58,8 @@ namespace CoA::Dbc {
     // Reads a whole file from the client's archives (DbcClient.cpp installs SFile; tests install a fake).
     using FileReader = bool (*)(const char* path, std::vector<uint8_t>& out);
     void SetFileReader(FileReader reader);
+    // A whole file through the installed reader (false when there is none or it fails).
+    bool ReadFile(const char* path, std::vector<uint8_t>& out);
     // The locale slot (0..15) a localized string column keeps (FUN_101b0c80); defaults to 0.
     void SetLocaleSlot(uint32_t (*slot)());
 

@@ -10,6 +10,10 @@ namespace CoA::Lifecycle {
     void OnGlueScreen(Callback cb);
     void RunGlueScreen();
 
+    // AscRuntime's list after ClientIdle (0x403340): every client idle tick.
+    void OnAfterIdle(Callback cb);
+    void RunAfterIdle();
+
     // Tests only.
     void Reset();
 }

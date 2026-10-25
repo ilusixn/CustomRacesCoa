@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Runtime/Lifecycle.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -776,6 +777,9 @@ int ForEveryRunOnceWTF::FileNameCompare(const void* a, const void* b) {
 static int32_t ClientIdle(const void* data, void* param) {
     ClientGameTimeTickHandler(data, param);
     Player_C_ZoneUpdateHandler(data, param);
+
+    // CoA: AscRuntime.cpp (orig hook 0x403340) -- the DLL's after-idle list.
+    CoA::Lifecycle::RunAfterIdle();
 
     return 1;
 }
