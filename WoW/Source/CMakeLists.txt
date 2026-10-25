@@ -58,6 +58,7 @@ target_link_libraries(Wow
         Storm
         WoWCommon
         Battlenet
+        CoA
         Console
         ConsoleDevice
         DB

@@ -113,6 +113,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/FriendList.h"
 #include "WoW/Source/WowSysMessageOutput.h"
 #include "GameVersion.h"
+#include "CoA/Source/Runtime/Log.h"
 
 namespace {
 
@@ -1472,6 +1473,9 @@ static void OpenArchives() {
     }
 
     s_archiveHandles.SetCount(slot);
+
+    // CoA: developer log of the archive count (checks the 127-handle room, Ascension.exe patch 0x405E2F)
+    CoA::Log::Printf("OpenArchives: %u patch archives, %u handle slots", patchCount, slot);
 
     if (s_archiveHandles[s_firstBaseArchive + 16]) {
         s_expansionLevel = 2;
