@@ -3,6 +3,7 @@
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/CAFilter.h"
 #include "CoA/Source/Modules/CAInternal.h"
+#include "CoA/Source/Modules/CANativesInternal.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/GameMode.h"
 #include "CoA/Source/Modules/Modules.h"
@@ -696,6 +697,10 @@ void CoA::CA::Init() {
     CoA::Lifecycle::OnAfterIdle(Update);
     CoA::GameMode::Dependencies().activeSpecIndex = CoA::CA::ActiveSpecIndex;
     CoA::MysticEnchant::Dependencies().investment = Investment;
+    InitNatives();
+    InitEdit();
+    InitSuggest();
+    InitLinks();
     COA_EVENT("ASCENSION_CA_SPECIALIZATION_ACTIVE_ID_CHANGED");
     COA_EVENT("ASCENSION_KNOWN_ENTRY_UPDATED");
     COA_EVENT("ASCENSION_ENTRY_UPDATED");

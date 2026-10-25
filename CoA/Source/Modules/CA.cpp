@@ -2,6 +2,7 @@
 // manager. The packets, the update and the glue reset are in CAPackets.cpp; the rules in CARules.cpp.
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/CAInternal.h"
+#include "CoA/Source/Modules/CANativesInternal.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/Config.h"
 #include "CoA/Source/Modules/GameEvents.h"
@@ -754,6 +755,10 @@ namespace CoA::CA::detail {
 // ---- rows ----------------------------------------------------------------------------------------------------------
 using namespace CoA::CA::detail;
 
+std::vector<Row>& CoA::CA::detail::ClassListFor(ClassLists& l, Row r) {
+    return ListFor(l, r);
+}
+
 CoA::CA::Row CoA::CA::FindRow(uint32_t id) {
     return Rows().Row(id);
 }
@@ -872,12 +877,9 @@ const char* CoA::CA::RowText(Row r, uint32_t off) {
     return RowStr(r, off);
 }
 
-uint32_t CoA::CA::SpellAtRankOf(Row r, uint32_t rank) {   // FUN_101c62e0
-    if (rank == 0 || rank > 9) {
-        return 0;
-    }
-
-    return RowU32(r, 0x10 + rank * 4);
+uint32_t CoA::CA::SpellAtRankOf(Row r, uint32_t rank) {   // FUN_101c62e0: the rank is a byte, 1..9
+    const uint8_t k = static_cast<uint8_t>(rank);
+    return k && static_cast<uint8_t>(k - 1) < 9 ? RowU32(r, 0x14 + (k - 1) * 4) : 0;
 }
 
 std::string CoA::CA::QualityName(int q) {
@@ -1339,4 +1341,5 @@ void CoA::CA::Reset() {
     s_attrs = CustomAttrs();
     s_removingSpell = 0;
     s_deps = Deps();
+    ResetSuggest();
 }
