@@ -24,7 +24,8 @@ fills its `Deps` (player GUID, item counts, player auras, unit fields). A shared
 
 ## Review Focus
 
-1. A compressed packet that fails to inflate (short, bad zlib, size mismatch) leaves the old state and fires nothing.
+1. A compressed packet that fails to inflate (short, bad zlib, size mismatch) clears the lists first; DraftMode 0x6AA then fires
+   nothing, ScrollOfFortune 0x6AB always fires its event (as the originals).
 2. Token 0x66F skips unknown names without consuming their amount (kept bug) and later names then misalign.
 3. CanToggle reasons are returned in the original's order, with the CONFIG_SURVIALIST_ENABLE typo kept.
 4. The glue screen resets exactly what each original resets (DraftMode keeps the Hand of Fate rewards).

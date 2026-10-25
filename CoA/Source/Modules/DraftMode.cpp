@@ -63,7 +63,7 @@ namespace {
         Draft& d = s_draft;
         const uint8_t n = CoA::Read::U8(msg);
 
-        for (uint8_t i = 0; i < n && !CoA::Read::Failed(msg); ++i) {
+        for (uint8_t i = 0; i < n && CoA::Read::Remaining(msg) >= 6; ++i) {
             out.push_back(CoA::Read::U32(msg));
             const uint8_t a = CoA::Read::U8(msg);
             const uint8_t b = CoA::Read::U8(msg);
@@ -102,7 +102,7 @@ namespace {
         ReadPicks(msg, d.hof, 0x60, 0x63, 0x50, 0x53);
         const uint8_t sacrifices = CoA::Read::U8(msg);
 
-        for (uint8_t i = 0; i < sacrifices && !CoA::Read::Failed(msg); ++i) {
+        for (uint8_t i = 0; i < sacrifices && CoA::Read::Remaining(msg) >= 4; ++i) {
             d.sacrifice.push_back(CoA::Read::U32(msg));
         }
 

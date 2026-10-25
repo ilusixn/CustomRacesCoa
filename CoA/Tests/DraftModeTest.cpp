@@ -173,6 +173,22 @@ COA_TEST(DraftMode_StateAndEvents) {
     CHECK(CoATest::Call(L, "", "GetDraftModePickCount") == V{ "0" });
 }
 
+// A pick count past the packet's end stops at the bytes left instead of adding zero entries.
+COA_TEST(DraftMode_ShortPacket) {
+    lua_State* L = Setup();
+    CoATest::Bytes b;
+    b.U32(7).U8(1).U32(0).U32(0).U8(0).U32(0);
+
+    for (int i = 0; i < 6; ++i) {
+        b.U8(0);
+    }
+
+    b.U8(3).U32(11).U8(1).U8(0);
+    Feed(0x753, b);
+    CHECK(CoATest::Call(L, "", "GetDraftModePickCount") == V{ "1" });
+    CHECK(CoATest::Call(L, "", "GetHandOfFatePickCount") == V{ "0" });
+}
+
 // The selected Hand of Fate spell: +0x68 / +0x69 take the matching pick's a / b bytes when either is set.
 COA_TEST(DraftMode_SelectedSpell) {
     lua_State* L = Setup();
