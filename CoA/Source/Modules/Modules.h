@@ -28,6 +28,7 @@ namespace CoA::LuaDbc { void Init(); }
 namespace CoA::CharacterList { void Init(); }
 namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
+namespace CoA::Appearance { void Init(); }
 namespace CoA::SpellApi { void Init(); }
 namespace CoA::CA { void Init(); }
 namespace CoA::MysticEnchantPreset { void Init(); }
@@ -54,6 +55,7 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
 namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
+namespace CoA::AppearanceClient { void Init(); }
 namespace CoA::SpellApiClient { void Init(); }
 namespace CoA::CAClient { void Init(); }
 namespace CoA::MysticEnchantClient { void Init(); }
@@ -72,7 +74,7 @@ namespace CoA::SpellActivationOverlayClient { void Init(); }
 namespace CoA::SuperTrackClient { void Init(); }
 namespace CoA::GroupFinderClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
-namespace CoA::BindingsClient { void Init(); }
+namespace CoA::BindingsClient { void Init(); const uint8_t* ItemCamera(uint32_t itemId); }   // FUN_1021a020
 namespace CoA::LibraryClient { void Init(); }
 namespace CoA::SpellTextClient { void Init(); }
 namespace CoA::ClassRaceClient { void Init(); }

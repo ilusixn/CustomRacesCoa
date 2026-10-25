@@ -551,3 +551,7 @@ namespace {
 void CoA::BindingsClient::Init() {
     CoA::LuaReg::AddModule(s_bindings, sizeof(s_bindings) / sizeof(s_bindings[0]));
 }
+
+const uint8_t* CoA::BindingsClient::ItemCamera(uint32_t itemId) {   // for Appearance (FUN_101b46e0)
+    return ::ItemCamera(itemId);
+}
