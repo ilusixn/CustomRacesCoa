@@ -55,6 +55,7 @@ static const CoA::Module s_modules[] = {
     { "ExtraActionButton", CoA::ExtraActionButton::Init },
     { "MysticEnchant", CoA::MysticEnchant::Init },
     { "MysticEnchantPreset", CoA::MysticEnchantPreset::Init },
+    { "CA", CoA::CA::Init },
     { "ObjectAddon", CoA::ObjectAddon::Init },
     { "AuraAmounts", CoA::AuraAmounts::Init },
     { "GameMode", CoA::GameMode::Init },
