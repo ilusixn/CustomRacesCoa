@@ -144,4 +144,11 @@ void ClientKillTimer(uint32_t id, EVENTHANDLERFUNC handler, const char* name);
 void ListInterfaceArchive(const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param);
 int32_t ClientGameInitialized();
 
+// CoA: AscRealmData.cpp:SetPath (Extensions.dll patch 0xAB6160).
+extern const char* s_dataDirectories[3];
+
+// CoA: AscRealmData.cpp (orig hook 0x5F8F50) -- one archive's files under prefix, through the client's filter.
+class SArchive;
+void ListArchiveFiles(SArchive* archive, const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param);
+
 #endif

@@ -8,6 +8,8 @@
 #include "CoA/Source/Runtime/DbcPatch.h"
 #include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/Timer.h"
+#include "CoA/Source/Runtime/Lifecycle.h"
+#include "Engine/Source/Frame/CSimpleTop.h"
 #include "CoA/Source/Runtime/Events.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "CoA/Source/Runtime/Logger.h"
@@ -49,6 +51,7 @@ static const CoA::Module s_modules[] = {
     { "ClassRaceClient", CoA::ClassRaceClient::Init },
     { "GlobalsJClient", CoA::GlobalsJClient::Init },
     { "CVarHooksClient", CoA::CVarHooksClient::Init },
+    { "RealmDataClient", CoA::RealmDataClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
@@ -75,6 +78,8 @@ void CoA::Attach() {
     CoA::GlobalsJ::InstallClient();
     CoA::Packet::InstallClient();
     CoA::Timer::InstallClient();
+    // The after-paint lifecycle list (orig hook 0x495810).
+    g_paintScreenHook = CoA::Lifecycle::RunAfterPaint;
 
     for (const CoA::Module& module : s_modules) {
         if (!module.init) {

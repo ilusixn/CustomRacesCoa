@@ -7,6 +7,11 @@ namespace {
         return list;
     }
 
+    std::vector<CoA::Lifecycle::Callback>& AfterPaintList() {
+        static std::vector<CoA::Lifecycle::Callback> list;
+        return list;
+    }
+
     std::vector<CoA::Lifecycle::Callback>& AfterIdleList() {
         static std::vector<CoA::Lifecycle::Callback> list;
         return list;
@@ -33,7 +38,18 @@ void CoA::Lifecycle::RunAfterIdle() {
     }
 }
 
+void CoA::Lifecycle::OnAfterPaint(CoA::Lifecycle::Callback cb) {
+    AfterPaintList().push_back(cb);
+}
+
+void CoA::Lifecycle::RunAfterPaint() {
+    for (CoA::Lifecycle::Callback cb : AfterPaintList()) {
+        cb();
+    }
+}
+
 void CoA::Lifecycle::Reset() {
     GlueScreenList().clear();
     AfterIdleList().clear();
+    AfterPaintList().clear();
 }

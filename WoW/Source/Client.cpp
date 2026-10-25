@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include <cstdio>
 #include <cstdlib>
@@ -208,7 +209,8 @@ static const uint8_t s_signatureModulus[256] = {
     0xE8, 0xFD, 0xA6, 0x33, 0x10, 0xD1, 0x12, 0x8F, 0x05, 0x80, 0xDA, 0x42, 0x57, 0x0C, 0xEB, 0xC0,
 };
 // STATIC: 0x00AB6158
-static const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
+// CoA: AscRealmData.cpp:SetPath (Extensions.dll patch 0xAB6160) -- not static: the realm data path replaces [0].
+const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 
 // STATIC: 0x00AB6350
 WowClientDB<Startup_StringsRec> g_startup_StringsDB;
@@ -348,6 +350,17 @@ static int32_t ListArchiveFilter(const char* fileName, void* param) {
     }
 
     return params->m_callback(fileName, params->m_param);
+}
+
+// CoA: AscRealmData.cpp:ScanAddOnsDetour (orig hook 0x5F8F50) -- one archive through ListArchiveFilter, as the DLL
+// does for each realm archive.
+void ListArchiveFiles(SArchive* archive, const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param) {
+    ARCHIVELISTPARAMS params;
+    params.m_prefix = prefix;
+    params.m_prefixLength = SStrLen(prefix);
+    params.m_callback = callback;
+    params.m_param = param;
+    SFile::List(archive, ListArchiveFilter, &params);
 }
 
 // VERIFY: 4bb4cdc6 auto
@@ -1042,7 +1055,8 @@ static void InitializeClient() {
     }
 
     DBCache_RegisterHandlers();
-    DBCache_Initialize();
+    // CoA: AscRealmData.cpp:Init (Extensions.dll patch 0x4041BD) -- the call is NOPed; the glue's LoadWDBCache opens
+    // the cache once the realm (and so the cache directory) is known.
     CWorldParam::Initialize();
     CWorld::Initialize();
     ShadowInit();
@@ -1550,6 +1564,9 @@ static void OpenArchives() {
     ProfileClose(profile);
     ClientServices::InitLoginServerCVars(1, locale);
     LoadMopaqFileSigningData(locale);
+
+    // CoA: AscRealmData.cpp:OpenBaseDetour (orig hook 0x405DD0) -- then the realm's archives.
+    CoA::RealmDataClient::AfterOpenArchives();
 }
 // VERIFY: 18427c91 manual
 // OFFSET: 0x004064A0

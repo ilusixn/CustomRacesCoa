@@ -14,6 +14,10 @@ namespace CoA::Lifecycle {
     void OnAfterIdle(Callback cb);
     void RunAfterIdle();
 
+    // AscRuntime's list after PaintScreen (0x495810): every frame.
+    void OnAfterPaint(Callback cb);
+    void RunAfterPaint();
+
     // Tests only.
     void Reset();
 }

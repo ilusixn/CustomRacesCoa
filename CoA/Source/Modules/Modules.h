@@ -36,5 +36,6 @@ namespace CoA::SpellTextClient { void Init(); }
 namespace CoA::ClassRaceClient { void Init(); }
 namespace CoA::GlobalsJClient { void Init(); }
 namespace CoA::CVarHooksClient { void Init(); }
+namespace CoA::RealmDataClient { void Init(); }
 
 #endif

@@ -198,4 +198,7 @@ void CSimpleSortedArray<T>::Remove(uint32_t index) {
     }
 }
 
+// CoA: AscRuntime.cpp (orig hook 0x495810) -- called after every PaintScreen.
+extern void (*g_paintScreenHook)();
+
 #endif
