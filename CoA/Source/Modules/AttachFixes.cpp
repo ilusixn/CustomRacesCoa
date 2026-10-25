@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/Events.h"
 #include "CoA/Source/Runtime/Logger.h"
 #include "CoA/Source/Runtime/Packet.h"
+#include <unordered_map>
 #include <cstdlib>
 #include <cstring>
 
@@ -48,6 +49,26 @@ bool CoA::AttachFixes::ReplaceNameToken(std::string& name, const char* guidName)
 
     name.replace(0, 3, guidName);
     return true;
+}
+
+namespace {
+    std::unordered_map<const void*, char*>& KeptNames() {
+        static std::unordered_map<const void*, char*> names;
+        return names;
+    }
+}
+
+char* CoA::AttachFixes::KeepName(const void* owner, const std::string& text) {
+    char* copy = static_cast<char*>(malloc(text.size() + 1));
+    memcpy(copy, text.c_str(), text.size() + 1);
+    char*& slot = KeptNames()[owner];
+    free(slot);
+    slot = copy;
+    return copy;
+}
+
+size_t CoA::AttachFixes::KeptNameCount() {
+    return KeptNames().size();
 }
 
 bool CoA::AttachFixes::AddUnknownEventWhileLoading(const char* name) {

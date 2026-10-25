@@ -87,3 +87,25 @@ COA_TEST(ClientDbcPatch_InsertGrowsIndexDroppingOldMax) {
     CHECK(db.m_recordsById[7] == nullptr);   // id 15, the old maximum again
     Free(db.m_recordsById);
 }
+
+// An RLE table's index lives inside its record block: a growing insert must not free it (review fix; the original's
+// free of that interior pointer is silent on its 32-bit heap, fatal on the x64 one).
+COA_TEST(ClientDbcPatch_InsertKeepsSharedIndexBlock) {
+    static int s_released = 0;
+    int a = 1;
+    int d = 4;
+    int** block = static_cast<int**>(Alloc(5 * sizeof(int*)));
+    FakeDb db;
+    db.m_minID = 10;
+    db.m_maxID = 11;
+    db.m_recordsById = block + 3;   // m_records[3] then the index
+    db.m_recordsById[0] = &a;
+    db.m_recordsById[1] = nullptr;
+
+    s_released = 0;
+    CoA::ClientDbcPatch::Insert(db, 14, &d, Alloc, [](void* p) { ++s_released; free(p); }, false);
+    CHECK(s_released == 0);
+    CHECK(db.m_minID == 10 && db.m_maxID == 14 && db.m_recordsById[0] == &a && db.m_recordsById[4] == &d);
+    Free(db.m_recordsById);
+    Free(block);
+}

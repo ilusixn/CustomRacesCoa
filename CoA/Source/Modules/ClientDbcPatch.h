@@ -29,9 +29,12 @@ namespace CoA::ClientDbcPatch {
     Deps& Dependencies();
 
     // AscClientDbc::Insert: a new row's id inside [min, max] takes its slot; outside, the index is reallocated to cover
-    // it and the old rows are copied -- except the old maximum, which the original's copy loop stops short of.
+    // it and the old rows are copied -- except the old maximum, which the original's copy loop stops short of. The old
+    // index is released only when it is its own allocation: a WowClientDB_RLE index lives inside the table's record
+    // block (ownsIndex false), and the original's free of that interior pointer, silent on its 32-bit heap, would end
+    // the x64 process.
     template <class DB, class Row>
-    void Insert(DB& db, int32_t id, Row* row, void* (*alloc)(size_t), void (*release)(void*)) {
+    void Insert(DB& db, int32_t id, Row* row, void* (*alloc)(size_t), void (*release)(void*), bool ownsIndex = true) {
         const int32_t oldMin = db.m_minID;
         const int32_t oldMax = db.m_maxID;
 
@@ -53,7 +56,10 @@ namespace CoA::ClientDbcPatch {
         }
 
         index[id - lo] = row;
-        release(db.m_recordsById);
+        if (ownsIndex) {
+            release(db.m_recordsById);
+        }
+
         db.m_recordsById = index;
         db.m_minID = lo;
         db.m_maxID = hi;
