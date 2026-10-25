@@ -10,6 +10,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowServices/HMAC.h"
+#include "CoA/Source/Runtime/Packets.h"
 
 // STATIC: 0x00AD2ED0
 static TSList<NETCLIENTNODE> s_clientList;
@@ -257,6 +258,12 @@ uint8_t* NetClient::GetSessionKey() {
 // VERIFY: f1080d7c auto
 // OFFSET: 0x00631FA0
 void NetClient::SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, void* param) {
+    // CoA: CNetClient.cpp:SetMessageHandlerDetour (orig hook 0x631FA0) -- opcodes above 0x55E go to the CoA table
+    if (static_cast<int32_t>(msgId) > 0x55E) {
+        CoA::Packets::Set(msgId, reinterpret_cast<CoA::Packets::Handler>(handler), param);
+        return;
+    }
+
     this->m_handlers[msgId] = handler;
     this->m_handlerParams[msgId] = param;
 }
@@ -264,6 +271,12 @@ void NetClient::SetMessageHandler(NETMESSAGE msgId, MESSAGE_HANDLER handler, voi
 // VERIFY: acb4d340 auto
 // OFFSET: 0x00631FC0
 void NetClient::ResetHandler(NETMESSAGE msgId) {
+    // CoA: AscProfiler.cpp:ClearHandler (orig hook 0x631FC0) -- above 0x55E the CoA entry is erased
+    if (static_cast<int32_t>(msgId) > 0x55E) {
+        CoA::Packets::Erase(msgId);
+        return;
+    }
+
     this->m_handlers[msgId] = nullptr;
     this->m_handlerParams[msgId] = nullptr;
 }
@@ -271,12 +284,29 @@ void NetClient::ResetHandler(NETMESSAGE msgId) {
 // VERIFY: 59f00590 auto
 // OFFSET: 0x00631FE0
 int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_t unused_a4) {
+    // CoA: CNetClient.cpp:ProcessMessageDetour (orig hook 0x631FE0) -- the opcode is read as a signed 16-bit value;
+    // 0x55F and above go to the CoA table, the rest re-read from the start by the stock path below
+    {
+        uint16_t raw;
+        msg->Get(raw);
+        int32_t result;
+
+        if (CoA::Packets::Dispatch(static_cast<int16_t>(raw), timeReceived, msg, result)) {
+            return result;
+        }
+
+        msg->m_read = 0;
+    }
+
     s_stats[4]++;
 
     uint16_t msgId;
     msg->Get(msgId);
     this->ValidateMessageId(msgId);
 
+    // CoA: the DLL widens this bound (patch 0x63200D, 0x51F -> 0x9D4) so opcodes 0x51F..0x55E index past the
+    // 32-bit handler table into its neighbour. That is reading out of bounds; no server sends those opcodes, and here
+    // they are treated as unhandled.
     if (msgId < NUM_MSG_TYPES && this->m_handlers[msgId]) {
         return this->m_handlers[msgId](this->m_handlerParams[msgId], static_cast<NETMESSAGE>(msgId), timeReceived, msg);
     }
