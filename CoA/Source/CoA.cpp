@@ -71,6 +71,7 @@ static const CoA::Module s_modules[] = {
     { "GlobalsHClient", CoA::GlobalsHClient::Init },
     { "SmallApisClient", CoA::SmallApisClient::Init },
     { "EventPacketsClient", CoA::EventPacketsClient::Init },
+    { "PatchDataClient", CoA::PatchDataClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

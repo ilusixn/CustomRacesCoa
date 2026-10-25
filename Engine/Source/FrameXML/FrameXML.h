@@ -57,4 +57,7 @@ void FrameXML_ReleaseHashNode(const char* name);
 void FrameXML_SetDebugLevel(int32_t level);
 void FrameXML_StoreHashNode(XMLNode* node, const char* name, const char* taint, CStatus* status);
 
+// CoA: AscPatchData.cpp:RefreshGameObjectTexture (FrameXML.cpp).
+CStatus* FrameXML_Status();
+
 #endif
