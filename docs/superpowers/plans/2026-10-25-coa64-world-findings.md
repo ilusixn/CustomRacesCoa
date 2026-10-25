@@ -203,3 +203,13 @@ included; the only glue-screen one is the missing `useUiScale` CVar). What is le
 one each for `C_SkillCardCollection`, `C_PlayerTicket`, `C_AssetQueryService`, `C_CustomStore`, `C_BuildCreator`, the
 options-panel profanity widget and three missing CVars (`useUiScale`, `autoAcceptTrades`,
 `ObjectSelectionCircleTexture`). Open item: SpellVisuals (applied SPELL_VISUAL appearances need it).
+
+## Plan 9 result (game modes)
+
+Capture 2026-10-26, `-extlog 1`, on the new test account (one level-1 character), about 2 minutes in world, no crash.
+This time the glue screens were visited too: login Options (Video, Sound), character creation and the realm list. The
+only glue-screen error is still the missing `useUiScale` CVar. The `HasHandOfFateSacrificePick` errors are gone; the
+session total is 32. Remaining: `C_Tutorial` 11, C stack overflow 4, `C_Manastorm` 3, `C_Challenge` 2, `C_LootLockout` 2,
+one each for `C_SkillCardCollection`, `C_PlayerTicket`, `C_AssetQueryService`, `C_CustomStore`, `C_BuildCreator`, the
+profanity widget, the three CVars, and a new `NewCharacterSetupUtil.lua:49` assertion (a level-1 character's first
+login; expected to follow from the missing `C_Tutorial`, to recheck after Plan 10).
