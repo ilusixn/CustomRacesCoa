@@ -150,6 +150,11 @@ namespace CAFixture {
             return this->U32(off, CaTable().Str(s));
         }
 
+        CaRow& Byte(uint32_t off, uint8_t v) {
+            this->bytes[off] = v;
+            return *this;
+        }
+
         CaRow& Spell(uint32_t rank, uint32_t spell) {
             return this->U32(0x14 + (rank - 1) * 4, spell);
         }
@@ -175,6 +180,8 @@ namespace CAFixture {
     //   104 / 105  Ability, choice group 5, wildcard AE 3
     //   110  a mastery (flag 0x1000), spell 5400; 111 carries it (+0x1B0), spell 5401
     //   120  auto-learned (flag 0x100000), free, spell 5500
+    //   121  cast requirement Warrior / Protection 5 points; 122 gives 5 points
+    //   130..140  one row per learn-rule slot (see CAEdgeTest.cpp)
     inline void BuildTables() {
         static bool built = false;
 
@@ -192,6 +199,18 @@ namespace CAFixture {
         CaRow(110).Spell(1, 5400).U32(0x124, 0x1000).Put();
         CaRow(111).Spell(1, 5401).U32(0x1B0, 110).Put();
         CaRow(120).Spell(1, 5500).U32(0x124, 0x100000).Put();   // auto-learned, free
+        CaRow(121).Spell(1, 5600).U32(0x1D8, 3).U32(0x1E4, 7).U32(0x1F0, 5).Put();   // cast requirement: 5 points
+        CaRow(122).Spell(1, 5601).U32(0x80, 3).U32(0x84, 7).U32(0xA0, 5).Put();   // 5 points in class 3 / tab 7
+        CaRow(130).Spell(1, 5700).U32(0x124, 0x20000).Put();                     // DISPLAY_ENTRY
+        CaRow(131).Spell(1, 5701).U32(0x124, 8).Put();                           // DISABLED
+        CaRow(132).Spell(1, 5702).Byte(0xE0, 1).Put();                     // starting nodes 132 / 133
+        CaRow(133).Spell(1, 5703).Byte(0xE0, 1).Put();
+        CaRow(134).Spell(1, 5704).U32(0xE4, 100).Put();                          // connected to 100
+        CaRow(135).Spell(1, 5705).U32(0x74, 9).Put();                            // choice group 9: 135 / 136
+        CaRow(136).Spell(1, 5706).U32(0x74, 9).Put();
+        CaRow(139).Spell(1, 5709).U32(0x88, 50).Put();                           // needs 50 AE invested
+        CaRow(140).Spell(1, 5710).U32(0xA4, 5).Put();                            // needs 5 class points
+        CaRow(141).Spell(1, 5711).Put();                                         // rewritten by SMSG 0x64A
         // ClassTypes: id, name, class, hero, coa, stock, L.
         PutWords(ClassTypeTable(), { 3, ClassTypeTable().Str("Warrior"), 1, 0, 0, 0, 0 });
         PutWords(ClassTypeTable(), { 5, ClassTypeTable().Str("Mage"), 8, 0, 0, 0, 0 });

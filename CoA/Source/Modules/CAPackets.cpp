@@ -181,6 +181,7 @@ namespace {
         const uint32_t n = CoA::Read::U32(msg);
 
         if (CoA::Read::Failed(msg) || n > CoA::Read::Remaining(msg) / 21) {
+            CoA::CA::ResetPendingBuild();   // the original reaches its reset whatever the packet held
             return 1;
         }
 
