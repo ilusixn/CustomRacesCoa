@@ -49,5 +49,6 @@ namespace CoA::AttachMiscClient { void Init(); }
 namespace CoA::ProfilerClient { void Init(); }
 namespace CoA::GlueCVarsClient { void Init(); }
 namespace CoA::GlobalsCClient { void Init(); }
+namespace CoA::GlobalsDClient { void Init(); }
 
 #endif
