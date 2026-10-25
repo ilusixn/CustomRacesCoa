@@ -1596,7 +1596,9 @@ namespace {
     int GetCategories(lua_State* L) {
         const int t = lua_type(L, 1);
 
-        if (t > 0 && t != LUA_TBOOLEAN) {   // FUN_10309e50: nothing, nil or a boolean
+        // FUN_10309e50 over one slot: boolean when an argument is there, else nil (FUN_1008bf80 of {lua_type > 0}). A
+        // number passes the boolean slot.
+        if (!ValidateInput(L, { t > 0 ? LUA_TBOOLEAN : LUA_TNIL })) {
             return Usage(L, "Usage: C_CharacterAdvancement.GetCategories([sortByRequiredLevel])");
         }
 
