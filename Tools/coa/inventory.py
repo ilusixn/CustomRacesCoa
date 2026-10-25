@@ -21,6 +21,9 @@ EVENT_RE = re.compile(r'COA_EVENT\(\s*"([^"]+)"')
 HOOK_RE = re.compile(r'//\s*CoA:.*?orig hook ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_RE = re.compile(r'//\s*CoA:.*?Extensions\.dll patch ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_ROW_RE = re.compile(r'^\s*\{(0x[0-9A-Fa-f]+)\s*,', re.M)
+GLUE_TABLE_RE = re.compile(r'kGlueBindings\[\]\s*=\s*\{(.*?)\};', re.S)
+STATE_NAME_RE = re.compile(r'\{"([^"]*)",\s*"([^"]+)"\}')
+BINDING_STATES = os.path.join('CoA', 'Source', 'Runtime', 'BindingStates.generated.inc')
 PATCH_TABLES = ('AscAttachPatches.generated.inc', 'AscAttachLate.generated.inc', 'AscAttachInline.generated.inc')
 SOURCE_EXT = ('.c', '.cpp', '.h', '.hpp', '.inc')
 SKIP_DIRS = {'.git', 'out', 'build', 'ThirdParty', 'bin', '.superpowers'}
@@ -80,6 +83,13 @@ def parse_patches(recon_root):
     return patches
 
 
+def parse_glue_bindings(path):
+    """(namespace, name) of every native the original registers on the glue state (kGlueBindings)."""
+    with open(path, encoding='utf-8') as f:
+        m = GLUE_TABLE_RE.search(f.read())
+    return set(STATE_NAME_RE.findall(m.group(1))) if m else set()
+
+
 def scan_coa(root):
     inv = Inventory()
     for dirpath, dirnames, filenames in os.walk(root):
@@ -107,7 +117,7 @@ def scan_coa(root):
     return inv
 
 
-def report(ref, have):
+def report(ref, have, glue=None):
     def pairs(natives):
         return {(ns, name) for ns, name, _ in natives}
 
@@ -124,6 +134,10 @@ def report(ref, have):
            '| Category | Ported | Total |', '|---|---:|---:|']
     for name, total, got, _ in rows:
         out.append(f'| {name} | {len(total & got)} | {len(total)} |')
+    if glue is not None:
+        got = pairs(have.natives)
+        out += ['', f'natives (glue state): {len(glue & got)}/{len(glue)}']
+        rows.insert(1, ('Lua natives on the glue state', glue, got, rows[0][3]))
     for name, total, got, fmt in rows:
         missing = sorted(total - got)
         out += ['', f'## Missing: {name} ({len(missing)})', '']
@@ -139,7 +153,7 @@ def main(argv=None):
     args = p.parse_args(argv)
     ref = parse_reference(os.path.join(args.recon, 'docs', 'DLL_REFERENCE.md'))
     ref.patches = parse_patches(args.recon)
-    text = report(ref, scan_coa(args.root))
+    text = report(ref, scan_coa(args.root), parse_glue_bindings(os.path.join(args.root, BINDING_STATES)))
     with open(args.out, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
     print('\n'.join(text.splitlines()[4:12]))
