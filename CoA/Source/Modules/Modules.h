@@ -42,5 +42,6 @@ namespace CoA::GlobalsJClient { void Init(); }
 namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
 namespace CoA::CharacterCreateClient { void Init(); }
+namespace CoA::AttachLateClient { void Init(); }
 
 #endif

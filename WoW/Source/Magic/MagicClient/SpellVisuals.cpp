@@ -943,7 +943,8 @@ bool BlizzardObject::Update() {
         float distance = 1.0f;
         C3Vector ground;
 
-        if (World::Intersect(start, end, &hit, &distance, 0x120111, nullptr)) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x7FC3E2) -- je became jmp: the hit branch is never taken.
+        if (World::Intersect(start, end, &hit, &distance, 0x120111, nullptr) && false) {
             float t = distance * 0.95f;
             ground = C3Vector(start.x + (end.x - start.x) * t, (end.y - start.y) * t + start.y, start.z + (end.z - start.z) * t);
         } else {

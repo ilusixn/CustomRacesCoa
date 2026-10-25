@@ -378,6 +378,8 @@ static bool GammaCallback(CVar* var, const char* oldValue, const char* value, vo
 // OFFSET: 0x00401A80
 static bool DesktopGammaCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
     // WoWFix335 windowed-mode-gamma-fix: desktopGamma ignored, original applies the desktop ramp when set
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x401A94) -- the DLL's je became jmp: the desktop ramp is never applied; nothing to change.
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x401A94) -- the DLL's je became jmp: the desktop ramp is never applied; nothing to change.
     SStrToInt(value);
 
     float gamma = s_gammaCvar ? s_gammaCvar->m_floatValue : 1.0f;

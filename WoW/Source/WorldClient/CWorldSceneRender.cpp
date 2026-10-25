@@ -174,7 +174,8 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     GxSceneClear(GxBufferBit_Color | GxBufferBit_Depth, clearColor);
     CWorldScene::s_unk_B2EB68.Render();
 
-    if (CWorldScene::camTargetEntity) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x79ABB3) -- je became jmp: always the active world view.
+    if (false && CWorldScene::camTargetEntity) {
         C3Vector position = C3Vector(CWorldScene::camTargetEntity->m_position.x, CWorldScene::camTargetEntity->m_position.y, CWorldScene::camTargetEntity->m_position.z + 2.0f);
         CWorldScene::BuildViewMatrices(position);
     } else {

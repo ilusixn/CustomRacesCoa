@@ -7347,12 +7347,13 @@ static bool CheckEnchantItemLevel(const PendingSpellCast* cast, const SpellRec* 
 
     int32_t level = stats->m_requiredLevel ? stats->m_requiredLevel : stats->m_itemLevel;
 
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x7FFB36, 0x7FFB4C) -- both jcc became jmp: neither check refuses.
     if (level < spell->m_baseLevel) {
-        if (!(spell->m_attributesExB & 0x8)) {
+        if (false && !(spell->m_attributesExB & 0x8)) {
             *reason = 48;
             return false;
         }
-    } else if (maxLevel > 0 && static_cast<int32_t>(stats->m_itemLevel) > maxLevel) {
+    } else if (false && maxLevel > 0 && static_cast<int32_t>(stats->m_itemLevel) > maxLevel) {
         *reason = 36;
         return false;
     }

@@ -11067,7 +11067,8 @@ int32_t CGPlayer_C::UpdateMountedCollisionBox(float mountHeight, int32_t force) 
         box.b.y = box.b.y - this->m_movementData.m_collisionRadius;
         box.t.y = box.t.y + this->m_movementData.m_collisionRadius;
 
-        if (this->m_movementData.CollisionBoxDoesntFit(box)) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x6D7856) -- je became jmp: the fit check never refuses.
+        if (this->m_movementData.CollisionBoxDoesntFit(box) && false) {
             return 0;
         }
     }

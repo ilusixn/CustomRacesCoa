@@ -955,7 +955,8 @@ static int32_t Script_SendMail(lua_State* L) {
     const char* body = lua_isstring(L, 3) ? lua_tolstring(L, 3, nullptr) : "";
     int32_t stationery = CGMailInfo::m_selectedStationery;
 
-    if (!stationery) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5709E8) -- the je is NOPed: no stationery is no refusal.
+    if (false && !stationery) {
         return 0;
     }
 

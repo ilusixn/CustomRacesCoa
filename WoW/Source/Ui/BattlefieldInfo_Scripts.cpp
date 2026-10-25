@@ -1,4 +1,5 @@
 #include "BattlefieldInfo.h"
+#include "CoA/Source/Modules/AttachLate.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -440,10 +441,13 @@ static int32_t Script_GetHolidayBGHonorCurrencyBonuses(lua_State* L) {
 // VERIFY: fd1d91b3 auto
 // OFFSET: 0x0054A370
 static int32_t Script_GetRandomBGHonorCurrencyBonuses(lua_State* L) {
+    // CoA: AscAttachLate.cpp:Replace54A370 (orig hook 0x54A370) -- replaced: the three values scaled by the realm's rates.
+    double honor[3];
+    CoA::AttachLate::RandomBgHonor(CGBattlefieldInfo::m_randomWinHonor, CGBattlefieldInfo::m_randomWinArena, CGBattlefieldInfo::m_randomLossHonor, honor);
     lua_pushboolean(L, CGBattlefieldInfo::m_hasRandomWinToday);
-    lua_pushnumber(L, CGBattlefieldInfo::m_randomWinHonor);
-    lua_pushnumber(L, CGBattlefieldInfo::m_randomWinArena);
-    lua_pushnumber(L, CGBattlefieldInfo::m_randomLossHonor);
+    lua_pushnumber(L, honor[0]);
+    lua_pushnumber(L, honor[1]);
+    lua_pushnumber(L, honor[2]);
     lua_pushnumber(L, 0.0);
     return 5;
 }

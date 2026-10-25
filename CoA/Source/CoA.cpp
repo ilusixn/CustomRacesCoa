@@ -57,6 +57,7 @@ static const CoA::Module s_modules[] = {
     { "CVarHooksClient", CoA::CVarHooksClient::Init },
     { "RealmDataClient", CoA::RealmDataClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
+    { "AttachLateClient", CoA::AttachLateClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

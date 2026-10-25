@@ -378,7 +378,8 @@ int32_t CGQuestLog::IsQuestCompleteEx(uint32_t index, int32_t a2) {
     }
 
     for (uint32_t i = 0; i < 6; i++) {
-        if (quest->m_collectItemId[i] && player->m_bag.GetItemTypeCount(quest->m_collectItemId[i], 8) < static_cast<int32_t>(quest->m_collectItemCount[i])) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5E1071) -- push 8 became push 0.
+        if (quest->m_collectItemId[i] && player->m_bag.GetItemTypeCount(quest->m_collectItemId[i], 0) < static_cast<int32_t>(quest->m_collectItemCount[i])) {
             return 0;
         }
     }
@@ -574,6 +575,12 @@ static void QuestQueryCounterCallback(int32_t id, const WOWGUID& guid, void* par
 // VERIFY: 51715ead manual
 // OFFSET: 0x005DEA60
 void CGQuestLog::RemoveQuestWatch(int32_t questId) {
+    // CoA: AscAttachLate.cpp:Hook5DEA60 (orig hook 0x5DEA60) -- after it, on every path: RemoveQuestPointDisplay.
+    struct After {
+        int32_t questId;
+        ~After() { RemoveQuestPointDisplay(this->questId); }
+    } after { questId };
+
     uint32_t count = CGQuestLog::m_numQuestWatches;
     uint32_t i;
 
@@ -1469,8 +1476,9 @@ int32_t CGQuestLog::GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoard
         if (showProgress) {
             int32_t have = required;
 
-            if (player->m_bag.GetItemTypeCount(itemId, 8) < required) {
-                have = player->m_bag.GetItemTypeCount(itemId, 8);
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5E174C, 0x5E1770) -- push 8 became push 0 (both).
+            if (player->m_bag.GetItemTypeCount(itemId, 0) < required) {
+                have = player->m_bag.GetItemTypeCount(itemId, 0);
             }
 
             const char* format = FrameScript_GetText("QUEST_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
@@ -1504,7 +1512,8 @@ int32_t CGQuestLog::GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoard
 
             ItemStats_C* item = g_itemDBCache.GetRecord(itemId, none, params->m_itemCallback, params->m_param, false);
             uint32_t plural = FrameScript_GetPluralIndex(1);
-            int32_t have = player->m_bag.GetItemTypeCount(itemId, 8);
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5E1AD8) -- push 8 became push 0.
+            int32_t have = player->m_bag.GetItemTypeCount(itemId, 0);
             const char* format = FrameScript_GetText("QUEST_INTERMEDIATE_ITEMS_NEEDED", -1, GENDER_NOT_APPLICABLE);
             const char* name;
 

@@ -2068,7 +2068,8 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
     CVar* questTracking = CVar::Lookup("showQuestTrackingTooltips");
 
-    if (creature && questTracking && questTracking->m_intValue) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x621EC1) -- the value's je is NOPed.
+    if (creature && questTracking) {
         uint32_t summonedHigh = unit ? static_cast<uint32_t>(unit->m_unit->m_unitFieldSummonedby.m_guid >> 32) : 0;
 
         if (!unit || (summonedHigh & 0xF0000000) || !((summonedHigh & 0xF07FFFFF) | static_cast<uint32_t>(unit->m_unit->m_unitFieldSummonedby.m_guid))) {
@@ -6371,7 +6372,8 @@ static void AddItemSellPrice(CGTooltip* tooltip, const ItemStats_C* stats, CGIte
         return;
     }
 
-    if (item->GetEnchantmentSpell(0) && !item->HasOnUseEnchant() && item->GetUsableSpellCharges() < -1) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x62D779) -- je became jmp: never.
+    if (item->GetEnchantmentSpell(0) && false && !item->HasOnUseEnchant() && item->GetUsableSpellCharges() < -1) {
         price = price * item->GetCurrentSpellCharges() / item->GetUsableSpellCharges();
     }
 
@@ -7911,7 +7913,8 @@ void CGTooltip::SetObject(const WOWGUID& guid) {
     }
     CVar* questTracking = CVar::Lookup("showQuestTrackingTooltips");
 
-    if (questTracking && questTracking->m_intValue) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x626ABF) -- the value's je is NOPed.
+    if (questTracking) {
         QuestLogLeaderBoardParams params;
         params.m_questCallback = TooltipObjectCallback;
         params.m_objectCallback = TooltipObjectCallback;
