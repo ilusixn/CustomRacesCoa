@@ -58,8 +58,9 @@ By the user:
   `parity/dispatch-guard-crash-context-diagnostics`, clean tree); the user confirmed the installed
   `D:\WoW\Coa\Extensions.dll` is built from this source. Later reconstruction commits are ported as diffs,
   recording each new pin in `UPSTREAM.md`, the same way as wowdecomp.
-- **Warden:** unchanged from wowdecomp's x64 client (it receives and drops `SMSG_WARDEN_DATA`). Deferred until
-  everything else is done. No spoofed answers. Known risk for live tests: if the server's Warden kicks
+- **Warden:** must be handled properly (user decision 2026-10-25), not left dropped. Until its plan lands it is
+  unchanged from wowdecomp's x64 client (it receives and drops `SMSG_WARDEN_DATA`). Planned after the module plans
+  and DXVK. No spoofed answers. Known risk for live tests: if the server's Warden kicks
   non-responding clients (AzerothCore default response delay 600 s), live sessions end after ~10 minutes;
   tests are planned to fit inside that window and the kick is not treated as a client bug.
 - **World headers:** stock cipher (the server's plaintext option is gone; the reconstruction's plaintext
