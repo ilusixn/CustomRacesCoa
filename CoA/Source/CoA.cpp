@@ -72,6 +72,7 @@ static const CoA::Module s_modules[] = {
     { "SmallApisClient", CoA::SmallApisClient::Init },
     { "EventPacketsClient", CoA::EventPacketsClient::Init },
     { "PatchDataClient", CoA::PatchDataClient::Init },
+    { "ClientDbcPatchClient", CoA::ClientDbcPatchClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
