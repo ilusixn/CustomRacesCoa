@@ -28,6 +28,7 @@ namespace CoA::LuaDbc { void Init(); }
 namespace CoA::CharacterList { void Init(); }
 namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
+namespace CoA::MysticEnchantPreset { void Init(); }
 namespace CoA::MysticEnchant { void Init(); }
 namespace CoA::ExtraActionButton { void Init(); }
 namespace CoA::UnitAddon { void Init(); }
@@ -51,6 +52,7 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
 namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
+namespace CoA::MysticEnchantClient { void Init(); }
 namespace CoA::ExtraActionButtonClient { void Init(); }
 namespace CoA::UnitAddonClient { void Init(); }
 namespace CoA::GlobalsIClient { void Init(); }

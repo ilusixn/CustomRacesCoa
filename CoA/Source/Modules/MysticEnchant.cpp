@@ -602,7 +602,7 @@ namespace {
     }
 
     // FUN_102EA0C0's list: the mystic altar game objects.
-    bool IsAltar(uint32_t entry) {
+    bool IsAltarEntry(uint32_t entry) {
         static const uint32_t kAltars[] = {
             0x30, 0x13914, 0x2B18A, 0x2B18B, 0x2B18D, 0x3BD0E, 0x57390, 0xC354F, 0xF428F, 0x1D0B98, 0x1D0B99, 0x3174B8,
             0x3182BE, 0x3183CC, 0x3183CE, 0x3183ED, 0x31869E, 0x3188F0, 0x31956C, 0x31A0B9, 7100000, 0x7A1233, 0x7A1234, 0x843F77,
@@ -3525,7 +3525,7 @@ bool CoA::MysticEnchant::Worldforged(uint32_t spell) {
 }
 
 void CoA::MysticEnchant::OnGameObjectUse(uint32_t entry) {   // FUN_102EA1A0 / FUN_102EA2C0
-    if (!IsAltar(entry)) {
+    if (!IsAltarEntry(entry)) {
         return;
     }
 
@@ -3590,4 +3590,28 @@ void CoA::MysticEnchant::Reset() {
 
 void CoA::MysticEnchant::EnterWorld() {
     OnEnterWorld();
+}
+
+bool CoA::MysticEnchant::IsAltar(uint32_t entry) {
+    return IsAltarEntry(entry);
+}
+
+bool CoA::MysticEnchant::PlayerCasting() {
+    return Casting();
+}
+
+bool CoA::MysticEnchant::PlayerIsCoAClass() {
+    return HasPlayer() && IsCoAClass(PlayerClass());
+}
+
+uint32_t CoA::MysticEnchant::BagItemCount(uint32_t entry) {   // FUN_10308470
+    uint32_t n = 0;
+
+    for (const Item& item : PlayerItems()) {
+        if (item.slot != 0 && item.entry == entry) {
+            n += item.count;
+        }
+    }
+
+    return n;
 }
