@@ -21,7 +21,8 @@ bool CVar::m_initialized;
 bool CVar::s_archiveCodeRegisteredOnly;
 
 // STATIC: 0x00CA19FC
-static TSHashTable<CVar, HASHKEY_STRI> s_registeredCVars;
+// CoA: not static -- AscGlobalsI.cpp:ListCVars walks it.
+TSHashTable<CVar, HASHKEY_STRI> s_registeredCVars;
 
 // VERIFY: 2dc92f1f auto
 // OFFSET: 0x00766320

@@ -110,4 +110,7 @@ extern const char* (*g_cvarSaveValueHook)(const char* name, const char* value);
 // CoA: AscAttachMisc.cpp:FUN_10a4a780 (orig hook 0x7668C0) -- the value CVar::Set goes on with.
 extern const char* (*g_cvarSetHook)(CVar* cvar, const char* value);
 
+// CoA: not static -- AscGlobalsI.cpp:ListCVars walks it (0xCA19FC).
+extern TSHashTable<CVar, HASHKEY_STRI> s_registeredCVars;
+
 #endif
