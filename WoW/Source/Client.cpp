@@ -268,6 +268,9 @@ static char s_installLocation[1024];
 // STATIC: 0x00C5DE90
 bool g_hasIsoLocale[NUM_DB_LOCALES];
 
+// CoA: AscMisc.cpp:ApplyConfigFile (Extensions.dll patch 0x406851) -- the file CVar::Initialize reads.
+const char* g_configFileName = "Config.wtf";
+
 // STATIC: 0x00C5DE9C
 int32_t s_locale;
 
@@ -1698,7 +1701,8 @@ bool InitializeGlobal() {
 
     ClientServices::LoadCDKey();
     ConsoleInitializeClientCommand();
-    CVar::Initialize("Config.wtf");
+    // CoA: AscMisc.cpp:ApplyConfigFile (Extensions.dll patch 0x406851) -- -config names another file.
+    CVar::Initialize(g_configFileName);
     CVar::ArchiveCodeRegisteredOnly();
 
     {

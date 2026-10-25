@@ -3107,7 +3107,8 @@ static int32_t Script_SetCursor(lua_State* L) {
 
 // VERIFY: 9895988e manual
 // OFFSET: 0x00516970
-static int32_t Script_SetPortraitToTexture(lua_State* L) {
+// CoA: AscBindings.cpp (glue registration of 0x516970) -- not static: the DLL also registers it on the glue state.
+int32_t Script_SetPortraitToTexture(lua_State* L) {
     CSimpleTexture* texture;
 
     if (lua_isstring(L, 1)) {

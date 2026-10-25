@@ -68,6 +68,9 @@ extern CVar* s_desktopGammaCvar;
 extern uint8_t s_expansionLevel;
 extern CVar* s_gammaCvar;
 extern int32_t s_locale;
+
+// CoA: AscMisc.cpp:ApplyConfigFile (Extensions.dll patch 0x406851).
+extern const char* g_configFileName;
 extern const char* s_iniLocaleNames[9];
 extern uint32_t s_localeIds[9];
 extern char s_localeCode[5];

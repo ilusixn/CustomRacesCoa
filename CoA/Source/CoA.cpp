@@ -5,7 +5,9 @@
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Dbc.h"
+#include "CoA/Source/Runtime/DbcPatch.h"
 #include "CoA/Source/Runtime/Packet.h"
+#include "CoA/Source/Runtime/Timer.h"
 #include "CoA/Source/Runtime/Events.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "CoA/Source/Runtime/Logger.h"
@@ -16,6 +18,7 @@ extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 
 // The ported modules, in AscBindings::InitModules order. Filled as modules are ported.
 static const CoA::Module s_modules[] = {
+    { "DbcPatch", CoA::DbcPatch::Init },
     { "RealmInfo", CoA::RealmInfo::Init },
     { "Account", CoA::Account::Init },
     { "Config", CoA::Config::Init },
@@ -28,6 +31,15 @@ static const CoA::Module s_modules[] = {
     { "LoggerApi", CoA::LoggerApi::Init },
     { "SmallApis", CoA::SmallApis::Init },
     { "GlueCVars", CoA::GlueCVars::Init },
+    { "Profiler", CoA::Profiler::Init },
+    { "GlobalsH", CoA::GlobalsH::Init },
+    { "GlobalsC", CoA::GlobalsC::Init },
+    { "PatchData", CoA::PatchData::Init },
+    { "MiscClient", CoA::MiscClient::Init },
+    { "GlobalsBClient", CoA::GlobalsBClient::Init },
+    { "GlobalsGClient", CoA::GlobalsGClient::Init },
+    { "BindingsClient", CoA::BindingsClient::Init },
+    { "LibraryClient", CoA::LibraryClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
@@ -53,6 +65,7 @@ void CoA::Attach() {
     CoA::Account::InstallClient();
     CoA::GlobalsJ::InstallClient();
     CoA::Packet::InstallClient();
+    CoA::Timer::InstallClient();
 
     for (const CoA::Module& module : s_modules) {
         if (!module.init) {
