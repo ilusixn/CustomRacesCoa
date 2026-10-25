@@ -63,6 +63,13 @@ namespace {
         SMemFree(p, nullptr, 0, 0);
     }
 
+    // WowClientDB_RLE keeps its index inside the record block (ClientDbcPatch::Insert's ownsIndex).
+    template <class DB>
+    struct IsRle : std::false_type {};
+
+    template <class T>
+    struct IsRle<WowClientDB_RLE<T>> : std::true_type {};
+
     // The table's slot for id (WowClientDB and WowClientDB_RLE alike: the RLE slot is the stored, possibly compressed,
     // row), or nullptr.
     template <class DB>
@@ -103,7 +110,7 @@ namespace {
             Rec* row = static_cast<Rec*>(operator new(sizeof(Rec)));
             memset(static_cast<void*>(row), 0, sizeof(Rec));
             write(row, v.data());
-            CoA::ClientDbcPatch::Insert(db, id, row, IndexAlloc, IndexFree);
+            CoA::ClientDbcPatch::Insert(db, id, row, IndexAlloc, IndexFree, !IsRle<DB>::value);
             inserted = true;
             return row;
         } };
@@ -275,7 +282,7 @@ namespace {
             CompressRow(buffer, sizeof(SpellRec), reinterpret_cast<uint8_t*>(row));
         }
 
-        CoA::ClientDbcPatch::Insert(g_spellDB, spell->m_id, row, IndexAlloc, IndexFree);
+        CoA::ClientDbcPatch::Insert(g_spellDB, spell->m_id, row, IndexAlloc, IndexFree, false);   // RLE: shared index block
         return 1;
     }
 

@@ -579,9 +579,8 @@ const char* CGGameObject_C::GetObjectName() const {
             std::string text = this->m_stats->m_name[0];
 
             if (CoA::AttachFixes::ReplaceNameToken(text, GetObjectNameFromGuid(this->m_gameObject->m_createdBy))) {
-                char* copy = static_cast<char*>(malloc(text.size() + 1));
-                memcpy(copy, text.c_str(), text.size() + 1);
-                this->m_stats->m_name[0] = copy;
+                // (One kept copy per stats record: a token past position 0 stays and is renamed on every call.)
+                this->m_stats->m_name[0] = CoA::AttachFixes::KeepName(this->m_stats, text);
             }
         }
 

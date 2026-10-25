@@ -207,3 +207,18 @@ COA_TEST(AttachFixes_ChatBubbleRange) {
     CoA::AttachFixes::SetChatBubbleRange(1, 2);
     CHECK(CoA::AttachFixes::ChatBubbleRangeSq() == 625.0f);
 }
+
+// A "$CN" name copy replaces the owner's previous copy instead of piling up (review fix: the token past position 0
+// stays in the name, so every GetObjectName call makes a new copy).
+COA_TEST(AttachFixes_KeptNameReplacesPrevious) {
+    int ownerA = 0;
+    int ownerB = 0;
+    const size_t before = CoA::AttachFixes::KeptNameCount();
+    const char* first = CoA::AttachFixes::KeepName(&ownerA, "Thr Portal of $CN");
+    CHECK(std::string(first) == "Thr Portal of $CN");
+    CoA::AttachFixes::KeepName(&ownerA, "Thr Portal of $CN");
+    CoA::AttachFixes::KeepName(&ownerA, "Thr Portal of $CN");
+    CHECK(CoA::AttachFixes::KeptNameCount() == before + 1);
+    CoA::AttachFixes::KeepName(&ownerB, "Jai Portal of $CN");
+    CHECK(CoA::AttachFixes::KeptNameCount() == before + 2);
+}

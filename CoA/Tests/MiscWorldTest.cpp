@@ -109,3 +109,17 @@ COA_TEST(Misc_ServerTimeOffset) {
     const int32_t offset = std::stoi(CoATest::Call(L, "", "GetServerTimeOffset")[0]);
     CHECK(offset >= 3600 - zone - 2 && offset <= 3600 - zone);
 }
+
+// A count larger than the packet stops at the packet's end (review fix: no 2^32-step loop on a short packet).
+COA_TEST(Misc_ShortListStopsAtPacketEnd) {
+    lua_State* L = Setup();
+    CoATest::Bytes list;
+    list.U32(0xFFFFFFFF).U32(7).U32(5).U32(7);
+    Feed(0x743, list);
+    CHECK(CoATest::Call(L, "", "GetZoneInstanceList")[0] == "2");
+
+    CoATest::Bytes icons;
+    icons.U32(0xFFFFFFFF).U32(9);
+    Feed(0x669, icons);
+    CHECK(CoATest::Call(L, "", "GetGossipIconOverride", { "n:0" })[0] == "9");
+}

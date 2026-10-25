@@ -13,6 +13,12 @@ namespace CoA::AttachFixes {
     // 0x70CDF0 (CGGameObject_C::GetObjectName): a name holding "$CN" has its first three characters (position 0, not
     // where the token is, as the original) replaced by guidName. False (unchanged) without a token or a guidName.
     bool ReplaceNameToken(std::string& name, const char* guidName);
+    // The name copy kept for a game object's stats record (owner): replaces and frees that owner's previous copy, so a
+    // "$CN" token left past position 0 (renamed again on every GetObjectName) does not pile up copies. The original
+    // wrote into the cached string instead.
+    char* KeepName(const void* owner, const std::string& text);
+    // Tests only.
+    size_t KeptNameCount();
 
     // 0x81B380 (FrameScript_Object::RegisterScriptEvent): while the world UI loads, an event name the client does not
     // know is queued as a custom event and the event table rebuilt. True when added.

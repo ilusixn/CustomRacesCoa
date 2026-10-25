@@ -104,8 +104,13 @@ namespace {
         const uint32_t count = CoA::Read::U32(msg);
         const uint32_t current = CoA::Read::U32(msg);
 
+        // (Stops at the packet's end: a count past it would otherwise loop up to 2^32 times.)
         for (uint32_t i = 0; i < count; ++i) {
             const uint32_t id = CoA::Read::U32(msg);
+
+            if (CoA::Read::Failed(msg)) {
+                break;
+            }
 
             if (id == current) {
                 s_zoneInstanceIndex = i;
@@ -148,6 +153,10 @@ namespace {
 
         for (uint32_t i = 0; i < n; ++i) {
             const int32_t v = static_cast<int32_t>(CoA::Read::U32(msg));
+
+            if (CoA::Read::Failed(msg)) {   // (stops at the packet's end)
+                break;
+            }
 
             if (i < 32) {
                 s_gossipIcons[i] = v;
