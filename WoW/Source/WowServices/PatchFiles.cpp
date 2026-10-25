@@ -28,7 +28,9 @@ int32_t PatchFiles::EnumPatchArchives(OS_FILE_DATA& data, void* param) {
 // OFFSET: 0x00405AB0
 PatchFiles::PatchFiles(const char* locale, bool flag) {
     PATCHARCHIVESPEC specs[12] = {
-        { 0, 0, false, "Data\\", "patch-?.MPQ" },
+        // CoA: Ascension.exe patch 0x9E2724 (.rdata) -- patch-*.MPQ instead of patch-?.MPQ, so multi-letter
+        // archives such as patch-CA.MPQ and patch-WB1.MPQ load
+        { 0, 0, false, "Data\\", "patch-*.MPQ" },
         { 0, 0, false, "Data\\%s\\", "patch-%s-?.MPQ" },
         { 1, 0, false, "Data\\", "patch.MPQ" },
         { 1, 0, false, "Data\\%s\\", "patch-%s.MPQ" },

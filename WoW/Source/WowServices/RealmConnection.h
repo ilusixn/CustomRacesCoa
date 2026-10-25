@@ -11,6 +11,9 @@
 
 class CHARACTER_INFO;
 class RealmConnection;
+
+// CoA: build number sent in CMSG_AUTH_SESSION (Ascension.exe immediate 0x4648B3); realm data may change it
+extern uint32_t g_coaAuthSessionBuild;
 class RealmResponse;
 struct REALM_INFO;
 

@@ -1211,7 +1211,9 @@ emoteDone:
     }
 
     if (!conversation) {
-        for (char* quest = SStrStr(text, "|Hquest:"); quest; quest = SStrStr(quest + 8, "|Hquest:")) {
+        // CoA: Ascension.exe patch 0x9FC672 (.rdata) -- the literal reads "|Htuest:", so chat quest links are never
+        // matched here and pass through unchanged
+        for (char* quest = SStrStr(text, "|Htuest:"); quest; quest = SStrStr(quest + 8, "|Htuest:")) {
             if (quest[-1] == '|') {
                 continue;
             }

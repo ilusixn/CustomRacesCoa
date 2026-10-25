@@ -1363,7 +1363,8 @@ static void OpenArchives() {
 
     int32_t priority = 64;
     uint32_t slot = 0;
-    s_archiveHandles.SetCount(64);
+    // CoA: Ascension.exe patch 0x405E2F (and the chunk clamp in 0x5D0040) -- room for 127 archive handles
+    s_archiveHandles.SetCount(127);
 
     for (uint32_t i = patches.m_files.Count(); i; i--) {
         if (SFile::OpenArchive(patches.m_files[i - 1], priority, 0xC00, &s_archiveHandles[slot])) {
@@ -1817,7 +1818,8 @@ int32_t CommonMain() {
         SRegSaveValue("World of Warcraft\\Client", "SendErrorLogs", 0, 1);
     }
 
-    SErrSetLogTitleString("World of WarCraft (build " GAME_BUILD_STRING ")");
+    // CoA: Ascension.exe patch 0x9E2A38 (.rdata) -- log title string
+    SErrSetLogTitleString("Ascension.gg");
     SErrSetLogCallback(WowLogHeader);
 
     if (sendErrorLogs) {

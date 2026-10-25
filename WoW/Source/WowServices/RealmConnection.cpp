@@ -8,6 +8,9 @@
 #include "WoW/Source/WowServices/WDataStore.h"
 #include "GameVersion.h"
 
+// CoA: Ascension.exe patch 0x4648B3 -- push 0x3038 (12344) instead of push 0x3034 (12340)
+uint32_t g_coaAuthSessionBuild = 12344;
+
 // STATIC: 0x00AB953C
 TSList<RealmConnection::REALMCONNECTIONNODE> RealmConnection::s_allRealmConnections;
 
@@ -366,7 +369,8 @@ void RealmConnection::HandleAuthChallenge(AuthenticationChallenge* challenge) {
 
     WDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_AUTH_SESSION));
-    msg.Put(static_cast<uint32_t>(GAME_BUILD));
+    // CoA: Ascension.exe patch 0x4648B3 -- CMSG_AUTH_SESSION carries build 12344 (realm data may rewrite it)
+    msg.Put(static_cast<uint32_t>(g_coaAuthSessionBuild));
     msg.Put(static_cast<uint32_t>(this->m_loginData.m_loginServerID));
     msg.PutString(this->m_loginData.m_account);
     msg.Put(static_cast<uint32_t>(this->m_loginData.m_loginServerType));
