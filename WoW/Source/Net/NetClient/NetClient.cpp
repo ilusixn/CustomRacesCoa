@@ -11,6 +11,7 @@
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowServices/HMAC.h"
 #include "CoA/Source/Runtime/Log.h"
+#include "CoA/Source/Modules/Profiler.h"
 #include "CoA/Source/Runtime/Packets.h"
 
 // STATIC: 0x00AD2ED0
@@ -298,12 +299,23 @@ void NetClient::ResetHandler(NETMESSAGE msgId) {
 int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_t unused_a4) {
     // CoA: CNetClient.cpp:ProcessMessageDetour (orig hook 0x631FE0) -- the opcode is read as a signed 16-bit value;
     // 0x55F and above go to the CoA table, the rest re-read from the start by the stock path below
+    // CoA: AscProfiler.cpp:Received / Handled -- every packet is counted (and timed when a handler ran) while
+    // opcode logging is on; the dispatched opcode is remembered either way.
+    int32_t opcode;
+    int64_t start;
     {
         uint16_t raw;
         msg->Get(raw);
+        opcode = static_cast<int16_t>(raw);
+        start = CoA::Profiler::Received(opcode, msg->m_size);
+        bool handled = CoA::Packets::Has(static_cast<uint32_t>(opcode));
         int32_t result;
 
-        if (CoA::Packets::Dispatch(static_cast<int16_t>(raw), timeReceived, msg, result)) {
+        if (CoA::Packets::Dispatch(opcode, timeReceived, msg, result)) {
+            if (handled) {
+                CoA::Profiler::Handled(opcode, start);
+            }
+
             return result;
         }
 
@@ -320,10 +332,13 @@ int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_
     // 32-bit handler table into its neighbour. That is reading out of bounds; no server sends those opcodes, and here
     // they are treated as unhandled.
     if (msgId < NUM_MSG_TYPES && this->m_handlers[msgId]) {
-        return this->m_handlers[msgId](this->m_handlerParams[msgId], static_cast<NETMESSAGE>(msgId), timeReceived, msg);
+        int32_t result = this->m_handlers[msgId](this->m_handlerParams[msgId], static_cast<NETMESSAGE>(msgId), timeReceived, msg);
+        CoA::Profiler::Handled(opcode, start);
+        return result;
     }
 
     msg->Reset();
+    CoA::Profiler::Handled(opcode, start);
 
     return 0;
 }
@@ -616,6 +631,18 @@ NetClient::NetClient() {
 // VERIFY: 3e4c9045 manual
 // OFFSET: 0x00632B50
 void NetClient::Send(CDataStore* msg) {
+    // CoA: AscProfiler.cpp:SendDetour (orig hook 0x632B50) -- counted before the send, timed after; the opcode is read
+    // and the read position reset to 0.
+    uint16_t raw = 0;
+    msg->Get(raw);
+    msg->m_read = 0;
+    int32_t opcode = static_cast<int16_t>(raw);
+    int64_t start = CoA::Profiler::SendStarted(opcode, msg->m_size);
+    this->SendUnprofiled(msg);
+    CoA::Profiler::SendFinished(opcode, start);
+}
+
+void NetClient::SendUnprofiled(CDataStore* msg) {
     if (this->m_netState != NS_CONNECTED) {
         return;
     }

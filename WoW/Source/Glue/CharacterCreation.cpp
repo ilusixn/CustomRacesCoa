@@ -1,4 +1,5 @@
 #include "CharacterCreation.h"
+#include "CoA/Source/Modules/CharacterCreate.h"
 #include <cstring>
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -603,6 +604,9 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
 // VERIFY: 68a365e1 manual
 // OFFSET: 0x004E1540
 void CCharacterCreation::SetSelectedSex(uint32_t sexID) {
+    // CoA: AscCharacterCreate.cpp (orig hook 0x4E1540) -- after the call: skip locked options, refresh the preview.
+    CoA::CharacterCreate::RunAfter coaAfter { CoA::CharacterCreate::AfterSetSelectedSex };
+
     if (sexID >= 3 || sexID == CCharacterCreation::m_character->m_data.m_preferences.m_sexID) {
         return;
     }
@@ -665,6 +669,9 @@ void CCharacterCreation::SetSelectedSex(uint32_t sexID) {
 // VERIFY: 60798dcb auto
 // OFFSET: 0x004E1740
 void CCharacterCreation::SetSelectedClass(int32_t classID) {
+    // CoA: AscCharacterCreate.cpp (orig hook 0x4E1740) -- after the call: skip locked options, refresh the preview.
+    CoA::CharacterCreate::RunAfter coaAfter { CoA::CharacterCreate::AfterSetSelectedClass };
+
     if (!CCharacterCreation::IsClassAvailable(classID)) {
         return;
     }
@@ -689,6 +696,9 @@ void CCharacterCreation::SetSelectedClass(int32_t classID) {
 // VERIFY: ca66e480 auto
 // OFFSET: 0x004E17F0
 void CCharacterCreation::RandomizeCharCustomization() {
+    // CoA: AscCharacterCreate.cpp (orig hook 0x4E17F0) -- after the call: skip locked options, refresh the preview.
+    CoA::CharacterCreate::RunAfter coaAfter { CoA::CharacterCreate::AfterRandomize };
+
     CCharacterCreation::m_character->SetRandomSkin(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomFace(COMPONENT_CONTEXT_0);
     CCharacterCreation::m_character->SetRandomHairColor(COMPONENT_CONTEXT_0);
@@ -767,6 +777,9 @@ void CCharacterCreation::ResetCharCustomizeInfo() {
 // VERIFY: 06f4239a manual
 // OFFSET: 0x004E20B0
 void CCharacterCreation::SetSelectedRace(uint32_t raceIndex) {
+    // CoA: AscCharacterCreate.cpp (orig hook 0x4E20B0) -- after the call: skip locked options, refresh the preview.
+    CoA::CharacterCreate::RunAfter coaAfter { CoA::CharacterCreate::AfterSetSelectedRace };
+
     if (raceIndex >= CCharacterCreation::m_races.Count() || raceIndex == CCharacterCreation::m_raceIndex) {
         return;
     }

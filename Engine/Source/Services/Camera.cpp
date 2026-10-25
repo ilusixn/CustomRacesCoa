@@ -367,10 +367,19 @@ static void GetManagedValue(CDataMgr* mgr, uint32_t index, C3Vector* value, uint
     *value = static_cast<TManaged<C3Vector>*>(data)->m_data;
 }
 
+// CoA: AscCharacterCreate.cpp:CameraDetour (orig hook 0x4C1290).
+void (*g_dataMgrGetCoordHook)(uint32_t index, C3Vector* value);
+
 // VERIFY: 15f73a5e auto
 // OFFSET: 0x004C1290
 void DataMgrGetCoord(CDataMgr* mgr, uint32_t index, C3Vector* value) {
     GetManagedValue(mgr, index, value, 3);
+
+    // CoA: AscCharacterCreate.cpp:CameraDetour (orig hook 0x4C1290) -- the character-creation camera (index 7) can be
+    // overridden by the preview.
+    if (g_dataMgrGetCoordHook) {
+        g_dataMgrGetCoordHook(index, value);
+    }
 }
 
 // VERIFY: 6e02d0ab manual

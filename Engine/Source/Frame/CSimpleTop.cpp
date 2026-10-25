@@ -32,12 +32,20 @@ CSimpleTop* CSimpleTop::s_instance;
 // STATIC: 0x00B499A4
 uint32_t CSimpleTop::s_eventTime;
 
+// CoA: AscRuntime.cpp (orig hook 0x495810).
+void (*g_paintScreenHook)();
+
 // VERIFY: 29e70871 auto
 // OFFSET: 0x00495810
 static void PaintScreen(void* param, const RECTF* rect, const RECTF* visible, float elapsedSec) {
     CSimpleTop* top = CSimpleTop::s_instance;
     top->OnLayerUpdate(elapsedSec);
     top->OnLayerRender();
+
+    // CoA: AscRuntime.cpp (orig hook 0x495810) -- the DLL's after-paint list.
+    if (g_paintScreenHook) {
+        g_paintScreenHook();
+    }
 }
 
 // VERIFY: 3a1b6d83 auto

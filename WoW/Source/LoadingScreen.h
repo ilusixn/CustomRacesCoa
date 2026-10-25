@@ -181,4 +181,8 @@ int32_t CLoadingScreenShipInfo<T>::FindLeg(WowClientDB<T>* nodeDB, uint32_t path
     return -1;
 }
 
+// CoA: AscCVarHooks.cpp:Hook76A220 (orig hook 0x76A220).
+extern float s_normalAspect;
+extern float s_wideAspect;
+
 #endif

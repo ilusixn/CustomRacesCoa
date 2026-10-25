@@ -1956,7 +1956,8 @@ int32_t CVehiclePassenger_C::PostSetState(CGUnit_C* vehicle, VehicleSeatRec* sea
         float dy = endPosition.y - this->m_startModelPosition.y;
         float dx = endPosition.x - this->m_startModelPosition.x;
 
-        if (dx * dx + (dy * dy + dz * dz) > 22500.0f) {
+        // CoA: AscAccount.cpp:OnGMStatus (runtime patch 0xA32904) -- the same constant as CMovement_C::Teleport.
+        if (dx * dx + (dy * dy + dz * dz) > g_maxShortRangeTeleportSquared) {
             WOWGUID transport;
             transport.m_guid = this->m_unit->GetTransportGUID();
 

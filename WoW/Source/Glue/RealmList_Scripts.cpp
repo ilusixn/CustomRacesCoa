@@ -23,6 +23,10 @@ static int32_t Script_RequestRealmList(lua_State* L) {
 // VERIFY: 67f9da3d auto
 // OFFSET: 0x004DE450
 static int32_t Script_RealmListUpdateRate(lua_State* L) {
+    // CoA: AscAttachLate.cpp:Replace4DE450 (orig hook 0x4DE450) -- replaced: always 1.
+    lua_pushnumber(L, 1.0);
+    return 1;
+
     if (ClientServices::LoginConnection() && ClientServices::LoginConnection()->GetLoginServerType() == 1) {
         lua_pushnumber(L, 4.0);
         return 1;

@@ -186,9 +186,17 @@ const char* SFile::GetDataPath() {
     return System_SFile2::s_dataPath;
 }
 
+// CoA: AscRealmData.cpp:OpenArchiveDetour (orig hook 0x421950).
+bool (*g_sfileOpenArchiveHook)(const char* path);
+
 // VERIFY: 2f5c6797 manual
 // OFFSET: 0x00421950
 int32_t STORMAPI SFile::OpenArchive(const char* path, int32_t priority, uint32_t flags, SArchive** archive) {
+    // CoA: AscRealmData.cpp:OpenArchiveDetour (orig hook 0x421950) -- refused (0) before anything is opened.
+    if (g_sfileOpenArchiveHook && !g_sfileOpenArchiveHook(path)) {
+        return 0;
+    }
+
     int32_t result = 0;
     Blizzard::File::SetLastErrorStack(nullptr);
 
