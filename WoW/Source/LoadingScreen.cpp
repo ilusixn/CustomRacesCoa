@@ -58,11 +58,12 @@ static const BackgroundImage s_miniTextureInfo[2] = {
     { "Interface\\Glues\\LoadingBar\\Loading-BarBorder", false, 0.5f, 0.975f, 0.6f, 0.05f },
 };
 
+// CoA: AscCVarHooks.cpp:Hook76A220 (orig hook 0x76A220) -- not static: the DLL sets both from the resolution.
 // STATIC: 0x00AB63B4
-static float s_normalAspect = 4.0f / 3.0f;
+float s_normalAspect = 4.0f / 3.0f;
 
 // STATIC: 0x00AB63B8
-static float s_wideAspect = 1.6f;
+float s_wideAspect = 1.6f;
 
 // STATIC: 0x00AB63BC
 static int32_t s_simpleMapID = -1;
