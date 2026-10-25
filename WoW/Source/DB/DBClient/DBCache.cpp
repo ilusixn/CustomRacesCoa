@@ -1,4 +1,5 @@
 #include "DBCache.h"
+#include "CoA/Source/Modules/RealmDataClient.h"
 #include <cstring>
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -97,7 +98,8 @@ uint32_t CWardenKey::Hash() const {
 // OFFSET: 0x00667EF0
 void GetCacheDirectory(char* path) {
     if (CheckDataFilesExist()) {
-        SStrPrintf(path, 260, "Cache/%s/%s", "WDB", s_localeCode);
+        // CoA: AscRealmData.cpp:CachePathHook (orig hook 0x667EF9) -- "Cache/WDB/<locale>/<realm>".
+        CoA::RealmDataClient::CacheDirectory(path);
         OsCreateDirectory(path, 1);
     } else {
         SStrCopy(path, "WDB", 260);

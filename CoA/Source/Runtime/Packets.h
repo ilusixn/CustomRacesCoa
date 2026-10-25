@@ -20,6 +20,8 @@ namespace CoA::Packets {
 
     // FUN_102c4400's custom branch: insert or replace.
     void Set(uint32_t opcode, Handler handler, void* param);
+    // Whether a custom handler is registered for the opcode.
+    bool Has(uint32_t opcode);
     // FUN_102c3f80 (AscProfiler's hook on 0x631FC0 ResetHandler): the custom branch erases the entry.
     void Erase(uint32_t opcode);
     void Clear();

@@ -37,6 +37,8 @@ struct CVar : public TSHashObject<CVar, HASHKEY_STRI> {
     static int32_t LogAll(char* buffer, uint32_t size, uint32_t category, uint32_t excludeFlags);
     static int32_t LogCvar(const char* name, const char* value, void* arg);
     static CVar* Lookup(const char* name);
+    // CoA: AscCVarHooks.cpp:Hook766640 -- SaveCvar without the DLL's skip list.
+    static int32_t WriteCvarLine(const char* name, const char* value, void* arg);
     static CVar* LookupRegistered(const char* name);
     static CVar* Register(const char* name, const char* help, uint32_t flags, const char* value, bool (*callback)(CVar*, const char*, const char*, void*), uint32_t category, bool setCommand, void* arg, bool unk);
     static int32_t SaveAll();
@@ -100,5 +102,8 @@ inline CVarArrayWrapper::CVarArrayWrapper(CVar* cvar) {
         this->UpdateFromVersion(version);
     }
 }
+
+// CoA: AscCVarHooks.cpp:Hook766640 (orig hook 0x766640).
+extern bool (*g_cvarSaveFilterHook)(const char* name);
 
 #endif

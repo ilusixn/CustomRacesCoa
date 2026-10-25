@@ -1110,6 +1110,10 @@ void FrameScript_PackVariable(lua_State* L, const char* name, int32_t depth, cha
     }
 }
 
+// CoA: AscGlobalsJ.cpp:ScriptErrorHandler (orig hook 0x819730) -- the DLL's replacement counts the lua_getstack
+// depth while the error handler runs (entering 1) and resets it after (entering 0).
+void (*g_frameScriptErrorHook)(lua_State* L, int32_t entering);
+
 // VERIFY: 472836ad auto
 // OFFSET: 0x00819730
 static int32_t FrameScript_HandleError(lua_State* L) {
@@ -1131,10 +1135,19 @@ static int32_t FrameScript_HandleError(lua_State* L) {
     }
 
     if (s_errorHandlerFunc != -1) {
+        if (g_frameScriptErrorHook) {
+            g_frameScriptErrorHook(L, 1);
+        }
+
         s_inErrorHandler = 1;
         lua_rawgeti(L, LUA_REGISTRYINDEX, s_errorHandlerFunc);
         lua_insert(L, -2);
         lua_call(L, 1, 1);
+
+        if (g_frameScriptErrorHook) {
+            g_frameScriptErrorHook(L, 0);
+        }
+
         s_inErrorHandler = 0;
     }
 

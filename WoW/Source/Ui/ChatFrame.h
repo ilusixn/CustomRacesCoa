@@ -463,4 +463,8 @@ extern uint32_t s_joinedZoneChannels;
 
 extern TSGrowableArray<RaidInstanceInfo> s_savedInstances;
 
+// CoA: AscAccount.cpp:OnGMStatus (runtime patches 0x50D2B7 / 0x50D641) -- set for a GM: SendChatMessage skips the
+// language-skill and dead-or-ghost checks.
+extern int32_t g_chatGmChecksSkipped;
+
 #endif

@@ -628,7 +628,8 @@ static int32_t Script_GetArenaCurrency(lua_State* L) {
 
 // VERIFY: 57ab2b88 manual
 // OFFSET: 0x0060A510
-static int32_t Script_FillLocalizedClassList(lua_State* L) {
+// CoA: AscBindings.cpp (glue registration of 0x60A510) -- not static: the DLL also registers it on the glue state.
+int32_t Script_FillLocalizedClassList(lua_State* L) {
     if (lua_type(L, 1) != LUA_TTABLE) {
         luaL_error(L, "Usage: FillLocalizedClassList(classTable[, isFemale])");
     }

@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/CVarHooks.h"
 #include "WoW/Source/DB/Rec/FileDataRec.h"
 #include "WoW/Source/DB/Rec/MovieFileDataRec.h"
 #include "WoW/Source/DB/Rec/MovieRec.h"
@@ -7738,6 +7739,8 @@ void SavePlacedFrames(HOSFILE localFile, HOSFILE file, void* param) {
 // OFFSET: 0x00512890
 void SaveGameCVarsCallback(HOSFILE localFile, HOSFILE file, void* param) {
     if (file == OS_INVALID_FILE) {
+        // CoA: AscCVarHooks.cpp:Hook512890 (orig hook 0x512890) -- the DLL logs the refusal.
+        CoA::CVarHooks::InvalidSaveFile();
         return;
     }
 
@@ -7748,6 +7751,9 @@ void SaveGameCVarsCallback(HOSFILE localFile, HOSFILE file, void* param) {
     }
 
     CVar::SaveAll(file, category, 0);
+
+    // CoA: AscCVarHooks.cpp:Hook512890 (orig hook 0x512890) -- lastCharacterIndex after a category-0x10 save.
+    CoA::CVarHooks::AfterSaveGameCVars(file, category);
 }
 
 // VERIFY: 97aff38f auto

@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/CVarHooks.h"
 #include <cstring>
 #include "ClientServices.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -578,7 +579,8 @@ const char* ClientServices::GetErrorToken(int32_t errorCode) {
 // VERIFY: c031479f auto
 // OFFSET: 0x006B0F90
 int32_t ClientServices::CharacterValidateName(const char* name) {
-    return static_cast<int32_t>(ValidateCharacterNameConst(s_locale, name, true, true, true, true, 0)) + CHAR_NAME_SUCCESS;
+    // CoA: AscAttachFixes.cpp (Extensions.dll patch 0x6B0F90) -- replaced: every name passes; the server decides.
+    return CHAR_NAME_SUCCESS;
 }
 
 // VERIFY: ca1062a6 auto
@@ -1063,6 +1065,16 @@ bool ClientServices::GetCdKeys(Grunt::CdKey& cdKey) {
 // VERIFY: 2d0bcb86 manual
 // OFFSET: 0x006B2F60
 void ClientServices::RealmEnumCallback(uint32_t result) {
+    // CoA: AscSmallHooks.cpp:Hook6B2F60 (orig hook 0x6B2F60) -- the realmList test before the body, the -realm select
+    // after it (on every exit).
+    bool realmListMissing = CoA::CVarHooks::RealmListMissing();
+
+    struct AfterRealmEnum {
+        ~AfterRealmEnum() {
+            CoA::CVarHooks::AfterRealmEnumCallback();
+        }
+    } afterRealmEnum;
+
     if (!ClientServices::s_currentConnection) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
@@ -1087,7 +1099,9 @@ void ClientServices::RealmEnumCallback(uint32_t result) {
         return;
     }
 
-    if (ClientServices::s_loginObj->GetLoginServerType() == 1) {
+    // CoA: AscSmallHooks.cpp:Hook6B2F60 (orig hook 0x6B2F60) -- the jne at 0x6B2FD4 is NOPed while realmList has no
+    // value, so that case always takes the join branch.
+    if (ClientServices::s_loginObj->GetLoginServerType() == 1 || realmListMissing) {
         if (ClientServices::m_selectRealmInfoValid || ClientServices::SetSelectedRealmInfo(0)) {
             connection->m_realmConnectPending = 1;
             ClientServices::s_loginObj->JoinRealm(ClientServices::m_selectRealmInfo.m_regionId, ClientServices::m_selectRealmInfo.m_battlegroupId, ClientServices::m_selectRealmInfo.m_realmId);

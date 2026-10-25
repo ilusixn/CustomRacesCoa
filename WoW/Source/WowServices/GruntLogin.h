@@ -92,4 +92,7 @@ class GruntLogin : public Login {
     void EncodePinDigits(uint32_t seed);
 };
 
+// CoA: AscRealmData.cpp:OpenArchives (Extensions.dll patch 0x8CA5F0) -- the logon challenge build.
+extern uint16_t g_coaLogonBuild;
+
 #endif

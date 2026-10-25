@@ -1,4 +1,6 @@
 #include <cstdint>
+#include "CoA/Source/Modules/RealmDataClient.h"
+#include "CoA/Source/Runtime/Lifecycle.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -207,7 +209,9 @@ static const uint8_t s_signatureModulus[256] = {
     0xE8, 0xFD, 0xA6, 0x33, 0x10, 0xD1, 0x12, 0x8F, 0x05, 0x80, 0xDA, 0x42, 0x57, 0x0C, 0xEB, 0xC0,
 };
 // STATIC: 0x00AB6158
-static const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
+// CoA: AscRealmData.cpp:SetPath (Extensions.dll patch 0xAB6160) -- not static: the realm data path replaces [2]
+// (0xAB6160; read only with an install location string).
+const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 
 // STATIC: 0x00AB6350
 WowClientDB<Startup_StringsRec> g_startup_StringsDB;
@@ -267,6 +271,9 @@ static char s_installLocation[1024];
 
 // STATIC: 0x00C5DE90
 bool g_hasIsoLocale[NUM_DB_LOCALES];
+
+// CoA: AscMisc.cpp:ApplyConfigFile (Extensions.dll patch 0x406851) -- the file CVar::Initialize reads.
+const char* g_configFileName = "Config.wtf";
 
 // STATIC: 0x00C5DE9C
 int32_t s_locale;
@@ -344,6 +351,17 @@ static int32_t ListArchiveFilter(const char* fileName, void* param) {
     }
 
     return params->m_callback(fileName, params->m_param);
+}
+
+// CoA: AscRealmData.cpp:ScanAddOnsDetour (orig hook 0x5F8F50) -- one archive through ListArchiveFilter, as the DLL
+// does for each realm archive.
+void ListArchiveFiles(SArchive* archive, const char* prefix, int32_t (*callback)(const char* fileName, void* param), void* param) {
+    ARCHIVELISTPARAMS params;
+    params.m_prefix = prefix;
+    params.m_prefixLength = SStrLen(prefix);
+    params.m_callback = callback;
+    params.m_param = param;
+    SFile::List(archive, ListArchiveFilter, &params);
 }
 
 // VERIFY: 4bb4cdc6 auto
@@ -774,6 +792,9 @@ static int32_t ClientIdle(const void* data, void* param) {
     ClientGameTimeTickHandler(data, param);
     Player_C_ZoneUpdateHandler(data, param);
 
+    // CoA: AscRuntime.cpp (orig hook 0x403340) -- the DLL's after-idle list.
+    CoA::Lifecycle::RunAfterIdle();
+
     return 1;
 }
 
@@ -1035,7 +1056,8 @@ static void InitializeClient() {
     }
 
     DBCache_RegisterHandlers();
-    DBCache_Initialize();
+    // CoA: AscRealmData.cpp:Init (Extensions.dll patch 0x4041BD) -- the call is NOPed; the glue's LoadWDBCache opens
+    // the cache once the realm (and so the cache directory) is known.
     CWorldParam::Initialize();
     CWorld::Initialize();
     ShadowInit();
@@ -1543,6 +1565,9 @@ static void OpenArchives() {
     ProfileClose(profile);
     ClientServices::InitLoginServerCVars(1, locale);
     LoadMopaqFileSigningData(locale);
+
+    // CoA: AscRealmData.cpp:OpenBaseDetour (orig hook 0x405DD0) -- then the realm's archives.
+    CoA::RealmDataClient::AfterOpenArchives();
 }
 // VERIFY: 18427c91 manual
 // OFFSET: 0x004064A0
@@ -1698,7 +1723,8 @@ bool InitializeGlobal() {
 
     ClientServices::LoadCDKey();
     ConsoleInitializeClientCommand();
-    CVar::Initialize("Config.wtf");
+    // CoA: AscMisc.cpp:ApplyConfigFile (Extensions.dll patch 0x406851) -- -config names another file.
+    CVar::Initialize(g_configFileName);
     CVar::ArchiveCodeRegisteredOnly();
 
     {

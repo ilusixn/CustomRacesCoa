@@ -1,5 +1,15 @@
 #include "CoA/Source/CoA.h"
 #include "CoA/Source/Runtime/Log.h"
+#include "CoA/Source/Modules/Account.h"
+#include "CoA/Source/Modules/GlobalsJ.h"
+#include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Runtime/ClientState.h"
+#include "CoA/Source/Runtime/Dbc.h"
+#include "CoA/Source/Runtime/DbcPatch.h"
+#include "CoA/Source/Runtime/Packet.h"
+#include "CoA/Source/Runtime/Timer.h"
+#include "CoA/Source/Runtime/Lifecycle.h"
+#include "Engine/Source/Frame/CSimpleTop.h"
 #include "CoA/Source/Runtime/Events.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "CoA/Source/Runtime/Logger.h"
@@ -10,8 +20,47 @@ extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 
 // The ported modules, in AscBindings::InitModules order. Filled as modules are ported.
 static const CoA::Module s_modules[] = {
-    { nullptr, nullptr },
+    { "DbcPatch", CoA::DbcPatch::Init },
+    { "RealmInfo", CoA::RealmInfo::Init },
+    { "Account", CoA::Account::Init },
+    { "Config", CoA::Config::Init },
+    { "GameEvents", CoA::GameEvents::Init },
+    { "Misc", CoA::Misc::Init },
+    { "GlobalsB", CoA::GlobalsB::Init },
+    { "GlobalsD", CoA::GlobalsD::Init },
+    { "GlobalsJ", CoA::GlobalsJ::Init },
+    { "Json", CoA::Json::Init },
+    { "LoggerApi", CoA::LoggerApi::Init },
+    { "SmallApis", CoA::SmallApis::Init },
+    { "GlueCVars", CoA::GlueCVars::Init },
+    { "Profiler", CoA::Profiler::Init },
+    { "GlobalsH", CoA::GlobalsH::Init },
+    { "GlobalsC", CoA::GlobalsC::Init },
+    { "PatchData", CoA::PatchData::Init },
+    { "Specs", CoA::Specs::Init },
+    { "LuaDbc", CoA::LuaDbc::Init },
+    { "CharacterList", CoA::CharacterList::Init },
+    { "RealmMerge", CoA::RealmMerge::Init },
+    { "EventPackets", CoA::EventPackets::Init },
+    { "BridgeStore", CoA::BridgeStore::Init },
+    { "VanityCollection", CoA::VanityCollection::Init },
+    { "MythicPlus", CoA::MythicPlus::Init },
+    { "CharacterCreate", CoA::CharacterCreate::Init },
+    { "MiscClient", CoA::MiscClient::Init },
+    { "GlobalsBClient", CoA::GlobalsBClient::Init },
+    { "GlobalsGClient", CoA::GlobalsGClient::Init },
+    { "BindingsClient", CoA::BindingsClient::Init },
+    { "LibraryClient", CoA::LibraryClient::Init },
+    { "SpellTextClient", CoA::SpellTextClient::Init },
+    { "ClassRaceClient", CoA::ClassRaceClient::Init },
+    { "GlobalsJClient", CoA::GlobalsJClient::Init },
+    { "CVarHooksClient", CoA::CVarHooksClient::Init },
+    { "RealmDataClient", CoA::RealmDataClient::Init },
+    { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
 };
+
+// Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
+void CoA_InstallCrashTrace();
 
 void CoA::Attach() {
     // DllMain (FUN_10a79300): Storm's log title "Ascension" (0x771890); the client sets its own later.
@@ -19,10 +68,23 @@ void CoA::Attach() {
     CoA::Log::Init();
     CoA::Logger::Init();
     CoA::Log::Printf("CoA attach");
+    if (CoA::Log::Enabled()) {
+        CoA_InstallCrashTrace();
+    }
 
     // AscRuntime::InstallHooks: the event table extension (orig hook 0x81B5F0) and the DLL's own event names.
     g_createEventsHook = CoA::Events::ExtendList;
     CoA::Events::RegisterNames();
+    CoA::Events::InstallClient();
+    // AscDbc: custom tables read through the client's SFile.
+    CoA::Dbc::InstallClient();
+    CoA::ClientState::InstallClient();
+    CoA::Account::InstallClient();
+    CoA::GlobalsJ::InstallClient();
+    CoA::Packet::InstallClient();
+    CoA::Timer::InstallClient();
+    // The after-paint lifecycle list (orig hook 0x495810).
+    g_paintScreenHook = CoA::Lifecycle::RunAfterPaint;
 
     for (const CoA::Module& module : s_modules) {
         if (!module.init) {

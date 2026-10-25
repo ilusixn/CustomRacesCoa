@@ -1,4 +1,5 @@
 #include "AddOns.h"
+#include "CoA/Source/Modules/RealmDataClient.h"
 #include <cstdlib>
 #include <cstring>
 #include <malloc.h>
@@ -1406,6 +1407,11 @@ static int32_t EnumAddOnsDisk(OS_FILE_DATA& data, void* param) {
 void InitializeAddOns() {
     ListInterfaceArchive("Interface\\AddOns\\", EnumAddOnsArchive, nullptr);
     OsFileList("Interface\\AddOns\\", "*", EnumAddOnsDisk, nullptr, 0);
+
+    // CoA: AscRealmData.cpp:ScanAddOnsDetour (orig hook 0x5F8F50) -- the realm archives' addons and -addonspath. The
+    // original runs it after the whole function; the load-with links below then include them, which the original's
+    // order leaves out.
+    CoA::RealmDataClient::AfterInitializeAddOns(EnumAddOnsArchive, EnumAddOnsDisk);
 
     for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
         for (uint32_t i = 0; i < addon->m_loadWith.Count(); i++) {

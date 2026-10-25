@@ -923,6 +923,12 @@ static int str_format (lua_State *L) {
 }
 
 
+/* CoA: AscLogger.cpp:Formatted -- the DLL calls string.format's C function (0x853C50) directly. */
+int lua_strformat (lua_State *L) {
+  return str_format(L);
+}
+
+
 static const luaL_Reg strlib[] = {
   {"byte", str_byte},
   {"char", str_char},
