@@ -38,15 +38,18 @@ const char* CoA::Events::Name(int32_t id) {
     return event ? event->m_key.m_str : nullptr;
 }
 
-void CoA::Events::Signal(const char* name, const char* format, ...) {
-    int32_t id = CoA::Events::Id(name);
+namespace {
+    void ClientSignal(const char* name, const char* format, va_list args) {
+        int32_t id = CoA::Events::Id(name);
 
-    if (id < 0) {
-        return;
+        if (id < 0) {
+            return;
+        }
+
+        vFrameScript_SignalEvent(static_cast<uint32_t>(id), format, args);
     }
+}
 
-    va_list args;
-    va_start(args, format);
-    vFrameScript_SignalEvent(static_cast<uint32_t>(id), format, args);
-    va_end(args);
+void CoA::Events::InstallClient() {
+    CoA::Events::SetSignalSink(ClientSignal);
 }

@@ -300,4 +300,7 @@ class CMovement_C : public CMovementShared {
     C2Vector CalcFallObstaclePush(const C3Vector& direction, float distance, float maxDistance, uint32_t facet, const C4Plane* planes, uint32_t count);
 };
 
+// CoA: AscAccount.cpp:OnGMStatus (runtime patch 0xA32904).
+extern float g_maxShortRangeTeleportSquared;
+
 #endif

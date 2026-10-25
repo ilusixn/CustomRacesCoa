@@ -38,6 +38,9 @@
 // STATIC: 0x00AC7A48
 static const char* s_channelCategories[3] = { "CHANNEL_CATEGORY_GROUP", "CHANNEL_CATEGORY_WORLD", "CHANNEL_CATEGORY_CUSTOM" };
 
+// CoA: AscAccount.cpp:OnGMStatus (runtime patches 0x50D2B7 / 0x50D641).
+int32_t g_chatGmChecksSkipped = 0;
+
 // VERIFY: 3ea62573 manual
 // OFFSET: 0x0050D170
 static int32_t Script_SendChatMessage(lua_State* L) {
@@ -82,7 +85,8 @@ static int32_t Script_SendChatMessage(lua_State* L) {
 
         uint32_t skill;
 
-        if (!player->GetLanguageSkill(language, skill)) {
+        // CoA: AscAccount.cpp:OnGMStatus (runtime patch 0x50D2B7) -- jne becomes jmp for a GM.
+        if (!player->GetLanguageSkill(language, skill) && !g_chatGmChecksSkipped) {
             CGGameUI::DisplayError(ERR_CANT_SPEAK_LANGAGE);
             return 0;
         }
@@ -182,7 +186,8 @@ static int32_t Script_SendChatMessage(lua_State* L) {
         }
     }
 
-    if (player->IsDeadOrGhost() && type != CHAT_MSG_WHISPER && type != CHAT_MSG_PARTY && type != CHAT_MSG_PARTY_LEADER && type != CHAT_MSG_RAID && type != CHAT_MSG_RAID_LEADER && type != CHAT_MSG_RAID_WARNING && type != CHAT_MSG_GUILD && type != CHAT_MSG_OFFICER && type != CHAT_MSG_CHANNEL && type != CHAT_MSG_DND && type != CHAT_MSG_BATTLEGROUND && type != CHAT_MSG_BATTLEGROUND_LEADER) {
+    // CoA: AscAccount.cpp:OnGMStatus (runtime patch 0x50D641) -- je becomes jmp for a GM.
+    if (!g_chatGmChecksSkipped && player->IsDeadOrGhost() && type != CHAT_MSG_WHISPER && type != CHAT_MSG_PARTY && type != CHAT_MSG_PARTY_LEADER && type != CHAT_MSG_RAID && type != CHAT_MSG_RAID_LEADER && type != CHAT_MSG_RAID_WARNING && type != CHAT_MSG_GUILD && type != CHAT_MSG_OFFICER && type != CHAT_MSG_CHANNEL && type != CHAT_MSG_DND && type != CHAT_MSG_BATTLEGROUND && type != CHAT_MSG_BATTLEGROUND_LEADER) {
         CGGameUI::DisplayError(ERR_CHAT_WHILE_DEAD);
         return 0;
     }
