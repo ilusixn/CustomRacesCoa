@@ -67,6 +67,7 @@ static const CoA::Module s_modules[] = {
     { "GlueCVarsClient", CoA::GlueCVarsClient::Init },
     { "GlobalsCClient", CoA::GlobalsCClient::Init },
     { "GlobalsDClient", CoA::GlobalsDClient::Init },
+    { "GlobalsHClient", CoA::GlobalsHClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
