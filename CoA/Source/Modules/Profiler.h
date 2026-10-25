@@ -23,6 +23,16 @@ namespace CoA::Profiler {
     // The opcode being dispatched (DAT_10BE3728).
     int32_t CurrentOpcode();
 
+    // The packet watchdog (installer FUN_102c3540): armed on entering the world, disarmed on leaving it and before
+    // CGGameUI::Shutdown. Received stamps every packet (PacketReceivedAt with GetTickCount64). A thread checks every
+    // second (WatchdogCheck, FUN_102c4470): armed, not yet tripped, with a stamp, and 30 s or more since it -- the
+    // Error channel line, tripped, disarmed, and a disconnect flagged that the next frame after ClientIdle takes.
+    void WatchdogArm(uint64_t now);
+    void WatchdogDisarm();
+    void PacketReceivedAt(uint64_t now);
+    bool WatchdogCheck(uint64_t now);
+    bool TakeWatchdogDisconnect();
+
     // Tests: the received record for an opcode.
     uint32_t Count(int32_t opcode);
     uint32_t Bytes(int32_t opcode);
