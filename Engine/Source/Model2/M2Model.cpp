@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <vector>
 #include <cfloat>
 #include <cmath>
 #include <cstdlib>
@@ -57,6 +58,9 @@ TSGrowableArray<M2ModelCallback> CM2Model::s_sequenceCallbacks;
 CM2ModelCall::CM2ModelCall() {
     this->m_type = MODEL_COMMAND_NOT_QUEUED;
 }
+
+// CoA: AscAnimationCount.cpp -- AnimationData.dbc's row count (stock 506); set by CoA after ClientDBInitialize.
+uint32_t g_animationCount = 506;
 
 // VERIFY: 35d86a94 auto
 // OFFSET: 0x00823D50
@@ -1092,7 +1096,8 @@ int32_t CM2Model::HasSequence(uint32_t id) {
 // VERIFY: cf5b210a auto
 // OFFSET: 0x00825F40
 uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
-    if (id >= ANIM_COUNT) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x825F4F, 0x825FB1, 0x825FD5) -- 506 is the loaded AnimationData row count.
+    if (id >= g_animationCount) {
         return 0xFFFFFFFF;
     }
 
@@ -1100,8 +1105,7 @@ uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
         this->WaitForLoad(nullptr);
     }
 
-    int32_t visited[ANIM_COUNT];
-    memset(visited, 0, sizeof(visited));
+    std::vector<int32_t> visited(g_animationCount > 506 ? g_animationCount : 506, 0);
 
     M2Data* data = this->m_shared->m_data;
 
@@ -1109,7 +1113,7 @@ uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
         return id;
     }
 
-    while (id < ANIM_COUNT) {
+    while (id < g_animationCount) {
         AnimationDataRec* rec = g_animationDataDB.GetRecord(id);
 
         if (visited[id] || !rec) {
@@ -1136,7 +1140,8 @@ uint32_t CM2Model::ResolveSequenceFallback(uint32_t id) {
 // VERIFY: af94bf41 manual
 // OFFSET: 0x00826050
 int32_t CM2Model::IsSequenceLoaded(uint32_t id) {
-    if (id >= 506) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x82605A) -- 506 is the loaded AnimationData row count.
+    if (id >= g_animationCount) {
         return 0;
     }
 
@@ -1255,6 +1260,7 @@ uint32_t CM2Model::GetSequenceVariationCount(uint32_t id) {
 // VERIFY: 0ce274db manual
 // OFFSET: 0x00826350
 M2SequenceFallback* CM2Model::SequenceFallbackById(M2SequenceFallback* result, uint32_t id) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x826404) -- 506 is the loaded AnimationData row count.
     M2Data* data = this->m_shared->m_data;
     uint32_t defaultId;
 
@@ -1266,8 +1272,7 @@ M2SequenceFallback* CM2Model::SequenceFallbackById(M2SequenceFallback* result, u
         defaultId = data->m_sequences[0].m_id;
     }
 
-    int32_t visited[ANIM_COUNT];
-    memset(visited, 0, sizeof(visited));
+    std::vector<int32_t> visited(g_animationCount > 506 ? g_animationCount : 506, 0);
 
     int32_t direction = 1;
     int32_t reversals = 0;
@@ -1278,7 +1283,7 @@ M2SequenceFallback* CM2Model::SequenceFallbackById(M2SequenceFallback* result, u
         do {
             AnimationDataRec* rec = g_animationDataDB.GetRecord(id);
 
-            if (id >= ANIM_COUNT || visited[id] || !rec || id == (fallback = rec->m_fallback)) {
+            if (id >= g_animationCount || visited[id] || !rec || id == (fallback = rec->m_fallback)) {
                 result->m_id = defaultId;
                 result->m_mode = 0;
                 return result;

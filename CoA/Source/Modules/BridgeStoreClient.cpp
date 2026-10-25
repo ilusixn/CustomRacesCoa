@@ -148,6 +148,8 @@ namespace {
 // The original loads all ten HD files before applying any; each table here applies right after its own load (the
 // tables are independent).
 void CoA::BridgeStoreClient::AfterClientDBInitialize() {
+    // The set's order: the animation count (0x10A3AB70), then the bridge tables.
+    ApplyAnimationCount();
     CoA::BridgeStore::LoadTables();
     ApplyHdTables();
     CoA::BridgeStore::BuildIndexes();

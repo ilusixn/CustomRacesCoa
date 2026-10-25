@@ -1,4 +1,7 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/AnimationCount.h"
+#include <algorithm>
+#include <vector>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -1069,15 +1072,16 @@ int32_t CGUnit_C::DisplayInfoNeedsUpdate() {
 // VERIFY: 503fd361 manual
 // OFFSET: 0x0073E410
 void CGUnit_C::UpdateDisplayInfo(int32_t force) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73E42E, 0x73E72C, 0x73E749) -- 506 is the loaded AnimationData row count.
     if (!force && !this->DisplayInfoNeedsUpdate()) {
         return;
     }
 
-    int32_t deathAnim = ANIM_COUNT;
+    int32_t deathAnim = CoA::AnimationCount::Rows();
     this->m_wheelMask = 0;
 
     if (this->IsDeadOrAttachmentDying()) {
-        int32_t behavior = ANIM_COUNT;
+        int32_t behavior = CoA::AnimationCount::Rows();
         AnimationDataRec* animRec = g_animationDataDB.GetRecord(this->GetCurrentTorsoAnimId());
 
         if (animRec) {
@@ -1172,12 +1176,12 @@ void CGUnit_C::UpdateDisplayInfo(int32_t force) {
         this->m_clientFlags &= ~0x2000000;
     }
 
-    if (deathAnim != ANIM_COUNT) {
+    if (deathAnim != CoA::AnimationCount::Rows()) {
         this->PlayBaseAnimation(deathAnim, 0);
     } else {
         uint32_t currentAnim = this->GetCurrentTorsoAnimId();
 
-        if (!currentAnim && torsoAnim != ANIM_COUNT && torsoAnim != 0xFFFFFFFF && this->m_movementData.IsFalling()) {
+        if (!currentAnim && torsoAnim != CoA::AnimationCount::Rows() && torsoAnim != 0xFFFFFFFF && this->m_movementData.IsFalling()) {
             this->PlayBaseAnimation(torsoAnim, 0);
         } else {
             bool dying = false;
@@ -1639,8 +1643,9 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
 // VERIFY: 8308766d manual
 // OFFSET: 0x0071D940
 int32_t IsEmoteAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D967) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 60:
@@ -1683,8 +1688,9 @@ int32_t IsEmoteAnim(uint32_t animId) {
 // VERIFY: 8dffe07d manual
 // OFFSET: 0x0071D380
 int32_t IsSpellCastAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D3A7) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 2:
@@ -2377,8 +2383,9 @@ void CGUnit_C::SendSplineDone(uint32_t time, uint32_t splineId) {
 // VERIFY: 0a448404 manual
 // OFFSET: 0x0071D590
 int32_t IsMeleeAttackAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D5B7) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 10:
@@ -2662,6 +2669,7 @@ int32_t CGUnit_C::ChooseShuffleAnim(uint32_t mask, uint32_t* anim) {
 // VERIFY: acc35172 manual
 // OFFSET: 0x0071E1F0
 int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E25C) -- 506 is the loaded AnimationData row count.
     if (!(this->m_animationState & 0x40) || this->m_mountModel) {
         return (mask & ~0x1FF) == 0;
     }
@@ -2691,7 +2699,7 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
         case UNIT_SLEEPING:
             standAnim = (this->m_animStandState != UNIT_STANDING) + 99;
 
-            if (standAnim == ANIM_COUNT) {
+            if (standAnim == CoA::AnimationCount::Rows()) {
                 return 1;
             }
 
@@ -2720,7 +2728,7 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
         case UNIT_KNEEL:
             standAnim = (this->m_animStandState != UNIT_STANDING) + 114;
 
-            if (standAnim == ANIM_COUNT) {
+            if (standAnim == CoA::AnimationCount::Rows()) {
                 return 1;
             }
 
@@ -2739,7 +2747,8 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
 // VERIFY: c45e9335 auto
 // OFFSET: 0x00724500
 uint32_t CGUnit_C::ChooseAnimation(uint32_t mask, uint32_t* animFlags, int32_t* usedDefault) {
-    uint32_t anim = ANIM_COUNT;
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x724518) -- 506 is the loaded AnimationData row count.
+    uint32_t anim = CoA::AnimationCount::Rows();
 
     if (this->ChooseDeathAnim(mask, &anim, animFlags) || this->ChooseSpecialIdleAnim(mask, &anim) || (this->m_vehiclePassenger && this->m_vehiclePassenger->PickHighPriorityAnimation(mask, &anim))) {
         return anim;
@@ -2772,13 +2781,14 @@ uint32_t CGUnit_C::ChooseAnimation(uint32_t mask, uint32_t* animFlags, int32_t* 
 // VERIFY: bb382509 manual
 // OFFSET: 0x0073AC30
 void CGUnit_C::UpdateBaseAnimation(uint32_t animFlags, int32_t mask) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73AC63) -- 506 is the loaded AnimationData row count.
     if (this->m_worldModel && !this->m_worldModel->IsLoaded(0, 0)) {
         return;
     }
 
     uint32_t anim = this->ChooseAnimation(mask, &animFlags, nullptr);
 
-    if (anim == ANIM_COUNT) {
+    if (anim == CoA::AnimationCount::Rows()) {
         if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) {
             this->PlayBaseAnimation(ANIM_STAND, animFlags);
         }
@@ -3722,8 +3732,9 @@ int32_t IsSpellPrecastAnim(uint32_t animId) {
 // VERIFY: f7572fcd manual
 // OFFSET: 0x0071D800
 int32_t IsUpperBodyAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D827) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 2:
@@ -3925,8 +3936,9 @@ int32_t IsFishingAnim(uint32_t animId) {
 // VERIFY: 5b0ed408 manual
 // OFFSET: 0x0071D2E0
 int32_t IsRangedWeaponAnim(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D307) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = rec ? rec->m_behaviorID : 506;
+    int32_t behavior = rec ? rec->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 46:
@@ -3987,6 +3999,7 @@ int32_t AnimationData::FindIdByBehaviorAndTier(uint32_t behavior, int32_t tier, 
 // VERIFY: fea936b3 manual
 // OFFSET: 0x007176F0
 uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7177F9) -- 506 is the loaded AnimationData row count.
     int32_t tier = this->m_animTier;
 
     if (!(this->m_modelFlags & 0x40000) || (this->m_modelFlags & 0x20000) || !this->GetObjectModel() || !this->GetObjectModel()->IsLoaded(0, 0)) {
@@ -4002,20 +4015,19 @@ uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
     }
 
     uint32_t result = static_cast<uint16_t>(animId);
-    int32_t visited[ANIM_COUNT];
-    memset(visited, 0, sizeof(visited));
+    std::vector<int32_t> visited(CoA::AnimationCount::Rows() > 506 ? CoA::AnimationCount::Rows() : 506, 0);
     uint32_t current = animId;
 
     while (!AnimationData::FindIdByBehaviorAndTier(current, tier, &result) || !model->IsSequenceLoaded(result)) {
         AnimationDataRec* rec = g_animationDataDB.GetRecord(current);
 
-        if (current >= ANIM_COUNT || visited[current] || !rec || static_cast<int32_t>(current) == rec->m_fallback) {
+        if (current >= CoA::AnimationCount::Rows() || visited[current] || !rec || static_cast<int32_t>(current) == rec->m_fallback) {
             if (this->FindDefaultAnimForTier(tier, &result)) {
                 return result;
             }
 
             tier = s_animTierFallback[tier];
-            memset(visited, 0, sizeof(visited));
+            std::fill(visited.begin(), visited.end(), 0);
             current = animId;
             continue;
         }
@@ -4225,11 +4237,12 @@ void CGUnit_C::ProcessAnimationEvent(M2BoneSequenceInfo* slot, uint32_t currentA
 // VERIFY: 745c0966 manual
 // OFFSET: 0x00723E30
 int32_t CGUnit_C::ShouldSplitTorsoAnimation(uint32_t animId, uint32_t currentAnim) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x723E65) -- 506 is the loaded AnimationData row count.
     if (currentAnim == 0xFFFFFFFF) {
         return 0;
     }
 
-    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && this->m_vehiclePassenger->GetLowerAnim(this->m_vehiclePassenger->m_seatRec) != ANIM_COUNT) {
+    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && this->m_vehiclePassenger->GetLowerAnim(this->m_vehiclePassenger->m_seatRec) != CoA::AnimationCount::Rows()) {
         return 1;
     }
 
@@ -4374,6 +4387,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
 // VERIFY: 4d39ab41 manual
 // OFFSET: 0x007385C0
 void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x738E7F) -- 506 is the loaded AnimationData row count.
     if (!(this->m_modelFlags & 0x40000) || (this->m_modelFlags & 0x20000) || !this->GetObjectModel() || !this->m_worldModel) {
         return;
     }
@@ -4643,7 +4657,7 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         const VehicleSeatRec* seat = this->GetPassengerSeatRec();
         int32_t lowerAnim = this->m_vehiclePassenger->GetLowerAnim(seat);
 
-        if (lowerAnim != ANIM_COUNT) {
+        if (lowerAnim != CoA::AnimationCount::Rows()) {
             bool moveBaseToTorso = true;
 
             if (updateTorso) {
@@ -7797,13 +7811,14 @@ int32_t IsDeadOrDyingAnim(uint32_t animId) {
 // VERIFY: e05af72f auto
 // OFFSET: 0x007176B0
 int32_t GetAnimBehaviorId(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7176DD) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* rec = g_animationDataDB.GetRecord(animId);
 
     if (rec) {
         return rec->m_behaviorID;
     }
 
-    return 506;
+    return CoA::AnimationCount::Rows();
 }
 
 // VERIFY: 211bd0bd auto
@@ -8269,6 +8284,7 @@ void CGUnit_C::CreateFishingLineEffect() {
 // VERIFY: ef43f122 manual
 // OFFSET: 0x00724200
 int32_t CGUnit_C::ChooseFallAnim(uint32_t* anim) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x724255) -- 506 is the loaded AnimationData row count.
     int32_t falling = this->m_movementData.IsFalling();
 
     if (!falling) {
@@ -8276,7 +8292,7 @@ int32_t CGUnit_C::ChooseFallAnim(uint32_t* anim) const {
     }
 
     uint32_t current = (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) ? this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF) : 0xFFFFFFFF;
-    *anim = IsAirborneAnim(current) ? ANIM_COUNT : ANIM_FALL;
+    *anim = IsAirborneAnim(current) ? CoA::AnimationCount::Rows() : ANIM_FALL;
     return 1;
 }
 
@@ -8407,9 +8423,10 @@ float CGUnit_C::GetSmoothFacing() const {
 // VERIFY: 7a726f02 manual
 // OFFSET: 0x0071E340
 void CGUnit_C::ChooseDefaultAnim(uint32_t& anim, int32_t force) const {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E360) -- 506 is the loaded AnimationData row count.
     CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
 
-    if (passenger && passenger->m_state == 3 && passenger->GetLowerAnim(passenger->m_seatRec) != 506) {
+    if (passenger && passenger->m_state == 3 && passenger->GetLowerAnim(passenger->m_seatRec) != CoA::AnimationCount::Rows()) {
         return;
     }
 
@@ -8744,6 +8761,7 @@ void CGUnit_C::ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, void* para
 // VERIFY: 97aaae3a manual
 // OFFSET: 0x0071E5B0
 void CGUnit_C::UpdateObjectEffectAnimationStates() {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71E603, 0x71E63A, 0x71E653) -- 506 is the loaded AnimationData row count.
     if (!this->m_effectManager) {
         return;
     }
@@ -8756,7 +8774,7 @@ void CGUnit_C::UpdateObjectEffectAnimationStates() {
             return;
         }
 
-        if (sequences[0].m_sequenceId < 506) {
+        if (sequences[0].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[0].m_sequenceId = this->m_mountModel->ResolveSequenceFallback(sequences[0].m_sequenceId);
         }
     }
@@ -8766,11 +8784,11 @@ void CGUnit_C::UpdateObjectEffectAnimationStates() {
             return;
         }
 
-        if (sequences[1].m_sequenceId < 506) {
+        if (sequences[1].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[1].m_sequenceId = this->m_worldModel->ResolveSequenceFallback(sequences[1].m_sequenceId);
         }
 
-        if (sequences[2].m_sequenceId < 506) {
+        if (sequences[2].m_sequenceId < CoA::AnimationCount::Rows()) {
             sequences[2].m_sequenceId = this->m_worldModel->ResolveSequenceFallback(sequences[2].m_sequenceId);
         }
     }
@@ -14495,6 +14513,7 @@ void CGUnit_C::AnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequen
 // VERIFY: a0318ed7 manual
 // OFFSET: 0x0073BBD0
 void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73BC36) -- 506 is the loaded AnimationData row count.
     if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) {
         this->m_vehiclePassenger->OnAnimEnd(boneId);
     }
@@ -14504,7 +14523,7 @@ void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenc
     }
 
     AnimationDataRec* anim = g_animationDataDB.GetRecord(sequenceId);
-    int32_t behavior = anim ? anim->m_behaviorID : 506;
+    int32_t behavior = anim ? anim->m_behaviorID : CoA::AnimationCount::Rows();
 
     if (behavior == 1 || behavior == 131 || behavior == 468) {
         if (!this->m_lootableTime) {
@@ -14618,6 +14637,7 @@ void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenc
 // VERIFY: 9cc99e71 manual
 // OFFSET: 0x0073B510
 void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73B548, 0x73B58C, 0x73B5DB, 0x73BA62) -- 506 is the loaded AnimationData row count.
     CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
 
     if (passenger && passenger->m_state == 3 && this->m_unit->m_unitFieldHealth > 0) {
@@ -14626,7 +14646,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         if (seat) {
             bool ride;
 
-            if (passenger->GetLowerAnim(seat) != 506) {
+            if (passenger->GetLowerAnim(seat) != CoA::AnimationCount::Rows()) {
                 ride = (seat->m_flags & 0x2) && (static_cast<int32_t>(sequenceId) == seat->m_rideAnimStart || static_cast<int32_t>(sequenceId) == seat->m_rideAnimLoop);
             } else {
                 ride = (seat->m_flags & 0x4) && (static_cast<int32_t>(sequenceId) == seat->m_rideUpperAnimStart || static_cast<int32_t>(sequenceId) == seat->m_rideUpperAnimLoop);
@@ -14639,9 +14659,9 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         }
     }
 
-    uint32_t next = 506;
+    uint32_t next = CoA::AnimationCount::Rows();
     AnimationDataRec* anim = g_animationDataDB.GetRecord(sequenceId);
-    int32_t behavior = anim ? anim->m_behaviorID : 506;
+    int32_t behavior = anim ? anim->m_behaviorID : CoA::AnimationCount::Rows();
 
     if (behavior >= 458 && behavior <= 460) {
         this->PlayBaseAnimation(464, 16);
@@ -14710,7 +14730,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 97: {
             next = (this->GetClientStandState() != UNIT_SITTING) + 97;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14722,7 +14742,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 100: {
             next = (this->GetClientStandState() != UNIT_SLEEPING) + 100;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14811,7 +14831,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 115: {
             next = (this->GetClientStandState() != UNIT_KNEEL) + 115;
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14860,7 +14880,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         case 464: {
             this->ChooseDefaultAnim(next, 1);
 
-            if (next == 506) {
+            if (next == CoA::AnimationCount::Rows()) {
                 break;
             }
 
@@ -14901,6 +14921,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
 // VERIFY: 81228148 manual
 // OFFSET: 0x00737BD0
 void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequenceId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x737CC8, 0x737CEC, 0x737D12) -- 506 is the loaded AnimationData row count.
     if (sequenceId == 15) {
         return;
     }
@@ -14937,16 +14958,16 @@ void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t seque
         torso.m_sequenceId = anim;
         CVehiclePassenger_C* passenger = this->m_vehiclePassenger;
         const VehicleSeatRec* seat = passenger ? passenger->m_seatRec : nullptr;
-        int32_t ridingLower = passenger && passenger->m_state == 3 && passenger->GetLowerAnim(seat) != 506;
+        int32_t ridingLower = passenger && passenger->m_state == 3 && passenger->GetLowerAnim(seat) != CoA::AnimationCount::Rows();
 
         if (static_cast<int32_t>(boneId) == this->m_torsoKeyBone) {
-            if (!usedDefault && chosen == 506 && ridingLower) {
+            if (!usedDefault && chosen == CoA::AnimationCount::Rows() && ridingLower) {
                 this->UpdateObjectEffectAnimationStates();
                 return;
             }
         }
 
-        if (static_cast<int32_t>(boneId) != this->m_torsoKeyBone || !ridingLower || this->m_vehiclePassenger->GetUpperAnim(seat) == 506) {
+        if (static_cast<int32_t>(boneId) != this->m_torsoKeyBone || !ridingLower || this->m_vehiclePassenger->GetUpperAnim(seat) == CoA::AnimationCount::Rows()) {
             uint32_t current = this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF);
 
             if (!IsUpperBodyAnim(anim) || !this->ShouldSplitTorsoAnimation(anim, current) || anim == current) {
@@ -15602,6 +15623,7 @@ bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
 // VERIFY: 9c1e6376 manual
 // OFFSET: 0x0073AB90
 void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73ABC3) -- 506 is the loaded AnimationData row count.
     EmotesRec* rec = g_emotesDB.GetRecord(emote);
 
     if (!rec) {
@@ -15610,7 +15632,7 @@ void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
 
     int32_t anim = rec->m_animID;
 
-    if (anim < 0 || anim >= 506) {
+    if (anim < 0 || anim >= CoA::AnimationCount::Rows()) {
         return;
     }
 
@@ -21281,8 +21303,9 @@ void CGUnit_C::UpdateCritterDisplay() {
 // VERIFY: b7b739bd manual
 // OFFSET: 0x0071D450
 static int32_t IsWeaponAnimBehavior(uint32_t animId) {
+    // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x71D477) -- 506 is the loaded AnimationData row count.
     AnimationDataRec* animation = g_animationDataDB.GetRecord(animId);
-    int32_t behavior = animation ? animation->m_behaviorID : 506;
+    int32_t behavior = animation ? animation->m_behaviorID : CoA::AnimationCount::Rows();
 
     switch (behavior) {
         case 16:
