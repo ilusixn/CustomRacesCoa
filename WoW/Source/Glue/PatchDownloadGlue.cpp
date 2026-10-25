@@ -349,14 +349,15 @@ void CGlueMgr::PatchDownloadApply() {
         uint32_t authResult;
         SFileAuthenticateArchiveEx(archive, &authResult, s_patchModulus, sizeof(s_patchModulus), s_patchExponent, sizeof(s_patchExponent));
 
-        if (authResult >= 5) {
-            success = CGlueMgr::PatchDownloadExecutePrepatch(archive);
-
-            if (!success) {
-                reason = 6;
-            }
-        } else {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x4E57FE) -- the jmp past the prepatch is NOPed: it runs unauthenticated too.
+        if (authResult < 5) {
             reason = 5;
+        }
+
+        success = CGlueMgr::PatchDownloadExecutePrepatch(archive);
+
+        if (!success) {
+            reason = 6;
         }
 
         SFileCloseArchive(archive);

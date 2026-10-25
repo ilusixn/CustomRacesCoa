@@ -8336,6 +8336,7 @@ void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
     Spell_C_CancelAutoRepeat(true);
     Spell_C_ClearLastAutoRangedCombatError();
     // WoWFix335 melee-swing-right-click: original ends with UpdateBaseAnimation(0x40, -1)
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x6E2867) -- the same call is NOPed by the DLL; nothing to change.
 }
 
 // VERIFY: d5f87a32 manual
@@ -10935,6 +10936,7 @@ void AreaTriggersInitialize(uint32_t mapId) {
 // VERIFY: f1281917 manual
 // OFFSET: 0x006DBE30
 int32_t AreaTriggerCheck(const void* data, void* param) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x6DBE41) -- push 0x64 rewritten as 0x64: unchanged.
     s_areaTriggerTimer = ClientSetTimer(100, AreaTriggerCheck, nullptr);
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 

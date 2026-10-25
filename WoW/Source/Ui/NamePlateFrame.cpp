@@ -1,4 +1,5 @@
 #include "NamePlateFrame.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Frame/CSimpleRender.h"
@@ -40,6 +41,21 @@ static CImVector s_hostileColor = CImVector(0x00, 0x00, 0xFF, 0xFF);
 static CImVector s_levelTextColor = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
 
 // STATIC: 0x00B2DA20
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5f0e0, Extensions.dll patch 0x98EE8B) -- the nameplates read the DLL's 33-entry
+// table (CoA::AttachPatches::kClassColours); the client's original 12 follow, unused.
+static CImVector s_coaClassColors[33];
+
+static bool InitCoAClassColors() {
+    for (int32_t i = 0; i < 33; i++) {
+        uint32_t argb = CoA::AttachPatches::kClassColours[i];
+        s_coaClassColors[i] = CImVector(argb & 0xFF, (argb >> 8) & 0xFF, (argb >> 16) & 0xFF, argb >> 24);
+    }
+
+    return true;
+}
+
+static bool s_coaClassColorsReady = InitCoAClassColors();
+
 static CImVector s_classColors[12] = {
     CImVector(0x00, 0x00, 0x00, 0xFF),
     CImVector(0x6D, 0x9B, 0xC6, 0xFF),
@@ -359,7 +375,7 @@ void CGNamePlateFrame::UpdateColorDisplay(CGUnit_C* unit) {
     CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (g_ShowClassColorInNameplateCVar->m_intValue && (unit->m_obj->m_type & TYPE_PLAYER) && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
-        this->m_healthBarColor = s_classColors[unit->m_unit->m_unitFieldBytes0[1]];
+        this->m_healthBarColor = s_coaClassColors[unit->m_unit->m_unitFieldBytes0[1]];
     } else if (unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
         this->m_healthBarColor = s_hostileColor;
     } else if (unit->m_obj->m_type & TYPE_PLAYER) {

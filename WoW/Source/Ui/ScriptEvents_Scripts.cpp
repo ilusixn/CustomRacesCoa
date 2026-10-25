@@ -2889,7 +2889,8 @@ static int32_t Script_GetComboPoints(lua_State* L) {
         CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
         uint8_t classId = player ? player->m_unit->m_unitFieldBytes0[1] : 0;
 
-        if (!player || classId == 4 || classId == 11) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x611717) -- cmp 0xB / jne became cmp 0xA / jl: rogues and classes 10+.
+        if (!player || classId == 4 || classId >= 10) {
             points = CGGameUI::GetComboPoints(target);
         }
     } else if (unit == CGPetInfo::GetPet(0)) {

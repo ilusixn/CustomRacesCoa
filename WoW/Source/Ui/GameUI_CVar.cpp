@@ -1,4 +1,5 @@
 #include "CoA/Source/Runtime/CVars.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "GameUI.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/ConsoleBase/Types.h"
@@ -501,10 +502,12 @@ void CGGameUI::RegisterGameCVars() {
     CVar::Register("trackedQuests", "Internal cvar for saving tracked quests in order", 0x120, "", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("trackedAchievements", "Internal cvar for saving tracked achievements in order", 0x120, "", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("flaggedTutorials", "Internal cvar for saving compleated tutorials in order", 0x110, "", nullptr, CATEGORY_GAME, false, nullptr, false);
-    CVar::Register("advancedWorldMap", "Enables advanced World Map features", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x51E062) -- default "1".
+    CVar::Register("advancedWorldMap", "Enables advanced World Map features", 0x20, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("worldMapOpacity", "Opacity for the world map when sized down", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("watchFrameWidth", "Controls objectives frame width", 0x0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
-    g_trackerSortingCVar = CVar::Register("trackerSorting", "sorting option for the objectives tracker", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x51E0C5) -- default "1".
+    g_trackerSortingCVar = CVar::Register("trackerSorting", "sorting option for the objectives tracker", 0x20, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("trackerFilter", "filter option for the objectives tracker", 0x20, "7", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_profanityFilterCVar = CVar::Register("profanityFilter", "Whether to enable mature language filtering", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_spamFilterCVar = CVar::Register("spamFilter", "Whether to enable spam filtering", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
@@ -524,6 +527,7 @@ void CGGameUI::RegisterGameCVars() {
     CVar::Register("showTimestamps", "The format of timestamps in chat or \"none\"", 0x10, "none", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("chatMouseScroll", "Whether the user can use the mouse wheel to scroll through chat", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("lockActionBars", "Whether the action bars should be locked, preventing changes", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x51E396) -- rewritten with "0" (written twice): unchanged.
     CVar::Register("alwaysShowActionBars", "Whether to always show the action bar grid", 0x10, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_secureAbilityToggleCVar = CVar::Register("secureAbilityToggle", "Whether you should be protected against accidentally double-clicking an aura", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     PlayerNameRegisterCVars();
@@ -638,7 +642,8 @@ void CGGameUI::RegisterGameCVars() {
     g_currencyTokensBackpack2CVar = CVar::Register("currencyTokensBackpack2", "Currency token types shown on backpack.", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("showTokenFrame", "The token UI has been shown", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     CVar::Register("showTokenFrameHonor", "The token UI has shown Honor", 0x20, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
-    g_predictedHealthCVar = CVar::Register("predictedHealth", "Whether or not to use predicted health values in the UI", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x51F0E7) -- default "0".
+    g_predictedHealthCVar = CVar::Register("predictedHealth", "Whether or not to use predicted health values in the UI", 0x10, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_predictedPowerCVar = CVar::Register("predictedPower", "Whether or not to use predicted power values in the UI", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_threatWarningCVar = CVar::Register("threatWarning", "Whether or not to show threat warning UI (0 = off, 1 = in dungeons, 2 = in party/raid, 3 = always)", 0x20, "3", CVarHandler_threatWarning, CATEGORY_GAME, false, nullptr, false);
     g_threatWorldTextCVar = CVar::Register("threatWorldText", "Whether or not to show threat floaters in combat", 0x10, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
@@ -669,6 +674,8 @@ void CGGameUI::RegisterGameCVars() {
 // VERIFY: d0dc1b08 auto
 // OFFSET: 0x005238A0
 void CGGameUI::Initialize() {
-    g_uiScaleCVar = CVar::Register("uiScale", "The current UI scale", 0, "1.0", CVarHandler_uiScale, 4, false, nullptr, false);
-    g_useUiScaleCVar = CVar::Register("useUiScale", "Whether or not the UI scale should be used", 0, "0", CVarHandler_useUiScale, 4, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp:Init (Extensions.dll patch 0x5238AE) -- default "0.85".
+    g_uiScaleCVar = CVar::Register("uiScale", "The current UI scale", 0, CoA::AttachPatches::kUiScaleDefault, CVarHandler_uiScale, 4, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5238D1) -- default "1".
+    g_useUiScaleCVar = CVar::Register("useUiScale", "Whether or not the UI scale should be used", 0, "1", CVarHandler_useUiScale, 4, false, nullptr, false);
 }

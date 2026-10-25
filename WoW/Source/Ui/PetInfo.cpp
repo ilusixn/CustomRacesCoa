@@ -136,11 +136,8 @@ void SendRequestPetInfo() {
         return;
     }
 
-    const WOWGUID& pet = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
-
-    if (!pet) {
-        return;
-    }
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5D6E9C, 0x5D6EA6) -- jne became jmp (the charm field) and the empty-GUID je is
+    // NOPed: the request is always sent.
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_REQUEST_PET_INFO));

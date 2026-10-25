@@ -645,8 +645,9 @@ void ClientRegisterConsoleCommands() {
     g_accountNameVar = CVar::Register("accountName", "Saved account name", 0x40, "", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_accountListVar = CVar::Register("accountList", "List of wow accounts for saved Blizzard account", 0, "", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_accountUsesTokenVar = CVar::Register("g_accountUsesToken", "Saved whether uses authenticator", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
-    s_cvMovie = CVar::Register("movie", "Show movie on startup", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
-    s_cvExpansionMovie = CVar::Register("expansionMovie", "Show expansion movie on startup", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x401C07, 0x401C2C) -- movie / expansionMovie default "0".
+    s_cvMovie = CVar::Register("movie", "Show movie on startup", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
+    s_cvExpansionMovie = CVar::Register("expansionMovie", "Show expansion movie on startup", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     s_cvMovieSubtitle = CVar::Register("movieSubtitle", "Show movie subtitles", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_checkAddonVersionVar = CVar::Register("checkAddonVersion", "Check interface addon version number", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
 
@@ -662,8 +663,9 @@ void ClientRegisterConsoleCommands() {
     s_desktopGammaCvar = CVar::Register("DesktopGamma", nullptr, 0, "0", DesktopGammaCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_gammaCvar = CVar::Register("Gamma", nullptr, 0, "1.0", GammaCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     g_lastCharacterIndexVar = CVar::Register("lastCharacterIndex", "Last character selected", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
-    g_readTOSVar = CVar::Register("readTOS", "Status of the TOS", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
-    g_readEULAVar = CVar::Register("readEULA", "Status of the EULA", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x401E14, 0x401E3C) -- readTOS / readEULA default "1".
+    g_readTOSVar = CVar::Register("readTOS", "Status of the TOS", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
+    g_readEULAVar = CVar::Register("readEULA", "Status of the EULA", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_readTerminationWithoutNoticeVar = CVar::Register("readTerminationWithoutNotice", "Status of the Termination without Notice notice", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_readScanningVar = CVar::Register("readScanning", "Status of the Scanning notice", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_readContestVar = CVar::Register("readContest", "Status of the Contest notice", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);

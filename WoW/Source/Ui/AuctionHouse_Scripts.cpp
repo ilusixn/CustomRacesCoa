@@ -974,7 +974,8 @@ static int32_t Script_PlaceAuctionBid(lua_State* L) {
     WOWGUID none = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(auction->m_itemID, none, nullptr, nullptr, false);
 
-    if (stats && !player->GetBag()->ItemCountValid(auction->m_itemID, stats, auction->m_count, true)) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x59DC63) -- je became jmp: the bag-count check is skipped.
+    if (false && stats && !player->GetBag()->ItemCountValid(auction->m_itemID, stats, auction->m_count, true)) {
         return 0;
     }
 

@@ -3489,7 +3489,7 @@ int32_t SpellRec::GetCastTime(const SpellRec* spell, int32_t isPet, int32_t isUn
     }
 
     if (spell->m_attributes & 2) {
-        castTime += 500;
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x7FF2A5) -- the add is NOPed.
 
         if (!isPet) {
             CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

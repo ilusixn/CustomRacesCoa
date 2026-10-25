@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/AttachPatches.h"
 #include "CoA/Source/Modules/CVarHooks.h"
 #include "WoW/Source/DB/Rec/FileDataRec.h"
 #include "WoW/Source/DB/Rec/MovieFileDataRec.h"
@@ -1747,29 +1748,8 @@ void CGGameUI::InitializeFrameXML() {
 
     uint8_t signature[16];
 
-    switch (FrameXML_CheckSignature("Interface\\FrameXML\\FrameXML.toc", "Interface\\FrameXML\\Bindings.xml", InterfaceKey, signature)) {
-        case 0:
-            status.Add(STATUS_WARNING, "FrameXML missing signature");
-            ClientPostClose(10);
-            break;
-
-        case 1:
-            status.Add(STATUS_WARNING, "FrameXML has corrupt signature");
-            ClientPostClose(10);
-            break;
-
-        case 2:
-            status.Add(STATUS_WARNING, "FrameXML is modified or corrupt");
-            ClientPostClose(10);
-            break;
-
-        case 3:
-            break;
-
-        default:
-            ClientPostClose(10);
-            break;
-    }
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52ABD9) -- the result switch is jumped over: no warning, no close.
+    FrameXML_CheckSignature("Interface\\FrameXML\\FrameXML.toc", "Interface\\FrameXML\\Bindings.xml", InterfaceKey, signature);
 
     uint32_t numFiles = 0;
     void* toc;
@@ -1790,11 +1770,8 @@ void CGGameUI::InitializeFrameXML() {
     uint8_t digest[16];
     MD5Final(digest, &md5);
 
-#ifndef DISABLE_SIGNATURE_CHECKS
-    if (memcmp(signature, digest, sizeof(digest))) {
-        ClientPostClose(10);
-    }
-#endif
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52AD43, 0x52AD45) -- je became jmp and the close is NOPed: a digest mismatch
+    // is ignored.
 
     CGGameUI::m_UISimpleParent = static_cast<CSimpleFrame*>(CScriptObject::GetScriptObjectByName("UIParent", CSimpleFrame::GetObjectType()));
 
@@ -2099,7 +2076,8 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
                     player->SetAFK(nullptr);
                 }
             }
-        } else if (!ClientServices::Connection()->CharacterLoggingOut()) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x52B27A) -- jne became jmp: no idle logout unless SetAFKLogoutTimer turned it on.
+        } else if (CoA::AttachPatches::AfkLogoutEnabled() && !ClientServices::Connection()->CharacterLoggingOut()) {
             CGChat::AddChatMessage(FrameScript_GetText("IDLE_MESSAGE", -1, GENDER_NOT_APPLICABLE), 0, 0, 0, 0, 0, nullptr, WOWGUID(), 0, WOWGUID(), 0, 0, 0);
             CGLCD::IdleDisconnectWarning();
             ClientServices::Connection()->CharacterLogout(false, false);
@@ -6134,7 +6112,8 @@ void LoadPlacedFrames(HOSFILE localFile, HOSFILE cacheFile, void* param) {
             level = -1;
             point = FRAMEPOINT_TOPLEFT;
             y = 0;
-        } else if (!SStrCmpI(line, "FrameLevel: ", SStrLen("FrameLevel: "))) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5184E1) -- the compare is NOPed and its jne became jmp: never read.
+        } else if (false) {
             level = SStrToInt(&line[SStrLen("FrameLevel: ")]);
         } else if (!SStrCmpI(line, "Anchor: ", SStrLen("Anchor: "))) {
             StringToFramePoint(&line[SStrLen("Anchor: ")], point);

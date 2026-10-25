@@ -207,7 +207,8 @@ static int32_t Script_CancelItemTempEnchantment(lua_State* L) {
 
     uint32_t slot;
 
-    if (!lua_isnumber(L, 1) || (slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, slot > 1)) {
+    // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x802221) -- the ja opcode became 0x02: the slot range is no longer checked.
+    if (!lua_isnumber(L, 1) || (slot = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1, false)) {
         luaL_error(L, "Usage: CancelItemTempEnchantment(slot)");
         return 0;
     }

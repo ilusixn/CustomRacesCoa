@@ -173,7 +173,8 @@ bool CGlueMgr::SurveyExecute() {
         uint32_t authResult;
         SFileAuthenticateArchiveEx(archive, &authResult, s_surveyModulus, sizeof(s_surveyModulus), s_surveyExponent, sizeof(s_surveyExponent));
 
-        if (authResult >= 5) {
+        // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x4E4BC2) -- the jb is NOPed: the survey runs unauthenticated.
+        {
             file = OsCreateFile("Cache\\Survey.dll", OS_GENERIC_WRITE, 0, OS_CREATE_ALWAYS, OS_FILE_ATTRIBUTE_NORMAL, OS_FILE_TYPE_ANY);
 
             if (file != OS_INVALID_FILE && SFileLoadFileEx(archive, "Survey.dll", &dll, &dllSize, 0, 0, nullptr) && dll) {

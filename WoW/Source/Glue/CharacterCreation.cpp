@@ -36,7 +36,9 @@ int32_t CCharacterCreation::m_selectedClassID = 1;
 int32_t CCharacterCreation::m_existingCharacterIndex = -1;
 
 // STATIC: 0x00B6B0D0
-CharacterPreferences* CCharacterCreation::m_charPreferences[22][2];
+// CoA: AscAttachPatches.cpp:RaceTables (FUN_10a5e020, Extensions.dll patch 0x4E157D) -- the eight sites read a 64-entry
+// table (32 races).
+CharacterPreferences* CCharacterCreation::m_charPreferences[32][2];
 
 // STATIC: 0x00B6B180
 uint32_t CCharacterCreation::m_raceIndex;
