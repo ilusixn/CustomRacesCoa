@@ -1,4 +1,5 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/AttachLate.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "Unit_C.h"
 #include <cmath>
@@ -641,7 +642,8 @@ int32_t SheatheStateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSi
 
     uint32_t oldState = *static_cast<const uint32_t*>(oldValue);
 
-    if (unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() || unit->m_sheatheState == oldState) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x737AE0) -- jne became jmp: always applied.
+    if (true || unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() || unit->m_sheatheState == oldState) {
         unit->SetSheatheState(unit->m_unit->m_unitFieldBytes2[0], 1, 1);
     }
 
@@ -1608,6 +1610,8 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
         }
 
         // WoWFix335 npc-turn-attack-anim: original calls UpdateBaseAnimation(0, -1) when CanPlayTurnAnim() is nonzero
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
         if (sequence != wanted) {
             this->CanPlayTurnAnim();
         }
@@ -2286,7 +2290,8 @@ void CGUnit_C::PlayFallLandAnimation(uint32_t oldFlags, int32_t jumping) {
                 return;
             }
 
-            if (!(flags & 0x2) && !(flags & 0x100) && !this->IsRunning()) {
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73D394) -- jne became jmp: this branch is never taken.
+            if (false && !(flags & 0x2) && !(flags & 0x100) && !this->IsRunning()) {
                 this->PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
                 this->PlayBaseAnimation(ANIM_JUMP_LAND_RUN, 0);
                 return;
@@ -8645,7 +8650,8 @@ void CGUnit_C::ToggleRunModeLocal(uint32_t eventTime) {
 // VERIFY: cf000702 manual
 // OFFSET: 0x0071F890
 bool CGUnit_C::CanAssist(const CGCorpse_C* corpse) const {
-    return this->UnitReaction(corpse) >= UNIT_REACTION_FRIENDLY;
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x71F89E) -- cmp 4 became cmp 0.
+    return this->UnitReaction(corpse) >= 0;
 }
 
 // VERIFY: 2fefd292 manual
@@ -15520,6 +15526,18 @@ bool CGUnit_C::AffectedByAura(int32_t auraType, const SpellRec* spell) const {
 // VERIFY: d821b797 manual
 // OFFSET: 0x00726160
 bool CGUnit_C::IsSpellSuperceded(int32_t spellId) {
+    // CoA: AscAttachLate.cpp:Replace726160 (orig hook 0x726160) -- replaced: the chain walk with a fatal error on a self-superseding
+    // spell.
+    static CGUnit_C* s_unit;
+    s_unit = this;
+    return CoA::AttachLate::KnowsHigherRank(static_cast<uint32_t>(spellId),
+        [](uint32_t spell, uint32_t& supercededBy) {
+            SkillLineAbilityRec* row = s_unit->LookupAbility(static_cast<int32_t>(spell));
+            supercededBy = row ? static_cast<uint32_t>(row->m_supercededBySpell) : 0;
+            return row != nullptr;
+        },
+        [](uint32_t spell) { return s_unit->IsSpellKnown(static_cast<int32_t>(spell)) != 0; });
+
     SkillLineAbilityRec* ability = this->LookupAbility(spellId);
 
     if (!ability) {
@@ -16890,6 +16908,10 @@ void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
     }
 
     // WoWFix335 missing-pre-cast-animation: original ends with UpdateBaseAnimation(0, -1)
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
+    // nothing to change (the destructor is implicit here).
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
+    // nothing to change (the destructor is implicit here).
 }
 
 // VERIFY: 47ba34f4 auto
@@ -18255,7 +18277,8 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
         this->m_fishingLineEffect = nullptr;
     }
 
-    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x72E59D) -- jne became jmp: never.
+    if (false && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         CGGameUI::CloseLoot(true, (this->m_movement->m_flags & 0xC0100F) != 0, false);
     }
 }
@@ -20163,7 +20186,8 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
 
         if (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue) {
             C3Vector position = frame->m_position;
-            frame->SetPoint(FRAMEPOINT_TOP, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
+            // CoA: AscAttachLate.cpp (Extensions.dll patch 0x725915) -- point 1 (TOP) became 7 (BOTTOM).
+            frame->SetPoint(FRAMEPOINT_BOTTOM, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
             frame->SetFrameDepth(position.z - worldFrame->m_layoutDepth, true);
         } else {
             C3Vector position = frame->m_position;
@@ -22516,7 +22540,8 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 // OFFSET: 0x00727400
 bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
-        if (CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x727431) -- jne became jmp: AUTOFOLLOW_END is not signalled here.
+        if (false && CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
             FrameScript_SignalEvent(SCRIPT_EVENT_AUTOFOLLOW_END, nullptr);
         }
 

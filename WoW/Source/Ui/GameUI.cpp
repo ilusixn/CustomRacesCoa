@@ -4179,7 +4179,8 @@ void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGro
         CGGameUI::m_realZoneText = SStrDupA(realZoneText, __FILE__, __LINE__);
         CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
-        if (player && !(player->m_unit->m_unitFieldFlags & 0x100000) && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x520658) -- the flag 0x100000 test is NOPed.
+        if (player && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
             CGChat::ZoneUpdate();
         }
     }
@@ -7059,7 +7060,8 @@ void CGGameUI::SendRaidDifficultyMessage() {
     MapRec* map = g_mapDB.GetRecord(CGGameUI::m_iCurrentMapID);
 
     if (map && (map->m_flags & 0x100)) {
-        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGGameUI::GetCurrentRaidDifficulty() + 1);
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x5247D3) -- the inlined choice is NOPed: always the party's value.
+        SStrPrintf(token, sizeof(token), "RAID_DIFFICULTY%d", CGPartyInfo::m_raidDifficulty + 1);
         CGGameUI::DisplayError(ERR_RAID_LOCKOUT_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
         SStrPrintf(token, sizeof(token), "PLAYER_DIFFICULTY%d", CGPartyInfo::m_dynamicDifficulty + 1);
         CGGameUI::DisplayError(ERR_PLAYER_DIFFICULTY_CHANGED_S, FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE));
@@ -8141,7 +8143,7 @@ void CGGameUI::LeaveWorld() {
     CGTradeSkillInfo::ClearItemCallbacks();
     CGPetInfo::LeaveWorld();
     CGWorldMap::LeaveWorld();
-    CGReputationInfo::LeaveWorld();
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x528D1E) -- the call is NOPed.
     CGDuelInfo::LeaveWorld();
     CGTabardCreationFrame::Close();
     CGGuildRegistrar::CloseRegistrar();

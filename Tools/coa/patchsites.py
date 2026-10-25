@@ -59,7 +59,7 @@ def main(argv):
 
         for ins in md.disasm(code, f):
             if addr - 24 <= ins.address <= addr + size + 24:
-                mark = '>' if addr <= ins.address < addr + size else ' '
+                mark = '>' if ins.address < addr + size and ins.address + ins.size > addr else ' '
                 lines.append(f'   {mark}{ins.address:08X} {ins.mnemonic} {ins.op_str}')
 
     text = '\n'.join(lines) + '\n'

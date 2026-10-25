@@ -676,7 +676,8 @@ int32_t CGQuestInfo::IsCompletable() {
             return 1;
         }
 
-        if (player->m_bag.GetItemTypeCount(itemId, 8) < CGQuestInfo::m_questItems[i].m_required.m_count) {
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x58CBEE) -- push 8 became push 0.
+        if (player->m_bag.GetItemTypeCount(itemId, 0) < CGQuestInfo::m_questItems[i].m_required.m_count) {
             return 0;
         }
     }

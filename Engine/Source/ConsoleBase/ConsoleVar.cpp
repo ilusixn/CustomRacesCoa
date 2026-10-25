@@ -762,7 +762,7 @@ void CVar::Destroy() {
     ConsoleCommandUnregister("cvar_reset");
     ConsoleCommandUnregister("cvar_default");
     ConsoleCommandUnregister("cvarlist");
-    s_registeredCVars.Clear();
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x767427) -- the clear is NOPed.
 }
 
 // VERIFY: 917f454a auto
