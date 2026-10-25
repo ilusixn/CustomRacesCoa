@@ -570,6 +570,11 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGMinimapFrame::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
+
+    // CoA: AscWidget.cpp:RegistrarDetour (orig hook 0x57C040)
+    if (g_widgetMethodsHook) {
+        g_widgetMethodsHook("Minimap", L);
+    }
 }
 
 // STATIC: 0x00ACEC30

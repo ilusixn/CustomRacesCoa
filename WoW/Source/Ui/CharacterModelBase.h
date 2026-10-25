@@ -54,4 +54,9 @@ class CGCharacterModelBase : public CSimpleModel {
     void RotateModel(float facing);
 };
 
+// CoA: AscModelMethods.cpp:SetFrameJumps (Extensions.dll patches 0x59714D, 0x5971C1) -- the opcode the DLL wrote
+// over each conditional jump: 0x74 je, 0x75 jne, 0xEB jmp. Stock: 0x74 in RotateModel, 0x75 in UpdateModel.
+extern uint8_t g_rotateModelJump;
+extern uint8_t g_updateModelJump;
+
 #endif

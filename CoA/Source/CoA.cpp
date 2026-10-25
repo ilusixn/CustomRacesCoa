@@ -79,6 +79,8 @@ static const CoA::Module s_modules[] = {
     { "EventPacketsClient", CoA::EventPacketsClient::Init },
     { "PatchDataClient", CoA::PatchDataClient::Init },
     { "ClientDbcPatchClient", CoA::ClientDbcPatchClient::Init },
+    { "WidgetClient", CoA::WidgetClient::Init },
+    { "ModelMethodsClient", CoA::ModelMethodsClient::Init },
     { "ObjectAddonClient", CoA::ObjectAddonClient::Init },
     { "AuraAmountsClient", CoA::AuraAmountsClient::Init },
     { "GameModeClient", CoA::GameModeClient::Init },
