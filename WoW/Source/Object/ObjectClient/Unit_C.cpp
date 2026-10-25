@@ -11705,12 +11705,20 @@ bool CGUnit_C::CanAutoDismount() const {
     return !(this->m_movement->m_flags & MOVEMENTFLAG_FLYING) || g_autoDismountFlyingCVar->m_intValue;
 }
 
+// CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x720E68, 0x524DC1, 0x524276) -- on: every unit's
+// name plate shows its cast bar, not only the target's.
+bool g_namePlateCastBarAll = false;
+
+// CoA: AscGlobalsJ.cpp:Detour7385C0 (orig hook 0x7385C0).
+int32_t (*g_attackAnimationHook)() = nullptr;
+
 // VERIFY: 2732ecd1 manual
 // OFFSET: 0x00720E50
 void CGUnit_C::UpdateSpellCastBars(uint32_t time) {
     CGNamePlateFrame* namePlate = this->m_namePlateFrame;
 
-    if (!namePlate || this->m_obj->m_guid != CGGameUI::m_lockedTarget) {
+    // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x720E68)
+    if (!namePlate || (!g_namePlateCastBarAll && this->m_obj->m_guid != CGGameUI::m_lockedTarget)) {
         return;
     }
 
@@ -13485,6 +13493,14 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
     }
 
     if (!skipAnimation) {
+        // CoA: AscGlobalsJ.cpp:Detour7385C0 (orig hook 0x7385C0, caller 0x75520B) -- the player's swing uses
+        // SetAttackAnimation's animation unless it is 0.
+        if (g_attackAnimationHook && this == ClntObjMgrGetActivePlayerObj()) {
+            if (const int32_t attack = g_attackAnimationHook()) {
+                anim = attack;
+            }
+        }
+
         this->PlayBaseAnimation(anim, 0);
     }
 

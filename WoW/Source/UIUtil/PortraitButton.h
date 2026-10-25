@@ -59,4 +59,8 @@ int32_t ReadyModelForUI(CGUnit_C* unit, uint32_t flags);
 
 extern const char* s_sexNames[3];
 
+// CoA: AscGlobalsJ.cpp:SetMaskTexture / ClearMaskTexture (PortraitButton.cpp).
+extern uint32_t g_portraitMaskSize;
+extern const char* g_portraitMaskPath;
+
 #endif

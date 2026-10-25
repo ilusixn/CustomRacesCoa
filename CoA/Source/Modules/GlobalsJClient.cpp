@@ -16,7 +16,9 @@
 #include "WoW/Source/Object/ObjectClient/UnitCombatLog_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/UIUtil/InputControl.h"
+#include "WoW/Source/UIUtil/PortraitButton.h"
 #include "WoW/Source/UIUtil/Tooltip.h"
+#include "WoW/Source/Ui/CurrencyTypes.h"
 #include "WoW/Source/Ui/EquipmentManager.h"
 #include "WoW/Source/Ui/GameUI.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
@@ -729,6 +731,61 @@ namespace {
         return 0;
     }
 
+    // ---- the original's code patches, as the flags the client sites read ----
+    // SetNamePlateCastBarMode(mode) (FUN_102c1000): non-zero shows every unit's name-plate cast bar.
+    int SetNamePlateCastBarMode(lua_State* L) {
+        g_namePlateCastBarAll = ToInt(CheckNumber(L, 1)) != 0;
+        return 0;
+    }
+
+    // SetAttackTexture(on) / SetRangedAttackTexture(on): off makes the attack (ranged) spells show their own icon.
+    int SetAttackTexture(lua_State* L) {
+        g_attackTextureEnabled = lua_toboolean(L, 1) != 0;
+        return 0;
+    }
+
+    int SetRangedAttackTexture(lua_State* L) {
+        g_rangedAttackTextureEnabled = lua_toboolean(L, 1) != 0;
+        return 0;
+    }
+
+    // UnitAuraAllowHidden(bool) (FUN_100dd950): true lets UnitAura return the auras the client hides. Returns its
+    // argument, as the original does by returning 1 with nothing pushed.
+    int UnitAuraAllowHidden(lua_State* L) {
+        bool allow = false;
+
+        if (!CoA::Script::ReadBool(L, allow)) {
+            return 0;
+        }
+
+        g_unitAuraAllowHidden = allow;
+        return 1;
+    }
+
+    // SetCurrencyShow(n) (FUN_10a71430): non-zero lists every known currency in the unused category.
+    int SetCurrencyShow(lua_State* L) {
+        g_currencyShowAll = ToInt(CheckNumber(L, 1)) != 0;
+        return 0;
+    }
+
+    // SetMaskTexture(size, path) (FUN_10a71fc0) re-points the portrait alpha mask (the path kept in 0x10BCCAF4);
+    // ClearMaskTexture (FUN_10a6d670) restores the stock masks. Both return 0.
+    std::string s_maskTexture;
+
+    int SetMaskTexture(lua_State* L) {
+        const int32_t size = ToInt(CheckNumber(L, 1));
+        s_maskTexture = CheckString(L, 2);
+        g_portraitMaskSize = static_cast<uint32_t>(size);
+        g_portraitMaskPath = s_maskTexture.c_str();
+        return 0;
+    }
+
+    int ClearMaskTexture(lua_State*) {
+        g_portraitMaskSize = 0;
+        g_portraitMaskPath = nullptr;
+        return 0;
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("", "GetSpellData", GetSpellData),
         COA_NATIVE("", "GetWeaponTempEnchantInfo", GetWeaponTempEnchantInfo),
@@ -748,12 +805,24 @@ namespace {
         COA_NATIVE("", "SetWorldTimeSpeed", SetWorldTimeSpeed),
         COA_NATIVE("", "GetItemInfoInstant", GetItemInfoInstant),
         COA_NATIVE("", "ApplyComponents", ApplyComponents),
+        COA_NATIVE("", "SetNamePlateCastBarMode", SetNamePlateCastBarMode),
+        COA_NATIVE("", "SetAttackTexture", SetAttackTexture),
+        COA_NATIVE("", "SetRangedAttackTexture", SetRangedAttackTexture),
+        COA_NATIVE("", "UnitAuraAllowHidden", UnitAuraAllowHidden),
+        COA_NATIVE("", "SetCurrencyShow", SetCurrencyShow),
+        COA_NATIVE("", "SetMaskTexture", SetMaskTexture),
+        COA_NATIVE("", "ClearMaskTexture", ClearMaskTexture),
     };
 }
 
 void CoA::GlobalsJ::InstallClient() {
     // AscRuntime::ReplaceFunction(0x819730, ScriptErrorHandler).
     g_frameScriptErrorHook = CoA::GlobalsJ::OnErrorHandler;
+    // AscRuntime::Detour(0x74F910, 0x7385C0, 0x4F5F40): the combat log filter, the player's attack animation and the
+    // attack-cursor range.
+    g_combatLogAllowedHook = CoA::GlobalsJ::CombatLogAllowed;
+    g_attackAnimationHook = CoA::GlobalsJ::AttackAnimation;
+    g_attackDistanceHook = CoA::GlobalsJ::AttackDistance;
 }
 
 void CoA::GlobalsJClient::Init() {

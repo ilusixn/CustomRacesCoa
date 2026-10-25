@@ -2689,7 +2689,11 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
                 PlayerNameTriggerColorUpdate(unit->m_nameDesc);
                 unit->UnregisterScript(0x1000);
-                unit->StopNamePlateSpellbar();
+
+                // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x524276)
+                if (!g_namePlateCastBarAll) {
+                    unit->StopNamePlateSpellbar();
+                }
             }
         }
     }
@@ -2834,7 +2838,10 @@ void CGGameUI::Target(WOWGUID guid) {
                 unit->ProcessCastNotInterruptible(&spell);
             }
 
-            unit->UpdateSpellCastBars(OsGetAsyncTimeMs());
+            // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Extensions.dll patch 0x524DC1)
+            if (!g_namePlateCastBarAll) {
+                unit->UpdateSpellCastBars(OsGetAsyncTimeMs());
+            }
 
             if (player) {
                 if (player->CanAttackNow(unit)) {
@@ -3203,9 +3210,10 @@ void CGGameUI::SetCursorSpell(int32_t spellId) {
 
     const char* texture = nullptr;
 
-    if (spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
+    // CoA: AscGlobalsJ.cpp:SetAttackTexture (Extensions.dll patch 0x5209A8)
+    if (g_attackTextureEnabled && spell.m_effect[0] == SPELL_EFFECT_ATTACK) {
         texture = CGActionBar::GetAttackTexture();
-    } else if ((spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {
+    } else if (g_rangedAttackTextureEnabled && (spell.m_attributes & 0x2) && (spell.m_attributesExB & 0x20)) {   // CoA: AscGlobalsJ.cpp:SetRangedAttackTexture (Extensions.dll patch 0x5209B8)
         texture = CGActionBar::GetRangedTexture();
     }
 
