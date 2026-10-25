@@ -1,5 +1,22 @@
 #include "CoA/Source/Runtime/Packet.h"
 
+namespace {
+    CoA::Packet::Sender s_sender = nullptr;
+}
+
+void CoA::Packet::SetSender(CoA::Packet::Sender sender) {
+    s_sender = sender;
+}
+
+// Finalize (0x401130), then the sender.
+void CoA::Packet::Send() {
+    this->m_store.Finalize();
+
+    if (s_sender) {
+        s_sender(&this->m_store);
+    }
+}
+
 // CDataStore ctor (0x401050), Put(u32 opcode) (0x47B0A0).
 CoA::Packet::Packet(uint32_t opcode) {
     this->m_store.Put(opcode);

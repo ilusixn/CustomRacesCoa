@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/GlobalsJ.h"
 #include <cmath>
 #include <cstdarg>
 #include <cstring>
@@ -3378,7 +3379,11 @@ static int32_t Script_ForceLogout(lua_State* L) {
 // VERIFY: 4f9f11a0 auto
 // OFFSET: 0x00510B30
 static int32_t Script_RunScript(lua_State* L) {
+    // CoA: AscGlobalsJ.cpp:Detour510B30 (orig hook 0x510B30) -- CanPerformAction(0x19) is true while this runs.
+    CoA::GlobalsJ::SetInsideRunScript(true);
+
     if (!lua_isstring(L, 1)) {
+        CoA::GlobalsJ::SetInsideRunScript(false);
         return 0;
     }
 
@@ -3388,6 +3393,7 @@ static int32_t Script_RunScript(lua_State* L) {
         FrameScript_Execute(script, script, g_macroTaint);
     }
 
+    CoA::GlobalsJ::SetInsideRunScript(false);
     return 0;
 }
 

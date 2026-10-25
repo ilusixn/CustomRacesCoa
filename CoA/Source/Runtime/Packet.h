@@ -23,8 +23,14 @@ namespace CoA {
         Packet& Str(const char* string);
         // FUN_100de790: a mask byte, then each non-zero byte of the guid, low byte first.
         Packet& PackedGuid(uint64_t guid);
+        // Finalize, then the installed sender (PacketSend.cpp's ClientServices send; tests install a recorder).
         void Send();
         CDataStore* Store() { return &this->m_store; }
+
+        using Sender = void (*)(CDataStore* msg);
+        static void SetSender(Sender sender);
+        // PacketSend.cpp: the current connection's send (0x6B0B50).
+        static void InstallClient();
 
     private:
         CDataStore m_store;

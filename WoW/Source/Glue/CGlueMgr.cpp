@@ -1,4 +1,5 @@
 #include "CGlueMgr.h"
+#include "CoA/Source/Runtime/Lifecycle.h"
 #include <cmath>
 #include <cstdarg>
 #include <cstring>
@@ -762,6 +763,9 @@ void CGlueMgr::Resume() {
                 CGlueMgr::m_pendingServerAlert = 0;
             }
 
+            // CoA: AscRuntime.cpp:GlueEpilogueCave (orig hook 0x4DA9AC) -- the glue-screen list runs on this path's
+            // epilogue only (the ClientPostClose path below returns through its own).
+            CoA::Lifecycle::RunGlueScreen();
             return;
         }
 
