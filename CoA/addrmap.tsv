@@ -102,7 +102,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00495810	func	src/Ascension/AscCharacterCreate.cpp:1135,src/Ascension/AscRealmData.cpp:9,src/Ascension/AscRuntime.cpp:81,src/Ascension/AscRuntime.cpp:855,src/Ascension/AscRuntime.cpp:856,src/Ascension/AscRuntime.hpp:89	PaintScreen	Engine/Source/Frame/CSimpleTop.cpp:42	mapped
 0x0049DDBF	unknown	src/Ascension/AscSuperTrack.cpp:409,src/Ascension/AscSuperTrack.cpp:424,src/Ascension/AscSuperTrack.cpp:429			unported
 0x0049DDE5	unknown	src/Ascension/AscSuperTrack.cpp:409,src/Ascension/AscSuperTrack.cpp:425,src/Ascension/AscSuperTrack.cpp:430			unported
-0x0049E540	func	src/Ascension/AscWidget.cpp:6,src/Ascension/AscWidget.cpp:12,src/Ascension/AscWidget.cpp:41,src/Ascension/AscWidget.cpp:46	CSimpleFrame::RegisterScriptMethods	Engine/Source/Frame/CSimpleFrame_Scripts.cpp:2071	mapped
+0x0049E540	func	src/Ascension/AscWidget.cpp:6,src/Ascension/AscWidget.cpp:12,src/Ascension/AscWidget.cpp:41,src/Ascension/AscWidget.cpp:46	CSimpleFrame::RegisterScriptMethods	Engine/Source/Frame/CSimpleFrame_Scripts.cpp:2074	mapped
 0x0049EAB0	func	src/Ascension/AscTooltipScaling.cpp:20,src/Ascension/AscTooltipScaling.cpp:1243	Script_HasScript	Engine/Source/Frame/CSimpleFrame_Scripts.cpp:399	mapped
 0x0049EB70	func	src/Ascension/AscTooltipScaling.cpp:20,src/Ascension/AscTooltipScaling.cpp:1244	Script_GetScript	Engine/Source/Frame/CSimpleFrame_Scripts.cpp:421	mapped
 0x0049EC80	func	src/Ascension/AscTooltipScaling.cpp:20,src/Ascension/AscTooltipScaling.cpp:1245	Script_SetScript	Engine/Source/Frame/CSimpleFrame_Scripts.cpp:454	mapped
@@ -296,22 +296,22 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x0052EBA0	func	src/Ascension/AscAttachLate.cpp:51,src/Ascension/AscAttachLate.cpp:58	CGBarberShop::GetTotalCost	WoW/Source/Ui/BarberShop.cpp:478	mapped
 0x0052ED60	func	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:51,src/Ascension/AscAttachLate.cpp:165	Script_GetBarberShopTotalCost	WoW/Source/Ui/BarberShop_Scripts.cpp:71	mapped
 0x0052ED68	unknown	src/Ascension/AscAttachLate.cpp:51,src/Ascension/AscAttachLate.cpp:60			unported
-0x0053B4E0	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:241	GetSpellSlot	WoW/Source/Ui/SpellBookFrame.cpp:1136	mapped
-0x0053B540	func	src/Ascension/AscAttachFixes.cpp:164	CGSpellBook::GetSpellProgressionRank	WoW/Source/Ui/SpellBookFrame.cpp:209	mapped
-0x0053BA40	func	src/Ascension/AscGossipQuest.cpp:6,src/Ascension/AscGossipQuest.cpp:81,src/Ascension/AscGossipQuest.cpp:144	SortSkillInfoByName	WoW/Source/Ui/SpellBookFrame.cpp:868	mapped
-0x0053BAF0	func	src/Ascension/AscCAMgr.cpp:4125	CGSpellBook::PickupSpell	WoW/Source/Ui/SpellBookFrame.cpp:1644	mapped
-0x0053CF10	func	src/Ascension/AscInitHooks.cpp:23,src/Ascension/AscInitHooks.cpp:254	CGSpellBook::UpdateUsable	WoW/Source/Ui/SpellBookFrame.cpp:144	mapped
-0x0053D580	func	src/Ascension/AscAttachFixes.cpp:40,src/Ascension/AscAttachFixes.cpp:619,src/Ascension/AscAttachFixes.cpp:1062,src/Ascension/AscAuraAmounts.cpp:9,src/Ascension/AscAuraAmounts.cpp:103	CGSpellBook::CanShowAura	WoW/Source/Ui/SpellBookFrame.cpp:1907	mapped
-0x0053D680	func	src/Ascension/AscGlobalsJ.cpp:1124,src/Ascension/AscGlobalsJ.cpp:1164	CGSpellBook::CanStealAura	WoW/Source/Ui/SpellBookFrame.cpp:2106	mapped
+0x0053B4E0	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:241	GetSpellSlot	WoW/Source/Ui/SpellBookFrame.cpp:1145	mapped
+0x0053B540	func	src/Ascension/AscAttachFixes.cpp:164	CGSpellBook::GetSpellProgressionRank	WoW/Source/Ui/SpellBookFrame.cpp:210	mapped
+0x0053BA40	func	src/Ascension/AscGossipQuest.cpp:6,src/Ascension/AscGossipQuest.cpp:81,src/Ascension/AscGossipQuest.cpp:144	SortSkillInfoByName	WoW/Source/Ui/SpellBookFrame.cpp:877	mapped
+0x0053BAF0	func	src/Ascension/AscCAMgr.cpp:4125	CGSpellBook::PickupSpell	WoW/Source/Ui/SpellBookFrame.cpp:1653	mapped
+0x0053CF10	func	src/Ascension/AscInitHooks.cpp:23,src/Ascension/AscInitHooks.cpp:254	CGSpellBook::UpdateUsable	WoW/Source/Ui/SpellBookFrame.cpp:145	mapped
+0x0053D580	func	src/Ascension/AscAttachFixes.cpp:40,src/Ascension/AscAttachFixes.cpp:619,src/Ascension/AscAttachFixes.cpp:1062,src/Ascension/AscAuraAmounts.cpp:9,src/Ascension/AscAuraAmounts.cpp:103	CGSpellBook::CanShowAura	WoW/Source/Ui/SpellBookFrame.cpp:1916	mapped
+0x0053D680	func	src/Ascension/AscGlobalsJ.cpp:1124,src/Ascension/AscGlobalsJ.cpp:1164	CGSpellBook::CanStealAura	WoW/Source/Ui/SpellBookFrame.cpp:2115	mapped
 0x0053DC8A	unknown	src/Ascension/AscGlobalsJ.cpp:575			unported
 0x0053DCAC	unknown	src/Ascension/AscGlobalsJ.cpp:581			unported
-0x0053FAD0	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:243	CGSpellBook::DelKnownSpell	WoW/Source/Ui/SpellBookFrame.cpp:2150	mapped
+0x0053FAD0	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:243	CGSpellBook::DelKnownSpell	WoW/Source/Ui/SpellBookFrame.cpp:2159	mapped
 0x00540B66	unknown	src/Ascension/AscGlobalsJ.cpp:575			unported
 0x00540B76	unknown	src/Ascension/AscGlobalsJ.cpp:581			unported
-0x00542030	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:244,src/Ascension/AscRuntime.hpp:73,src/Ascension/AscWildcardRolls.cpp:397,src/Ascension/AscWildcardRolls.cpp:548,src/Ascension/AscWildcardRolls.cpp:549	CGSpellBook::AddKnownSpell	WoW/Source/Ui/SpellBookFrame.cpp:280	mapped
-0x00542679	unknown	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313			unported
-0x005427BE	unknown	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313			unported
-0x0054284E	unknown	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313			unported
+0x00542030	func	src/Ascension/AscClientDbcPatch.cpp:223,src/Ascension/AscClientDbcPatch.cpp:244,src/Ascension/AscRuntime.hpp:73,src/Ascension/AscWildcardRolls.cpp:397,src/Ascension/AscWildcardRolls.cpp:548,src/Ascension/AscWildcardRolls.cpp:549	CGSpellBook::AddKnownSpell	WoW/Source/Ui/SpellBookFrame.cpp:281	mapped
+0x00542679	data	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313	CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:481	mapped
+0x005427BE	data	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313	CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:511	mapped
+0x0054284E	data	src/Ascension/AscCAMgr.cpp:308,src/Ascension/AscCAMgr.cpp:313	CoA::ClientHooks::suppressLearnMessages	WoW/Source/Ui/SpellBookFrame.cpp:532	mapped
 0x00542D4E	unknown	src/Ascension/AscAttachFixes.cpp:11,src/Ascension/AscAttachFixes.cpp:144			unported
 0x00542DEB	unknown	src/Ascension/AscAttachFixes.cpp:144			unported
 0x00544140	func	src/Ascension/AscChallenge.cpp:1117,src/Ascension/AscWorldMap.cpp:90,src/Ascension/AscWorldMap.cpp:99	CGWorldMap::GetWorldPosition	WoW/Source/Ui/WorldMap.cpp:458	mapped
@@ -382,13 +382,13 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00594710	func	src/Ascension/AscGlobalsE.cpp:68,src/Ascension/AscGlobalsE.cpp:86	CGPlayer_C::GetSkillMaxRank	WoW/Source/Object/ObjectClient/Player_C.cpp:1225	mapped
 0x00597140	unknown	src/Ascension/AscModelMethods.cpp:18			unported
 0x0059714D	unknown	src/Ascension/AscModelMethods.cpp:17,src/Ascension/AscModelMethods.cpp:373			unported
-0x005971B0	func	src/Ascension/AscModelMethods.cpp:17	CGCharacterModelBase::UpdateModel	WoW/Source/Ui/CharacterModelBase.cpp:102	mapped
+0x005971B0	func	src/Ascension/AscModelMethods.cpp:17	CGCharacterModelBase::UpdateModel	WoW/Source/Ui/CharacterModelBase.cpp:106	mapped
 0x005971C1	unknown	src/Ascension/AscModelMethods.cpp:17,src/Ascension/AscModelMethods.cpp:372			unported
-0x00597700	func	src/Ascension/AscGeosets.cpp:13,src/Ascension/AscGeosets.cpp:192,src/Ascension/AscGeosets.cpp:192	CGCharacterModelBase::SetUpModel	WoW/Source/Ui/CharacterModelBase.cpp:288	mapped
-0x005977E0	func	src/Ascension/AscModelMethods.cpp:462,src/Ascension/AscModelMethods.cpp:473	CGCharacterModelBase::RefreshUnit	WoW/Source/Ui/CharacterModelBase.cpp:234	mapped
-0x00597FC0	func	src/Ascension/AscItemCollections.cpp:8,src/Ascension/AscItemCollections.cpp:476	CGDressUpModelFrame::TryOn	WoW/Source/Ui/DressUpModelFrame.cpp:211	mapped
+0x00597700	func	src/Ascension/AscGeosets.cpp:13,src/Ascension/AscGeosets.cpp:192,src/Ascension/AscGeosets.cpp:192	CGCharacterModelBase::SetUpModel	WoW/Source/Ui/CharacterModelBase.cpp:298	mapped
+0x005977E0	func	src/Ascension/AscModelMethods.cpp:462,src/Ascension/AscModelMethods.cpp:473	CGCharacterModelBase::RefreshUnit	WoW/Source/Ui/CharacterModelBase.cpp:244	mapped
+0x00597FC0	func	src/Ascension/AscItemCollections.cpp:8,src/Ascension/AscItemCollections.cpp:476	CGDressUpModelFrame::TryOn	WoW/Source/Ui/DressUpModelFrame.cpp:213	mapped
 0x00598830	func	src/Ascension/AscAttachFixes.cpp:33,src/Ascension/AscAttachFixes.cpp:469,src/Ascension/AscAttachFixes.cpp:1058			unported
-0x005989E0	func	src/Ascension/AscItemCollections.cpp:8,src/Ascension/AscItemCollections.cpp:475	CGDressUpModelFrame::SetModel	WoW/Source/Ui/DressUpModelFrame.cpp:503	mapped
+0x005989E0	func	src/Ascension/AscItemCollections.cpp:8,src/Ascension/AscItemCollections.cpp:475	CGDressUpModelFrame::SetModel	WoW/Source/Ui/DressUpModelFrame.cpp:505	mapped
 0x0059D0B0	func	src/Ascension/AscInitHooks.cpp:24,src/Ascension/AscInitHooks.cpp:325	CGAuctionHouse::IsSellItemValid	WoW/Source/Ui/AuctionHouse.cpp:1195	mapped
 0x0059DC63	unknown	src/Ascension/AscAttachPatches.generated.inc:16			unported
 0x005A4C10	func	src/Ascension/AscTooltipScaling.cpp:754	CGGuildBankInfo::GetGuildBankItem	WoW/Source/Ui/GuildBankFrame.cpp:359	mapped
@@ -399,10 +399,10 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x005A56F0	func	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:136	CGGuildBankInfo::EnterWorld	WoW/Source/Ui/GuildBankFrame.cpp:324	mapped
 0x005A6506	unknown	src/Ascension/AscAttachInline.generated.inc:9			unported
 0x005A6956	unknown	src/Ascension/AscAttachInline.generated.inc:10			unported
-0x005A8C70	unknown	src/Ascension/AscCAMgr.cpp:467,src/Ascension/AscCAMgr.cpp:475,src/Ascension/AscCAMgr.cpp:477			unported
-0x005AA390	func	WotLKExtensions/src/Client/CNetClient.cpp:96	CGActionBar::SlotChanged	WoW/Source/Ui/ActionBarFrame.cpp:952	mapped
-0x005AAB90	func	src/Ascension/AscCAMgr.cpp:449,src/Ascension/AscCAMgr.cpp:466,src/Ascension/AscCAMgr.cpp:499,src/Ascension/AscCAMgr.cpp:5357	CGActionBar::RemoveMacro	WoW/Source/Ui/ActionBarFrame.cpp:1651	mapped
-0x005AB120	func	src/Ascension/AscAttachFixes.cpp:12,src/Ascension/AscAttachFixes.cpp:141,src/Ascension/AscAttachFixes.cpp:142,src/Ascension/AscAttachFixes.cpp:1039	CGActionBar::PutActionInSlot	WoW/Source/Ui/ActionBarFrame.cpp:1071	mapped
+0x005A8C70	data	src/Ascension/AscCAMgr.cpp:467,src/Ascension/AscCAMgr.cpp:475,src/Ascension/AscCAMgr.cpp:477	CoA::ClientHooks::getSpellSkipsMacros	WoW/Source/Ui/ActionBarFrame.cpp:175	mapped
+0x005AA390	func	WotLKExtensions/src/Client/CNetClient.cpp:96	CGActionBar::SlotChanged	WoW/Source/Ui/ActionBarFrame.cpp:954	mapped
+0x005AAB90	func	src/Ascension/AscCAMgr.cpp:449,src/Ascension/AscCAMgr.cpp:466,src/Ascension/AscCAMgr.cpp:499,src/Ascension/AscCAMgr.cpp:5357	CGActionBar::RemoveMacro	WoW/Source/Ui/ActionBarFrame.cpp:1653	mapped
+0x005AB120	func	src/Ascension/AscAttachFixes.cpp:12,src/Ascension/AscAttachFixes.cpp:141,src/Ascension/AscAttachFixes.cpp:142,src/Ascension/AscAttachFixes.cpp:1039	CGActionBar::PutActionInSlot	WoW/Source/Ui/ActionBarFrame.cpp:1073	mapped
 0x005AC94D	unknown	src/Ascension/AscAttachPatches.generated.inc:12			unported
 0x005AD0B0	unknown	src/Ascension/AscAttachPatches.generated.inc:11			unported
 0x005ADA20	func	src/Ascension/AscSmallHooks.cpp:70,src/Ascension/AscSmallHooks.cpp:207	CGEquipmentManager::UseEquipmentSet	WoW/Source/Ui/EquipmentManager.cpp:519	mapped
@@ -438,7 +438,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x005C2891	unknown	WotLKExtensions/src/Client/WoWTime.cpp:39			unported
 0x005CAA40	func	src/Ascension/AscBindings.cpp:224	CGGuildInfo::QueryPermissions	WoW/Source/Ui/GuildInfo.cpp:78	mapped
 0x005CBA74	unknown	src/Ascension/AscAttachInline.generated.inc:11			unported
-0x005CD920	func	src/Ascension/AscGlobalsE.cpp:68,src/Ascension/AscGlobalsE.cpp:87	CGPlayer_C::GetSkillModifier	WoW/Source/Object/ObjectClient/Player_C.cpp:4743	mapped
+0x005CD920	func	src/Ascension/AscGlobalsE.cpp:68,src/Ascension/AscGlobalsE.cpp:87	CGPlayer_C::GetSkillModifier	WoW/Source/Object/ObjectClient/Player_C.cpp:4796	mapped
 0x005CF2F6	unknown	src/Ascension/AscAttachPatches.generated.inc:6			unported
 0x005D05B0	func	WotLKExtensions/src/Client/CGReputationInfo.cpp:5	GetRepListRepValue	WoW/Source/Ui/ReputationInfo.cpp:1002	mapped
 0x005D3390	func	WotLKExtensions/src/GameObjects/CGPetInfo.cpp:5	CGPetInfo::GetPet	WoW/Source/Ui/PetInfo.cpp:92	mapped
@@ -725,36 +725,36 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x006C9420	func	src/Ascension/AscFontRender.cpp:18,src/Ascension/AscFontRender.cpp:263,src/Ascension/AscFontRender.cpp:358	TEXTURECACHE::PasteGlyphOutlinedAA	Engine/Source/Gxu/GxuFontTextureCache.cpp:158	mapped
 0x006C9C70	func	src/Ascension/AscFontRender.cpp:18,src/Ascension/AscFontRender.cpp:263,src/Ascension/AscFontRender.cpp:356	TEXTURECACHE::PasteGlyphNonOutlinedAA	Engine/Source/Gxu/GxuFontTextureCache.cpp:308	mapped
 0x006CA067	unknown	src/Ascension/AscFontRender.cpp:20,src/Ascension/AscFontRender.cpp:352			unported
-0x006D1110	func	src/Ascension/AscGossipQuest.cpp:7,src/Ascension/AscGossipQuest.cpp:117,src/Ascension/AscGossipQuest.cpp:145	CGPlayer_C::OnQuestGiverQuestComplete	WoW/Source/Object/ObjectClient/Player_C.cpp:7854	mapped
-0x006D23C0	func	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:129,src/Ascension/AscAttachFixes.cpp:1037	CGPlayer_C::TalkToGuildBanker	WoW/Source/Object/ObjectClient/Player_C.cpp:6135	mapped
+0x006D1110	func	src/Ascension/AscGossipQuest.cpp:7,src/Ascension/AscGossipQuest.cpp:117,src/Ascension/AscGossipQuest.cpp:145	CGPlayer_C::OnQuestGiverQuestComplete	WoW/Source/Object/ObjectClient/Player_C.cpp:7912	mapped
+0x006D23C0	func	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:129,src/Ascension/AscAttachFixes.cpp:1037	CGPlayer_C::TalkToGuildBanker	WoW/Source/Object/ObjectClient/Player_C.cpp:6193	mapped
 0x006D4F80	func	src/Ascension/AscGossipQuest.cpp:8,src/Ascension/AscGossipQuest.cpp:128,src/Ascension/AscGossipQuest.cpp:146	CGPlayer_C::QuestLogRemoveQuest	WoW/Source/Object/ObjectClient/Player_C.cpp:1869	mapped
 0x006D7856	unknown	src/Ascension/AscAttachLate.generated.inc:21			unported
 0x006DAC10	func	src/Ascension/AscAttachLate.cpp:7,src/Ascension/AscAttachLate.cpp:167,src/Ascension/AscCARules.cpp:349,WotLKExtensions/src/GameObjects/CGPlayer.cpp:14	CGPlayer_C::IsDeadOrGhost	WoW/Source/Object/ObjectClient/Player_C.cpp:2096	mapped
 0x006DB8F9	unknown	src/Ascension/AscAttachInline.generated.inc:18			unported
 0x006DBE41	unknown	src/Ascension/AscAttachPatches.generated.inc:13			unported
 0x006DC1C0	func	src/Ascension/AscGlobalsE.cpp:68,src/Ascension/AscGlobalsE.cpp:82,src/Ascension/AscGlobalsH.cpp:40,src/Ascension/AscGlobalsH.cpp:46,src/Ascension/AscSpellText.cpp:141,src/Ascension/AscSpellText.cpp:146	CGPlayer_C::GetSkillIndex	WoW/Source/Object/ObjectClient/Player_C.cpp:2102	mapped
-0x006DC3F0	func	src/Ascension/AscAttachFixes.cpp:78,src/Ascension/AscAttachFixes.cpp:979,src/Ascension/AscAttachFixes.cpp:1075	CGPlayer_C::CanUseItem	WoW/Source/Object/ObjectClient/Player_C.cpp:6917	mapped
+0x006DC3F0	func	src/Ascension/AscAttachFixes.cpp:78,src/Ascension/AscAttachFixes.cpp:979,src/Ascension/AscAttachFixes.cpp:1075	CGPlayer_C::CanUseItem	WoW/Source/Object/ObjectClient/Player_C.cpp:6975	mapped
 0x006DC41D	unknown	src/Ascension/AscAttachFixes.cpp:78,src/Ascension/AscAttachFixes.cpp:988,src/Ascension/AscAttachFixes.cpp:990			unported
 0x006DC45F	unknown	src/Ascension/AscWorldEntryTweaks.cpp:4,src/Ascension/AscWorldEntryTweaks.cpp:69			unported
 0x006DCB40	func	src/Ascension/AscInitHooks.cpp:21,src/Ascension/AscInitHooks.cpp:239	CGPlayer_C::ChangeStandState	WoW/Source/Object/ObjectClient/Player_C.cpp:929	mapped
-0x006DE230	func	WotLKExtensions/src/GameObjects/CGUnit.cpp:5	CGPlayer_C::EquippedItemMeetSpellRequirements	WoW/Source/Object/ObjectClient/Player_C.cpp:5867	mapped
+0x006DE230	func	WotLKExtensions/src/GameObjects/CGUnit.cpp:5	CGPlayer_C::EquippedItemMeetSpellRequirements	WoW/Source/Object/ObjectClient/Player_C.cpp:5925	mapped
 0x006DE330	func	src/Ascension/AscInitHooks.cpp:12,src/Ascension/AscInitHooks.cpp:313	CGPlayer_C::GetVisibleItem	WoW/Source/Object/ObjectClient/Player_C.cpp:2193	mapped
 0x006DF050	func	src/Ascension/AscCAMgr.cpp:382,src/Ascension/AscCAMgr.cpp:5352,src/Ascension/AscGraphics.cpp:14,src/Ascension/AscGraphics.cpp:406,src/Ascension/AscObjectAddon.cpp:10,src/Ascension/AscRaidVideo.cpp:9,src/Ascension/AscRuntime.cpp:402,src/Ascension/AscRuntime.cpp:814,src/Ascension/AscRuntime.cpp:859,src/Ascension/AscRuntime.cpp:860,src/Ascension/AscRuntime.hpp:96,src/Ascension/AscRuntime.hpp:140,src/Ascension/AscUnitSelect.cpp:24	Packet_SMSG_INITIAL_SPELLS	WoW/Source/Object/ObjectClient/Player_C.cpp:4203	mapped
-0x006E08C0	func	src/Ascension/AscItemCollections.cpp:17,src/Ascension/AscItemCollections.cpp:398,src/Ascension/AscItemCollections.cpp:488	CGPlayer_C::EquipVisibleItem	WoW/Source/Object/ObjectClient/Player_C.cpp:10367	mapped
-0x006E09E0	func	src/Ascension/AscItemCollections.cpp:13,src/Ascension/AscItemCollections.cpp:419,src/Ascension/AscItemCollections.cpp:430,src/Ascension/AscItemCollections.cpp:432,src/Ascension/AscItemCollections.cpp:433,src/Ascension/AscItemCollections.cpp:434,src/Ascension/AscItemCollections.cpp:435,src/Ascension/AscSmallHooks.cpp:4,src/Ascension/AscSmallHooks.cpp:41,src/Ascension/AscSmallHooks.cpp:201	CGPlayer_C::RefreshVisibleItems	WoW/Source/Object/ObjectClient/Player_C.cpp:10410	mapped
+0x006E08C0	func	src/Ascension/AscItemCollections.cpp:17,src/Ascension/AscItemCollections.cpp:398,src/Ascension/AscItemCollections.cpp:488	CGPlayer_C::EquipVisibleItem	WoW/Source/Object/ObjectClient/Player_C.cpp:10426	mapped
+0x006E09E0	func	src/Ascension/AscItemCollections.cpp:13,src/Ascension/AscItemCollections.cpp:419,src/Ascension/AscItemCollections.cpp:430,src/Ascension/AscItemCollections.cpp:432,src/Ascension/AscItemCollections.cpp:433,src/Ascension/AscItemCollections.cpp:434,src/Ascension/AscItemCollections.cpp:435,src/Ascension/AscSmallHooks.cpp:4,src/Ascension/AscSmallHooks.cpp:41,src/Ascension/AscSmallHooks.cpp:201	CGPlayer_C::RefreshVisibleItems	WoW/Source/Object/ObjectClient/Player_C.cpp:10469	mapped
 0x006E09E8	unknown	src/Ascension/AscItemCollections.cpp:420,src/Ascension/AscItemCollections.cpp:428,src/Ascension/AscSmallHooks.cpp:41,src/Ascension/AscSmallHooks.cpp:50			unported
-0x006E1E10	func	src/Ascension/AscItemCollections.cpp:13,src/Ascension/AscItemCollections.cpp:482	CGPlayer_C::UpdateInventoryComponent	WoW/Source/Object/ObjectClient/Player_C.cpp:10559	mapped
-0x006E2240	func	src/Ascension/AscCAMgr.cpp:411,src/Ascension/AscCAMgr.cpp:5354	Packet_SMSG_SEND_UNLEARN_SPELLS	WoW/Source/Object/ObjectClient/Player_C.cpp:5750	mapped
+0x006E1E10	func	src/Ascension/AscItemCollections.cpp:13,src/Ascension/AscItemCollections.cpp:482	CGPlayer_C::UpdateInventoryComponent	WoW/Source/Object/ObjectClient/Player_C.cpp:10618	mapped
+0x006E2240	func	src/Ascension/AscCAMgr.cpp:411,src/Ascension/AscCAMgr.cpp:5354	Packet_SMSG_SEND_UNLEARN_SPELLS	WoW/Source/Object/ObjectClient/Player_C.cpp:5803	mapped
 0x006E2867	unknown	src/Ascension/AscAttachPatches.generated.inc:15			unported
-0x006E4950	func	src/Ascension/AscInitHooks.cpp:18,src/Ascension/AscInitHooks.cpp:320	CGPlayer_C::CombatModeEnter	WoW/Source/Object/ObjectClient/Player_C.cpp:4607	mapped
-0x006E7346	unknown	src/Ascension/AscCAMgr.cpp:424,src/Ascension/AscCAMgr.cpp:429			unported
-0x006E7356	unknown	src/Ascension/AscCAMgr.cpp:424,src/Ascension/AscCAMgr.cpp:429			unported
-0x006E7840	func	src/Ascension/AscCAMgr.cpp:447,src/Ascension/AscCAMgr.cpp:466,src/Ascension/AscCAMgr.cpp:5355	Packet_SMSG_REMOVED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4344	mapped
-0x006E7B00	func	src/Ascension/AscAttachFixes.cpp:11,src/Ascension/AscAttachFixes.cpp:12,src/Ascension/AscAttachFixes.cpp:141,src/Ascension/AscAttachFixes.cpp:1038	CGPlayer_C::AddKnownSpell	WoW/Source/Object/ObjectClient/Player_C.cpp:4753	mapped
-0x006E7D60	func	src/Ascension/AscCAMgr.cpp:397,src/Ascension/AscCAMgr.cpp:5353	Packet_SMSG_LEARNED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4366	mapped
-0x006E7E00	func	src/Ascension/AscCAMgr.cpp:525,src/Ascension/AscCAMgr.cpp:5356	Packet_SMSG_SUPERCEDED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4391	mapped
+0x006E4950	func	src/Ascension/AscInitHooks.cpp:18,src/Ascension/AscInitHooks.cpp:320	CGPlayer_C::CombatModeEnter	WoW/Source/Object/ObjectClient/Player_C.cpp:4660	mapped
+0x006E7346	data	src/Ascension/AscCAMgr.cpp:424,src/Ascension/AscCAMgr.cpp:429	CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
+0x006E7356	data	src/Ascension/AscCAMgr.cpp:424,src/Ascension/AscCAMgr.cpp:429	CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
+0x006E7840	func	src/Ascension/AscCAMgr.cpp:447,src/Ascension/AscCAMgr.cpp:466,src/Ascension/AscCAMgr.cpp:5355	Packet_SMSG_REMOVED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4353	mapped
+0x006E7B00	func	src/Ascension/AscAttachFixes.cpp:11,src/Ascension/AscAttachFixes.cpp:12,src/Ascension/AscAttachFixes.cpp:141,src/Ascension/AscAttachFixes.cpp:1038	CGPlayer_C::AddKnownSpell	WoW/Source/Object/ObjectClient/Player_C.cpp:4806	mapped
+0x006E7D60	func	src/Ascension/AscCAMgr.cpp:397,src/Ascension/AscCAMgr.cpp:5353	Packet_SMSG_LEARNED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4390	mapped
+0x006E7E00	func	src/Ascension/AscCAMgr.cpp:525,src/Ascension/AscCAMgr.cpp:5356	Packet_SMSG_SUPERCEDED_SPELL	WoW/Source/Object/ObjectClient/Player_C.cpp:4424	mapped
 0x006E7F50	func	src/Ascension/AscAlternatePower.cpp:7,src/Ascension/AscAlternatePower.cpp:15,src/Ascension/AscRuntime.cpp:603,src/Ascension/AscRuntime.cpp:891,src/Ascension/AscRuntime.cpp:892,src/Ascension/AscRuntime.hpp:67	CGPlayer_C::PostInitActivePlayer	WoW/Source/Object/ObjectClient/Player_C.cpp:3056	mapped
-0x006E83B0	func	WotLKExtensions/src/Client/ClientServices.cpp:51	CGPlayer_C::PlayerInitializeMessageHandlers	WoW/Source/Object/ObjectClient/Player_C.cpp:4437	mapped
+0x006E83B0	func	WotLKExtensions/src/Client/ClientServices.cpp:51	CGPlayer_C::PlayerInitializeMessageHandlers	WoW/Source/Object/ObjectClient/Player_C.cpp:4490	mapped
 0x006E9230	func	src/Ascension/AscMovementForce.cpp:343,src/Ascension/AscMovementForce.cpp:351	MovementGetIdleTime	WoW/Source/Object/ObjectClient/Movement_C.cpp:266	mapped
 0x006E9600	func	src/Ascension/AscInitHooks.cpp:22,src/Ascension/AscInitHooks.cpp:323	CMovement_C::SetCollisionHeight	WoW/Source/Object/Movement.cpp:4484	mapped
 0x006EAC40	func	src/Ascension/AscMovementForce.cpp:90	CMovement_C::ApplyMovement	WoW/Source/Object/Movement.cpp:5189	mapped
@@ -796,13 +796,13 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00708540	func	src/Ascension/AscTooltipScaling.cpp:16,src/Ascension/AscTooltipScaling.cpp:486,src/Ascension/AscTooltipScaling.cpp:1239	CGItem_C::GetRepairCost	WoW/Source/Object/ObjectClient/Item_C.cpp:1243	mapped
 0x007086B0	func	WotLKExtensions/src/Client/CGTooltip.cpp:1368	CGItem_C::IsLocked	WoW/Source/Object/ObjectClient/Item_C.cpp:1304	mapped
 0x00708C20	func	src/Ascension/AscRuntime.cpp:206,src/Ascension/AscRuntime.cpp:863,src/Ascension/AscRuntime.cpp:864,src/Ascension/AscRuntime.hpp:99	CGItem_C::UseItem	WoW/Source/Object/ObjectClient/Item_C.cpp:1506	mapped
-0x0070B960	func	src/Ascension/AscAttachFixes.cpp:29,src/Ascension/AscAttachFixes.cpp:434,src/Ascension/AscAttachFixes.cpp:1056	CGGameObject_C::ShouldRender	WoW/Source/Object/ObjectClient/GameObject_C.cpp:773	mapped
+0x0070B960	func	src/Ascension/AscAttachFixes.cpp:29,src/Ascension/AscAttachFixes.cpp:434,src/Ascension/AscAttachFixes.cpp:1056	CGGameObject_C::ShouldRender	WoW/Source/Object/ObjectClient/GameObject_C.cpp:772	mapped
 0x0070CDF0	func	src/Ascension/AscAttachFixes.cpp:59,src/Ascension/AscAttachFixes.cpp:743,src/Ascension/AscAttachFixes.cpp:1068	CGGameObject_C::GetObjectName	WoW/Source/Object/ObjectClient/GameObject_C.cpp:573	mapped
 0x0070ED92	unknown	src/Ascension/AscAttachInline.generated.inc:19			unported
-0x0070F680	func	src/Ascension/AscRuntime.cpp:193,src/Ascension/AscRuntime.cpp:861,src/Ascension/AscRuntime.cpp:862,src/Ascension/AscRuntime.hpp:98	CGGameObject_C::UseObject	WoW/Source/Object/ObjectClient/GameObject_C.cpp:3886	mapped
-0x00710390	func	src/Ascension/AscInitHooks.cpp:28,src/Ascension/AscInitHooks.cpp:329	CGGameObject_C::IsUsableMounted	WoW/Source/Object/ObjectClient/GameObject_C.cpp:4048	mapped
-0x00712400	func	src/Ascension/AscPatchData.cpp:205,src/Ascension/AscPatchData.cpp:298	CGGameObject_C::LoadBaseObject	WoW/Source/Object/ObjectClient/GameObject_C.cpp:2980	mapped
-0x00713F50	func	src/Ascension/AscPatchData.cpp:203,src/Ascension/AscPatchData.cpp:297	CGGameObject_C::ModelLoaded	WoW/Source/Object/ObjectClient/GameObject_C.cpp:2719	mapped
+0x0070F680	func	src/Ascension/AscRuntime.cpp:193,src/Ascension/AscRuntime.cpp:861,src/Ascension/AscRuntime.cpp:862,src/Ascension/AscRuntime.hpp:98	CGGameObject_C::UseObject	WoW/Source/Object/ObjectClient/GameObject_C.cpp:3885	mapped
+0x00710390	func	src/Ascension/AscInitHooks.cpp:28,src/Ascension/AscInitHooks.cpp:329	CGGameObject_C::IsUsableMounted	WoW/Source/Object/ObjectClient/GameObject_C.cpp:4047	mapped
+0x00712400	func	src/Ascension/AscPatchData.cpp:205,src/Ascension/AscPatchData.cpp:298	CGGameObject_C::LoadBaseObject	WoW/Source/Object/ObjectClient/GameObject_C.cpp:2979	mapped
+0x00713F50	func	src/Ascension/AscPatchData.cpp:203,src/Ascension/AscPatchData.cpp:297	CGGameObject_C::ModelLoaded	WoW/Source/Object/ObjectClient/GameObject_C.cpp:2718	mapped
 0x00714AFC	unknown	WotLKExtensions/src/Client/CNetClient.cpp:11			unported
 0x0071557D	unknown	src/Ascension/AscNamePlates.cpp:8,src/Ascension/AscNamePlates.cpp:632			unported
 0x00715586	unknown	src/Ascension/AscNamePlates.cpp:8,src/Ascension/AscNamePlates.cpp:633			unported
@@ -876,7 +876,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x007283A0	func	src/Ascension/AscSpellMods.cpp:67,src/Ascension/AscSpellMods.cpp:69,WotLKExtensions/src/GameObjects/CGUnit.cpp:20	CGUnit_C::AffectedByAura	WoW/Source/Object/ObjectClient/Unit_C.cpp:15584	mapped
 0x007289C0	func	src/Ascension/AscSpellActivationOverlay.cpp:109,src/Ascension/AscSpellMods.cpp:151,src/Ascension/AscSpellMods.cpp:168	CGUnit_C::GetAuraIndex	WoW/Source/Object/ObjectClient/Unit_C.cpp:8352	mapped
 0x00728A20	func	src/Ascension/AscCAMgr.cpp:294	CGUnit_C::DoPowerRegen	WoW/Source/Object/ObjectClient/Unit_C.cpp:18058	mapped
-0x00728AA1	unknown	src/Ascension/AscCAMgr.cpp:295,src/Ascension/AscCAMgr.cpp:305			unported
+0x00728AA1	data	src/Ascension/AscCAMgr.cpp:295,src/Ascension/AscCAMgr.cpp:305	CoA::AttachPatches::SetRuneUiClass	CoA/Source/Modules/AttachPatches.cpp:42	mapped
 0x00728AA3	unknown	src/Ascension/AscAttachPatches.cpp:9,src/Ascension/AscAttachPatches.generated.inc:5,src/Ascension/AscCAMgr.cpp:1384			unported
 0x00729220	func	src/Ascension/AscAlternatePower.cpp:16,src/Ascension/AscAlternatePower.cpp:57	CGUnit_C::OnDeath	WoW/Source/Object/ObjectClient/Unit_C.cpp:10289	mapped
 0x00729530	func	src/Ascension/AscAttachFixes.cpp:69,src/Ascension/AscAttachFixes.cpp:928	CGPlayer_C::CanInteract	WoW/Source/Object/ObjectClient/Player_C.cpp:1132	mapped
@@ -976,18 +976,18 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00758C50	func	src/Ascension/AscClientDbcPatch.cpp:313,src/Ascension/AscClientDbcPatch.cpp:318	CSimpleScriptManager::Create	WoW/Source/Object/ObjectClient/SimpleScript.cpp:23	mapped
 0x00758CD0	func	src/Ascension/AscClientDbcPatch.cpp:313,src/Ascension/AscClientDbcPatch.cpp:317	CSimpleScriptManager::Destroy	WoW/Source/Object/ObjectClient/SimpleScript.cpp:67	mapped
 0x00762E00	func	src/Ascension/AscMovementForce.cpp:16,src/Ascension/AscMovementForce.cpp:691	CMovement_C::CollideRequestMove	WoW/Source/Object/Movement.cpp:4231	mapped
-0x00766530	func	src/Ascension/AscCVarHooks.cpp:4,src/Ascension/AscCVarHooks.cpp:60	CVar::Load	Engine/Source/ConsoleBase/ConsoleVar.cpp:258	mapped
-0x00766640	func	src/Ascension/AscCVarHooks.cpp:9,src/Ascension/AscCVarHooks.cpp:164,src/Ascension/AscRaidVideo.cpp:13,src/Ascension/AscRaidVideo.cpp:148,src/Ascension/AscRuntime.cpp:439	CVar::SaveCvar	Engine/Source/ConsoleBase/ConsoleVar.cpp:307	mapped
-0x00766720	func	src/Ascension/AscSuperTrack.cpp:18,src/Ascension/AscSuperTrack.cpp:108,src/Ascension/AscSuperTrack.cpp:117	CVarIntListWrapper::AddNextValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:356	mapped
-0x00766860	func	src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:68	CVarArrayWrapper::RawGetValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:403	mapped
-0x007668C0	func	src/Ascension/AscAttachMisc.cpp:5,src/Ascension/AscAttachMisc.cpp:118,src/Ascension/AscAttachMisc.cpp:118,src/Ascension/AscEventPackets.cpp:345,src/Ascension/AscEventPackets.cpp:355,src/Ascension/AscGraphics.cpp:97,src/Ascension/AscGraphics.cpp:100,src/Ascension/AscMisc.cpp:152,src/Ascension/AscMisc.cpp:157,src/Ascension/AscRaidVideo.cpp:58,src/Ascension/AscRaidVideo.cpp:64,src/Ascension/AscSuperTrack.cpp:118,src/Ascension/AscSuperTrack.cpp:125	CVar::Set	Engine/Source/ConsoleBase/ConsoleVar.cpp:411	mapped
-0x00766940	func	WotLKExtensions/src/Client/CVar.cpp:77	CVar::Set	Engine/Source/ConsoleBase/ConsoleVar.cpp:444	mapped
-0x00766CA0	func	src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:81	CVarArrayWrapper::RawSetValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:566	mapped
-0x00766F70	func	src/Ascension/AscSuperTrack.cpp:18,src/Ascension/AscSuperTrack.cpp:108,src/Ascension/AscSuperTrack.cpp:116	CVarIntListWrapper::GetNextValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:647	mapped
+0x00766530	func	src/Ascension/AscCVarHooks.cpp:4,src/Ascension/AscCVarHooks.cpp:60	CVar::Load	Engine/Source/ConsoleBase/ConsoleVar.cpp:259	mapped
+0x00766640	func	src/Ascension/AscCVarHooks.cpp:9,src/Ascension/AscCVarHooks.cpp:164,src/Ascension/AscRaidVideo.cpp:13,src/Ascension/AscRaidVideo.cpp:148,src/Ascension/AscRuntime.cpp:439	CVar::SaveCvar	Engine/Source/ConsoleBase/ConsoleVar.cpp:308	mapped
+0x00766720	func	src/Ascension/AscSuperTrack.cpp:18,src/Ascension/AscSuperTrack.cpp:108,src/Ascension/AscSuperTrack.cpp:117	CVarIntListWrapper::AddNextValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:357	mapped
+0x00766860	func	src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:68	CVarArrayWrapper::RawGetValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:404	mapped
+0x007668C0	func	src/Ascension/AscAttachMisc.cpp:5,src/Ascension/AscAttachMisc.cpp:118,src/Ascension/AscAttachMisc.cpp:118,src/Ascension/AscEventPackets.cpp:345,src/Ascension/AscEventPackets.cpp:355,src/Ascension/AscGraphics.cpp:97,src/Ascension/AscGraphics.cpp:100,src/Ascension/AscMisc.cpp:152,src/Ascension/AscMisc.cpp:157,src/Ascension/AscRaidVideo.cpp:58,src/Ascension/AscRaidVideo.cpp:64,src/Ascension/AscSuperTrack.cpp:118,src/Ascension/AscSuperTrack.cpp:125	CVar::Set	Engine/Source/ConsoleBase/ConsoleVar.cpp:412	mapped
+0x00766940	func	WotLKExtensions/src/Client/CVar.cpp:77	CVar::Set	Engine/Source/ConsoleBase/ConsoleVar.cpp:445	mapped
+0x00766CA0	func	src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:81	CVarArrayWrapper::RawSetValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:567	mapped
+0x00766F70	func	src/Ascension/AscSuperTrack.cpp:18,src/Ascension/AscSuperTrack.cpp:108,src/Ascension/AscSuperTrack.cpp:116	CVarIntListWrapper::GetNextValue	Engine/Source/ConsoleBase/ConsoleVar.cpp:648	mapped
 0x00767427	unknown	src/Ascension/AscAttachLate.generated.inc:26			unported
-0x00767440	func	src/Ascension/AscCVarHooks.cpp:113,src/Ascension/AscLogger.cpp:101,src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:56,src/Ascension/AscTutorial.cpp:846,WotLKExtensions/src/Client/CVar.cpp:82	CVar::Lookup	Engine/Source/ConsoleBase/ConsoleVar.cpp:786	mapped
-0x00767FC0	func	src/Ascension/AscGlobalsJ.cpp:949,src/Ascension/AscGlobalsJ.cpp:977,src/Ascension/AscGlobalsJ.cpp:978,WotLKExtensions/src/Client/CVar.cpp:58,WotLKExtensions/src/Client/CVar.cpp:72	CVar::Register	Engine/Source/ConsoleBase/ConsoleVar.cpp:812	mapped
-0x00768340	func	src/Ascension/AscMisc.cpp:434	CVar::Initialize	Engine/Source/ConsoleBase/ConsoleVar.cpp:882	mapped
+0x00767440	func	src/Ascension/AscCVarHooks.cpp:113,src/Ascension/AscLogger.cpp:101,src/Ascension/AscSmallApis.cpp:55,src/Ascension/AscSmallApis.cpp:56,src/Ascension/AscTutorial.cpp:846,WotLKExtensions/src/Client/CVar.cpp:82	CVar::Lookup	Engine/Source/ConsoleBase/ConsoleVar.cpp:787	mapped
+0x00767FC0	func	src/Ascension/AscGlobalsJ.cpp:949,src/Ascension/AscGlobalsJ.cpp:977,src/Ascension/AscGlobalsJ.cpp:978,WotLKExtensions/src/Client/CVar.cpp:58,WotLKExtensions/src/Client/CVar.cpp:72	CVar::Register	Engine/Source/ConsoleBase/ConsoleVar.cpp:813	mapped
+0x00768340	func	src/Ascension/AscMisc.cpp:434	CVar::Initialize	Engine/Source/ConsoleBase/ConsoleVar.cpp:883	mapped
 0x00769100	func	src/Ascension/AscRealmData.cpp:393	ConsoleCommandRegister	Engine/Source/ConsoleBase/ConsoleCommand.cpp:261	mapped
 0x007695E0	func	src/Ascension/AscCursor.cpp:12,src/Ascension/AscCursor.cpp:183	CVGxCursorCallback	WoW/Source/ConsoleDevice/ConsoleDevice_CVar.cpp:225	mapped
 0x0076A220	func	src/Ascension/AscCVarHooks.cpp:10,src/Ascension/AscCVarHooks.cpp:167	CVGxResolutionCallback	WoW/Source/ConsoleDevice/ConsoleDevice_CVar.cpp:401	mapped
@@ -1141,8 +1141,8 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x007F38ED	unknown	src/Ascension/AscGraphics.cpp:251			unported
 0x007F3AFD	unknown	src/Ascension/AscAttachPatches.cpp:38,src/Ascension/AscAttachPatches.cpp:77,src/Ascension/AscAttachPatches.generated.inc:53			unported
 0x007F3B03	unknown	src/Ascension/AscAttachPatches.cpp:38,src/Ascension/AscAttachPatches.generated.inc:54			unported
-0x007F3B60	func	src/Ascension/AscAttachFixes.cpp:15,src/Ascension/AscAttachFixes.cpp:223,src/Ascension/AscAttachFixes.cpp:1042	MinimapGetZoomLevels	WoW/Source/Ui/MinimapFrame.cpp:3605	mapped
-0x007F3B90	func	src/Ascension/AscMisc.cpp:57,src/Ascension/AscMisc.cpp:60	MinimapGetViewRadius	WoW/Source/Ui/MinimapFrame.cpp:772	mapped
+0x007F3B60	func	src/Ascension/AscAttachFixes.cpp:15,src/Ascension/AscAttachFixes.cpp:223,src/Ascension/AscAttachFixes.cpp:1042	MinimapGetZoomLevels	WoW/Source/Ui/MinimapFrame.cpp:3612	mapped
+0x007F3B90	func	src/Ascension/AscMisc.cpp:57,src/Ascension/AscMisc.cpp:60	MinimapGetViewRadius	WoW/Source/Ui/MinimapFrame.cpp:778	mapped
 0x007F3BA5	unknown	src/Ascension/AscAttachPatches.cpp:81,src/Ascension/AscAttachPatches.generated.inc:44			unported
 0x007F3BB6	unknown	src/Ascension/AscAttachPatches.generated.inc:48			unported
 0x007F3BBD	unknown	src/Ascension/AscAttachPatches.generated.inc:49			unported
@@ -1469,9 +1469,9 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00A40218	unknown	src/Ascension/AscAttachLua.cpp:321			unported
 0x00A4040C	func	src/Ascension/AscSpellShadow.cpp:11,src/Ascension/AscSpellShadow.cpp:95,src/Ascension/AscUnitSelect.cpp:26,src/Ascension/AscUnitSelect.cpp:141			unported
 0x00A41C2C	unknown	src/Ascension/AscZoneLight.cpp:14,src/Ascension/AscZoneLight.cpp:77			unported
-0x00A41E00	unknown	src/Ascension/AscPOI.cpp:101,src/Ascension/AscPOI.cpp:107,src/Ascension/AscPOI.cpp:108,src/Ascension/AscPOI.cpp:109			unported
-0x00A41E04	data	src/Ascension/AscAttachPatches.cpp:36	s_outdoorZoomTiles	WoW/Source/Ui/MinimapFrame.cpp:229	mapped
-0x00A41E1C	data	src/Ascension/AscAttachPatches.cpp:36	s_indoorZoomRadius	WoW/Source/Ui/MinimapFrame.cpp:233	mapped
+0x00A41E00	data	src/Ascension/AscPOI.cpp:101,src/Ascension/AscPOI.cpp:107,src/Ascension/AscPOI.cpp:108,src/Ascension/AscPOI.cpp:109	g_maxPOIDistance	WoW/Source/Ui/MinimapFrame.cpp:71	mapped
+0x00A41E04	data	src/Ascension/AscAttachPatches.cpp:36	s_outdoorZoomTiles	WoW/Source/Ui/MinimapFrame.cpp:234	mapped
+0x00A41E1C	data	src/Ascension/AscAttachPatches.cpp:36	s_indoorZoomRadius	WoW/Source/Ui/MinimapFrame.cpp:238	mapped
 0x00A478E0	unknown	src/Ascension/AscClientGuards.cpp:72,src/Ascension/AscClientGuards.cpp:78			unported
 0x00AA2D0E	unknown	src/Ascension/AscAttachInline.generated.inc:23			unported
 0x00AB6160	unknown	src/Ascension/AscRealmData.cpp:58,src/Ascension/AscRealmData.cpp:170,src/Ascension/AscRealmData.cpp:176			unported
@@ -1490,7 +1490,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00ACD7FC	unknown	WotLKExtensions/src/GameObjects/CGPlayer.cpp:71			unported
 0x00ACE8F8	unknown	src/Ascension/AscSpellTokens.cpp:376,src/Ascension/AscSpellTokens.cpp:400,WotLKExtensions/src/Client/CFormula.cpp:112			unported
 0x00ACEF20	unknown	src/Ascension/AscGossipQuest.cpp:20,src/Ascension/AscGossipQuest.cpp:61			unported
-0x00ACF548	data	src/Ascension/AscAttachFixes.cpp:33,src/Ascension/AscAttachFixes.cpp:480	s_nextHand	WoW/Source/Ui/DressUpModelFrame.cpp:135	mapped
+0x00ACF548	data	src/Ascension/AscAttachFixes.cpp:33,src/Ascension/AscAttachFixes.cpp:480	s_nextHand	WoW/Source/Ui/DressUpModelFrame.cpp:137	mapped
 0x00ACFC00	data	src/Ascension/AscGameMode.cpp:145,src/Ascension/AscGameMode.cpp:154	CGEquipmentManager::s_equipmentSets	WoW/Source/Ui/EquipmentManager.cpp:42	mapped
 0x00ACFDA0	unknown	src/Ascension/AscCallboardCache.cpp:9			unported
 0x00ACFDB0	data	src/Ascension/AscChallenge.cpp:287,src/Ascension/AscCustomStore.cpp:130,src/Ascension/AscCustomStore.cpp:133,src/Ascension/AscSpawnVisibility.cpp:8,src/Ascension/AscSpawnVisibility.cpp:56,src/Ascension/AscTutorial.cpp:91,src/Ascension/AscTutorial.cpp:94	s_completedAchievements	WoW/Source/Ui/AchievementInfo.cpp:26	mapped
@@ -1835,9 +1835,9 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00BD19AC	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66	CGBarberShop::m_currentHairStyle	WoW/Source/Ui/BarberShop.cpp:42	mapped
 0x00BD19B0	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:66	CGBarberShop::m_currentFacialHair	WoW/Source/Ui/BarberShop.cpp:45	mapped
 0x00BD19B4	data	src/Ascension/AscAttachLate.cpp:5,src/Ascension/AscAttachLate.cpp:67	CGBarberShop::m_currentSkinColor	WoW/Source/Ui/BarberShop.cpp:48	mapped
-0x00BE5D84	data	src/Ascension/AscGlobalsJ.cpp:586,src/Ascension/AscGlobalsJ.cpp:590	CGSpellBook::m_autoRangedSpell	WoW/Source/Ui/SpellBookFrame.cpp:50	mapped
-0x00BE6D88	data	src/Ascension/AscCAMgr.cpp:4121,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1068	s_spellList	WoW/Source/Ui/SpellBookFrame.cpp:95	mapped
-0x00BE8D98	data	src/Ascension/AscCAMgr.cpp:4120,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1069	s_numSpells	WoW/Source/Ui/SpellBookFrame.cpp:107	mapped
+0x00BE5D84	data	src/Ascension/AscGlobalsJ.cpp:586,src/Ascension/AscGlobalsJ.cpp:590	CGSpellBook::m_autoRangedSpell	WoW/Source/Ui/SpellBookFrame.cpp:51	mapped
+0x00BE6D88	data	src/Ascension/AscCAMgr.cpp:4121,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1068	s_spellList	WoW/Source/Ui/SpellBookFrame.cpp:96	mapped
+0x00BE8D98	data	src/Ascension/AscCAMgr.cpp:4120,src/Ascension/AscGlobalsJ.cpp:1020,src/Ascension/AscGlobalsJ.cpp:1069	s_numSpells	WoW/Source/Ui/SpellBookFrame.cpp:108	mapped
 0x00BEA549	data	src/Ascension/AscAttachLate.cpp:11,src/Ascension/AscAttachLate.cpp:119	CGBattlefieldInfo::m_hasRandomWinToday	WoW/Source/Ui/BattlefieldInfo.cpp:113	mapped
 0x00BEA558	data	src/Ascension/AscAttachLate.cpp:122	CGBattlefieldInfo::m_randomLossHonor	WoW/Source/Ui/BattlefieldInfo.cpp:128	mapped
 0x00BEA55C	data	src/Ascension/AscAttachLate.cpp:120	CGBattlefieldInfo::m_randomWinHonor	WoW/Source/Ui/BattlefieldInfo.cpp:131	mapped
@@ -1866,7 +1866,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00C0D7EC	data	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:154	s_currentNode	WoW/Source/Ui/TaxiMapFrame.cpp:51	mapped
 0x00C0DC38	unknown	src/Ascension/AscSmallApis.cpp:150,src/Ascension/AscSmallApis.cpp:162			unported
 0x00C0E490	data	src/Ascension/AscAttachFixes.cpp:26,src/Ascension/AscAttachFixes.cpp:415	CGClassTrainer::m_trainer	WoW/Source/Ui/ClassTrainerFrame.cpp:29	mapped
-0x00C0E4F8	data	src/Ascension/AscModelMethods.cpp:435,src/Ascension/AscModelMethods.cpp:441	s_mainHandItemId	WoW/Source/Ui/DressUpModelFrame.cpp:128	mapped
+0x00C0E4F8	data	src/Ascension/AscModelMethods.cpp:435,src/Ascension/AscModelMethods.cpp:441	s_mainHandItemId	WoW/Source/Ui/DressUpModelFrame.cpp:129	mapped
 0x00C0F3F8	data	src/Ascension/AscAttachFixes.cpp:64,src/Ascension/AscAttachFixes.cpp:777	CGAuctionHouse::m_sellItem	WoW/Source/Ui/AuctionHouse.cpp:109	mapped
 0x00C0F440	data	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:166,src/Ascension/AscTooltipScaling.cpp:732	CGAuctionHouse::m_browseList	WoW/Source/Ui/AuctionHouse.cpp:79	mapped
 0x00C0F450	data	src/Ascension/AscItemStats.cpp:153,src/Ascension/AscItemStats.cpp:164,src/Ascension/AscTooltipScaling.cpp:730	CGAuctionHouse::m_ownerList	WoW/Source/Ui/AuctionHouse.cpp:82	mapped
@@ -1875,8 +1875,8 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00C0F6CC	data	src/Ascension/AscMisc.cpp:245,src/Ascension/AscMisc.cpp:250	CGStableInfo::m_numSlots	WoW/Source/Ui/StableInfo.cpp:24	mapped
 0x00C1DC0D	data	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:137	CGGuildBankInfo::m_currentTab	WoW/Source/Ui/GuildBankFrame.cpp:35	mapped
 0x00C1DC10	data	src/Ascension/AscAttachFixes.cpp:9,src/Ascension/AscAttachFixes.cpp:134,src/Ascension/AscAttachFixes.cpp:135,src/Ascension/AscTooltipScaling.cpp:760	CGGuildBankInfo::m_banker	WoW/Source/Ui/GuildBankFrame.cpp:23	mapped
-0x00C1DED8	data	WotLKExtensions/src/Data/MiscAddresses.hpp:18	CGActionBar::m_slotUsable	WoW/Source/Ui/ActionBarFrame.cpp:38	mapped
-0x00C1E358	data	src/Ascension/AscCAMgr.cpp:480,src/Ascension/AscCAMgr.cpp:491,WotLKExtensions/src/Data/MiscAddresses.hpp:19	CGActionBar::m_slotActions	WoW/Source/Ui/ActionBarFrame.cpp:44	mapped
+0x00C1DED8	data	WotLKExtensions/src/Data/MiscAddresses.hpp:18	CGActionBar::m_slotUsable	WoW/Source/Ui/ActionBarFrame.cpp:39	mapped
+0x00C1E358	data	src/Ascension/AscCAMgr.cpp:480,src/Ascension/AscCAMgr.cpp:491,WotLKExtensions/src/Data/MiscAddresses.hpp:19	CGActionBar::m_slotActions	WoW/Source/Ui/ActionBarFrame.cpp:45	mapped
 0x00C23540	data	src/Ascension/AscAttachFixes.cpp:801,src/Ascension/AscAttachFixes.cpp:814,src/Ascension/AscClientDbcPatch.cpp:174,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscClientDbcPatch.cpp:187,src/Ascension/AscExtraActionButton.cpp:49,src/Ascension/AscExtraActionButton.cpp:57,src/Ascension/AscInitHooks.cpp:24,src/Ascension/AscInitHooks.cpp:264,src/Ascension/AscMysticEnchant.cpp:253,src/Ascension/AscMysticEnchantPreset.cpp:86,src/Ascension/AscSmallApis.cpp:309,src/Ascension/AscSmallApis.cpp:318	CGContainerInfo::m_containers	WoW/Source/Ui/ContainerFrame.cpp:24	mapped
 0x00C235A4	data	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:256	CGTradeSkillInfo::m_skillLineID	WoW/Source/Ui/TradeSkillFrame.cpp:120	mapped
 0x00C235F4	data	src/Ascension/AscAttachLua.cpp:15,src/Ascension/AscAttachLua.cpp:243	CGTradeSkillInfo::m_displayList	WoW/Source/Ui/TradeSkillFrame.cpp:93	mapped
@@ -1917,7 +1917,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00CA1238	data	src/Ascension/AscMovementForce.cpp:74	CGUnit_C::s_activeMover	WoW/Source/Object/ObjectClient/Unit_C.cpp:214	mapped
 0x00CA12C4	data	src/Ascension/AscUnitSelect.cpp:13,src/Ascension/AscUnitSelect.cpp:100,src/Ascension/AscUnitSelect.cpp:260,src/Ascension/AscUnitSelect.cpp:322,src/Ascension/AscUnitSelect.cpp:356	CGObject_C::s_selectionTexture	WoW/Source/Object/ObjectClient/Object_C.cpp:78	mapped
 0x00CA1394	data	src/Ascension/AscGlobalsJ.cpp:87,src/Ascension/AscGlobalsJ.cpp:94	s_pendingEntries	WoW/Source/Object/ObjectClient/UnitCombatLog_C.cpp:184	mapped
-0x00CA19FC	data	src/Ascension/AscGlobalsI.cpp:18,src/Ascension/AscGlobalsI.cpp:23	s_registeredCVars	Engine/Source/ConsoleBase/ConsoleVar.cpp:24	mapped
+0x00CA19FC	data	src/Ascension/AscGlobalsI.cpp:18,src/Ascension/AscGlobalsI.cpp:23	s_registeredCVars	Engine/Source/ConsoleBase/ConsoleVar.cpp:25	mapped
 0x00CD774C	data	src/Ascension/AscGraphics.cpp:51,src/Ascension/AscGraphics.cpp:133,WotLKExtensions/src/Data/MiscAddresses.hpp:10	CWorld::enables	WoW/Source/WorldClient/World.cpp:231	mapped
 0x00CD774D	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:11			unported
 0x00CD774E	unknown	WotLKExtensions/src/Data/MiscAddresses.hpp:12			unported
@@ -1946,7 +1946,7 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x00D38CCC	unknown	src/Ascension/AscZoneLight.cpp:9,src/Ascension/AscZoneLight.cpp:218			unported
 0x00D38E48	unknown	src/Ascension/AscZoneLight.cpp:8,src/Ascension/AscZoneLight.cpp:50			unported
 0x00D38E68	unknown	src/Ascension/AscZoneLight.cpp:14,src/Ascension/AscZoneLight.cpp:49			unported
-0x00D39434	data	src/Ascension/AscMisc.cpp:44	s_isIndoors	WoW/Source/Ui/MinimapFrame.cpp:260	mapped
+0x00D39434	data	src/Ascension/AscMisc.cpp:44	s_isIndoors	WoW/Source/Ui/MinimapFrame.cpp:266	mapped
 0x00D397D0	data	src/Ascension/AscSpellMods.cpp:65	s_autoRepeatingSpell	WoW/Source/Magic/MagicClient/Spell_C.cpp:114	mapped
 0x00D3F4E4	data	src/Ascension/AscSpellShadow.cpp:9,src/Ascension/AscSpellShadow.cpp:78	s_targetingSpell	WoW/Source/Magic/MagicClient/Spell_C.cpp:120	mapped
 0x00D3F60C	data	src/Ascension/AscClientDbcPatch.cpp:222,src/Ascension/AscClientDbcPatch.cpp:238	s_skillLineLinkInfoDirty	WoW/Source/Magic/MagicClient/SpellTable.cpp:13	mapped
