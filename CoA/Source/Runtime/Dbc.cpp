@@ -315,6 +315,24 @@ void CoA::Dbc::Table::Upsert(uint32_t id, const std::vector<uint8_t>& row) {
     this->m_index[id - this->m_min] = copy->data();
 }
 
+void CoA::Dbc::Table::Unload() {
+    for (std::vector<uint8_t>* row : this->m_patched) {
+        delete row;
+    }
+
+    this->m_patched.clear();
+    this->m_tried = false;
+    this->m_ok = false;
+    this->m_openLogged = false;
+    this->m_count = 0;
+    this->m_rowSize = 0;
+    this->m_min = 0;
+    this->m_max = 0;
+    this->m_rows.clear();
+    this->m_strings.clear();
+    this->m_index.clear();
+}
+
 CoA::Dbc::Table& CoA::Dbc::Get(const char* path) {
     static std::map<std::string, CoA::Dbc::Table*> tables;
     std::string key(path);
