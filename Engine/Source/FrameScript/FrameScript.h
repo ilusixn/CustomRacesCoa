@@ -54,6 +54,9 @@ void FrameScript_Flush();
 int32_t FrameScript_GetColor(lua_State* L, int32_t index, CImVector& color);
 int32_t FrameScript_GetColorNoAlpha(lua_State* L, int32_t index, CImVector& color);
 lua_State* FrameScript_GetContext();
+
+// CoA: AscGlobalsJ.cpp:ScriptErrorHandler (orig hook 0x819730).
+extern void (*g_frameScriptErrorHook)(lua_State* L, int32_t entering);
 const char* FrameScript_GetCurrentObject(lua_State* L, int32_t level);
 char* FrameScript_GetCurrentFunction(lua_State* L, char* buffer, uint32_t bufferLen);
 int32_t FrameScript_GetErrorHandlerReference();

@@ -12,6 +12,14 @@
 struct lua_State;
 
 namespace CoATest {
+    // Runs the rest of a test in a fresh temporary working directory (with a WTF folder); restores the old one.
+    struct TempCwd {
+        TempCwd();
+        ~TempCwd();
+        char previous[260];
+        char dir[260];
+    };
+
     // Little-endian packet payload builder.
     class Bytes {
     public:
@@ -40,6 +48,13 @@ namespace CoATest {
     void RecordSignals();
     void StopRecordingSignals();
     std::vector<std::string>& Signals();
+
+    // Every CoA::Packet::Send while installed: the finalized bytes (u32 opcode first).
+    void RecordPackets();
+    void StopRecordingPackets();
+    std::vector<std::vector<uint8_t>>& SentPackets();
+    // A u32 opcode followed by the bytes.
+    std::vector<uint8_t> Expected(uint32_t opcode, const Bytes& payload);
 
     // Inits RealmInfo, Account, Config, GameEvents and the realm getters of Misc / GlobalsB / GlobalsD.
     void InitRealmModules();

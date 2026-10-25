@@ -1,16 +1,24 @@
 #include "CoA/Tests/Support.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Events.h"
+#include "CoA/Source/Runtime/Packet.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "Engine/Source/lua-5.1/src/lualib.h"
+#include <Windows.h>
+#include <direct.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 
 namespace {
     std::vector<std::string> s_signals;
+    std::vector<std::vector<uint8_t>> s_packets;
+
+    void RecordingSender(CDataStore* msg) {
+        s_packets.emplace_back(msg->m_data, msg->m_data + msg->m_size);
+    }
 
     void RecordingSink(const char* name, const char* format, va_list args) {
         std::string line(name);
@@ -56,6 +64,21 @@ namespace {
     }
 }
 
+CoATest::TempCwd::TempCwd() {
+    static uint32_t counter = 0;
+    _getcwd(this->previous, sizeof(this->previous));
+    char base[MAX_PATH];
+    GetTempPathA(sizeof(base), base);
+    snprintf(this->dir, sizeof(this->dir), "%sCoATests_%lu_%lu_%u", base, GetCurrentProcessId(), GetTickCount(), ++counter);
+    CreateDirectoryA(this->dir, nullptr);
+    _chdir(this->dir);
+    CreateDirectoryA("WTF", nullptr);
+}
+
+CoATest::TempCwd::~TempCwd() {
+    _chdir(this->previous);
+}
+
 int32_t CoATest::Deliver(int32_t (*handler)(void*, uint32_t, uint32_t, CDataStore*), uint32_t opcode, CoATest::Bytes& bytes, CDataStore** out) {
     static CDataStore* last = nullptr;
     delete last;
@@ -66,6 +89,26 @@ int32_t CoATest::Deliver(int32_t (*handler)(void*, uint32_t, uint32_t, CDataStor
     }
 
     return handler(nullptr, opcode, 0, last);
+}
+
+void CoATest::RecordPackets() {
+    s_packets.clear();
+    CoA::Packet::SetSender(RecordingSender);
+}
+
+void CoATest::StopRecordingPackets() {
+    CoA::Packet::SetSender(nullptr);
+}
+
+std::vector<std::vector<uint8_t>>& CoATest::SentPackets() {
+    return s_packets;
+}
+
+std::vector<uint8_t> CoATest::Expected(uint32_t opcode, const CoATest::Bytes& payload) {
+    CoATest::Bytes b;
+    b.U32(opcode);
+    b.data.insert(b.data.end(), payload.data.begin(), payload.data.end());
+    return b.data;
 }
 
 void CoATest::RecordSignals() {

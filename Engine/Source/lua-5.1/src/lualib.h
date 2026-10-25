@@ -27,6 +27,9 @@ LUALIB_API int (luaopen_io) (lua_State *L);
 #define LUA_OSLIBNAME	"os"
 LUALIB_API int (luaopen_os) (lua_State *L);
 
+/* CoA: AscLogger.cpp:Formatted -- string.format as a C function (0x853C50). */
+LUALIB_API int (lua_strformat) (lua_State *L);
+
 #define LUA_STRLIBNAME	"string"
 LUALIB_API int (luaopen_string) (lua_State *L);
 
