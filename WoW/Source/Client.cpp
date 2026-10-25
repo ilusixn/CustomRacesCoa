@@ -209,7 +209,8 @@ static const uint8_t s_signatureModulus[256] = {
     0xE8, 0xFD, 0xA6, 0x33, 0x10, 0xD1, 0x12, 0x8F, 0x05, 0x80, 0xDA, 0x42, 0x57, 0x0C, 0xEB, 0xC0,
 };
 // STATIC: 0x00AB6158
-// CoA: AscRealmData.cpp:SetPath (Extensions.dll patch 0xAB6160) -- not static: the realm data path replaces [0].
+// CoA: AscRealmData.cpp:SetPath (Extensions.dll patch 0xAB6160) -- not static: the realm data path replaces [2]
+// (0xAB6160; read only with an install location string).
 const char* s_dataDirectories[3] = { "Data\\", "..\\Data\\", "Data\\" };
 
 // STATIC: 0x00AB6350

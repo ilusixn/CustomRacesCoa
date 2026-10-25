@@ -56,7 +56,7 @@ namespace {
 }
 
 namespace {
-    std::string s_prefix;                  // 0x10BCC0C0: "Data\" + path + "\", its c_str in s_dataDirectories[0]
+    std::string s_prefix;                  // 0x10BCC0C0: "Data\" + path + "\", its c_str in s_dataDirectories[2] (0xAB6160)
     bool s_overlayCreated = false;         // 0x10BCC0DA
     bool s_swapDue = false;                // 0x10BCC0DB
     int64_t s_startNs = 0;                 // 0x10BCC0E0
@@ -168,11 +168,11 @@ namespace {
         state.pending.clear();
     }
 
-    // FUN_102fa650: the path, and the client's data prefix s_dataDirectories[0] -> "Data\<path>\".
+    // FUN_102fa650: the path, and the client's data prefix s_dataDirectories[2] (0xAB6160) -> "Data\<path>\".
     void SetPath(const std::string& path) {
         CoA::RealmData::GetState().path = path;
         s_prefix = "Data\\" + path + "\\";
-        s_dataDirectories[0] = s_prefix.c_str();
+        s_dataDirectories[2] = s_prefix.c_str();
     }
 
     // FUN_102f87d0: close every realm archive, then SFile::RebuildHash.
