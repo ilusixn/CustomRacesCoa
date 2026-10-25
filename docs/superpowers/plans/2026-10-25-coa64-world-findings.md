@@ -185,3 +185,11 @@ original's address), and two later runs stayed up.
 | one each: SkillCards, PlayerTicket, AssetQuery, CustomStore, BuildCreator, 3 CVars, options panel | | 9 |
 
 Next by count: Appearance (GameTooltip), then Tutorial, Challenge / DraftMode, Manastorm, LootLockout.
+
+## Order after Plan 7 (user decision 2026-10-25)
+
+1. Plan 8: Appearance (the GameTooltip `C_Appearance` errors).
+2. Then full parity with `CoA/inventory-report.md`: every Lua native, server packet, client hook, byte patch, CVar
+   and event the reconstruction registers, until every row reads total / total. The per-error order above stops
+   setting priority; the inventory gaps do.
+3. Then DXVK, then a proper Warden plan. Helios is out of scope.
