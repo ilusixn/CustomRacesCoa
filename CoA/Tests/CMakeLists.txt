@@ -10,6 +10,9 @@ target_include_directories(CoATests
 target_link_libraries(CoATests
     PRIVATE
         CoA
+        Base
+        Storm
+        BlizzardCore
 )
 
 add_test(NAME CoATests COMMAND CoATests)
