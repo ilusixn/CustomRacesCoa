@@ -137,8 +137,12 @@ int32_t CGTooltip::s_objectType;
 // STATIC: 0x00AD2D08
 int32_t CGTooltip::s_metatable = LUA_NOREF;
 
+// CoA: AscGlobalsJ.cpp:SetItemQualityColor (orig writes the string 0xAD2A84[q] points at) -- writable copies of the
+// literals; 6 and 7 share one, as the original's pooled "|cffe6cc80".
+static char s_itemQualityColorBuffers[7][11] = { "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000", "|cffe6cc80" };
+
 // STATIC: 0x00AD2A84
-static const char* s_itemQualityColorStrings[8] = { "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000", "|cffe6cc80", "|cffe6cc80" };
+static const char* s_itemQualityColorStrings[8] = { s_itemQualityColorBuffers[0], s_itemQualityColorBuffers[1], s_itemQualityColorBuffers[2], s_itemQualityColorBuffers[3], s_itemQualityColorBuffers[4], s_itemQualityColorBuffers[5], s_itemQualityColorBuffers[6], s_itemQualityColorBuffers[6] };
 
 // STATIC: 0x00AD2D2C
 uint32_t s_tooltipTitleColor = 0xFFFFD200;
@@ -794,6 +798,12 @@ const char* CGTooltip::GetItemQualityColorString(uint32_t quality) {
     }
 
     return s_itemQualityColorStrings[quality];
+}
+
+// CoA: AscGlobalsJ.cpp:SetItemQualityColor -- `color` over the quality's string (its length, no NUL) and the colour.
+void CGTooltip::SetItemQualityColor(uint32_t quality, const char* color, uint32_t argb) {
+    memcpy(const_cast<char*>(s_itemQualityColorStrings[quality]), color, strlen(color));
+    s_itemQualityColors[quality] = argb;
 }
 
 // VERIFY: 217f6dcb manual

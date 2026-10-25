@@ -375,12 +375,15 @@ static int32_t Script_TurnOrActionStop(lua_State* L) {
     return 0;
 }
 
+// CoA: AscGlobalsJ.cpp:CallWithPatchedPush (orig patch 0x5FC6C8, 0x5FC73B): the action the two check, 200 around Custom_HandleTerrainClick.
+int32_t g_cameraOrSelectAction = 0;
+
 // VERIFY: a57bba4d auto
 // OFFSET: 0x005FC6C0
 static int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
-    if (CGGameUI::CanPerformAction(0)) {
+    if (CGGameUI::CanPerformAction(g_cameraOrSelectAction)) {
         uint32_t time = CSimpleTop::s_eventTime;
 
         if (!(input->m_flags & INPUT_MOUSE_LOOK_MASK)) {
@@ -405,7 +408,7 @@ static int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
 static int32_t Script_CameraOrSelectOrMoveStop(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
 
-    if (CGGameUI::CanPerformAction(0)) {
+    if (CGGameUI::CanPerformAction(g_cameraOrSelectAction)) {
         uint32_t time = CSimpleTop::s_eventTime;
 
         if (input->UnsetControlBit(INPUT_TURN_CAMERA, time, StringToBOOL(L, 1, 0))) {
@@ -871,4 +874,13 @@ void InputControlUnregisterScriptFunctions() {
     for (uint32_t i = 0; i < sizeof(s_ScriptFunctions) / sizeof(s_ScriptFunctions[0]); i++) {
         FrameScript_UnregisterFunction(s_ScriptFunctions[i].m_name);
     }
+}
+
+// CoA: AscGlobalsJ.cpp:Custom_HandleTerrainClick calls the two directly.
+int32_t CameraOrSelectOrMoveStart(lua_State* L) {
+    return Script_CameraOrSelectOrMoveStart(L);
+}
+
+int32_t CameraOrSelectOrMoveStop(lua_State* L) {
+    return Script_CameraOrSelectOrMoveStop(L);
 }

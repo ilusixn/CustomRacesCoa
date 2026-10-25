@@ -3,6 +3,7 @@
 
 #include <cstdarg>
 #include <cstdint>
+#include <vector>
 
 // The DLL's FrameXML events (port of AscRuntime's event code and the scaffold's DataContainer event list).
 namespace CoA::Events {
@@ -12,6 +13,8 @@ namespace CoA::Events {
     void RegisterNames();
     // Tests only.
     void ResetQueue();
+    // The queued custom names (DataContainer::m_customFrameEventData, 0x10BE2E58), in queue order.
+    const std::vector<const char*>& CustomNames();
 
     // FUN_10278b50, the DLL's detour on FrameScript_CreateEvents (0x81B5F0). The client's two calls are told apart
     // by their count: 0x29 (glue) gets the five glue customs appended, 0x2D2 (world) the queued customs; any other

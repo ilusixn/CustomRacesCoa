@@ -1,9 +1,11 @@
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Runtime/Events.h"
 #include "CoA/Source/Runtime/LuaReg.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include <string>
 #include <vector>
 
@@ -123,4 +125,33 @@ COA_TEST(GlobalsJ_EmptyStores) {
     CHECK(CoATest::Call(L, "", "GetAdditionalRoleRequirementsByClassID", { "n:99" })[0] == "table");
     CHECK(CoATest::Call(L, "", "GetCreatureInfoInstant", { "n:1234" })[0] == "nil");
     CHECK(CoATest::Call(L, "", "IsQuestSequenced", { "n:1234" })[0] == "nil");
+}
+
+// FindScriptEvents(text): the custom names, then the client's 600, whose lower-case form contains the lower-case text.
+COA_TEST(GlobalsJ_FindScriptEvents) {
+    lua_State* L = Setup();
+    CoA::Events::ResetQueue();
+    CoA::Events::Queue("ASCENSION_CUSTOM_PET_THING");
+    CHECK((CoATest::Call(L, "", "FindScriptEvents", { "s:uNiT_pEt" }) == std::vector<std::string>{ "table" }));
+    lua_getglobal(L, "FindScriptEvents");
+    lua_pushstring(L, "unit_pet");
+    lua_call(L, 1, 1);
+    lua_rawgeti(L, -1, 1);
+    CHECK(std::string(lua_tostring(L, -1)) == "UNIT_PET");
+    lua_pop(L, 2);
+
+    lua_getglobal(L, "FindScriptEvents");
+    lua_pushstring(L, "pet_thing");
+    lua_call(L, 1, 1);
+    CHECK(lua_objlen(L, -1) == 1);
+    lua_rawgeti(L, -1, 1);
+    CHECK(std::string(lua_tostring(L, -1)) == "ASCENSION_CUSTOM_PET_THING");
+    lua_pop(L, 2);
+
+    lua_getglobal(L, "FindScriptEvents");
+    lua_pushstring(L, "");
+    lua_call(L, 1, 1);
+    CHECK(lua_objlen(L, -1) == 601);
+    lua_pop(L, 1);
+    CoA::Events::ResetQueue();
 }
