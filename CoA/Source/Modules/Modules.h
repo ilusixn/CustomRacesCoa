@@ -38,6 +38,7 @@ namespace CoA::CharacterCreate { void Init(); }
 namespace CoA::MiscClient { void Init(); }
 namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
+namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::GlobalsGClient { void Init(); }
 namespace CoA::BindingsClient { void Init(); }
 namespace CoA::LibraryClient { void Init(); }

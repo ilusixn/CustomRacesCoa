@@ -656,3 +656,8 @@ int32_t FrameXML_CreateFrames(const char* tocFile, const char* wrapper, MD5_CTX*
 
     return 1;
 }
+
+// CoA: AscPatchData.cpp:RefreshGameObjectTexture loads with this status (0xAF5718).
+CStatus* FrameXML_Status() {
+    return &s_frameXMLStatus;
+}

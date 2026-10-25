@@ -119,6 +119,18 @@ class ScanCoaTest(unittest.TestCase):
             self.assertEqual(inv.hooks, {0x488540})
             self.assertEqual(inv.patches, {0x4DA8EB})
 
+    def test_scan_coa_counts_dbc_patch_registrations(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, 'CoA', 'Source', 'Runtime'))
+            with open(os.path.join(root, 'CoA', 'Source', 'A.cpp'), 'w', encoding='utf-8') as f:
+                f.write('    CoA::DbcPatch::Register(0x676, "DBFilesClient\\\\GlobalStrings.dbc", 0x10, 0, nullptr);\n'
+                        '    CoA::DbcPatch::RegisterSized(0x579, "DBFilesClient\\\\LFGActivities.dbc", 0x1C, 1, nullptr);\n'
+                        '    CoA::DbcPatch::RegisterInsertHook(\n        0x692, "DBFilesClient/Appearances.dbc", 0x44, 4, f);\n')
+            with open(os.path.join(root, 'CoA', 'Source', 'Runtime', 'DbcPatch.generated.inc'), 'w', encoding='utf-8') as f:
+                f.write('{0x56C, "DBFilesClient\\\\MythicAffixes.dbc", 0x40, 0x0ull},   // SMSG_PATCH_MYTHIC_AFFIXES\n')
+            inv = inventory.scan_coa(root)
+            self.assertEqual(inv.packets, {0x676, 0x579, 0x692, 0x56C})
+
 
 if __name__ == '__main__':
     unittest.main()

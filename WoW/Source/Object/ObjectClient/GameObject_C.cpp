@@ -2710,9 +2710,25 @@ C4Quaternion CGGameObject_C::GetRotation() const {
     return this->m_passenger.GetRotation();
 }
 
+// CoA: AscPatchData.cpp:Hook713F50 / Hook712400 (orig hook 0x713F50, 0x712400) -- run after ModelLoaded / LoadBaseObject.
+void (*g_gameObjectModelLoadedHook)(CGGameObject_C* object, CM2Model* model) = nullptr;
+void (*g_gameObjectBaseLoadedHook)(CGGameObject_C* object) = nullptr;
+
 // VERIFY: 7b5a289f manual
 // OFFSET: 0x00713F50
 void CGGameObject_C::ModelLoaded(CM2Model* model) {
+    // CoA: AscPatchData.cpp:Hook713F50 (orig hook 0x713F50) -- after the body, whichever way it returns.
+    struct After {
+        CGGameObject_C* object;
+        CM2Model* model;
+
+        ~After() {
+            if (g_gameObjectModelLoadedHook) {
+                g_gameObjectModelLoadedHook(this->object, this->model);
+            }
+        }
+    } after { this, model };
+
     CAaBox box = model->GetBoundingBox();
     this->m_height = box.t.z - box.b.z;
 
@@ -2974,6 +2990,11 @@ void CGGameObject_C::LoadBaseObject(GameObjectStats_C* stats) {
     }
 
     this->CheckForPassiveHighlight();
+
+    // CoA: AscPatchData.cpp:Hook712400 (orig hook 0x712400)
+    if (g_gameObjectBaseLoadedHook) {
+        g_gameObjectBaseLoadedHook(this);
+    }
 }
 
 // VERIFY: ac5cb052 manual

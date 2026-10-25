@@ -4,7 +4,8 @@ Usage:
     python Tools/coa/inventory.py --recon F:/WorkDir/ascension-extensions-reconstruction --out CoA/inventory-report.md
 
 The reference side is parsed from the reconstruction's generated `docs/DLL_REFERENCE.md`. The CoA side is read
-from the registration macros in `CoA/Source` (`COA_NATIVE`, `COA_PACKET`, `COA_CVAR`, `COA_EVENT`) and from the
+from the registration macros in `CoA/Source` (`COA_NATIVE`, `COA_PACKET`, `COA_CVAR`, `COA_EVENT`), the
+`CoA::DbcPatch::Register*` calls and `DbcPatch*.generated.inc` rows, and from the
 `// CoA: ... (orig hook 0xADDR)` markers anywhere in the tree.
 """
 import argparse
@@ -16,6 +17,9 @@ from dataclasses import dataclass, field
 ROW_RE = re.compile(r'^\|\s*`([^`]+)`\s*\|\s*([^|]*?)\s*\|')
 NATIVE_RE = re.compile(r'COA_NATIVE\(\s*"([^"]*)"\s*,\s*"([^"]+)"')
 PACKET_RE = re.compile(r'COA_PACKET\(\s*(0x[0-9A-Fa-f]+|\d+)')
+# CoA::DbcPatch::Register / RegisterSized / RegisterInsertHook(opcode, ...) and the generated patch table rows.
+DBC_PATCH_RE = re.compile(r'DbcPatch::Register\w*\(\s*(0x[0-9A-Fa-f]+)')
+DBC_PATCH_ROW_RE = re.compile(r'^\{(0x[0-9A-Fa-f]+),\s*"DBFilesClient', re.M)
 CVAR_RE = re.compile(r'COA_CVAR\(\s*"([^"]+)"')
 EVENT_RE = re.compile(r'COA_EVENT\(\s*"([^"]+)"')
 HOOK_RE = re.compile(r'//\s*CoA:.*?orig hook ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
@@ -112,6 +116,9 @@ def scan_coa(root):
             for ns, fn in NATIVE_RE.findall(text):
                 inv.natives.add((ns, fn, ''))
             inv.packets.update(int(op, 0) for op in PACKET_RE.findall(text))
+            inv.packets.update(int(op, 16) for op in DBC_PATCH_RE.findall(text))
+            if name.startswith('DbcPatch') and name.endswith('.generated.inc'):
+                inv.packets.update(int(op, 16) for op in DBC_PATCH_ROW_RE.findall(text))
             inv.cvars.update(CVAR_RE.findall(text))
             inv.events.update(EVENT_RE.findall(text))
     return inv
