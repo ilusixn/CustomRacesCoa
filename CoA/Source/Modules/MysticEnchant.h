@@ -68,6 +68,12 @@ namespace CoA::MysticEnchant {
     // 0x102EA2A0: at world entry, prefetch the untarnished scroll's item record (MysticEnchantClient.cpp calls it).
     void EnterWorld();
 
+    // The player reads the preset checks share (AscMysticEnchantPreset.cpp), through Deps.
+    bool IsAltar(uint32_t entry);            // FUN_102EA0C0's list of mystic altar game objects
+    bool PlayerCasting();                    // player +0xA60 != 0; false without a player
+    bool PlayerIsCoAClass();                 // FUN_100C5F50 on the player; false without a player
+    uint32_t BagItemCount(uint32_t entry);   // FUN_10308470: the backpack and the equipped bags, not equipment
+
     void Init();
     // Tests only: the manager and the indexes forgotten.
     void Reset();
