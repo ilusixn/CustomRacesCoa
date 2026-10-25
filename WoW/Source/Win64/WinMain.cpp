@@ -6,6 +6,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
+#include "CoA/Source/CoA.h"
 
 // STATIC: 0x00B311E8
 static LPVOID lpFiber;
@@ -40,6 +41,8 @@ static VOID CALLBACK MainFiberProc(LPVOID parameter) {
     // CoA: Ascension.exe cave 0x4E5CB0 (entered from 0x40B7D0) -- `mov dword [0xB6B474], 1` before main()
     CGlueMgr::m_scandllOkayToLogIn = 1;
     CGlueMgr::m_scandllShouldBlockPlaying = 0;
+    // CoA: the cave's LoadLibraryA("Extensions.dll") -- the CoA code is linked in
+    CoA::Attach();
 
     *static_cast<int*>(parameter) = main();
     SwitchToFiber(lpFiber);

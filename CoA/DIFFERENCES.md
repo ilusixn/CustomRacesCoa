@@ -25,3 +25,26 @@ both references, or from the decomp where the references disagree.
 
 The glue digest-mismatch exit at `0x4DA8EB` is an Extensions.dll patch (`AscAttachPatches`), ported with the exe
 patches because the login screen cannot load without it.
+
+## Deliberate differences
+
+From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and the reconstruction's own list:
+
+- **Logon protocol.** Ascension's logon hooks (`0x8CCE00`, `0x9A83E0`, `0x9A88C0`) are not built: stock SRP6, as the
+  CoA server expects.
+- **Character advancement `0x726` handler order.** As in the reconstruction: unit parameters are synchronized before
+  listeners run.
+- **World headers.** The reconstruction's plaintext-header stub (`0x466BF0`) is disabled there and not ported.
+- **Warden.** Unchanged from wowdecomp's x64 client: Warden data is received and dropped. To be revisited.
+
+## Forced by x64
+
+- **MemoryBridge / `MMgr64.exe`.** Dropped. The six bridged DBCs (Creature, Quest, ItemAddon, Vanity, SpellAffect,
+  Mythic) load in-process.
+- **`DivxTac.dll` and the account kill switch.** Not loaded: a 64-bit process cannot load the 32-bit DLL.
+- **Discord.** Needs the x64 `discord_game_sdk.dll`; without it the feature is off.
+- **Realm-data DLLs.** The hot-swap's `LoadLibraryA` of `*.dll` under `Data\<path>` only succeeds for x64 DLLs;
+  32-bit ones fail to load and are logged.
+- **Build number.** The realm-data `buildinfo` patching of `0x9F5200`/`0x8CA5F0`/`0x4648B3` becomes a runtime variable.
+- **Developer log.** `Logs\Extensions.log` (`-extlog 1`) is written by CoA64 itself; its first line reads
+  `CoA64 attached` instead of the DLL's banner.
