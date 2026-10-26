@@ -160,6 +160,20 @@ namespace {
         s_tutorials.back()[0x44 / 4] = 1;   // class 33 only
         s_tutorials.push_back(TutorialRow(5, 2, 0, 0, s_tutStrings("Fifth"), 0));
         s_tutorials.back()[0x58 / 4 + 4] = 900;
+        // Category 3, for the remaining applicability codes and their order.
+        s_tutorials.push_back(TutorialRow(6, 3, 0, 0, 0, 0));
+        s_tutorials.back()[0x3C / 4] = 2;   // race 2 only
+        s_tutorials.back()[0x40 / 4] = 2;   // and class 2 only: race is checked first
+        s_tutorials.push_back(TutorialRow(7, 3, 103, 0, 0, 0));
+        s_tutorials.back()[0x4C / 4] = 5;   // max level 5
+        s_tutorials.push_back(TutorialRow(8, 3, 0, 0, 0, 0));
+        s_tutorials.back()[0x7C / 4] = 4;   // needs game mode 4
+        s_tutorials.back()[0x58 / 4] = 901; // and spell 901: the spells are checked first
+        s_tutorials.push_back(TutorialRow(9, 3, 0, 0, 0, 0));
+        s_tutorials.back()[0x80 / 4] = 8;   // not with game mode 8
+        s_tutorials.push_back(TutorialRow(10, 3, 104, 0, 0, 0));
+        s_tutorials.back()[0x84 / 4] = 2;   // expansion 2 only
+        s_tutorials.back()[0x48 / 4] = 50;  // and level 50: the expansion is checked first
 
         auto keyword = [](uint32_t id, uint32_t bracket, const char* colour, const char* key, const char* name, const char* info, uint32_t classLo) {
             std::vector<uint32_t> r(17, 0);
@@ -267,6 +281,17 @@ COA_TEST(Tutorial_Applicability) {
     s_player = true;
     s_level = 1;
     CHECK(CoATest::Call(L, "C_Tutorial", "DebugTutorialAppliccability", { "n:3" }) == V{ "TUTORIAL_APPLICABILITY_OK" });
+    s_level = 20;
+    CHECK(Avail(L, 6) == "false,TUTORIAL_APPLICABILITY_BAD_RACE");
+    CHECK(Avail(L, 7) == "false,TUTORIAL_APPLICABILITY_LEVEL_TOO_HIGH");
+    CHECK(Avail(L, 8) == "false,TUTORIAL_APPLICABILITY_REQUIRED_SPELLS");
+    s_spells.insert(901);
+    CHECK(Avail(L, 8) == "false,TUTORIAL_APPLICABILITY_REQUIRED_GAME_MODES");
+    CHECK(Avail(L, 9) == "true,nil");
+    CHECK(Avail(L, 10) == "false,TUTORIAL_APPLICABILITY_BAD_EXPANSION");
+    Feed(0x90B, CoATest::Bytes().U32(4 | 8));
+    CHECK(Avail(L, 8) == "true,nil");
+    CHECK(Avail(L, 9) == "false,TUTORIAL_APPLICABILITY_EXCEPT_GAME_MODES");
     CoA::RealmInfo::Reset();
     CHECK(Avail(L, 1) == "false,TUTORIAL_APPLICABILITY_NOT_ENABLED_ON_REALM");
     CHECK(CoATest::Call(L, "C_Tutorial", "IsTutorialComplete", { "n:1" }) == V{ "true" });
@@ -424,12 +449,12 @@ COA_TEST(Tutorial_Mentors) {
     CHECK(CoATest::Call(L, "C_Tutorial", "IsMentorStatusActive") == V{ "true" });
     CHECK(Feed(0x6C7, CoATest::Bytes().Str("ADD_MENTOR_SPECIALIZATION_OK")) == V{ "ADD_MENTOR_SPECIALIZATION_RESULT:ADD_MENTOR_SPECIALIZATION_OK" });
     CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:4" }) == V{ "true" });
-    Feed(0x6CA, CoATest::Bytes().U8(1).U32(1).U32(9));   // appends
-    CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:4" }) == V{ "true" });
-    CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:9" }) == V{ "true" });
-    CoATest::Call(L, "C_Tutorial", "RemoveMentorSpecialization", { "n:4" });
-    Feed(0x6C9, CoATest::Bytes().Str("REMOVE_MENTOR_SPECIALIZATION_OK"));
+    Feed(0x6CA, CoATest::Bytes().U8(1).U32(1).U32(9));   // replaces the list (genuine FUN_10a17a70 clears +0x180 first)
     CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:4" }) == V{ "false" });
+    CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:9" }) == V{ "true" });
+    CoATest::Call(L, "C_Tutorial", "RemoveMentorSpecialization", { "n:9" });
+    Feed(0x6C9, CoATest::Bytes().Str("REMOVE_MENTOR_SPECIALIZATION_OK"));
+    CHECK(CoATest::Call(L, "C_Tutorial", "GetMentorSpecializationActive", { "n:9" }) == V{ "false" });
 
     CoATest::Bytes whois;
     whois.Str("QUERY_MENTOR_WHOIS_OK").U32(2);

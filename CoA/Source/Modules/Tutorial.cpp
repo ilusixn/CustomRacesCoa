@@ -597,8 +597,10 @@ namespace {
         return 1;
     }
 
-    // 0x6CA FUN_10a17a70 { u8 status, u32 n, u32 spec[n] } -- appends, as the original does.
+    // 0x6CA FUN_10a17a70 { u8 status, u32 n, u32 spec[n] } -- replaces the list (the original clears +0x180 first; the
+    // reconstruction's "appends" is wrong).
     int32_t OnSpecList(void*, uint32_t, uint32_t, CDataStore* msg) {
+        s_activeSpecs.clear();
         s_mentorStatus = CoA::Read::U8(msg);
 
         for (uint32_t n = CoA::Read::U32(msg); n && CoA::Read::Remaining(msg) >= 4; --n) {
