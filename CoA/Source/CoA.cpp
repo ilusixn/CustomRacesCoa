@@ -150,6 +150,8 @@ static const CoA::Module s_modules[] = {
     { "AddonTaintClient", CoA::AddonTaintClient::Init },
     { "CVarHooksClient", CoA::CVarHooksClient::Init },
     { "RealmDataClient", CoA::RealmDataClient::Init },
+    // CoA addition: the live addon list (Interface\AddOns watch).
+    { "AddOnWatchClient", CoA::AddOnWatchClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
     { "AttachFixesClient", CoA::AttachFixesClient::Init },
