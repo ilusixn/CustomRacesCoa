@@ -349,6 +349,6 @@ its own status (user decision): "Selecting World" on the character screen, "Leve
 time in world; server packets take over when they arrive. Delivery (DiscordIpc::Outbox): only the newest status is sent,
 after the handshake's READY, at most every 4 s (a burst of test updates left the Discord app showing a stale status
 until it was restarted), and resent until Discord's answer echoes its nonce (an error or 5 s without an answer resends
-it; a reconnect resends it after READY). Live: status shows and follows world entry. The
-application is still Ascension's (title "Ascension.gg"); its art was saved to out/discord_assets/ for the user's own
-application, whose id replaces kClientId once created.
+it; a reconnect resends it after READY). Live: status shows and follows world entry. CoA64
+uses its own Discord application "Conquest of Azerothcore" (1564313674519154708) with the art key "descension_logo"
+(the user's); Ascension's application art was saved to out/discord_assets/.
