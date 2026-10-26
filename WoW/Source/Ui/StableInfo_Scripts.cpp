@@ -60,7 +60,7 @@ static int32_t Script_PickupStablePet(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     StablePetInfo* pet = index >= 0 ? (static_cast<uint32_t>(index) >= CGStableInfo::m_numPets ? nullptr : &CGStableInfo::m_pets[index + 1]) : &CGStableInfo::m_pets[0];
 
     if (pet && pet->m_petNumber) {
@@ -97,7 +97,7 @@ static int32_t Script_GetStablePetInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     StablePetInfo* pet = index >= 0 ? (static_cast<uint32_t>(index) >= CGStableInfo::m_numPets ? nullptr : &CGStableInfo::m_pets[index + 1]) : &CGStableInfo::m_pets[0];
     CreatureFamilyRec* family = nullptr;
 
@@ -212,7 +212,7 @@ static int32_t Script_GetStablePetFoodTypes(lua_State* L) {
         return 0;
     }
 
-    int32_t number = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t number = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     StablePetInfo* pet;
 
     if (number) {
@@ -296,7 +296,7 @@ static int32_t Script_UnstablePet(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
     if (index >= CGStableInfo::m_numPets) {
         return 0;

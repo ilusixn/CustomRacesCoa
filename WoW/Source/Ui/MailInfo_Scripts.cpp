@@ -93,7 +93,7 @@ static int32_t Script_SelectPackage(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     const PackageRec* rec;
 
     if (index >= 0 && index < g_packageDB.m_numRecords && (rec = &g_packageDB.m_records[index])) {
@@ -275,7 +275,7 @@ static int32_t Script_GetPackageInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     PackageRec* rec = index >= 0 && index < g_packageDB.m_numRecords ? &g_packageDB.m_records[index] : nullptr;
     double cost;
 
@@ -375,7 +375,7 @@ static int32_t Script_GetSendMailItemLink(lua_State* L) {
     uint32_t index;
 
     if (lua_isnumber(L, 1)) {
-        index = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+        index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1) - 1.0));
 
         if (index >= 16) {
             return 0;
@@ -412,7 +412,7 @@ static int32_t Script_GetInboxHeaderInfo(lua_State* L) {
     }
 
     lua_checkstack(L, 13);
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MailboxMessageInfo* message;
 
     if (index >= CGMailInfo::m_numInboxItems || !(message = CGMailInfo::m_inbox.m_data[index])) {
@@ -546,7 +546,7 @@ static int32_t Script_GetInboxInvoiceInfo(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MailboxMessageInfo* message;
 
     if (index >= CGMailInfo::m_numInboxItems || !(message = CGMailInfo::m_inbox.m_data[index]) || !SStrLen(message->m_body) || !message->m_invoiceItemID) {
@@ -616,8 +616,8 @@ static int32_t Script_GetInboxItemLink(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(lua_tonumber(L, 2) - 1.0) : -1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2) - 1.0)) : -1;
 
     if (index >= CGMailInfo::m_numInboxItems) {
         return 0;
@@ -664,7 +664,7 @@ static int32_t Script_ReturnInboxItem(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
     if (index >= CGMailInfo::m_numInboxItems) {
         return 0;
@@ -706,7 +706,7 @@ static int32_t Script_DeleteInboxItem(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
     if (index >= CGMailInfo::m_numInboxItems) {
         return 0;
@@ -742,7 +742,7 @@ static int32_t Script_InboxItemCanDelete(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MailboxMessageInfo* message;
 
     if (index < CGMailInfo::m_numInboxItems && (message = CGMailInfo::m_inbox.m_data[index]) && ((message->m_flags & 0x20A) || message->m_messageType || (!GetNumAttachments(message) && !message->m_money))) {
@@ -811,7 +811,7 @@ static int32_t Script_RespondMailLockSendItem(lua_State* L) {
 // VERIFY: 4f7f7cdf manual
 // OFFSET: 0x00570550
 static int32_t Script_ClickSendMailItemButton(lua_State* L) {
-    uint32_t index = lua_isnumber(L, 1) ? static_cast<int32_t>(lua_tonumber(L, 1) - 1.0) : -1;
+    uint32_t index = lua_isnumber(L, 1) ? static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1) - 1.0)) : -1;
 
     if (!lua_toboolean(L, 2)) {
         WOWGUID cursorItem;
@@ -865,7 +865,7 @@ static int32_t Script_SetSendMailMoney(lua_State* L) {
         return 0;
     }
 
-    if (CGMailInfo::SetSendMoney(static_cast<int32_t>(lua_tonumber(L, 1)))) {
+    if (CGMailInfo::SetSendMoney(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))))) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
@@ -880,7 +880,7 @@ static int32_t Script_GetSendMailItem(lua_State* L) {
     uint32_t index;
 
     if (lua_isnumber(L, 1)) {
-        index = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+        index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1) - 1.0));
 
         if (index >= 16) {
             lua_pushnil(L);
@@ -1026,7 +1026,7 @@ static int32_t Script_GetInboxText(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MailboxMessageInfo* message;
 
     if (index >= CGMailInfo::m_numInboxItems || !(message = CGMailInfo::m_inbox.m_data[index])) {
@@ -1117,8 +1117,8 @@ static int32_t Script_GetInboxItem(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(lua_tonumber(L, 2) - 1.0) : -1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2) - 1.0)) : -1;
     MailAttachmentInfo* attachment = nullptr;
 
     if (index < CGMailInfo::m_numInboxItems) {
@@ -1191,7 +1191,7 @@ static int32_t Script_TakeInboxItem(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
     if (index >= CGMailInfo::m_numInboxItems) {
         return 0;
@@ -1203,7 +1203,7 @@ static int32_t Script_TakeInboxItem(lua_State* L) {
         return 0;
     }
 
-    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(lua_tonumber(L, 2)) - 1 : -1;
+    uint32_t attachIndex = lua_isnumber(L, 2) ? static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1 : -1;
     MailAttachmentInfo* attachment = GetAttachment(message, attachIndex);
 
     if (!attachment || !attachment->m_itemID) {
@@ -1236,7 +1236,7 @@ static int32_t Script_ComplainInboxItem(lua_State* L) {
         return 0;
     }
 
-    CGMailInfo::Complain(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    CGMailInfo::Complain(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     return 0;
 }
 
@@ -1248,7 +1248,7 @@ static int32_t Script_CanComplainInboxItem(lua_State* L) {
         return 0;
     }
 
-    if (CGMailInfo::CanComplain(static_cast<int32_t>(lua_tonumber(L, 1)) - 1)) {
+    if (CGMailInfo::CanComplain(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1)) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
@@ -1266,7 +1266,7 @@ static int32_t Script_AutoLootMailItem(lua_State* L) {
     }
 
     if (!CGMailInfo::m_commandPending && CGMailInfo::m_object) {
-        CGMailInfo::AutoLoot(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+        CGMailInfo::AutoLoot(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     }
 
     return 0;
