@@ -2,6 +2,7 @@
 // (AscRaidVideo.cpp: callback FUN_102dcdb0, the tick FUN_102dd130 on every second SMSG_INITIAL_SPELLS, the restore
 // FUN_102dcb90 on every glue screen, the Config.wtf writer FUN_102dc5f0 over 0x766640), the render module's
 // entityShadows / lodObjectCull and the cursor size.
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Cursor.h"
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/Modules.h"
@@ -33,13 +34,9 @@ namespace {
         return cvar ? cvar->m_stringValue.m_str : nullptr;
     }
 
-    // FUN_10114c40: the length check, then CVar::Set(value, 1, 0, 0, 0).
+    // FUN_10114c40: the length assert, then CVar::Set(value, 1, 0, 0, 0) (CrashContext::SetCVar).
     void Set(CVar* cvar, const char* value) {
-        if (!cvar || !value || strlen(value) + strlen(cvar->m_key.m_str) > 0xF9) {
-            return;
-        }
-
-        cvar->Set(value, true, false, false, false);
+        CoA::CrashContext::SetCVar(cvar, value, false);
     }
 
     bool Enabled() {

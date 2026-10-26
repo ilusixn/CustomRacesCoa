@@ -1,5 +1,6 @@
 // AscMisc.cpp's client passthroughs: FadeScreen, IsKeyDown, the command line (IsAutoLogin / IsRenderDebug and the
 // launcher's automatic login) and -config.
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Misc.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
@@ -44,13 +45,9 @@ namespace {
     bool s_autoLogin = false;         // 0x10BDEC08
     bool s_renderDebug = false;       // 0x10BDEC09
 
-    // FUN_10114c40 -> CVar::Set (0x7668C0): refused when name and value together exceed 0xF9 characters.
+    // FUN_10114c40 -> CVar::Set (0x7668C0), with its length assert (CrashContext::SetCVar).
     void SetCVarValue(CVar* var, const char* value, bool setNeedsSave) {
-        if (strlen(value) + strlen(var->m_key.m_str) > 0xF9) {
-            return;
-        }
-
-        var->Set(value, true, false, false, setNeedsSave);
+        CoA::CrashContext::SetCVar(var, value, setNeedsSave);
     }
 
     void ApplyCommandLine() {
