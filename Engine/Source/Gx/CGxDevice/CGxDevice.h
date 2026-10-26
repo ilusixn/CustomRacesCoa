@@ -358,4 +358,8 @@ class CGxDevice {
 extern CGxDevice* g_theGxDevicePtr;
 extern const char* s_formatToInt[CGxFormat::Formats_Last];
 
+// CoA64: set by CoA::DxvkClient::Preload -- the preloaded DXVK d3d9 module (a new reference) or nullptr; both
+// ILoadD3dLib try it before the system d3d9.dll.
+extern void* (*g_d3d9LibraryHook)();
+
 #endif
