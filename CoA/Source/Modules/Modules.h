@@ -28,6 +28,9 @@ namespace CoA::LuaDbc { void Init(); }
 namespace CoA::CharacterList { void Init(); }
 namespace CoA::RealmMerge { void Init(); }
 namespace CoA::EventPackets { void Init(); uint32_t Value72D(); }
+namespace CoA::Tutorial { void Init(); }
+namespace CoA::Challenge { void Init(); }
+namespace CoA::TrialCreator { void Init(); }
 namespace CoA::ScrollOfFortune { void Init(); void Reset(); }
 namespace CoA::DraftMode { void Init(); }
 namespace CoA::BuildDraft { void Init(); void Reset(); }
@@ -62,6 +65,9 @@ namespace CoA::GlobalsBClient { void Init(); }
 namespace CoA::EventPacketsClient { void Init(); }
 namespace CoA::PatchDataClient { void Init(); }
 namespace CoA::ClientDbcPatchClient { void Init(); }
+namespace CoA::TutorialClient { void Init(); }
+namespace CoA::ChallengeClient { void Init(); }
+namespace CoA::TrialCreatorClient { void Init(); }
 namespace CoA::DraftModeClient { void Init(); }
 namespace CoA::CanToggleClient { void Init(); }
 namespace CoA::HighRiskClient { void Init(); }
