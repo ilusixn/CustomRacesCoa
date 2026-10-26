@@ -1,4 +1,5 @@
 // AscGraphics.cpp (see Graphics.h): the render module's CVars, detour bodies, lifecycle, occlusion volumes and packets.
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/CVars.h"
@@ -74,13 +75,9 @@ namespace {
         return static_cast<float>(atof(value ? value : ""));
     }
 
-    // FUN_10114c40: the length check, then CVar::Set(value, 1, 0, 0, 0).
+    // FUN_10114c40: the length assert, then CVar::Set(value, 1, 0, 0, 0) (CrashContext::SetCVar).
     void SetVar(CVar* var, const char* value) {
-        if (!var || !value || strlen(value) + strlen(var->m_key.m_str) > 0xF9) {
-            return;
-        }
-
-        var->Set(value, true, false, false, false);
+        CoA::CrashContext::SetCVar(var, value, false);
     }
 
     // Re-set with the current string (the original passes the CVar's own string pointer; a copy here, the same text).

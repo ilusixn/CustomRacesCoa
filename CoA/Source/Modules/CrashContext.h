@@ -5,6 +5,8 @@
 #include <mutex>
 #include <string>
 
+struct CVar;
+
 // AscCrashContext.cpp (installer FUN_1019dc80): the "Ascension Debug" block of the client's crash report. Hooks across
 // the client record the last thing each subsystem touched; the crash-text builder hook (0x682200, after
 // GxLogCrashInfo) appends them (FUN_1019e5f0). AscLargeAlloc.cpp's 0x4B9760 (TextureCreate) writes "Last
@@ -71,6 +73,10 @@ namespace CoA::CrashContext {
 
     // FUN_10112f70.
     void Assert(const char* message, const char* file, int32_t line);
+
+    // FUN_10114c40, every module's CVar set: name + value over 249 characters is Assert's fatal error, otherwise
+    // CVar::Set(value, 1, 0, 0, setNeedsSave). A null CVar or value does nothing.
+    void SetCVar(CVar* cvar, const char* value, bool setNeedsSave);
 
     // FUN_1019daf0 (0x4D7750): records the map; one Map.dbc does not have is a fatal assert, then the original runs.
     void BeforeLoadMap(uint32_t map);
