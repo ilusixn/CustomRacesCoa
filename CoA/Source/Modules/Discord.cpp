@@ -35,6 +35,9 @@ namespace {
     // CoA64: the art key in CoA64's own Discord application (DiscordClient's kClientId); the original's
     // "ascension_logo" lives in Ascension's application.
     constexpr const char* kLogo = "descension_logo";
+    // The project's website, a button on the client-built status (user request).
+    constexpr const char* kWebsite = "https://coa-development.org";
+
     // The small image (user decision): the faction in world, the application icon otherwise.
     constexpr const char* kAppIcon = "app_icon";
 
@@ -61,7 +64,7 @@ namespace {
     bool Same(const CoA::Discord::Activity& a, const CoA::Discord::Activity& b) {
         return a.state == b.state && a.details == b.details && a.start == b.start && a.end == b.end &&
             a.largeImage == b.largeImage && a.largeText == b.largeText && a.smallImage == b.smallImage &&
-            a.smallText == b.smallText;
+            a.smallText == b.smallText && a.buttons == b.buttons;
     }
 
     bool ClientStatusOn() {
@@ -87,6 +90,7 @@ namespace {
         a.state = "Selecting World";
         a.largeImage = kLogo;
         a.smallImage = kAppIcon;
+        a.buttons = { { "Website", kWebsite } };
         SendClientStatus(a);
     }
 
@@ -249,6 +253,7 @@ void CoA::Discord::Refresh() {
     a.largeImage = kLogo;
     a.largeText = Cut(info.realm);
     SetFaction(a, info.faction);
+    a.buttons = { { "Website", kWebsite } };
     SendClientStatus(a);
 }
 

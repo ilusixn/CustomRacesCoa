@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 // AscDiscord.cpp: DiscordMgr (FUN_10220d50 -> static 0x10BE21F0: +0x04 enabled, +0x05 activity callbacks registered,
@@ -31,6 +32,8 @@ namespace CoA::Discord {
         std::string partyId;
         int32_t partySize = 0, partyMax = 0;
         std::string match, join, spectate;
+        // CoA64 addition: link buttons (label, URL), at most two, dropped when secrets are set (Discord's rule).
+        std::vector<std::pair<std::string, std::string>> buttons;
     };
 
     // What the client-built status shows in world (Deps::worldInfo).
