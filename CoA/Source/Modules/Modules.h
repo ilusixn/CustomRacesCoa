@@ -108,6 +108,7 @@ namespace CoA::SpellMods { void Init(); }
 namespace CoA::MovementForce { void Init(); }
 namespace CoA::PacketApi { void Init(); }
 namespace CoA::SmallHooks { void Init(); }
+namespace CoA::HotPatch { void Init(); }
 namespace CoA::GossipQuest { void Init(); }
 namespace CoA::SpellTokens { void Init(); }
 
@@ -163,6 +164,7 @@ namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
 namespace CoA::AddOnWatchClient { void Init(); }
 namespace CoA::TooltipInsertFixClient { void Init(); }
+namespace CoA::HotPatchClient { void Init(); }
 namespace CoA::CharacterCreateClient { void Init(); }
 namespace CoA::AttachLateClient { void Init(); }
 namespace CoA::AttachFixesClient { void Init(); }

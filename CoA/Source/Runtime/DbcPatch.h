@@ -2,6 +2,8 @@
 #define COA_SOURCE_RUNTIME_DBCPATCH_H
 
 #include <cstdint>
+#include <map>
+#include <string>
 
 // SMSG_PATCH_* -- the server hot-patching the DLL's DBC tables (port of AscDbcPatch; module init FUN_101e5880).
 //
@@ -18,6 +20,12 @@ namespace CoA::DbcPatch {
     void RegisterInsertHook(uint32_t opcode, const char* table, uint32_t structSize, uint64_t stringMask, AfterPatch after);
     // Strings arrive as u32 length + bytes (FUN_100d3680).
     void RegisterSized(uint32_t opcode, const char* table, uint32_t structSize, uint64_t stringMask, AfterPatch after);
+
+    // The reconstruction's AscDbcPatch::SetValidator (hot-patch build, not in the original): a check run on a row's
+    // string fields (field index -> text) before it is stored. Returning false drops the row; the client keeps the row
+    // it had. HotPatch uses it for 0x5BC.
+    using Validator = bool (*)(uint32_t opcode, const std::map<uint32_t, std::string>& strings);
+    void SetValidator(uint32_t opcode, Validator validate);
 
     // The generated pure patches.
     void Init();
