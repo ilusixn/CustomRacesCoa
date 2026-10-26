@@ -10,6 +10,7 @@
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gxu/Gxu.h"
 #include "Engine/Source/Model2/M2Data.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -25,6 +26,7 @@
 #include "Engine/Source/Tempest/CAaSphere.h"
 #include "Engine/Source/Tempest/CFacet.h"
 #include "Engine/Source/Tempest/CMath.h"
+#include "Engine/Source/Tempest/CRect.h"
 #include "Engine/Source/Tempest/CWFrustum.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/VehicleRec.h"
@@ -1188,7 +1190,28 @@ void CGCamera::SetTarget(CGObject_C* target, int32_t freeLook) {
 // VERIFY: 465238a4 auto
 // OFFSET: 0x005FE880
 void CGCamera::SetupWorldProjection(const CRect& rect) {
-    this->SetGxProjectionAndView(rect);
+    // CoA64: without the render pipeline, the original path.
+    if (!g_renderPipelineHook) {
+        this->SetGxProjectionAndView(rect);
+        return;
+    }
+
+    // CoA64: SetGxProjectionAndView's matrices, built first so the render pipeline can record the camera and offset
+    // the projection (sub-pixel jitter) before it is set.
+    C44Matrix projection;
+    float fovY = this->FOV() * 0.6f;
+    this->m_aspect = (rect.maxX - rect.minX) / (rect.maxY - rect.minY);
+    GxuXformCreateProjection_Exact(fovY, this->m_aspect, this->m_nearZ, this->m_farZ, projection);
+
+    C44Matrix view;
+    C3Vector eye;
+    C3Vector forward = this->Forward();
+    C3Vector up = this->Up();
+    GxuXformCreateLookAtSgCompat(eye, forward, up, view);
+
+    g_renderPipelineHook->setupWorldProjection(projection, view, this->m_position, fovY, this->m_aspect, this->m_nearZ, this->m_farZ, forward, up);
+    g_theGxDevicePtr->XformSetProjection(projection);
+    g_theGxDevicePtr->XformSetView(view);
 }
 
 // VERIFY: 9dd566d0 manual

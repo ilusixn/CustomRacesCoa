@@ -38,6 +38,10 @@ const char* s_formatToInt[CGxFormat::Formats_Last] = { "16", "24", "24", "30", "
 // CoA64: set by CoA::DxvkClient::Preload.
 void* (*g_d3d9LibraryHook)();
 
+// CoA64: set by the render pipeline client; null by default.
+RenderPipelineHook* g_renderPipelineHook;
+void (*g_worldTargetReleaseHook)();
+
 // STATIC: 0x00AD87FC
 const char* CGxDevice::s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
 
@@ -2123,4 +2127,38 @@ void CGxDevice::RsInit() {
 CGxMonitorMode::CGxMonitorMode() {
     this->m_size.x = 0;
     this->m_size.y = 0;
+}
+
+// CoA64: render pipeline world target -- only the D3D9 devices implement it.
+bool CGxDevice::WorldTargetSupported() {
+    return false;
+}
+
+// CoA64: see WorldTargetSupported.
+bool CGxDevice::WorldTargetBegin(uint32_t /* width */, uint32_t /* height */) {
+    return false;
+}
+
+// CoA64: see WorldTargetSupported.
+bool CGxDevice::WorldTargetEnd(int32_t /* left */, int32_t /* top */, int32_t /* right */, int32_t /* bottom */) {
+    return true;
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::WorldDepthTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::WorldColorTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldTargetSupported.
+void CGxDevice::WorldTargetRelease() {
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::D3dDevice() {
+    return nullptr;
 }

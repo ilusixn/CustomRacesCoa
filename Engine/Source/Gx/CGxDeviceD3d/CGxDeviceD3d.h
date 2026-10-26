@@ -243,6 +243,20 @@ class CGxDeviceD3d : public CGxDevice {
     /* 3BA4 */ uint32_t m_d3dVertexStreamStride [8];
     /* 3BC4 */ uint32_t m_deviceStates [DeviceStates_Last];
     /* 3E9C */ bool m_texEnabled [8];
+    // CoA64: render pipeline world target (see WorldTargetBegin). The textures and their level-0 surfaces hold one
+    // reference each; while begun, m_defColorSurface / m_defDepthSurface alias the world surfaces (no extra
+    // reference) and the original defaults (with their references) are parked in m_worldSaved*Surface.
+    LPDIRECT3DTEXTURE9 m_worldColorTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldDepthTexture = nullptr;
+    LPDIRECT3DSURFACE9 m_worldColorSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldDepthSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldSavedColorSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldSavedDepthSurface = nullptr;
+    uint32_t m_worldTargetWidth = 0;
+    uint32_t m_worldTargetHeight = 0;
+    int32_t m_worldTargetBegun = 0;
+    // CoA64: WorldTargetSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
+    int32_t m_worldTargetSupported = -1;
 
     virtual void ITexMarkAsUpdated(CGxTex* texId);
     virtual void IRsSendToHw(EGxRenderState which);
@@ -303,6 +317,13 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void DeviceUnk81(uint32_t a, uint32_t b);
     virtual void DeviceUnk82();
     virtual void DeviceUnk83(uint32_t a, uint32_t b);
+    virtual bool WorldTargetSupported();
+    virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
+    virtual bool WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual void* WorldDepthTexture();
+    virtual void* WorldColorTexture();
+    virtual void WorldTargetRelease();
+    virtual void* D3dDevice();
 
     static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
     static const D3DFORMAT s_GxTexFmtToD3dFmt[GxTexFormats_Last];
@@ -380,6 +401,9 @@ class CGxDeviceD3d : public CGxDevice {
     void IXformSetTex(uint32_t tmu);
     void IXformSetViewport();
     void IXformSetWorld();
+    void IWorldTargetApply();
+    void IWorldTargetFree();
+    void IWorldTargetRestore(bool rebind = true);
 };
 
 CGxDevice* CreateCGxDeviceD3d();

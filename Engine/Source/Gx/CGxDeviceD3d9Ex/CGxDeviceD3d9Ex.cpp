@@ -890,6 +890,233 @@ void CGxDeviceD3d9Ex::DeviceUnk82() {
 void CGxDeviceD3d9Ex::DeviceUnk83(uint32_t a, uint32_t b) {
 }
 
+// CoA64: INTZ -- a depth-stencil texture format (24-bit depth, 8-bit stencil) that can also be sampled.
+static const D3DFORMAT s_worldDepthFormat = static_cast<D3DFORMAT>(MAKEFOURCC('I', 'N', 'T', 'Z'));
+
+// CoA64: the device can render the world into a back-buffer-format colour texture with an INTZ depth texture. INTZ
+// has 24 depth bits, so only a 24-bit default depth buffer (the present parameters' AutoDepthStencilFormat) gives
+// identical depth test results. Asked once per device; IReleaseD3dResources (before every reset or destroy) forgets the
+// answer so the recreated device is asked again.
+bool CGxDeviceD3d9Ex::WorldTargetSupported() {
+    if (!this->m_d3d) {
+        return false;
+    }
+
+    if (this->m_worldTargetSupported < 0) {
+        this->m_worldTargetSupported = (this->m_devDepthFormat == D3DFMT_D24S8 || this->m_devDepthFormat == D3DFMT_D24X8)
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, s_worldDepthFormat) == D3D_OK
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, this->m_devAdapterFormat) == D3D_OK;
+    }
+
+    return this->m_worldTargetSupported != 0;
+}
+
+// CoA64: creates (or reuses, same size) the world colour + INTZ depth textures and swaps their surfaces in as the
+// default surfaces, so the engine's nullptr render target binds them. Already begun: no-op (true). Returns false and
+// changes nothing when the device cannot (no context, multisampled back buffer, creation failure).
+// Every Begin seeds the world colour from the back buffer and clears the world depth / stencil.
+bool CGxDeviceD3d9Ex::WorldTargetBegin(uint32_t width, uint32_t height) {
+    if (this->m_worldTargetBegun) {
+        return true;
+    }
+
+    if (!this->m_context || !this->m_d3dDevice || !this->m_defColorSurface || !this->m_defDepthSurface || !width || !height || this->m_format.m_multisampleCount > 1) {
+        return false;
+    }
+
+    if (this->m_worldColorTexture && (this->m_worldTargetWidth != width || this->m_worldTargetHeight != height)) {
+        this->IWorldTargetFree();
+    }
+
+    if (!this->m_worldColorTexture) {
+        if (FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, this->m_devAdapterFormat, D3DPOOL_DEFAULT, &this->m_worldColorTexture, nullptr))
+            || FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DEPTHSTENCIL, s_worldDepthFormat, D3DPOOL_DEFAULT, &this->m_worldDepthTexture, nullptr))
+            || FAILED(this->m_worldColorTexture->GetSurfaceLevel(0, &this->m_worldColorSurface))
+            || FAILED(this->m_worldDepthTexture->GetSurfaceLevel(0, &this->m_worldDepthSurface))) {
+            this->IWorldTargetFree();
+            return false;
+        }
+
+        this->m_worldTargetWidth = width;
+        this->m_worldTargetHeight = height;
+    }
+
+    // CoA64: seed the world colour with the back buffer's current contents (1:1, clamped to both) and clear the world
+    // depth to 1.0 / stencil to 0, so the copied-back image does not depend on how the world clears its targets.
+    // SetRenderTarget resets the D3D viewport and scissor rect to the full world target, so the clear covers all of it;
+    // IWorldTargetApply below binds the final surfaces and marks both dirty.
+    D3DSURFACE_DESC backBufferDesc;
+
+    if (SUCCEEDED(this->m_defColorSurface->GetDesc(&backBufferDesc))) {
+        RECT rect;
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = static_cast<LONG>(backBufferDesc.Width < width ? backBufferDesc.Width : width);
+        rect.bottom = static_cast<LONG>(backBufferDesc.Height < height ? backBufferDesc.Height : height);
+        this->m_d3dDevice->StretchRect(this->m_defColorSurface, &rect, this->m_worldColorSurface, &rect, D3DTEXF_NONE);
+    }
+
+    this->m_d3dDevice->SetRenderTarget(0, this->m_worldColorSurface);
+    this->m_d3dDevice->SetDepthStencilSurface(this->m_worldDepthSurface);
+    this->m_d3dDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL, 0, 1.0f, 0);
+
+    // The default surfaces' references move into the saved slots; the defaults alias the world surfaces.
+    this->m_worldSavedColorSurface = this->m_defColorSurface;
+    this->m_worldSavedDepthSurface = this->m_defDepthSurface;
+    this->m_defColorSurface = this->m_worldColorSurface;
+    this->m_defDepthSurface = this->m_worldDepthSurface;
+    this->m_worldTargetBegun = 1;
+
+    this->IWorldTargetApply();
+
+    return true;
+}
+
+// CoA64: restores the original default surfaces and copies the world colour (rect in back-buffer pixels, clamped to
+// the world texture and the back buffer) to the back buffer 1:1. Not begun: no-op. False when the copy-back failed
+// (GetDesc / StretchRect; the originals are restored either way), so the caller can log it. An empty clamped rect or a
+// lost device is not a failure.
+bool CGxDeviceD3d9Ex::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom) {
+    if (!this->m_worldTargetBegun) {
+        return true;
+    }
+
+    this->IWorldTargetRestore();
+
+    if (!this->m_context || !this->m_defColorSurface) {
+        return true;
+    }
+
+    int32_t width = static_cast<int32_t>(this->m_worldTargetWidth);
+    int32_t height = static_cast<int32_t>(this->m_worldTargetHeight);
+    D3DSURFACE_DESC backBufferDesc;
+
+    if (FAILED(this->m_defColorSurface->GetDesc(&backBufferDesc))) {
+        return false;
+    }
+
+    if (static_cast<int32_t>(backBufferDesc.Width) < width) {
+        width = static_cast<int32_t>(backBufferDesc.Width);
+    }
+
+    if (static_cast<int32_t>(backBufferDesc.Height) < height) {
+        height = static_cast<int32_t>(backBufferDesc.Height);
+    }
+
+    RECT rect;
+    rect.left = left > 0 ? left : 0;
+    rect.top = top > 0 ? top : 0;
+    rect.right = right < width ? right : width;
+    rect.bottom = bottom < height ? bottom : height;
+
+    if (rect.left >= rect.right || rect.top >= rect.bottom) {
+        return true;
+    }
+
+    // The originals are already restored and bound, so a failed copy only loses this frame's world image.
+    return SUCCEEDED(this->m_d3dDevice->StretchRect(this->m_worldColorSurface, &rect, this->m_defColorSurface, &rect, D3DTEXF_NONE));
+}
+
+// CoA64: the world depth texture (IDirect3DTexture9*, INTZ) or nullptr.
+void* CGxDeviceD3d9Ex::WorldDepthTexture() {
+    return this->m_worldDepthTexture;
+}
+
+// CoA64: the world colour texture (IDirect3DTexture9*) or nullptr.
+void* CGxDeviceD3d9Ex::WorldColorTexture() {
+    return this->m_worldColorTexture;
+}
+
+// CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before
+// every Reset and on destroy -- see IReleaseD3dResources).
+void CGxDeviceD3d9Ex::WorldTargetRelease() {
+    // CoA64: the pipeline's own D3D9 objects (state block) must go before a Reset too.
+    if (g_worldTargetReleaseHook) {
+        g_worldTargetReleaseHook();
+    }
+
+    // CoA64: no rebind here -- IWorldTargetApply reads m_textureTarget[].m_apiSpecific, which a reset-time release may
+    // already have recreated; the reset drops every binding anyway.
+    if (this->m_worldTargetBegun) {
+        this->IWorldTargetRestore(false);
+    }
+
+    this->IWorldTargetFree();
+}
+
+// CoA64: the IDirect3DDevice9* (for the render pipeline's debug draw).
+void* CGxDeviceD3d9Ex::D3dDevice() {
+    return this->m_d3dDevice;
+}
+
+// CoA64: rebinds the current render target after the default surfaces changed. Mirrors the surface selection at the
+// end of DeviceSetRenderTarget, which cannot be used here because it returns early when the target is unchanged.
+void CGxDeviceD3d9Ex::IWorldTargetApply() {
+    LPDIRECT3DSURFACE9 colorTarget = static_cast<LPDIRECT3DSURFACE9>(this->m_textureTarget[GxBuffers_Color].m_apiSpecific);
+    LPDIRECT3DSURFACE9 depthTarget = static_cast<LPDIRECT3DSURFACE9>(this->m_textureTarget[GxBuffers_Depth].m_apiSpecific);
+    LPDIRECT3DSURFACE9 colorSurface = this->m_defColorSurface;
+    LPDIRECT3DSURFACE9 depthSurface = this->m_defDepthSurface;
+
+    if (colorTarget) {
+        colorSurface = colorTarget;
+
+        if (!depthTarget && this->m_defDepthStencilSurface) {
+            depthSurface = this->m_defDepthStencilSurface;
+        }
+    }
+
+    if (depthTarget) {
+        depthSurface = depthTarget;
+    }
+
+    this->m_d3dDevice->SetRenderTarget(0, colorSurface);
+    this->m_d3dDevice->SetDepthStencilSurface(depthSurface);
+
+    // SetRenderTarget resets the D3D viewport and scissor rect; the engine's values are unchanged, so re-send them.
+    this->m_viewportDirty = 1;
+    this->m_scissorRectDirty = 1;
+}
+
+// CoA64: releases the world textures and surfaces. Only called while not begun.
+void CGxDeviceD3d9Ex::IWorldTargetFree() {
+    if (this->m_worldColorSurface) {
+        this->m_worldColorSurface->Release();
+        this->m_worldColorSurface = nullptr;
+    }
+
+    if (this->m_worldDepthSurface) {
+        this->m_worldDepthSurface->Release();
+        this->m_worldDepthSurface = nullptr;
+    }
+
+    if (this->m_worldColorTexture) {
+        this->m_worldColorTexture->Release();
+        this->m_worldColorTexture = nullptr;
+    }
+
+    if (this->m_worldDepthTexture) {
+        this->m_worldDepthTexture->Release();
+        this->m_worldDepthTexture = nullptr;
+    }
+
+    this->m_worldTargetWidth = 0;
+    this->m_worldTargetHeight = 0;
+}
+
+// CoA64: moves the parked original default surfaces back (their references return with them) and, unless told not
+// to (the release path), rebinds.
+void CGxDeviceD3d9Ex::IWorldTargetRestore(bool rebind) {
+    this->m_defColorSurface = this->m_worldSavedColorSurface;
+    this->m_defDepthSurface = this->m_worldSavedDepthSurface;
+    this->m_worldSavedColorSurface = nullptr;
+    this->m_worldSavedDepthSurface = nullptr;
+    this->m_worldTargetBegun = 0;
+
+    if (rebind && this->m_d3dDevice) {
+        this->IWorldTargetApply();
+    }
+}
+
 // VERIFY: f8ff0fdc manual
 // OFFSET: 0x006A3720
 bool CGxDeviceD3d9Ex::GxVertexDecl::Compare(const D3DVERTEXELEMENT9* elements, uint32_t count) {
@@ -2636,6 +2863,12 @@ void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
     this->IReleaseD3dShaders(freeTextures);
     this->IReleaseD3dPools(freeTextures);
     memset(this->m_deviceStates, 0xFF, sizeof(this->m_deviceStates));
+
+    // CoA64: put the original default surfaces back (if the world target is begun) and free the D3DPOOL_DEFAULT world
+    // textures before the defaults are released and the device is reset or destroyed. The device's formats may change
+    // with it, so WorldTargetSupported asks again.
+    this->WorldTargetRelease();
+    this->m_worldTargetSupported = -1;
 
     if (this->m_defColorSurface) {
         this->m_defColorSurface->Release();

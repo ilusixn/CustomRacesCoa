@@ -52,6 +52,11 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
   ProcessMessage's bound at `0x63200D`), reading and writing neighbouring memory. No server sends them; CoA64 treats
   them as unhandled and ignores registrations for them (`CoA::Packets::InGap`).
 - **Warden.** Unchanged from wowdecomp's x64 client: Warden data is received and dropped. To be revisited.
+- **Render pipeline (CoA64 addition).** The world can render to an off-screen colour target plus an INTZ depth texture
+  and be copied back to the back buffer, pixel-identical to the direct path (checked with `Tools/coa/imgdiff.py`).
+  Console-only, all default 0: `coaRenderPipeline`, `coaRenderDebug`, `coaRenderJitter`. Active only without MSAA, with
+  INTZ, a 24-bit depth format and shaders; otherwise the direct path runs. Groundwork for DLSS
+  (`docs/superpowers/specs/2026-10-26-streamline-rendering-design.md`).
 
 ## Forced by x64
 
