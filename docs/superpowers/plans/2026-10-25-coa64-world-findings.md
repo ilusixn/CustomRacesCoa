@@ -231,3 +231,16 @@ Live run 2026-10-26 (test account, Pale Reach, 120 s in world after "registered 
   (Plan 12); CVars useUiScale / autoAcceptTrades / ObjectSelectionCircleTexture and the profanity-filter widget
   (Plan 14); NewCharacterSetupUtil.lua:49 assertion (open).
 - Inventory: natives 1051/1346, packets 433/533, events 186/259, hooks 126/346, patches 125/126, CVars 22/93.
+
+## Plan 12 result
+
+Live run 2026-10-26 (test account, 120 s in world): 15 Lua errors (22 before).
+- Gone: C_PlayerTicket x2, C_PlayerPoll x2, C_CustomStore, RecoverCategoryItemAtIndex, C_AssetQueryService (not seen
+  this run). Discord logs "discord_game_sdk.dll / DiscordCreate not loadable (error 193)" (the x86 SDK) and takes the
+  no-core path.
+- C stack overflow x4 root-caused with the new -extlog traceback: SharedXML C_Hook.lua recurses SendEvent ->
+  SecureSetValues -> SetAttribute -> OnAttributeChanged -> SendEvent because issecure() is nil while
+  Ascension_WildCard (a server-listed secure addon) runs; genuine's AddonTaint module (FUN_10312150) hooks issecure
+  (0x816DA0) to answer 1 for it. Ported in Plan 13 Task 0.
+- NewCharacterSetupUtil.lua:49 assertion runs under Prat-3.0's taint (open).
+- Inventory: natives 1144/1346, packets 478/533, events 210/259, hooks 127/346, patches 125/126, CVars 22/93.
