@@ -1030,11 +1030,21 @@ void* CGxDeviceD3d9Ex::WorldColorTexture() {
 // CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before
 // every Reset and on destroy -- see IReleaseD3dResources).
 void CGxDeviceD3d9Ex::WorldTargetRelease() {
+    // CoA64: the pipeline's own D3D9 objects (state block) must go before a Reset too.
+    if (g_worldTargetReleaseHook) {
+        g_worldTargetReleaseHook();
+    }
+
     if (this->m_worldTargetBegun) {
         this->IWorldTargetRestore();
     }
 
     this->IWorldTargetFree();
+}
+
+// CoA64: the IDirect3DDevice9* (for the render pipeline's debug draw).
+void* CGxDeviceD3d9Ex::D3dDevice() {
+    return this->m_d3dDevice;
 }
 
 // CoA64: rebinds the current render target after the default surfaces changed. Mirrors the surface selection at the

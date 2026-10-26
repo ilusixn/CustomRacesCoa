@@ -2,6 +2,8 @@
 // CGCamera::SetupWorldProjection), the activation rules' inputs and the device's world target. The hook is installed
 // only while coaRenderPipeline is 1, so at 0 the engine runs its original paths. Not part of the original (CoA64
 // addition).
+#include "CoA/Shaders/DepthViewPS.h"
+#include "CoA/Shaders/FullscreenVS.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/Log.h"
@@ -11,6 +13,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CRect.h"
+#include <d3d9.h>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -39,6 +42,121 @@ namespace {
     // render is the frame's camera); committed with BeginFrame when the world target begins.
     Camera s_pending;
     bool s_havePending;
+
+    // The depth debug view's D3D9 objects, created lazily on first use and released with the world target (device
+    // reset / destroy through g_worldTargetReleaseHook, pipeline off through Deactivate).
+    IDirect3DVertexShader9* s_debugVS;
+    IDirect3DPixelShader9* s_debugPS;
+    IDirect3DVertexDeclaration9* s_debugDecl;
+    IDirect3DStateBlock9* s_debugBlock;
+    // Creation failed (logged once): coaRenderDebug falls back to the normal image until the objects are released.
+    bool s_debugFailed;
+
+    void ReleaseDebug() {
+        IUnknown* objects[] = { s_debugVS, s_debugPS, s_debugDecl, s_debugBlock };
+
+        for (IUnknown* object : objects) {
+            if (object) {
+                object->Release();
+            }
+        }
+
+        s_debugVS = nullptr;
+        s_debugPS = nullptr;
+        s_debugDecl = nullptr;
+        s_debugBlock = nullptr;
+        s_debugFailed = false;
+    }
+
+    // Draws the world's INTZ depth as greyscale over the full target rect, leaving every D3D9 state as it was. Runs
+    // after WorldTargetEnd, so the original back buffer and depth surface are bound again. False: nothing drawn.
+    bool DrawDepthView(CGxDevice* gx) {
+        IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(gx->D3dDevice());
+        IDirect3DBaseTexture9* depth = static_cast<IDirect3DBaseTexture9*>(gx->WorldDepthTexture());
+
+        if (!device || !depth || s_debugFailed) {
+            return false;
+        }
+
+        if (!s_debugBlock) {
+            const D3DVERTEXELEMENT9 elements[] = {
+                { 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
+                { 0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
+                D3DDECL_END()
+            };
+
+            if (FAILED(device->CreateVertexShader(reinterpret_cast<const DWORD*>(kFullscreenVS), &s_debugVS))
+                || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kDepthViewPS), &s_debugPS))
+                || FAILED(device->CreateVertexDeclaration(elements, &s_debugDecl))
+                || FAILED(device->CreateStateBlock(D3DSBT_ALL, &s_debugBlock))) {
+                ReleaseDebug();
+                s_debugFailed = true;
+                CoA::Log::Printf("RenderPipeline: depth debug view unavailable (D3D9 object creation failed)");
+                return false;
+            }
+        }
+
+        // Everything the draw touches is restored by the state block (textures, shaders, stream, render states,
+        // samplers, viewport, scissor); render targets are not part of it and are not changed.
+        if (FAILED(s_debugBlock->Capture())) {
+            return false;
+        }
+
+        const float w = static_cast<float>(s_width);
+        const float h = static_cast<float>(s_height);
+        D3DVIEWPORT9 viewport = { 0, 0, s_width, s_height, 0.0f, 1.0f };
+        // Clip-space strip with the D3D9 half-pixel offset applied by the vertex shader (c0).
+        const float offset[4] = { -1.0f / w, 1.0f / h, 0.0f, 0.0f };
+        const float quad[4][6] = {
+            { -1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f },
+            { 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f },
+            { -1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f },
+            { 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 1.0f }
+        };
+
+        device->SetViewport(&viewport);
+        device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+        device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+        device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+        device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+        device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+        device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+        device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
+        device->SetRenderState(D3DRS_SRGBWRITEENABLE, FALSE);
+        device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+        device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+        device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+        device->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+        device->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+        device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+        device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, FALSE);
+        device->SetVertexDeclaration(s_debugDecl);
+        device->SetVertexShader(s_debugVS);
+        device->SetPixelShader(s_debugPS);
+        device->SetVertexShaderConstantF(0, offset, 1);
+        device->SetTexture(0, depth);
+        device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
+
+        // Apply puts back whatever was bound at stage 0 when captured (the INTZ texture never was, so it is unbound
+        // again here); the explicit check keeps the device from ever being left holding it, which would fail the next
+        // Begin / Reset.
+        s_debugBlock->Apply();
+
+        IDirect3DBaseTexture9* bound = nullptr;
+
+        if (SUCCEEDED(device->GetTexture(0, &bound)) && bound) {
+            if (bound == depth) {
+                device->SetTexture(0, nullptr);
+            }
+
+            bound->Release();
+        }
+
+        return true;
+    }
 
     bool CVarOn(CVar** slot) {
         return *slot && (*slot)->m_intValue != 0;
@@ -77,7 +195,7 @@ namespace {
         s_wasActive = false;
 
         if (s_targetHeld) {
-            device->WorldTargetRelease();
+            device->WorldTargetRelease();   // also releases the debug view's objects
             s_targetHeld = false;
         }
     }
@@ -89,6 +207,8 @@ namespace {
             Deactivate(g_theGxDevicePtr);
         }
 
+        ReleaseDebug();
+        g_worldTargetReleaseHook = nullptr;
         g_renderPipelineHook = nullptr;
         LogState(static_cast<int>(Inactive::CVarOff));
     }
@@ -177,8 +297,14 @@ namespace {
 
             // The whole target, not only the viewport: it started as a copy of the back buffer and the partial-viewport
             // GxSceneClear cleared all of it, so a full copy reproduces the original back buffer exactly.
-            // coaRenderDebug 1 (the depth view) replaces this copy in a later stage-1 step.
-            g_theGxDevicePtr->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height));
+            CGxDevice* device = g_theGxDevicePtr;
+            device->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height));
+
+            // coaRenderDebug 1: the depth view is drawn over the copied world (the same full rect), so a failure
+            // leaves the normal image. The UI draws on top afterwards as usual.
+            if (CVarOn(CoA::RenderPipelineClient::DebugSlot())) {
+                DrawDepthView(device);
+            }
         }
 
         // Turned off since the hook was installed: done with this frame, so release and uninstall now.
@@ -225,6 +351,7 @@ namespace {
     bool OnPipeline(CVar* /* var */, const char* /* oldValue */, const char* value, void* /* arg */) {
         if (value && atoi(value) != 0) {
             g_renderPipelineHook = &s_hook;
+            g_worldTargetReleaseHook = ReleaseDebug;
         } else if (g_renderPipelineHook && !s_begun) {
             Uninstall();
         }

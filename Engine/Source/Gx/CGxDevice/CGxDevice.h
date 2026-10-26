@@ -251,6 +251,8 @@ class CGxDevice {
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
+    // CoA64: the underlying IDirect3DDevice9* of the D3D9 devices (nullptr for others), for the render pipeline's debug draw.
+    virtual void* D3dDevice();
 
     static HSLOG m_log;
     static C2iVector s_clientAdjust;
@@ -379,6 +381,8 @@ struct RenderPipelineHook {
 };
 
 extern RenderPipelineHook* g_renderPipelineHook;
+// CoA64: called from WorldTargetRelease (device reset / destroy, pipeline off) so the pipeline drops its own D3D9 objects.
+extern void (*g_worldTargetReleaseHook)();
 
 // CoA: AscCursor.cpp:FUN_10a205f0 (orig hook 0x683640) -- the visibility CGxDevice::CursorSetVisible stores.
 extern int32_t (*g_cursorSetVisibleHook)(int32_t visible);

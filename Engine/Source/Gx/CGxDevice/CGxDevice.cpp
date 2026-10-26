@@ -40,6 +40,7 @@ void* (*g_d3d9LibraryHook)();
 
 // CoA64: set by the render pipeline client; null by default.
 RenderPipelineHook* g_renderPipelineHook;
+void (*g_worldTargetReleaseHook)();
 
 // STATIC: 0x00AD87FC
 const char* CGxDevice::s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
@@ -2154,4 +2155,9 @@ void* CGxDevice::WorldColorTexture() {
 
 // CoA64: see WorldTargetSupported.
 void CGxDevice::WorldTargetRelease() {
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::D3dDevice() {
+    return nullptr;
 }

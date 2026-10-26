@@ -323,6 +323,7 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
+    virtual void* D3dDevice();
 
     static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
     static const D3DFORMAT s_GxTexFmtToD3dFmt[GxTexFormats_Last];
