@@ -136,6 +136,9 @@ static const CoA::Module s_modules[] = {
     { "SmallHooks", CoA::SmallHooks::Init },
     { "GossipQuest", CoA::GossipQuest::Init },
     { "SpellTokens", CoA::SpellTokens::Init },
+    // FUN_10a60cd0 / FUN_10296fd0 (client guards); AscCrashContext (FUN_1019dc80), AscInitHooks (FUN_10a60d20) and
+    // AscLargeAlloc (FUN_102a85f0) are client sites only (their *Client halves).
+    { "ClientGuards", CoA::ClientGuards::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -228,6 +231,9 @@ static const CoA::Module s_modules[] = {
     { "SmallHooksClient", CoA::SmallHooksClient::Init },
     { "GossipQuestClient", CoA::GossipQuestClient::Init },
     { "SpellTokensClient", CoA::SpellTokensClient::Init },
+    { "CrashContextClient", CoA::CrashContextClient::Init },
+    { "InitHooksClient", CoA::InitHooksClient::Init },
+    { "ClientGuardsClient", CoA::ClientGuardsClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

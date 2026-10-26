@@ -1,5 +1,6 @@
 #include <cstdint>
 #include "Engine/Source/Storm/H/storm.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Game/GameClient/tables.h"
 
@@ -51,6 +52,10 @@ ClientGameTableBase::ClientGameTableBase(const char* name) {
 // VERIFY: 001196df auto
 // OFFSET: 0x007F6A10
 void ClientGameTableBase::Initialize() {
+    // CoA: AscCrashContext.cpp:LoadGameTable (orig hook 0x7F6A10) -- the table's name as the crash report's "Last
+    // LoadGameTable".
+    CoA::CrashContext::Record(CoA::CrashContext::Field::GameTable, this->m_name);
+
     for (int32_t i = 0; i <= g_gameTablesDB.m_numRecords; i++) {
         GameTablesRec* rec = i >= 0 && i < g_gameTablesDB.m_numRecords ? &g_gameTablesDB.m_records[i] : nullptr;
 

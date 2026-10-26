@@ -1,5 +1,6 @@
 #include "DetailDoodad.h"
 #include <cmath>
+#include "CoA/Source/Modules/CrashContext.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Gx/CGxBuf.h"
@@ -22,9 +23,11 @@
 #include <cstring>
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/WorldClient/CDetailDoodadData.h"
+#include "WoW/Source/WorldClient/CMapBaseObjLink.h"
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/WorldClient/Map.h"
+#include "WoW/Source/WorldClient/MapArea.h"
 #include "WoW/Source/WorldClient/MapChunk.h"
 #include "WoW/Source/WorldClient/MapLight.h"
 #include "WoW/Source/WorldClient/MapObjGroup.h"
@@ -659,6 +662,17 @@ void CDetailDoodadInst::FreeBuffers() {
 // VERIFY: b905f512 manual
 // OFFSET: 0x007B31E0
 void CDetailDoodadInst::AddDoodad(uint32_t id, const C3Vector& position, float rotation, float scale, const C3Vector& normal, uint16_t triIndex, const CImVector& color) {
+    // CoA: AscCrashContext.cpp:DetailDoodad (orig hook 0x7B31E0) -- an index inside s_doodadList is the crash report's
+    // "Last DetailDoodad IDX"; one past it is a fatal assert naming the ADT and chunk, and the body does not run.
+    if (!CoA::CrashContext::DetailDoodadValid(id, CDetailDoodad::s_doodadList.Count())) {
+        CMapChunk* chunk = this->m_chunk;
+        CMapBaseObjLink* link = chunk ? chunk->m_parentLinkList.Head() : nullptr;
+        CMapArea* area = link ? static_cast<CMapArea*>(link->m_ref) : nullptr;
+        CoA::CrashContext::DetailDoodadInvalid(id, area ? area->m_index.x : 0, area ? area->m_index.y : 0, chunk ? chunk->m_aIndex.x : 0,
+            chunk ? chunk->m_aIndex.y : 0);
+        return;
+    }
+
     CDetailDoodadData* data = CDetailDoodad::s_doodadList[id];
     CM2Model* model = data->m_model;
 

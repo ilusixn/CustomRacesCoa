@@ -20,6 +20,7 @@
 // and FUN_100d3550 (after every ClientIdle): ASCENSION_PLAYER_LEVEL_UP(new, old) whenever the player's level (0 without
 // a player) differs from the last one seen (0x10BDB688).
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Runtime/Events.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/Packets.h"
@@ -165,9 +166,11 @@ namespace {
         return 1;
     }
 
-    // FUN_10114c40 -> CVar::Set: refused when name and value together exceed 0xF9 characters.
+    // FUN_10114c40 -> CVar::Set: name and value together over 0xF9 characters are AscCrashContext::Assert's fatal error.
     void SetCVar(CVar* cvar, const char* value, bool setNeedsSave) {
         if (strlen(value) + strlen(cvar->m_key.m_str) > 0xF9) {
+            const std::string message = std::string("CVar::Set (m_key.str + value) > 249, m_key = ") + cvar->m_key.m_str;
+            CoA::CrashContext::Assert(message.c_str(), nullptr, 0);
             return;
         }
 

@@ -1521,6 +1521,12 @@ void CM2ModelHeap::Delete(CM2Model* model) {
 // VERIFY: 6625d3c0 auto
 // OFFSET: 0x0081F8F0
 CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
+    // CoA: AscItemCollections.cpp:Detour81F8F0 (orig hook 0x81F8F0) -- before the original: the name as the crash
+    // report's "Last Loaded M2 Name (CM2Shared)".
+    if (g_m2CrashRecordHook) {
+        g_m2CrashRecordHook(0x81F8F0, fileName);
+    }
+
     // CoA: AscItemCollections.cpp:FUN_102cb000 (orig hook 0x81F8F0) -- the DLL's detour runs after each return.
     // CoA: AscGeosets.cpp:0x101A14F0 (orig hook 0x81F8F0) -- the DLL's second detour keeps each result as the last model.
     if (!fileName) {
@@ -1797,6 +1803,12 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
         model->m_fFlags &= ~0x10008u;
         model->m_drawPrev = nullptr;
         model->m_drawNext = nullptr;
+
+        // CoA: AscCrashContext.cpp:M2IsDrawable (orig hook 0x824FC0) -- this call (return address 0x821C77) also feeds
+        // the "(Last IsDrawable: ...)" of the crash report's Animate line.
+        if (g_m2CrashRecordHook) {
+            g_m2CrashRecordHook(0x821C77, M2CrashName(model));
+        }
 
         if (!model->IsDrawable(0, 0) || (model->m_fFlags & 0x4000)) {
             continue;

@@ -46,6 +46,7 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Ui/PetInfo.h"
 #include "Engine/Source/ShaderEffect/Types.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 struct MissileUnitRank {
     CGUnit_C* m_unit;
@@ -321,6 +322,10 @@ void CGUnit_C::UpdateMissileTrajectory() {
 // VERIFY: b5322c54 manual
 // OFFSET: 0x006FDA20
 void CGUnit_C::UpdateMissileTrajectoryTargeting() {
+    // CoA: AscInitHooks.cpp:Detour6FDA20 (orig hook 0x6FDA20) -- before the body: the trajectory intersections' 0x100 bit
+    // back on (the immediates 0x6FD335 / 0x6FD4C7 / 0x6FD59E back to 1).
+    CoA::InitHooks::BeforeTrajectoryTargeting();
+
     s_trajectoryAlpha = 0.0f;
     uint32_t pitchNextFrame = CGUnit_C::s_pitchMissileTrajectoryTargetingNextFrame;
     CGUnit_C::s_pitchMissileTrajectoryTargetingNextFrame = 0;
@@ -1190,7 +1195,8 @@ int32_t CGUnit_C::ComputeMissileTrajectory(const SpellRec* spell, float* pitch, 
     C3Vector hit(0.0f, 0.0f, 0.0f);
     float t = 1.0f;
 
-    if (World::Intersect(start, *launch, &hit, &t, 0x100111, nullptr)) {
+    // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- the flags (0x6FD335) as OverrideMissileFirePos left them.
+    if (World::Intersect(start, *launch, &hit, &t, CoA::InitHooks::TrajectoryIntersectFlags(), nullptr)) {
         *impact = *launch;
         *time = 0.0f;
 
@@ -1230,7 +1236,8 @@ int32_t CGUnit_C::ComputeMissileTrajectory(const SpellRec* spell, float* pitch, 
     t = 1.0f;
     float traveled;
 
-    if (World::Intersect(from, to, &hit, &t, 0x100111, nullptr)) {
+    // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- the flags (0x6FD4C7) as OverrideMissileFirePos left them.
+    if (World::Intersect(from, to, &hit, &t, CoA::InitHooks::TrajectoryIntersectFlags(), nullptr)) {
         *impact = hit;
         traveled = (maxSteps - steps) + t;
     } else {
@@ -1264,7 +1271,8 @@ int32_t CGUnit_C::ComputeMissileTrajectory(const SpellRec* spell, float* pitch, 
             to.z = velocity.z + from.z;
             t = 1.0f;
 
-            if (World::Intersect(from, to, &hit, &t, 0x100111, nullptr)) {
+            // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- the flags (0x6FD59E) as OverrideMissileFirePos left them.
+            if (World::Intersect(from, to, &hit, &t, CoA::InitHooks::TrajectoryIntersectFlags(), nullptr)) {
                 *impact = hit;
                 traveled = (maxSteps - steps) + t;
                 break;

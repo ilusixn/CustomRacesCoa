@@ -22,6 +22,8 @@ class BattlenetApplication;
 
 extern Battlenet::TumorManager* g_tumorManager;
 
+void BattlenetAssert(const char* message, const char* file, int32_t line);
+
 class BattlenetAllocator : public Battlenet::Allocator {
     public:
     void* Alloc(uint32_t size) override;

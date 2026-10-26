@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <new>
 #include "ObjectMgrClient.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/ConsoleBase/ConsoleCommand.h"
@@ -1717,6 +1718,10 @@ void ClntObjMgrInitialize() {
 // VERIFY: c3e30362 manual
 // OFFSET: 0x004D7750
 void ClntObjMgrInitializeStd(uint32_t mapId) {
+    // CoA: AscCrashContext.cpp:LoadMap (orig hook 0x4D7750) -- the map as the crash report's "Last Loaded Map ID"; a map
+    // Map.dbc does not have is a fatal assert.
+    CoA::CrashContext::BeforeLoadMap(mapId);
+
     CGGameUI::SetLastInstanceTime(static_cast<int32_t>(time(nullptr)), CGGameUI::m_iCurrentMapID, mapId);
 
     ObjectMgr* mgr = new (__FILE__, __LINE__) ObjectMgr(0);

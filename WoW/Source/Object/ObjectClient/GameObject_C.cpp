@@ -1,4 +1,5 @@
 #include "GameObject_C.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -91,6 +92,7 @@
 #include "WoW/Source/WorldClient/MapEntity.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 enum ANIMATED_OBJECT_STATE : int32_t {
     STATE_OPENING = 0,
@@ -2716,6 +2718,10 @@ void (*g_gameObjectBaseLoadedHook)(CGGameObject_C* object) = nullptr;
 // VERIFY: 7b5a289f manual
 // OFFSET: 0x00713F50
 void CGGameObject_C::ModelLoaded(CM2Model* model) {
+    // CoA: AscPatchData.cpp:Hook713F50 (orig hook 0x713F50) -- before the body: the entry and the model's name for the
+    // crash report ("Last GameObject::CGGameObject_C__ModelLoaded ...").
+    CoA::CrashContext::RecordGameObject(this->m_obj->m_entryID, model && model->m_shared ? model->m_shared->m_fileName : "Unknown (Missing CM2Shared)");
+
     // CoA: AscPatchData.cpp:Hook713F50 (orig hook 0x713F50) -- after the body, whichever way it returns.
     struct After {
         CGGameObject_C* object;
@@ -4045,6 +4051,11 @@ bool CGGameObject_C::IsUsableInCombat() const {
 // VERIFY: 1e16ed95 auto
 // OFFSET: 0x00710390
 bool CGGameObject_C::IsUsableMounted() const {
+    // CoA: AscInitHooks.cpp:Detour710390 (orig hook 0x710390) -- the game object with entry 900010 is usable mounted.
+    if (CoA::InitHooks::AlwaysUsableMounted(this->m_obj->m_entryID)) {
+        return true;
+    }
+
     int8_t type = this->m_gameObject->m_typeID;
 
     if (type == 19) {

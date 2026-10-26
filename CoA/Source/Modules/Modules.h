@@ -204,5 +204,9 @@ namespace CoA::PacketApiClient { void Init(); }
 namespace CoA::SmallHooksClient { void Init(); }
 namespace CoA::GossipQuestClient { void Init(); }
 namespace CoA::SpellTokensClient { void Init(); }
+namespace CoA::ClientGuards { void Init(); }
+namespace CoA::CrashContextClient { void Init(); }
+namespace CoA::InitHooksClient { void Init(); }
+namespace CoA::ClientGuardsClient { void Init(); }
 
 #endif
