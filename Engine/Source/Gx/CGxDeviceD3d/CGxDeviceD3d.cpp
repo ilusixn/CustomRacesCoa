@@ -907,9 +907,11 @@ void CGxDeviceD3d::DeviceUnk83(uint32_t a, uint32_t b) {
 // CoA64: INTZ -- a depth-stencil texture format (24-bit depth, 8-bit stencil) that can also be sampled.
 static const D3DFORMAT s_worldDepthFormat = static_cast<D3DFORMAT>(MAKEFOURCC('I', 'N', 'T', 'Z'));
 
-// CoA64: the device can render the world into a back-buffer-format colour texture with an INTZ depth texture.
+// CoA64: the device can render the world into a back-buffer-format colour texture with an INTZ depth texture. INTZ
+// has 24 depth bits, so only a 24-bit default depth buffer (the present parameters' AutoDepthStencilFormat) gives
+// identical depth test results.
 bool CGxDeviceD3d::WorldTargetSupported() {
-    if (!this->m_d3d) {
+    if (!this->m_d3d || (this->m_devDepthFormat != D3DFMT_D24S8 && this->m_devDepthFormat != D3DFMT_D24X8)) {
         return false;
     }
 
@@ -958,8 +960,8 @@ bool CGxDeviceD3d::WorldTargetBegin(uint32_t width, uint32_t height) {
     return true;
 }
 
-// CoA64: restores the original default surfaces and copies the world colour (rect in back-buffer pixels) to the
-// back buffer 1:1. Not begun: no-op.
+// CoA64: restores the original default surfaces and copies the world colour (rect in back-buffer pixels, clamped to
+// the world texture and the back buffer) to the back buffer 1:1. Not begun: no-op.
 void CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom) {
     if (!this->m_worldTargetBegun) {
         return;
@@ -967,16 +969,39 @@ void CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int3
 
     this->IWorldTargetRestore();
 
-    const int32_t width = static_cast<int32_t>(this->m_worldTargetWidth);
-    const int32_t height = static_cast<int32_t>(this->m_worldTargetHeight);
+    if (!this->m_context || !this->m_defColorSurface) {
+        return;
+    }
+
+    int32_t width = static_cast<int32_t>(this->m_worldTargetWidth);
+    int32_t height = static_cast<int32_t>(this->m_worldTargetHeight);
+    D3DSURFACE_DESC backBufferDesc;
+
+    if (FAILED(this->m_defColorSurface->GetDesc(&backBufferDesc))) {
+        return;
+    }
+
+    if (static_cast<int32_t>(backBufferDesc.Width) < width) {
+        width = static_cast<int32_t>(backBufferDesc.Width);
+    }
+
+    if (static_cast<int32_t>(backBufferDesc.Height) < height) {
+        height = static_cast<int32_t>(backBufferDesc.Height);
+    }
+
     RECT rect;
     rect.left = left > 0 ? left : 0;
     rect.top = top > 0 ? top : 0;
     rect.right = right < width ? right : width;
     rect.bottom = bottom < height ? bottom : height;
 
-    if (this->m_context && rect.left < rect.right && rect.top < rect.bottom) {
-        this->m_d3dDevice->StretchRect(this->m_worldColorSurface, &rect, this->m_defColorSurface, &rect, D3DTEXF_NONE);
+    if (rect.left >= rect.right || rect.top >= rect.bottom) {
+        return;
+    }
+
+    // The originals are already restored and bound, so a failed copy only loses this frame's world image.
+    if (FAILED(this->m_d3dDevice->StretchRect(this->m_worldColorSurface, &rect, this->m_defColorSurface, &rect, D3DTEXF_NONE))) {
+        return;
     }
 }
 
