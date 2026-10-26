@@ -13,6 +13,7 @@
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CRect.h"
+#include "WoW/Source/WorldClient/World.h"
 #include <d3d9.h>
 #include <cmath>
 #include <cstdlib>
@@ -109,9 +110,26 @@ namespace {
             return false;
         }
 
-        const float w = static_cast<float>(s_width);
-        const float h = static_cast<float>(s_height);
-        D3DVIEWPORT9 viewport = { 0, 0, s_width, s_height, 0.0f, 1.0f };
+        // The quad covers the bound render target (the back buffer) exactly, so uv runs 0..1 over what is visible; the
+        // world target's size is the fallback. With both the same size the point sampling hits texel centres.
+        uint32_t targetWidth = s_width;
+        uint32_t targetHeight = s_height;
+        IDirect3DSurface9* target = nullptr;
+
+        if (SUCCEEDED(device->GetRenderTarget(0, &target)) && target) {
+            D3DSURFACE_DESC desc;
+
+            if (SUCCEEDED(target->GetDesc(&desc)) && desc.Width && desc.Height) {
+                targetWidth = desc.Width;
+                targetHeight = desc.Height;
+            }
+
+            target->Release();
+        }
+
+        const float w = static_cast<float>(targetWidth);
+        const float h = static_cast<float>(targetHeight);
+        D3DVIEWPORT9 viewport = { 0, 0, targetWidth, targetHeight, 0.0f, 1.0f };
         // Clip-space strip with the D3D9 half-pixel offset applied by the vertex shader (c0).
         const float offset[4] = { -1.0f / w, 1.0f / h, 0.0f, 0.0f };
         const float quad[4][6] = {
@@ -134,6 +152,7 @@ namespace {
         device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
         device->SetRenderState(D3DRS_SRGBWRITEENABLE, FALSE);
         device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+        device->SetRenderState(D3DRS_WRAP0, 0);
         device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
         device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
         device->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
@@ -149,8 +168,16 @@ namespace {
         device->SetSamplerState(0, D3DSAMP_MAXMIPLEVEL, 0);
         device->SetSamplerState(0, D3DSAMP_ADDRESSW, D3DTADDRESS_CLAMP);
         // c0.x: 1 = depth view, 2 = diagnostic (uv gradient, blue where the depth is still at the clear value).
+        // c1 = (viewport minZ, 1 / (maxZ - minZ)): the Z buffer holds minZ + ndc * (maxZ - minZ). c2 = (near * far, far,
+        // far - near, 1 / 16) linearises the NDC depth to yards for the greyscale 1 / (1 + yards / 16).
+        const Frame& frame = Current();
+        const float range = frame.depthMax - frame.depthMin;
+        const float nearZ = frame.cur.nearZ;
+        const float farZ = frame.cur.farZ;
+        const float depthConstants[8] = { frame.depthMin, range > 1e-6f ? 1.0f / range : 1.0f, 0.0f, 0.0f, nearZ * farZ, farZ, farZ - nearZ, 1.0f / 16.0f };
         const float mode[4] = { (*CoA::RenderPipelineClient::DebugSlot())->m_intValue >= 2 ? 2.0f : 1.0f, 0.0f, 0.0f, 0.0f };
         device->SetPixelShaderConstantF(0, mode, 1);
+        device->SetPixelShaderConstantF(1, depthConstants, 2);
         device->SetTexture(0, depth);
         device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
 
@@ -314,7 +341,8 @@ namespace {
             return;
         }
 
-        BeginFrame(s_pending, forceReset);
+        // The world viewport (WorldFrame::OnWorldRender, right after this) is [the current minZ, CWorld::s_unk_ADEEE4].
+        BeginFrame(s_pending, forceReset, device->m_viewport.m_z.m_l, CWorld::s_unk_ADEEE4);
 
         // Jitter only the world camera of a frame that is rendering into the world target: the device must still hold
         // the projection SetupWorldProjection just set for it (unchanged, so not a hit test's or another camera's).

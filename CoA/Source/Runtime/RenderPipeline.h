@@ -27,6 +27,9 @@ namespace CoA::RenderPipeline {
         uint32_t index;
         bool reset;
         float jitterX, jitterY;
+        // The world viewport's depth range: the Z buffer holds minZ + ndcDepth * (maxZ - minZ), not ndcDepth (the world
+        // viewport's MaxZ is CWorld::s_unk_ADEEE4, 0.94). Kept per frame for the depth debug view and stage 3 (DLSS).
+        float depthMin, depthMax;
     };
 
     struct ActivationInput {
@@ -48,7 +51,8 @@ namespace CoA::RenderPipeline {
     Inactive WhyInactive(const ActivationInput& in);
 
     // Rolls cur -> prev, increments index, sets reset (first frame, forceReset, or a teleport).
-    void BeginFrame(const Camera& cam, bool forceReset);
+    // depthMin / depthMax: the world viewport's Z range for this frame (defaults: the full 0..1).
+    void BeginFrame(const Camera& cam, bool forceReset, float depthMin = 0.0f, float depthMax = 1.0f);
     const Frame& Current();
 
     // Halton(2,3) sample for the given index, in [-0.5, 0.5).

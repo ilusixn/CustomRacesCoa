@@ -63,6 +63,14 @@ COA_TEST(RenderPipeline_FirstFrameIsReset) {
     CHECK(CoA::RenderPipeline::Current().index == 1);
 }
 
+COA_TEST(RenderPipeline_FrameKeepsDepthRange) {
+    CoA::RenderPipeline::Reset();
+    CoA::RenderPipeline::BeginFrame(CameraAt(0, 0, 0), false, 0.0f, 0.94f);
+    CHECK(Near(CoA::RenderPipeline::Current().depthMin, 0.0f) && Near(CoA::RenderPipeline::Current().depthMax, 0.94f));
+    CoA::RenderPipeline::BeginFrame(CameraAt(1, 0, 0), false);   // defaults: the full range
+    CHECK(Near(CoA::RenderPipeline::Current().depthMin, 0.0f) && Near(CoA::RenderPipeline::Current().depthMax, 1.0f));
+}
+
 COA_TEST(RenderPipeline_SecondFrameKeepsPreviousCamera) {
     CoA::RenderPipeline::Reset();
     CoA::RenderPipeline::BeginFrame(CameraAt(0, 0, 0), false);

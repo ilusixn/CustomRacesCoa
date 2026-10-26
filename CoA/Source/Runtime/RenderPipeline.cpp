@@ -34,7 +34,7 @@ namespace CoA::RenderPipeline {
         return Inactive::None;
     }
 
-    void BeginFrame(const Camera& cam, bool forceReset) {
+    void BeginFrame(const Camera& cam, bool forceReset, float depthMin, float depthMax) {
         const bool first = s_frame.index == 0;
         bool reset = first || forceReset;
         if (!first) {
@@ -49,6 +49,8 @@ namespace CoA::RenderPipeline {
         s_frame.cur = cam;
         s_frame.index++;
         s_frame.reset = reset;
+        s_frame.depthMin = depthMin;
+        s_frame.depthMax = depthMax;
     }
 
     const Frame& Current() {
