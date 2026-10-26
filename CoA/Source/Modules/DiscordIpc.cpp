@@ -172,3 +172,7 @@ CoA::DiscordIpc::Event CoA::DiscordIpc::Parse(const std::string& text) {
 
     return e;
 }
+
+bool CoA::DiscordIpc::SendNow(bool pending, bool sentBefore, uint32_t lastSentMs, uint32_t nowMs) {
+    return pending && (!sentBefore || nowMs - lastSentMs >= kMinSpacingMs);
+}

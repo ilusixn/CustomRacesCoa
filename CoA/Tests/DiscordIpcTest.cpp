@@ -139,3 +139,13 @@ COA_TEST(DiscordIpc_ParseDispatches) {
     CHECK(CoA::DiscordIpc::Parse("not json").kind == CoA::DiscordIpc::Event::Other);
     CHECK(CoA::DiscordIpc::Parse("{\"cmd\":\"SET_ACTIVITY\",\"evt\":null}").kind == CoA::DiscordIpc::Event::Other);
 }
+
+// Discord accepts about 5 activity updates per 20 s; the client sends the newest one at most every 4 s (a burst left
+// the app showing an old status until it was restarted).
+COA_TEST(DiscordIpc_UpdatesAreSpacedFourSecondsApart) {
+    CHECK(CoA::DiscordIpc::SendNow(true, false, 0, 1000));             // first ever: at once
+    CHECK(!CoA::DiscordIpc::SendNow(false, true, 1000, 9000));         // nothing pending
+    CHECK(!CoA::DiscordIpc::SendNow(true, true, 1000, 4999));          // 3999 ms after the last
+    CHECK(CoA::DiscordIpc::SendNow(true, true, 1000, 5000));           // 4000 ms
+    CHECK(CoA::DiscordIpc::SendNow(true, true, 0xFFFFF000u, 0x00000FA0u));   // tick wrap: 8000 ms later
+}

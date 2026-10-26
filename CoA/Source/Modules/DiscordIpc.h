@@ -39,6 +39,11 @@ namespace CoA::DiscordIpc {
     };
 
     Event Parse(const std::string& json);
+
+    // Discord accepts about 5 activity updates per 20 s; a burst left the app showing an old status until restarted.
+    // The newest pending activity goes out at most every kMinSpacingMs (GetTickCount values, wrap-safe).
+    constexpr uint32_t kMinSpacingMs = 4000;
+    bool SendNow(bool pending, bool sentBefore, uint32_t lastSentMs, uint32_t nowMs);
 }
 
 #endif
