@@ -242,6 +242,15 @@ class CGxDevice {
     virtual void DeviceUnk81(uint32_t a, uint32_t b) = 0;
     virtual void DeviceUnk82() = 0;
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
+    // CoA64: render pipeline world target -- an off-screen colour target + sampleable depth texture swapped in as the
+    // default surfaces while the 3D world renders, then copied back to the back buffer. The base device has none
+    // (Supported/Begin return false, the rest do nothing).
+    virtual bool WorldTargetSupported();
+    virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
+    virtual void WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual void* WorldDepthTexture();
+    virtual void* WorldColorTexture();
+    virtual void WorldTargetRelease();
 
     static HSLOG m_log;
     static C2iVector s_clientAdjust;
@@ -361,6 +370,15 @@ extern const char* s_formatToInt[CGxFormat::Formats_Last];
 // CoA64: set by CoA::DxvkClient::Preload -- the preloaded DXVK d3d9 module (a new reference) or nullptr; both
 // ILoadD3dLib try it before the system d3d9.dll.
 extern void* (*g_d3d9LibraryHook)();
+
+// CoA64: render pipeline hooks (CoA::RenderPipelineClient), null when the pipeline is not installed.
+struct RenderPipelineHook {
+    void (*beginWorld)();
+    void (*endWorld)(const CRect& viewportNDC);
+    void (*setupWorldProjection)(C44Matrix& projection, const C44Matrix& view, const C3Vector& position, float fovY, float aspect, float nearZ, float farZ, const C3Vector& forward, const C3Vector& up);
+};
+
+extern RenderPipelineHook* g_renderPipelineHook;
 
 // CoA: AscCursor.cpp:FUN_10a205f0 (orig hook 0x683640) -- the visibility CGxDevice::CursorSetVisible stores.
 extern int32_t (*g_cursorSetVisibleHook)(int32_t visible);
