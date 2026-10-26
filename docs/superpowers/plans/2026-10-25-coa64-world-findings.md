@@ -329,5 +329,6 @@ Ascension's SharedConstants.lua `bit.contains(Enum.ClassMask.COA, UnitClassMask(
 32-bit client converts Lua numbers through __ftol2 / fistp qword and keeps the low dword (numbers past 2^31 wrap); the
 x64 build's direct (int) cast gave 0x80000000, so the mask test failed. lbitlib.c and string.format's integer cases
 now convert through 64 bits (LuaNumberConversionTest). Live: "Realm capabilities mapped: COA mode".
-Open: 461 other `static_cast<int32_t/int>(lua_tonumber/...)` sites in the WoW natives have the same difference for
-values past 2^31 (e.g. MailInfo SetSendMoney).
+Follow-up (user: fix all): the 481 `static_cast<int32_t/int/int16_t/...>(lua_tonumber/FrameScript_GetNumber/...)` sites
+in WoW / Engine now convert through int64 (Tools/coa/tests/test_x64_casts.py guards it), and lua_number2int uses
+cvtsd2si like the 32-bit client's "fld; fistp dword" (round to nearest even). Live: 0 Lua errors, COA mode.
