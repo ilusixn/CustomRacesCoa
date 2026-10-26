@@ -198,3 +198,7 @@ void CoA::Discord::Reset() {
     s_mgr.userSubscribed = false;
     s_deps = Deps();
 }
+
+std::vector<std::wstring> CoA::Discord::SdkPaths(const std::wstring& exeDir) {
+    return { exeDir + L"\\x64\\discord_game_sdk.dll", L"discord_game_sdk.dll" };
+}
