@@ -65,9 +65,9 @@ namespace CoA::MysticEnchant {
     const uint8_t* RowOfSpell(uint32_t spell);
     uint32_t QualityOfRow(const uint8_t* row);
 
-    // 0x10A42DD0 -> FUN_102EA1A0: a used game object; FUN_10A42F30's first two branches: a used item.
-    void OnGameObjectUse(uint32_t entry);
-    void OnItemUse(uint32_t entry);
+    // The game-object-use detour's altar branch (ObjectUse.cpp): FUN_102EA1A0 (the entry is a mystic altar) ->
+    // FUN_102EA2C0 (the altar is open, MYSTIC_ALTAR_USED).
+    void GameObjectUsed(uint32_t entry);
     // 0x102EA2A0: at world entry, prefetch the untarnished scroll's item record (MysticEnchantClient.cpp calls it).
     void EnterWorld();
 

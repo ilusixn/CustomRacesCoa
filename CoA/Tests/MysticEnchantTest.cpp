@@ -1,4 +1,5 @@
 #include "CoA/Tests/MysticEnchantFixture.h"
+#include "CoA/Source/Modules/ObjectUse.h"
 
 using namespace MysticFixture;
 
@@ -144,15 +145,34 @@ COA_TEST(MysticEnchant_GlueResets) {
     Teardown(L);
 }
 
-// The altar: a used altar object opens it, a used scroll / preset token fires its event.
-COA_TEST(MysticEnchant_AltarAndItemUse) {
+// The game-object-use detour (0x10A42DD0): a used altar opens it; GAMEOBJECT_USED follows every use.
+COA_TEST(ObjectUse_GameObject) {
     lua_State* L = Setup();
     CoATest::RecordSignals();
-    CoA::MysticEnchant::OnGameObjectUse(0x13914);
-    CoA::MysticEnchant::OnGameObjectUse(12);
-    CoA::MysticEnchant::OnItemUse(0xF25D0);
-    CoA::MysticEnchant::OnItemUse(0x1B9271);
+    CoA::GameObjectUse::Used(0x13914);
+    CoA::GameObjectUse::Used(12);
     CoATest::StopRecordingSignals();
-    CHECK((CoATest::Signals() == V{ "MYSTIC_ALTAR_USED", "MYSTIC_SCROLL_USED:992720", "MYSTIC_ENCHANT_UNLOCK_PRESET_USED" }));
+    CHECK((CoATest::Signals() == V{ "MYSTIC_ALTAR_USED", "GAMEOBJECT_USED:80148", "GAMEOBJECT_USED:12" }));
+    Teardown(L);
+}
+
+// The item-use detour (0x10A42F30): each branch's event, then ITEM_USED for every use (entry 0 skips the routing; an
+// item no branch claims and without an ItemAddon record only fires ITEM_USED).
+COA_TEST(ObjectUse_Item) {
+    lua_State* L = Setup();
+    CoATest::RecordSignals();
+    CoA::ItemUse::Used(0xF25D0);
+    CoA::ItemUse::Used(0x1B9271);
+    CoA::ItemUse::Used(0xBDF08);
+    CoA::ItemUse::Used(0x17C73);
+    CoA::ItemUse::Used(0x10CDBC);
+    CoA::ItemUse::Used(0x138060);
+    CoA::ItemUse::Used(12345);
+    CoA::ItemUse::Used(0);
+    CoATest::StopRecordingSignals();
+    CHECK((CoATest::Signals() == V{ "MYSTIC_SCROLL_USED:992720", "ITEM_USED:992720", "MYSTIC_ENCHANT_UNLOCK_PRESET_USED",
+        "ITEM_USED:1806961", "DICE_OF_DESTINY_USED", "ITEM_USED:777992", "SKILL_CARD_COLLECTION_ITEM_USED:97395",
+        "ITEM_USED:97395", "SCROLL_OF_FORTUNE_USED", "ITEM_USED:1101244", "CASE_OF_FORTUNE_USED", "ITEM_USED:1278048",
+        "ITEM_USED:12345", "ITEM_USED:0" }));
     Teardown(L);
 }
