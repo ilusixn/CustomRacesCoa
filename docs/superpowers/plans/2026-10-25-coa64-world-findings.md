@@ -351,4 +351,5 @@ after the handshake's READY, at most every 4 s (a burst of test updates left the
 until it was restarted), and resent until Discord's answer echoes its nonce (an error or 5 s without an answer resends
 it; a reconnect resends it after READY). Live: status shows and follows world entry. CoA64
 uses its own Discord application "Conquest of Azerothcore" (1564313674519154708) with the art key "descension_logo"
-(the user's); Ascension's application art was saved to out/discord_assets/.
+(the user's) and a small image per user decision: "si_horde" / "si_alliance" in world (faction name as hover text),
+"app_icon" on the character screen or for any other faction; Ascension's application art was saved to out/discord_assets/.

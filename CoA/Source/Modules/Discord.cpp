@@ -35,6 +35,17 @@ namespace {
     // CoA64: the art key in CoA64's own Discord application (DiscordClient's kClientId); the original's
     // "ascension_logo" lives in Ascension's application.
     constexpr const char* kLogo = "descension_logo";
+    // The small image (user decision): the faction in world, the application icon otherwise.
+    constexpr const char* kAppIcon = "app_icon";
+
+    void SetFaction(CoA::Discord::Activity& a, const std::string& faction) {
+        if (faction == "Horde" || faction == "Alliance") {
+            a.smallImage = faction == "Horde" ? "si_horde" : "si_alliance";
+            a.smallText = faction;
+        } else {
+            a.smallImage = kAppIcon;
+        }
+    }
 
     // The wrapper's setters (strncpy 0x80, last byte 0): cut at the first NUL and at 127 bytes.
     std::string Cut(const std::string& s) {
@@ -75,6 +86,7 @@ namespace {
         CoA::Discord::Activity a;
         a.state = "Selecting World";
         a.largeImage = kLogo;
+        a.smallImage = kAppIcon;
         SendClientStatus(a);
     }
 
@@ -236,6 +248,7 @@ void CoA::Discord::Refresh() {
     a.start = s_mgr.worldStart;
     a.largeImage = kLogo;
     a.largeText = Cut(info.realm);
+    SetFaction(a, info.faction);
     SendClientStatus(a);
 }
 

@@ -263,13 +263,14 @@ namespace {
         bool ok = false;
         static const char* kQuery =
             "if not UnitExists or not UnitExists('player') then return end "
-            "return UnitLevel('player'), (UnitClass('player')), GetRealZoneText(), GetRealmName()";
+            "return UnitLevel('player'), (UnitClass('player')), GetRealZoneText(), GetRealmName(), (UnitFactionGroup('player'))";
 
-        if (luaL_loadstring(L, kQuery) == 0 && lua_pcall(L, 0, 4, 0) == 0 && lua_type(L, top + 1) == LUA_TNUMBER) {
+        if (luaL_loadstring(L, kQuery) == 0 && lua_pcall(L, 0, 5, 0) == 0 && lua_type(L, top + 1) == LUA_TNUMBER) {
             out.level = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, top + 1)));
             out.className = lua_isstring(L, top + 2) ? lua_tostring(L, top + 2) : "";
             out.zone = lua_isstring(L, top + 3) ? lua_tostring(L, top + 3) : "";
             out.realm = lua_isstring(L, top + 4) ? lua_tostring(L, top + 4) : "";
+            out.faction = lua_isstring(L, top + 5) ? lua_tostring(L, top + 5) : "";
             ok = true;
         }
 
