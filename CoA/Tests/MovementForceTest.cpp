@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
+#include <algorithm>
 #include <cmath>
 #include <map>
 #include <string>
@@ -358,7 +359,7 @@ COA_TEST(MovementForce_OtherUnitsForceAndSmoothing) {
     s_now = 2064;                 // half the default 0x80 interval
     CoA::MovementForce::Tick();
     // Not the player's: stepped as idle (the unit's controller is itself, which is not the mover: stop tracked).
-    CHECK(s_calls.size() >= 2);
+    CHECK((s_calls == std::vector<std::string>{ "stop:34", "anchors:34", "apply:64:1", "moveupdate:34" }));
     CHECK(Near(o.move.pos[0], 10.5f));
     s_now = 2200;
     CoA::MovementForce::Tick();
@@ -428,5 +429,29 @@ COA_TEST(MovementForce_ResetOnWorldChangeAndLeavingTheWorld) {
     Dispatch(0x761, again);
     CoA::ClientHooks::afterClientDestroy.Run();
     CHECK(CoA::MovementForce::ForceCount(kPlayer) == 0);
+    CoATest::StopRecordingPackets();
+}
+
+// The original's bug, kept (review M3): 0x762 / 0x766 gate the controller's stop on a second erase of the guid from the
+// stopped set right after the first, so the stop never fires even for a unit the tick had stopped.
+COA_TEST(MovementForce_RemoveNeverFiresTheStop) {
+    Start();
+    FakeUnit& o = AddUnit(kOther, 3);
+    CoATest::Bytes b = Packed(kOther);
+    b.U32(0).F32(0.0f).F32(0.0f).F32(0.0f);
+    Force(b, 5, 0.0f, 1.0f, 0.0f, 0, 20.0f, 0);
+    Dispatch(0x765, b);
+    CoA::MovementForce::Tick();
+    s_now += 64;
+    CoA::MovementForce::Tick();   // steps the idle unit: tracked as stopped
+    CHECK(CoA::MovementForce::ForceCount(kOther) == 1);
+    CHECK(std::find(s_calls.begin(), s_calls.end(), "stop:34") != s_calls.end());
+
+    s_calls.clear();
+    CoATest::Bytes r = Packed(kOther);
+    r.U32(0).F32(o.move.pos[0]).F32(o.move.pos[1]).F32(o.move.pos[2]).U32(5);
+    Dispatch(0x766, r);
+    CHECK(CoA::MovementForce::ForceCount(kOther) == 0);
+    CHECK(std::find(s_calls.begin(), s_calls.end(), "stop:34") == s_calls.end());
     CoATest::StopRecordingPackets();
 }
