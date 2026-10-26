@@ -1,7 +1,8 @@
-// AscDiscord.cpp's SDK half: discord_game_sdk.dll loaded at run time (LoadLibraryW + GetProcAddress("DiscordCreate"))
+// AscDiscord.cpp's SDK half: discord_game_sdk.dll loaded at run time (LoadLibraryExW + GetProcAddress("DiscordCreate"))
 // in place of the original's static import, its C ABI (discord_game_sdk.h, DISCORD_VERSION 2) and the callback thread.
-// The install ships the 32-bit SDK, which this x64 process cannot load: Create then reports Discord::kNoSdkResult with
-// no core, and the pure half takes the original's "no core" path (CMSG 0x52E, no thread).
+// The x64 SDK is taken from <exe dir>\x64\ first (Discord::SdkPaths); the install's own copy is the 32-bit one. With no
+// loadable SDK, Create reports Discord::kNoSdkResult with no core and the pure half takes the original's "no core" path
+// (CMSG 0x52E, no thread).
 #include "CoA/Source/Modules/Discord.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Log.h"
@@ -111,10 +112,27 @@ namespace {
     IDiscordUserEvents s_userEvents = { UserUpdated };
     IDiscordActivityEvents s_activityEvents = { ActivityJoin, ActivitySpectate, ActivityJoinRequest, ActivityInvite };
 
+    std::wstring ExeDir() {
+        wchar_t path[MAX_PATH];
+        const DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
+        std::wstring dir(path, n);
+        const size_t slash = dir.find_last_of(L"\\/");
+        return slash == std::wstring::npos ? std::wstring(L".") : dir.substr(0, slash);
+    }
+
     int32_t Create(bool& core) {   // discord::Core::Create (FUN_10088d30)
         core = false;
-        HMODULE sdk = LoadLibraryW(L"discord_game_sdk.dll");
-        DiscordCreate_t create = sdk ? reinterpret_cast<DiscordCreate_t>(GetProcAddress(sdk, "DiscordCreate")) : nullptr;
+        DiscordCreate_t create = nullptr;
+
+        for (const std::wstring& path : CoA::Discord::SdkPaths(ExeDir())) {
+            // The full path also lets the SDK's own imports resolve from its folder.
+            HMODULE sdk = LoadLibraryExW(path.c_str(), nullptr, path.find(L'\\') != std::wstring::npos ? LOAD_WITH_ALTERED_SEARCH_PATH : 0);
+            create = sdk ? reinterpret_cast<DiscordCreate_t>(GetProcAddress(sdk, "DiscordCreate")) : nullptr;
+
+            if (create) {
+                break;
+            }
+        }
 
         if (!create) {
             CoA::Log::Printf("Discord: discord_game_sdk.dll / DiscordCreate not loadable (error %lu)", GetLastError());
