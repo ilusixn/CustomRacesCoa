@@ -367,9 +367,56 @@ namespace {
             reply.b = reply.blob.size();
             return Success;
         }
+        case 0x73: {
+            // PatchRecord. Not in MMgr64.exe (its dispatcher stops at 0x72, so every server patch of a bridged table
+            // was dropped, in the original too); served here as the reconstruction now applies those patches (its
+            // 3c8f196 pins them in the DLL's cache instead, the helper being fixed). One record at row `c`: an
+            // existing row is overwritten, row `count` is appended. Built indexes are kept current (a 66 drops them,
+            // but the client builds them once at load).
+            Table* table = Find(store, request.a);
+
+            if (!table || request.b != table->recordSize || request.blob.size() < request.b || request.c > table->count) {
+                return Failed;
+            }
+
+            const uint32_t row = request.c;
+
+            if (static_cast<uint64_t>(row) * table->recordSize > 0xFFFFFFFF) {
+                return Failed;
+            }
+
+            const uint32_t offset = row * table->recordSize;
+            const bool append = row == table->count;
+
+            for (auto& kv : table->indexes) {
+                auto& index = kv.second;
+
+                if (!append) {
+                    auto old = std::lower_bound(index.begin(), index.end(), std::make_pair(FieldAt(*table, row, kv.first), offset));
+
+                    if (old != index.end() && old->second == offset) {
+                        index.erase(old);
+                    }
+                }
+            }
+
+            if (append) {
+                table->records.resize(table->records.size() + table->recordSize, 0);
+                ++table->count;
+            }
+
+            memcpy(table->records.data() + offset, request.blob.data(), table->recordSize);
+
+            for (auto& kv : table->indexes) {
+                auto& index = kv.second;
+                const std::pair<uint32_t, uint32_t> entry = { FieldAt(*table, row, kv.first), offset };
+                index.insert(std::lower_bound(index.begin(), index.end(), entry), entry);
+            }
+
+            return Success;
+        }
         default:
-            // Including PatchRecord (0x73): the server's dispatcher stops at 0x72. The projected reads 0x70..0x72
-            // are not served; the client never sends them.
+            // The projected reads 0x70..0x72 are not served; the client never sends them.
             return UnknownCommand;
         }
     }

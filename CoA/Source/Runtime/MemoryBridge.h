@@ -7,8 +7,10 @@
 
 // The DLL's MemoryBridge (AscMemoryBridge.cpp) with its MMgr64.exe table server run in-process. The 32-bit DLL kept
 // the large tables in a 64-bit helper process; the 64-bit client needs no helper, but the server's semantics are
-// kept as they are (protocol 3): result codes, the 0xFEFD0-byte reply limit, PatchRecord (0x73) rejected as an
-// unknown command. Only the table commands exist; the memory commands served the start-up self-test alone.
+// kept as they are (protocol 3): result codes and the 0xFEFD0-byte reply limit. One deliberate difference: PatchRecord
+// (0x73), an unknown command to MMgr64.exe, is served, so server patches of bridged rows take effect (as the
+// reconstruction now applies them). Only the table commands exist; the memory commands served the start-up self-test
+// alone.
 namespace CoA::MemoryBridge {
     // One request or reply. A reply's cmd is 0 on success, 0xFFFFFFFF on failure, and result says why.
     struct Message {
@@ -46,7 +48,7 @@ namespace CoA::MemoryBridge {
     bool Command6B(uint32_t table, uint32_t field, uint32_t key, std::vector<uint32_t>& out);
     // The string at offset, NUL included.
     bool Command6C(uint32_t table, uint32_t offset, std::string& out);
-    // PatchRecord: always refused.
+    // PatchRecord: one record at `index` (< count: overwritten, == count: appended); built indexes follow it.
     bool Command73(uint32_t table, uint32_t index, const void* src, uint32_t size);
     // Batched queries: out is u32 n and the per-key entries of every accepted batch. A refused batch (the reply over
     // the limit) is retried at half its size.

@@ -814,8 +814,8 @@ namespace {
 
     // FUN_102094b0 / FUN_10209860 / FUN_102096d0 / FUN_102099a0 / FUN_1032eae0: overwrite `existing`'s row with `r`,
     // or append `r` (refused when its id is already in the table). Strings go to the string block, then 0x73 writes
-    // the row -- which the server always refuses, so a patch never takes effect; the bookkeeping below is the
-    // original's.
+    // the row. MMgr64.exe refuses 0x73, so in the original a patch never took effect; the in-process server applies it
+    // (MemoryBridge.h). The bookkeeping below is the original's.
     template <class Record> bool PatchRecord(Store<Record>& s, const Record* existing, Record r) {
         using T = Traits<Record>;
 
@@ -1091,7 +1091,7 @@ bool CoA::BridgeStore::KeystoneById(uint32_t id, uint32_t out[3]) {
 
 // SMSG 0x56D (FUN_101e24d0): a known keystone is overwritten in its CACHED record only (the table keeps the old
 // row; eviction brings it back). An unknown key is appended (FUN_101da590): refused when field 0 already holds the
-// key, else 0x73 at the end of the table, which the server refuses.
+// key, else 0x73 at the end of the table (refused by MMgr64.exe, applied by the in-process server).
 void CoA::BridgeStore::PatchKeystone(const uint32_t rec[3]) {
     if (SmallRecord* r = const_cast<SmallRecord*>(LookupById(s_keystone, rec[0]))) {
         memcpy(r->f, rec, sizeof(r->f));
@@ -1209,13 +1209,13 @@ int32_t CoA::BridgeStore::OnPatchItemAddon(void* param, uint32_t opcode, uint32_
     r.description = description.c_str();
     const ItemAddonRecord* existing = LookupByKey(s_itemAddon, r.id);
     r.rowId = existing ? existing->rowId : s_itemAddon.maxId + 1;
-    // On success the original refreshes its item caches (not transcribed); the server refuses 0x73, so it never does.
+    // On success the original refreshes its item caches (not transcribed; MMgr64.exe refused 0x73, so it never did).
     PatchRecord(s_itemAddon, existing, r);
     return 1;
 }
 
 // SMSG 0x567 (FUN_101e14f0): u32 entry, 4 bytes not read, 4 u32, u32-length name. A known entry is overwritten in its
-// CACHED record only, its id becoming 0. An unknown entry becomes a record with the next id, appended (refused).
+// CACHED record only, its id becoming 0. An unknown entry becomes a record with the next id, appended.
 int32_t CoA::BridgeStore::OnPatchCreature(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {
     uint32_t entry = CoA::Read::U32(msg);
     CoA::Read::U32(msg);

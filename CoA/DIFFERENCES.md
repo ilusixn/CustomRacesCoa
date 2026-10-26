@@ -32,7 +32,18 @@ patches because the login screen cannot load without it.
 From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and the reconstruction's own list:
 
 - **Logon protocol.** Ascension's logon hooks (`0x8CCE00`, `0x9A83E0`, `0x9A88C0`) are not built: stock SRP6, as the
-  CoA server expects.
+  CoA server expects. The reconstruction's native logon (`AscNativeLogon`, its `ASCENSION_NATIVE_LOGON` build option,
+  default off) is not ported.
+- **Interface hot patches.** The reconstruction's `AscHotPatch` (SMSG `0x8F0`, the `0x5BC` formatter check; not in the
+  original, `ASCENSION_HOT_PATCH` default off) is not ported.
+- **Bridged table patches.** Server patches of the six bridged tables (SMSG `0x567`, `0x569`, `0x56D`, `0x56F`,
+  `0x573`, `0x574`) take effect: the in-process table server serves PatchRecord `0x73`, which `MMgr64.exe` refused, so
+  the 32-bit client dropped every such patch. The reconstruction applies them too (its `3c8f196`, by pinning). A built
+  vanity browser takes a patched row in place instead of being rebuilt per row.
+- **Early fixes taken from the reconstruction.** Quest log ids are read as 32 bits (the original's low word never
+  matched custom quests above 65535). `GameTooltip:InsertLine` / `InsertLines` hide the font strings past
+  `NumLines()` while they run (`TooltipInsertFixClient`), so keystone tooltips keep every Dungeon Modifier; temporary,
+  until patch-B's `Tooltip.lua` carries the fix.
 - **Character advancement `0x726` handler order.** As in the reconstruction: unit parameters are synchronized before
   listeners run.
 - **World headers.** The reconstruction's plaintext-header stub (`0x466BF0`) is disabled there and not ported.
@@ -44,8 +55,8 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 ## Forced by x64
 
 - **MemoryBridge / `MMgr64.exe`.** No helper process: its table server runs in-process with the same semantics
-  (result codes, the 0xFEFD0-byte reply limit with batch halving, PatchRecord 0x73 always refused, so server patches
-  of bridged rows never take effect, as on the 32-bit client). The six bridged DBCs (Creature, Quest, ItemAddon,
+  (result codes, the 0xFEFD0-byte reply limit with batch halving), except that PatchRecord 0x73 is served (see
+  Bridged table patches above). The six bridged DBCs (Creature, Quest, ItemAddon,
   VanityCollection, SpellAffect, MythicKeystones) keep their 32-bit rows in the tables; the cached records handed to
   callers are x64 structs with string pointers. The memory commands and the start-up self-test are gone.
 - **HD content.** The eight HD archives and the ten HD model tables load only while the DXVK (Vulkan) renderer is
