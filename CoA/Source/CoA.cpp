@@ -88,6 +88,13 @@ static const CoA::Module s_modules[] = {
     { "SpellActivationOverlay", CoA::SpellActivationOverlay::Init },
     { "SuperTrack", CoA::SuperTrack::Init },
     { "GroupFinder", CoA::GroupFinder::Init },
+    // After CallboardCache / TemporalContracts / CustomStore / Wildcard / ObjectAddon, whose Deps they fill.
+    { "QuestAddon", CoA::QuestAddon::Init },
+    { "CollectorCache", CoA::CollectorCache::Init },
+    { "SkillCardCollection", CoA::SkillCard::Init },
+    { "SkillCardSlots", CoA::SkillCardSlots::Init },
+    { "AlternatePower", CoA::AlternatePower::Init },
+    { "ItemCollections", CoA::ItemCollections::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -146,6 +153,9 @@ static const CoA::Module s_modules[] = {
     { "SpellActivationOverlayClient", CoA::SpellActivationOverlayClient::Init },
     { "SuperTrackClient", CoA::SuperTrackClient::Init },
     { "GroupFinderClient", CoA::GroupFinderClient::Init },
+    { "SkillCardClient", CoA::SkillCardClient::Init },
+    { "AlternatePowerClient", CoA::AlternatePowerClient::Init },
+    { "ItemCollectionsClient", CoA::ItemCollectionsClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
