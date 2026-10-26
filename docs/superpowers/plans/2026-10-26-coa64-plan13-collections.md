@@ -38,6 +38,15 @@ LootLockout,ItemCollections,CollectorCache,ItemStats,POI,SpellCharges,Aura137,Qu
 
 ---
 
+### Task 0: AddonTaint (live "C stack overflow" root cause)
+
+Found live: SharedXML C_Hook.lua recurses (SendEvent -> SecureSetValues -> SetAttribute -> OnAttributeChanged ->
+SendEvent) until "C stack overflow" because issecure() is nil while a server-listed secure addon (Ascension_WildCard)
+runs. Port AscAddonTaint (installer FUN_10312150): issecure (0x816DA0) / 0x5191C0 / 0x488540 answer "secure" for a
+listed secure addon; the twelve "cleared" functions run with the taint cleared and restored; 0x525FC0 inside a
+protected call; the target-change clear; the 0x5F7E90 addon-load gate if not already ported. Tests: each hook's
+secure / not-secure answer through Deps, the taint save / restore, the addon-load refusals.
+
 ### Task 1: SkillCardCollection, SkillCardSlots, ItemCollections, CollectorCache, QuestAddon, AlternatePower
 
 Tests: every packet / native / event, containers and filters, glue resets, and the earlier Deps wired (CustomStore
