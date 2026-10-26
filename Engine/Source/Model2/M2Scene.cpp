@@ -856,6 +856,9 @@ void* CM2Scene::EndHitTestCollisionWorld(const C3Vector& start, const C3Vector& 
     return best->m_model->m_hitTestOwner;
 }
 
+// CoA: set by CoA::GraphicsClient -- false while 0x81E548 is the DLL's jmp.
+bool (*g_m2LightStampCullingHook)();
+
 // VERIFY: c1963846 manual
 // OFFSET: 0x0081E400
 void CM2Scene::SelectLights(CM2Lighting* lighting) {
@@ -880,7 +883,9 @@ void CM2Scene::SelectLights(CM2Lighting* lighting) {
             while (light) {
                 CM2Light* next = light->m_lightNext;
 
-                if (!light->m_scene || light->m_stamp == this->m_frameStamp) {
+                // CoA: AscGraphics.cpp:FUN_102613f0 / FUN_10260f90 (Extensions.dll patch 0x81E548) -- lightCulling other than
+                // "1", or a light attenuation other than 1.0, makes the stamp test's je a jmp: every grid light is added.
+                if (!light->m_scene || (g_m2LightStampCullingHook && !g_m2LightStampCullingHook()) || light->m_stamp == this->m_frameStamp) {
                     lighting->AddLight(light);
                 } else {
                     light->SetVisible(0);

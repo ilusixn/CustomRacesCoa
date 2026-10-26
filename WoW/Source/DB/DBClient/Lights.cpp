@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/Graphics.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -115,6 +116,10 @@ void InitLights(bool transform) {
 CImVector DayNight::LoadLightIntBand(int32_t time, const LightParamsRec* params, int32_t band) {
     LightIntBandRec rec;
     g_lightIntBandDB.GetRecord(band + 18 * params->m_id - 17, &rec);
+    // CoA: AscGraphics.cpp:FUN_10264820 (orig hook 0x7EB210) -- after the original: the 16 colours' b / g / r bytes x
+    // ambientShade.
+    static_assert(sizeof(LightIntBandRec) == 0x88, "the band row the detour scales at +0x48");
+    CoA::Graphics::ScaleBandRecord(reinterpret_cast<uint8_t*>(&rec));
     return InterpolateIntBand(rec, time);
 }
 

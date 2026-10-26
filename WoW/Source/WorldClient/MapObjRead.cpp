@@ -1,4 +1,5 @@
 #include "MapObjRead.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "Engine/Source/Tempest/NTempest.h"
 #include "Engine/Source/Tempest/C3Ray.h"
 #include "WoW/Common/AaBsp.h"
@@ -540,7 +541,9 @@ void CMapObjGroup::Create() {
         this->m_unkLoadedFlag |= 0x2;
     }
 
-    if (!SStrCmp(this->m_groupName, "antiportal", STORM_MAX_STR)) {
+    // CoA: AscGraphics.cpp:FUN_1025d130 (Extensions.dll patch 0x7D8444) -- antiportal other than "1" makes the jne a jmp:
+    // no "antiportal" group is turned into an occluder.
+    if (!SStrCmp(this->m_groupName, "antiportal", STORM_MAX_STR) && CoA::Graphics::Antiportal()) {
         this->HandleAntiportal();
     }
 

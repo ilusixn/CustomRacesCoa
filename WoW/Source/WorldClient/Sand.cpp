@@ -1,4 +1,5 @@
 #include "Sand.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include <cmath>
 #include <cstdint>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -403,7 +404,9 @@ void Sand::RenderPacketsShader() {
 
 // VERIFY: cd8bb19f manual
 // OFFSET: 0x0078CF20
-Sand::Sand(float width, float height) : m_bbox(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f)), m_mists(12.0f, C3Vector(44.0f, 44.0f, 25.0f), "textures\\Weather\\WeatherMistGrainy01.blp", -1.5700001f, 0.34906587f, 15.0f, 4.5f, 128) {
+Sand::Sand(float width, float height) : m_bbox(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f)), m_mists(CoA::Graphics::MistDensity(), C3Vector(44.0f, 44.0f, 25.0f), "textures\\Weather\\WeatherMistGrainy01.blp", -1.5700001f, 0.34906587f, 15.0f, 4.5f, 128) {
+    // CoA: AscGraphics.cpp:FUN_102622d0 (Extensions.dll patch 0x78CF95) -- the mist density (the first m_mists argument)
+    // reads mistDensity's float instead of the constant 12.0.
     this->m_useWeatherShaders = 1;
     this->m_fadeOut = 0;
     this->m_sandGrainPacketList.m_activePacketsCount = 0;

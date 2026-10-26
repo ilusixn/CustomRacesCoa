@@ -83,4 +83,9 @@ class CM2Lighting {
     void SetupSunlight();
 };
 
+// CoA: AscGraphics.cpp:sub_1025d020 (orig hook 0x834A40) -- called at the end of CM2Light::CM2Light.
+extern void (*g_m2LightCreatedHook)(CM2Light* light);
+// CoA: AscGraphics.cpp:sub_1025d0c0 (orig hook 0x834AB0) -- called at the start of CM2Light::Unlink.
+extern void (*g_m2LightUnlinkHook)(CM2Light* light);
+
 #endif
