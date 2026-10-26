@@ -8,18 +8,42 @@
 // to the download folder, "extract" may not write runnable files, and "execute" is refused (CGlueMgr::
 // PatchDownloadExecuteCommand) -- together the server-controlled code execution RCEPatcher2 closes.
 
-// Relative, no drive / device / stream, no parent-directory component.
+// Whether a path component names a folder the prepatch may not touch (user decision 2026-10-26: addon code and
+// settings): Interface and WTF, compared the way Windows resolves them (case-insensitive, trailing dots / spaces
+// ignored).
+inline bool PatchProtectedFolder(const char* component, size_t length) {
+    while (length && (component[length - 1] == '.' || component[length - 1] == ' ')) {
+        length--;
+    }
+
+    return (length == 9 && _strnicmp(component, "interface", 9) == 0) || (length == 3 && _strnicmp(component, "wtf", 3) == 0);
+}
+
+// Relative, no drive / device / stream, no parent-directory component, no 8.3 short name ('~'), and not inside
+// Interface\ or WTF\.
 inline bool PatchPathConfined(const char* path) {
-    if (!path || !*path || path[0] == '\\' || path[0] == '/' || strchr(path, ':')) {
+    if (!path || !*path || path[0] == '\\' || path[0] == '/' || strchr(path, ':') || strchr(path, '~')) {
         return false;
     }
 
     const char* component = path;
+    bool first = true;
 
     for (const char* c = path;; c++) {
         if (*c == '\\' || *c == '/' || *c == '\0') {
-            if (c - component == 2 && component[0] == '.' && component[1] == '.') {
+            const size_t length = static_cast<size_t>(c - component);
+
+            if (length == 2 && component[0] == '.' && component[1] == '.') {
                 return false;
+            }
+
+            // "." components do not move the path; the first real one is the top-level folder.
+            if (first && !(length == 1 && component[0] == '.')) {
+                if (PatchProtectedFolder(component, length)) {
+                    return false;
+                }
+
+                first = false;
             }
 
             if (*c == '\0') {
