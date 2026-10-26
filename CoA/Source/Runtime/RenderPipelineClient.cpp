@@ -27,7 +27,7 @@ namespace {
     int s_logged = -1;
     // The world target is begun for the current world render (between beginWorld and endWorld).
     bool s_begun;
-    // The world target was begun at the last world render (jitter only then).
+    // The world target was begun at the last world render (a temporal-history reset follows when it was not).
     bool s_wasActive;
     // The device may hold world textures (released when the pipeline turns off).
     bool s_targetHeld;
@@ -83,7 +83,7 @@ namespace {
     }
 
     // coaRenderPipeline went to 0: frees the world target and removes the hook. Only outside a world render (from
-    // EndWorld, or from the CVar callback while nothing is held).
+    // EndWorld, or from the CVar callback while not begun).
     void Uninstall() {
         if (g_theGxDevicePtr) {
             Deactivate(g_theGxDevicePtr);
@@ -147,9 +147,28 @@ namespace {
         s_wasActive = true;
         s_targetHeld = true;
 
-        if (s_havePending) {
-            BeginFrame(s_pending, forceReset);
+        if (!s_havePending) {
+            return;
         }
+
+        BeginFrame(s_pending, forceReset);
+
+        // Jitter only the world camera of a frame that is rendering into the world target: the device must still hold
+        // the projection SetupWorldProjection just set for it (unchanged, so not a hit test's or another camera's).
+        // CShaderEffect::UpdateProjMatrix and the world draws run after this, so they all see the jittered one.
+        if (!CVarOn(CoA::RenderPipelineClient::JitterSlot()) || memcmp(&device->m_projection, &s_pending.proj, sizeof(s_pending.proj)) != 0) {
+            return;
+        }
+
+        // Stage 1 renders at display size.
+        const uint32_t phases = JitterPhaseCount(width, width);
+        float jx = 0.0f;
+        float jy = 0.0f;
+        Halton23(Current().index % phases + 1, jx, jy);
+        const Mat4 jittered = ApplyJitter(s_pending.proj, jx, jy, width, height);
+        C44Matrix projection;
+        memcpy(&projection, &jittered, sizeof(projection));
+        device->XformSetProjection(projection);
     }
 
     void EndWorld(const CRect& /* viewportNDC */) {
@@ -195,29 +214,18 @@ namespace {
         cam.fovY = fovY;
         cam.aspect = aspect;
         s_havePending = true;
-
-        if (!s_wasActive || !CVarOn(CoA::RenderPipelineClient::JitterSlot()) || !s_width || !s_height) {
-            return;
-        }
-
-        // Stage 1 renders at display size; the sample is the one of the frame BeginFrame starts next.
-        const uint32_t phases = JitterPhaseCount(s_width, s_width);
-        float jx = 0.0f;
-        float jy = 0.0f;
-        Halton23((Current().index + 1) % phases + 1, jx, jy);
-        const Mat4 jittered = ApplyJitter(cam.proj, jx, jy, s_width, s_height);
-        memcpy(&projection, &jittered, sizeof(projection));
+        // The projection is left as is; BeginWorld jitters the world camera's once the world target has begun.
     }
 
     RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection };
 
     // coaRenderPipeline's callback; also runs at registration with the value loaded from Config.wtf, so a 1 there
-    // installs the hook at startup. 1 installs; 0 uninstalls at once when no world target is held, else at the next
-    // EndWorld (never in the middle of a world render).
+    // installs the hook at startup. 1 installs; 0 releases the world target and uninstalls at once outside a world
+    // render, else (begun) at that render's EndWorld.
     bool OnPipeline(CVar* /* var */, const char* /* oldValue */, const char* value, void* /* arg */) {
         if (value && atoi(value) != 0) {
             g_renderPipelineHook = &s_hook;
-        } else if (g_renderPipelineHook && !s_begun && !s_targetHeld) {
+        } else if (g_renderPipelineHook && !s_begun) {
             Uninstall();
         }
 
