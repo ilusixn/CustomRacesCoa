@@ -37,6 +37,7 @@ namespace CoA::Discord {
     struct WorldInfo {
         uint32_t level = 0;
         std::string className, zone, realm;
+        std::string faction;   // UnitFactionGroup's English name: "Horde" / "Alliance"
     };
 
     // What DiscordCreate returns when the SDK cannot be loaded: DiscordResult_InternalError.
