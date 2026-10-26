@@ -264,3 +264,21 @@ COA_TEST(PacketApi_MethodsTakeOnlyPacketUserdata) {
     CHECK(Run("local put = CreatePacket(1).PutUInt32 put(newproxy(), 5) OK = true"));
     CHECK(Global("OK") == "true");
 }
+
+// Review M4: a UI reload builds a new Lua state; the old state's registry refs mean nothing there (the original would
+// call whatever the new registry holds at that index). The handlers are dropped when a new state gets its natives.
+COA_TEST(PacketApi_HandlersDroppedOnANewLuaState) {
+    Start();
+    CHECK(Run("RegisterPacket(0x605, function(op, p) HIT = true end)"));
+    CHECK(CoA::PacketApi::HasHandler(0x605));
+    CoA::LuaReg::RunWorldRegistered();
+    CHECK(!CoA::PacketApi::HasHandler(0x605));
+
+    CHECK(Run("RegisterPacket(0x605, function(op, p) HIT = true end)"));
+    CoA::LuaReg::RunGlueRegistered();
+    CHECK(!CoA::PacketApi::HasHandler(0x605));
+    CoATest::Bytes b;
+    b.U32(1);
+    Deliver(0x605, b);
+    CHECK(Global("HIT") == "nil");
+}

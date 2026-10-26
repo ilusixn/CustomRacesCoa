@@ -254,6 +254,12 @@ namespace {
         return 0;
     }
 
+    // Ruling (review M4): a new Lua state (UI reload, glue <-> world) gets its natives before any addon runs; the old
+    // state's registry refs are dropped here. The original keeps them and calls whatever the new registry holds there.
+    void ForgetHandlers() {
+        s_handlers.clear();
+    }
+
     const CoA::Binding s_bindings[] = {
         COA_NATIVE("", "CreatePacket", CreatePacket),
         COA_NATIVE("@CDataStore", "Send", Send),
@@ -331,5 +337,7 @@ void CoA::PacketApi::Reset() {
 }
 
 void CoA::PacketApi::Init() {
+    CoA::LuaReg::OnGlueRegistered(ForgetHandlers);
+    CoA::LuaReg::OnWorldRegistered(ForgetHandlers);
     CoA::LuaReg::AddModule(s_bindings, sizeof(s_bindings) / sizeof(s_bindings[0]));
 }
