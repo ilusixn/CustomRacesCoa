@@ -27,7 +27,7 @@ namespace CoA::PacketApi {
     // The client half (PacketApiClient.cpp) installs these.
     struct Deps {
         void (*send)(CDataStore* msg) = nullptr;                          // 0x406F40 ClientServices::SendPacket
-        void (*setStockHandler)(uint32_t opcode, Handler handler) = nullptr;   // 0x6B0B80 SetMessageHandler(op, fn, 0)
+        void (*setStockHandler)(uint32_t opcode, Handler handler) = nullptr;   // FUN_102c4590(op, fn, 0): kept NetClient
     };
 
     Deps& Dependencies();

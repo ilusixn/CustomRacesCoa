@@ -280,8 +280,8 @@ void CGSpellBook::ClearSpells() {
 // VERIFY: f6883164 manual
 // OFFSET: 0x00542030
 void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replaceSpell) {
-    // CoA: AscRuntime.cpp's detour 0x10275ED0 (orig 0x542030) -- C_Wildcard defers the add while its spell is being
-    // revealed, else makes it (through this body) with the learn messages muted on a wildcard realm.
+    // CoA: AscWildcardRolls.cpp:AddSpellDetour (orig hook 0x542030) -- FUN_10275ed0: C_Wildcard defers the add while
+    // its spell is being revealed, else makes it (through this body) with the learn messages muted on a wildcard realm.
     if (CoA::ClientHooks::addKnownSpell && CoA::ClientHooks::addKnownSpell(spellId, notify, replaceSpell)) {
         return;
     }

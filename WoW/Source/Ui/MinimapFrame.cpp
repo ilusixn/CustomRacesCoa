@@ -234,7 +234,8 @@ const TrackingTypeInfo CGMinimapFrame::s_trackingTypes[15] = {
 static const int32_t* const s_outdoorZoomTiles = CoA::AttachPatches::kLevels;
 
 // STATIC: 0x00A41E1C
-// CoA: AscAttachPatches.cpp:Init (FUN_10a5b790) -- every reference reads the DLL's 8-entry table.
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5b790, orig hook 0x7F3BA5) -- every reference (0x7F3BA5 / 0x7F4272 / 0x7F5D8E /
+// 0x7F62A7) reads the DLL's 8-entry table.
 static const float* const s_indoorZoomRadius = CoA::AttachPatches::kDistances;
 
 // STATIC: 0x00AF4E48
