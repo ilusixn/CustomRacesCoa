@@ -1,6 +1,7 @@
 #include "Tooltip.h"
 #include "CoA/Source/Modules/TooltipScaling.h"
 #include "CoA/Source/Modules/TooltipScalingClient.h"
+#include "CoA/Source/Modules/SpellTokens.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -3192,6 +3193,9 @@ void CGTooltip::AddColoredItemStat(int32_t value, const char* name, int32_t* fir
 // VERIFY: 8edeac88 manual
 // OFFSET: 0x006238A0
 int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn) {
+    // CoA: AscSpellTokens.cpp:FUN_10a11130 (orig hook 0x6238A0) -- for a spell with SpellCustomAttr +0x14 0x40 the jne at
+    // 0x62442C is a jmp while this runs: the cast-time / cooldown line below is skipped.
+    const bool coaHideCastTime = CoA::SpellTokens::HidesCastTime(static_cast<uint32_t>(spellId));
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
     const CImVector& redColor = *reinterpret_cast<const CImVector*>(&s_tooltipRedColor);
@@ -3306,7 +3310,7 @@ int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, i
     int32_t recast = recovery > categoryRecovery ? recovery : categoryRecovery;
     int32_t isTradeSkill = 0;
 
-    if (!brief && !tradeSkill) {
+    if (!brief && !tradeSkill && !coaHideCastTime) {
         isTradeSkill = AddSpellCastTimeLine(this, &spell, isPet, isInspect, powerCost, recast);
     }
 

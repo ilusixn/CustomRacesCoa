@@ -105,6 +105,10 @@ namespace CoA::Graphics { void Init(); }
 namespace CoA::Cursor { void Init(); }
 namespace CoA::SpellMods { void Init(); }
 namespace CoA::MovementForce { void Init(); }
+namespace CoA::PacketApi { void Init(); }
+namespace CoA::SmallHooks { void Init(); }
+namespace CoA::GossipQuest { void Init(); }
+namespace CoA::SpellTokens { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -196,5 +200,9 @@ namespace CoA::GraphicsClient { void Init(); }
 namespace CoA::CursorClient { void Init(); }
 namespace CoA::SpellModsClient { void Init(); }
 namespace CoA::MovementForceClient { void Init(); }
+namespace CoA::PacketApiClient { void Init(); }
+namespace CoA::SmallHooksClient { void Init(); }
+namespace CoA::GossipQuestClient { void Init(); }
+namespace CoA::SpellTokensClient { void Init(); }
 
 #endif

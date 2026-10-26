@@ -489,6 +489,9 @@ bool System_SFile::OpenDirectPathAsArchive(const char* path, int32_t priority, u
 // VERIFY: 571a18d1 manual
 // OFFSET: 0x00454070
 void System_SFile::ConvertRelativePathName(const char* path, char* result) {
+    // CoA: AscSmallHooks.cpp:Hook454070 (orig hook 0x454070) -- after the original, while a realm data path is set, the
+    // DLL builds the path with "/" + that data path inserted before its last '/' and discards it: no effect, nothing
+    // ported (Ruling).
     Blizzard::Lock::ScopedMutex lock(System_MPQGlobals::GetMopaqGlobalsLock()->m_mutex);
 
     char joined[260];

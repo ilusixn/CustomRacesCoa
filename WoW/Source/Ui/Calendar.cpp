@@ -1251,6 +1251,8 @@ void CGCalendar::InitHolidays() {
 // VERIFY: 0650d640 manual
 // OFFSET: 0x005C2030
 void CGCalendar::InsertEvent(CalendarDayEvent* event, int32_t table) {
+    // CoA: AscSmallHooks.cpp:Hook5C2030 (orig hook 0x5C2030) -- the original runs this with its flag 0x10D3D69C set and
+    // cleared after; nothing in the DLL or the client reads that flag, so there is nothing to port (Ruling).
     uint32_t originalEnd = event->m_endTime;
     WowTime start;
     WowTime end;

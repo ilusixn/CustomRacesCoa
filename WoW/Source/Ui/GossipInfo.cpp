@@ -1,6 +1,8 @@
 #include "GossipInfo.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/Profiler.h"
+#include "CoA/Source/Modules/GossipQuest.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/GameUI.h"
@@ -374,6 +376,9 @@ int32_t CGQuestInfo::IsLowLevel(int32_t level) {
 // VERIFY: fd70ce48 manual
 // OFFSET: 0x0058AF10
 void CGGossipInfo::SelectGossipOption(int32_t index, const char* code, int32_t confirmed) {
+    // CoA: AscGossipQuest.cpp:FUN_100de060 (orig hook 0x58AF10) -- after every return: GOSSIP_OPTION_SELECTED(gossip id,
+    // index + 1).
+    auto coaSelected = CoA::ClientHooks::OnScopeExit([index] { CoA::GossipQuest::AfterSelectGossipOption(CGGossipInfo::m_gossipID, index); });
     if (CGGossipInfo::m_textPending || index < 0 || index >= 32) {
         return;
     }

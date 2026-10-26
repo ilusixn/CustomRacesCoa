@@ -130,6 +130,12 @@ static const CoA::Module s_modules[] = {
     // FUN_10324a90 (spell modifiers) and FUN_102b9830 (movement forces).
     { "SpellMods", CoA::SpellMods::Init },
     { "MovementForce", CoA::MovementForce::Init },
+    // FUN_1030f1b0.. (the Lua packet API), FUN_103223a0 / FUN_10227970 (small hooks), FUN_100d4b90 / FUN_100e0cc0
+    // (gossip and quest events) and FUN_10a11840 (spell-description tokens).
+    { "PacketApi", CoA::PacketApi::Init },
+    { "SmallHooks", CoA::SmallHooks::Init },
+    { "GossipQuest", CoA::GossipQuest::Init },
+    { "SpellTokens", CoA::SpellTokens::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -218,6 +224,10 @@ static const CoA::Module s_modules[] = {
     { "CursorClient", CoA::CursorClient::Init },
     { "SpellModsClient", CoA::SpellModsClient::Init },
     { "MovementForceClient", CoA::MovementForceClient::Init },
+    { "PacketApiClient", CoA::PacketApiClient::Init },
+    { "SmallHooksClient", CoA::SmallHooksClient::Init },
+    { "GossipQuestClient", CoA::GossipQuestClient::Init },
+    { "SpellTokensClient", CoA::SpellTokensClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).
