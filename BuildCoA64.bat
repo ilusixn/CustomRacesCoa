@@ -30,6 +30,13 @@ if errorlevel 1 goto :fail
 cmake --build "%BUILD%" --target Wow XvidDecoder
 if errorlevel 1 goto :fail
 
+rem DXVK's x64 d3d9.dll (ThirdParty/dxvk): only when configure set up the target (WOWDECOMP_BUILD_DXVK and the tools).
+findstr /b /c:"build dxvk:" "%BUILD%\build.ninja" >nul
+if errorlevel 1 goto :nodxvk
+cmake --build "%BUILD%" --target dxvk
+if errorlevel 1 goto :fail
+:nodxvk
+
 if not exist "%BIN%\Win\Wow64.exe" goto :missing
 if not exist "%BIN%\Win\Wow64.map" goto :missing
 if not exist "%BIN%\Win\XvidDecoder.dll" goto :missing
@@ -39,6 +46,12 @@ mkdir "%STAGE%"
 copy /y "%BIN%\Win\CoA64.exe" "%STAGE%\CoA64.exe" >nul
 copy /y "%BIN%\Win\CoA64.map" "%STAGE%\CoA64.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
+if exist "%BIN%\Win\x64\d3d9.dll" (
+    mkdir "%STAGE%\x64"
+    copy /y "%BIN%\Win\x64\d3d9.dll" "%STAGE%\x64\d3d9.dll" >nul
+) else (
+    echo WARNING: %BIN%\Win\x64\d3d9.dll missing, the zip has no DXVK
+)
 
 set "ZIP=%BIN%\CoA64-%HASH%.zip"
 powershell -NoProfile -Command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%ZIP%' -Force"

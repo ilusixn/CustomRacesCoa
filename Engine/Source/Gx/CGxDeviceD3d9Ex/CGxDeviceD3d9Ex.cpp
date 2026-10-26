@@ -477,7 +477,12 @@ bool CGxDeviceD3d9Ex::QueryGetParam(CGxQuery* query, EGxQueryParam param, uint32
 int32_t CGxDeviceD3d9Ex::ILoadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d) {
     d3dLib = nullptr;
     d3d = nullptr;
-    d3dLib = LoadLibraryA("d3d9.dll");
+    // CoA64: DXVK's x64 d3d9 preloaded from <exe dir>\x64\ (CoA::Dxvk::D3d9Library), else the system d3d9.dll.
+    d3dLib = static_cast<HINSTANCE>(g_d3d9LibraryHook ? g_d3d9LibraryHook() : nullptr);
+
+    if (!d3dLib) {
+        d3dLib = LoadLibraryA("d3d9.dll");
+    }
 
     if (d3dLib) {
         Direct3DCreate9Proc d3dCreateProc = reinterpret_cast<Direct3DCreate9Proc>(GetProcAddress(d3dLib, "Direct3DCreate9"));
