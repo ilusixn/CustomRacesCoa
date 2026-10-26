@@ -276,3 +276,13 @@ Live run 2026-10-26 (test account, ~60 s in world, screenshot out/baseline/plan1
 - Inventory: natives 1251/1346, packets 525/533, events 245/259, hooks 240/346, patches 126/126, CVars 77/93.
 - Final review fixes: LoadingScreenVariation.dbc path had an invalid "\L" escape (variations never applied); a unit
   torn down with its nameplate up no longer leaves "nameplateN" pointing at freed memory (ledgered Ruling).
+
+## DXVK result
+
+Live 2026-10-26, x64 DXVK v2.5.3 (MSVC build) installed at D:\WoW\Coa\x64\d3d9.dll:
+- Default: "DXVK loaded: D:\WoW\Coa\x64\d3d9.dll" before OpenArchives; CoA64_d3d9.log shows DXVK v2.5.3 x86_64, the
+  install's dxvk.conf applied, Vulkan on the RTX 5080. OpenArchives 65 archives (57 without HD: the 8 HD archives
+  open); no HDPatch.xml missing-file line; world entered, same 2 Lua errors as Plan 14, client responsive
+  (out/baseline/dxvk_world.png). HD content visible; some colour banding on dark terrain to compare with Ascension.exe.
+- -nodxvk: "DXVK disabled (-nodxvk)", 57 archives, HDPatch line back, no DXVK log written.
+- x64 folder missing: "DXVK not loaded (error 126), using system d3d9", 57 archives, no crash.
