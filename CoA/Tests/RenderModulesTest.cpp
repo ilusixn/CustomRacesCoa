@@ -155,7 +155,7 @@ namespace {
     void SetScreen(uint32_t map, uint32_t screen) { s_screens[map] = screen; }
 
     bool ReadVariations(const char* path, std::vector<uint8_t>& out) {
-        if (!strstr(path, "LoadingScreenVariation.dbc")) {
+        if (strcmp(path, "DBFilesClient\\LoadingScreenVariation.dbc") != 0) {
             return false;
         }
 

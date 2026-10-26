@@ -129,6 +129,12 @@ void CoA::NamePlates::RemovePlate(void* unit) {
     s_plates.erase(id);
 }
 
+void CoA::NamePlates::ForgetUnit(const void* unit) {
+    for (auto it = s_plates.begin(); it != s_plates.end();) {
+        it = it->second == unit ? s_plates.erase(it) : std::next(it);
+    }
+}
+
 uint32_t CoA::NamePlates::IdForUnit(const void* unit) {
     for (const auto& kv : s_plates) {
         if (kv.second == unit) {

@@ -255,6 +255,24 @@ COA_TEST(NamePlates_RegistryEventsAndTokens) {
     Stop();
 }
 
+// Ruling: a unit torn down with its plate up (Unit_C teardown releases the plate inline, bypassing 0x725840) leaves the
+// original's registry pointing at freed memory; CoA64 forgets every entry for it, silently (no REMOVED, as the original).
+COA_TEST(NamePlates_ForgetUnitDropsDanglingEntries) {
+    Start();
+    CoATest::RecordSignals();
+    CoA::NamePlates::AddPlate(&s_unitA);
+    CoA::NamePlates::AddPlate(&s_unitA);
+    CoA::NamePlates::AddPlate(&s_unitB);
+    CoATest::Signals().clear();
+    CoA::NamePlates::ForgetUnit(&s_unitA);
+    CHECK(CoATest::Signals().empty());
+    CHECK(CoA::NamePlates::IdForUnit(&s_unitA) == 0);
+    CHECK(CoA::NamePlates::UnitForToken("nameplate1") == nullptr);
+    CHECK(CoA::NamePlates::UnitForToken("nameplate3") == &s_unitB);
+    CHECK(CoA::NamePlates::Count() == 1);
+    Stop();
+}
+
 // Only the low byte of the plate pointer is tested (both detours).
 COA_TEST(NamePlates_LowByteTests) {
     Start();

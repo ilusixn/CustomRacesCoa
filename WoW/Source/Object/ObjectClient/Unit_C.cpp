@@ -10581,6 +10581,10 @@ void CGUnit_C::Disable() {
         this->ObjectNameVisibilityChanged();
     }
 
+    // CoA64: Ruling (Plan 14 final review) -- this inline release bypasses 0x725840, so the original's nameplate
+    // registry keeps the torn-down unit; here its entries are dropped silently so "nameplateN" never reaches freed memory.
+    CoA::NamePlates::ForgetUnit(this);
+
     if (this->m_chatBubble) {
         CGChatBubbleFrame::Remove(this->m_chatBubble);
         this->m_chatBubble = nullptr;
