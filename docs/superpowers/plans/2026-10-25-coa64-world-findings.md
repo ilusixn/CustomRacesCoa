@@ -244,3 +244,10 @@ Live run 2026-10-26 (test account, 120 s in world): 15 Lua errors (22 before).
   (0x816DA0) to answer 1 for it. Ported in Plan 13 Task 0.
 - NewCharacterSetupUtil.lua:49 assertion runs under Prat-3.0's taint (open).
 - Inventory: natives 1144/1346, packets 478/533, events 210/259, hooks 127/346, patches 125/126, CVars 22/93.
+
+## Plan 13 Task 0 result (AddonTaint)
+
+Live run 2026-10-26: 11 Lua errors (15 before); the four "C stack overflow" are gone (issecure() now answers 1 under a
+server-listed secure addon, ending C_Hook's SetAttribute loop). The Sound Kit Player frame stays open because
+UIParent's PLAYER_ENTERING_WORLD handler errors on its first line (`C_LootLockout.QueryInstanceBinds()`, UIParent.lua:1150)
+before `CloseAllWindows(1)` (line 1163) closes UISpecialFrames; LootLockout (Plan 13 Task 2) fixes it.
