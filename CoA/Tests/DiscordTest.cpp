@@ -397,3 +397,21 @@ COA_TEST(Discord_ClientStatusSmallImageIsTheFaction) {
     CHECK(s_activities.size() == 5 && s_activities.back().smallImage == "app_icon");
     Stop(L);
 }
+
+// The project's website as a button on the client-built status (user request 2026-10-26).
+COA_TEST(Discord_ClientStatusLinksTheWebsite) {
+    lua_State* L = Start();
+    Sdk();
+    ClientStatus();
+    s_core = true;
+    Initialize();
+    CoA::Discord::OnEnterWorld();
+    CHECK(s_activities.size() == 2);
+
+    for (const CoA::Discord::Activity& a : s_activities) {
+        CHECK(a.buttons.size() == 1);
+        CHECK(a.buttons.size() == 1 && a.buttons[0].first == "Website" && a.buttons[0].second == "https://coa-development.org");
+    }
+
+    Stop(L);
+}

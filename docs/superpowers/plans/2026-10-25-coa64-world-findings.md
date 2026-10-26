@@ -352,4 +352,5 @@ until it was restarted), and resent until Discord's answer echoes its nonce (an 
 it; a reconnect resends it after READY). Live: status shows and follows world entry. CoA64
 uses its own Discord application "Conquest of Azerothcore" (1564313674519154708) with the art key "descension_logo"
 (the user's) and a small image per user decision: "si_horde" / "si_alliance" in world (faction name as hover text),
-"app_icon" on the character screen or for any other faction; Ascension's application art was saved to out/discord_assets/.
+"app_icon" on the character screen or for any other faction; a "Website" button to https://coa-development.org
+(Discord shows activity buttons to other users only, and drops them when join secrets are set); Ascension's application art was saved to out/discord_assets/.
