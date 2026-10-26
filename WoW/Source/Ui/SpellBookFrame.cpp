@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/GossipQuest.h"
 #include <cstdlib>
 #include <cstring>
 #include "Engine/Source/Base/ConvertUTF.h"
@@ -881,6 +882,11 @@ int32_t GetActionBarPageOffset(const CGPlayer_C* player, const SpellRec* spell) 
 // VERIFY: aefb1bad auto
 // OFFSET: 0x0053BA40
 int __cdecl SortSkillInfoByName(const void* a, const void* b) {
+    // CoA: AscGossipQuest.cpp:sub_100e0300 (orig hook 0x53BA40) -- REPLACED: skill line 120 sorts first, then _stricmp of
+    // the names.
+    return CoA::GossipQuest::CompareSkills(static_cast<uint32_t>((*static_cast<SpellBookSkillInfo* const*>(a))->m_skillLine),
+        static_cast<uint32_t>((*static_cast<SpellBookSkillInfo* const*>(b))->m_skillLine));
+
     int32_t skillA = (*static_cast<SpellBookSkillInfo* const*>(a))->m_skillLine;
 
     if (!skillA) {

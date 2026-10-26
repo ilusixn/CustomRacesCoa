@@ -1,5 +1,8 @@
 #include <cstdint>
 #include "CoA/Source/Modules/NamePlatesClient.h"
+#include "CoA/Source/Modules/SpellTokens.h"
+#include "CoA/Source/Modules/UnitTokens.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
@@ -868,6 +871,13 @@ const char* Script_GetAuraTokenFromGUID(const WOWGUID* guid) {
 // VERIFY: 1a4d44e4 manual
 // OFFSET: 0x0060BB70
 char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count) {
+    // CoA: AscUnitTokens.cpp:FUN_100a09e0 (orig hook 0x60BB70) -- after every return: "nameplate<N>" when the world is up
+    // and the GUID's unit has a nameplate.
+    char** coaLines = nullptr;
+    auto coaNameplate = CoA::ClientHooks::OnScopeExit([&guid, count, &coaLines] {
+        const void* unit = ClntObjMgrObjectPtr(guid, static_cast<OBJECT_TYPE>(TYPE_UNIT | TYPE_PLAYER), __FILE__, __LINE__);
+        CoA::UnitTokens::AfterTokens(coaLines, count, 8, sizeof(s_tokenBuffers[0]), unit);
+    });
     *count = 0;
 
     if (guid == WOWGUID()) {
@@ -947,6 +957,7 @@ char** Script_GetTokenIDsFromGUID(const WOWGUID& guid, int32_t* count) {
         SStrCopy(s_tokenIDs[(*count)++], "npc", sizeof(s_tokenBuffers[0]));
     }
 
+    coaLines = s_tokenIDs;
     return s_tokenIDs;
 }
 
@@ -980,6 +991,9 @@ void Script_SendUnitSpellSignal(const WOWGUID& guid, uint8_t castCount, const Sp
 // VERIFY: 3289c731 auto
 // OFFSET: 0x00608390
 static int32_t Script_GetAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* info) {
+    // CoA: AscSpellTokens.cpp:FUN_10a12940 (orig hook 0x608390) -- after every return: the info's unit is the spell
+    // description context (the w / W tokens read its aura amounts).
+    auto coaContext = CoA::ClientHooks::OnScopeExit([info] { CoA::SpellTokens::SetAuraContext(info->m_guid.m_guid); });
     if (!lua_isnumber(L, index) && !lua_isstring(L, index)) {
         return 0;
     }

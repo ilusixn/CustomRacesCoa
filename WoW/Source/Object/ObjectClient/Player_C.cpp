@@ -2,6 +2,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
+#include "CoA/Source/Modules/GossipQuest.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -1868,6 +1869,13 @@ void __stdcall CGPlayer_C::PushQuestToParty(int32_t questId) {
 // VERIFY: 2068fcba manual
 // OFFSET: 0x006D4F80
 void __stdcall CGPlayer_C::QuestLogRemoveQuest(uint8_t slot) {
+    // CoA: AscGossipQuest.cpp:FUN_100e0ba0 (orig hook 0x6D4F80) -- after the original: QUEST_REMOVED with the quest id the
+    // player's log slot holds (the DLL reads ecx as the player; here the active player).
+    auto coaRemoved = CoA::ClientHooks::OnScopeExit([slot] {
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+        PlayerQuestLogEntry* entry = player ? player->GetQuestLogEntry(slot) : nullptr;
+        CoA::GossipQuest::AfterQuestRemoved(entry ? entry->m_questId : 0);
+    });
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_QUEST_LOG_REMOVE_QUEST));
     msg.Put(slot);
@@ -7911,6 +7919,9 @@ static void QuestCompleteCallback(int32_t id, const WOWGUID& guid, void* param, 
 // VERIFY: bd6214c4 manual
 // OFFSET: 0x006D1110
 int32_t __stdcall CGPlayer_C::OnQuestGiverQuestComplete(CDataStore* msg) {
+    // CoA: AscGossipQuest.cpp:FUN_100e0ab0 (orig hook 0x6D1110) -- after the original: QUEST_TURNED_IN with the first three
+    // dwords of the message buffer (the opcode included, as shipped).
+    auto coaTurnedIn = CoA::ClientHooks::OnScopeExit([msg] { CoA::GossipQuest::AfterQuestComplete(msg->m_data, msg->m_size); });
     QuestCompleteRewards* rewards = new (__FILE__, __LINE__) QuestCompleteRewards;
 
     uint32_t questId;

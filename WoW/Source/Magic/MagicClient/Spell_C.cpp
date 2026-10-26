@@ -5,6 +5,7 @@
 #include "CoA/Source/Modules/SpellVisualsClient.h"
 #include "CoA/Source/Modules/SpellMods.h"
 #include "CoA/Source/Modules/SpellModsClient.h"
+#include "CoA/Source/Modules/SmallHooks.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -8000,6 +8001,10 @@ static void GameObjectStatsCallback(int32_t id, const WOWGUID& guid, void* param
 // VERIFY: 95fdd19a manual
 // OFFSET: 0x00805F60
 static bool Spell_C_IsSpellPending(const WOWGUID& castItem, int32_t spellId, const PendingSpellCast* except) {
+    // CoA: AscSmallHooks.cpp:FUN_10322440 (orig hook 0x805F60) -- REPLACED: whether the player's cast ends outside the
+    // SpellQueueWindow (or has ended); false without a player or a cast end time. The arguments are not read.
+    return CoA::SmallHooks::SpellQueueReady();
+
     for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
         if (cast != except && (!castItem || cast->m_data.m_castItem == castItem) && cast->m_data.m_spellId == static_cast<uint32_t>(spellId)) {
             return true;
