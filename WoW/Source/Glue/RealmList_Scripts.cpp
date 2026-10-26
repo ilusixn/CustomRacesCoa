@@ -54,7 +54,7 @@ static int32_t Script_RealmListDialogCancelled(lua_State* L) {
 // OFFSET: 0x004DEAF0
 static int32_t Script_GetNumRealms(lua_State* L) {
     if (lua_isnumber(L, 1)) {
-        uint32_t index = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+        uint32_t index = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
         RealmCategory* category = index < CRealmList::m_categories.Count() ? CRealmList::m_categories[index] : nullptr;
         lua_pushnumber(L, category ? category->m_numRealms : 0);
         return 1;
@@ -85,15 +85,15 @@ static int32_t Script_GetRealmInfo(lua_State* L) {
     REALM_INFO* realm = nullptr;
 
     if (lua_isnumber(L, 2)) {
-        uint32_t categoryIndex = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+        uint32_t categoryIndex = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
         RealmCategory* category = categoryIndex < CRealmList::m_categories.Count() ? CRealmList::m_categories[categoryIndex] : nullptr;
-        uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+        uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
 
         if (category && category->m_numRealms > index) {
             realm = ClientServices::GetRealmInfoByIndex(category->m_realms[index]);
         }
     } else {
-        uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
         for (uint32_t i = 0; i < CRealmList::m_categories.Count(); i++) {
             RealmCategory* category = CRealmList::m_categories[i];
@@ -208,10 +208,10 @@ static int32_t Script_ChangeRealm(lua_State* L) {
     REALM_INFO* realm = nullptr;
 
     if (lua_isnumber(L, 2)) {
-        uint32_t categoryIndex = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+        uint32_t categoryIndex = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
         CRealmList::m_selectedCategory = categoryIndex;
         RealmCategory* category = categoryIndex < CRealmList::m_categories.Count() ? CRealmList::m_categories[categoryIndex] : nullptr;
-        uint32_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+        uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
 
         if (!category || category->m_numRealms <= index) {
             return 0;
@@ -219,7 +219,7 @@ static int32_t Script_ChangeRealm(lua_State* L) {
 
         realm = ClientServices::GetRealmInfoByIndex(category->m_realms[index]);
     } else {
-        uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
         if (!CRealmList::m_categories.Count()) {
             return 0;
@@ -284,7 +284,7 @@ static int32_t Script_IsInvalidTournamentRealmCategory(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    uint32_t index = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
 
     if (index >= CRealmList::m_categories.Count()) {
         return 0;
@@ -312,7 +312,7 @@ static int32_t Script_IsTournamentRealmCategory(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    uint32_t index = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
 
     if (index >= CRealmList::m_categories.Count()) {
         return 0;
@@ -336,7 +336,7 @@ static int32_t Script_IsInvalidLocale(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = GetCategoryIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    uint32_t index = GetCategoryIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
 
     if (index >= CRealmList::m_categories.Count()) {
         return 0;
@@ -368,7 +368,7 @@ static int32_t Script_SetPreferredInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     int32_t pvp = StringToBOOL(L, 2, 0);
     int32_t roleplaying = StringToBOOL(L, 3, 0);
     CRealmList::SetPreferredInfo(index, pvp, roleplaying);

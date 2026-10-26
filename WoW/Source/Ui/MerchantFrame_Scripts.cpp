@@ -82,7 +82,7 @@ static int32_t Script_GetMerchantItemMaxStack(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MerchantItem* item = index >= 0 && index < CGMerchantInfo::m_numMerchantItems && CGMerchantInfo::m_merchant ? &CGMerchantInfo::m_items[index] : nullptr;
     ItemStats_C* stats;
     double maxStack;
@@ -105,7 +105,7 @@ static int32_t Script_GetMerchantItemCostInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     MerchantItem* item = index >= 0 && index < CGMerchantInfo::m_numMerchantItems && CGMerchantInfo::m_merchant ? &CGMerchantInfo::m_items[index] : nullptr;
     ItemExtendedCostRec* cost;
     double numItems;
@@ -164,7 +164,7 @@ static int32_t Script_GetMerchantItemLink(lua_State* L) {
         return luaL_error(L, "Usage: GetMerchantItemLink(index)");
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
 
     if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant) {
         return 0;
@@ -212,8 +212,8 @@ static int32_t Script_GetMerchantItemCostItem(lua_State* L) {
         return luaL_error(L, "Usage: GetMerchantItemCostItem(index, itemIndex)");
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    int32_t costIndex = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    int32_t costIndex = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
     MerchantItem* item;
     ItemExtendedCostRec* cost;
 
@@ -289,13 +289,13 @@ static int32_t Script_GetMerchantItemInfo(lua_State* L) {
         luaL_error(L, "Usage: GetMerchantItemCostInfo(index)");
     }
 
-    const int32_t costIndex = static_cast<int32_t>(lua_tonumber(L, 1) - 1.0);
+    const int32_t costIndex = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1) - 1.0));
     const int32_t result = [&]() -> int32_t {
         if (!lua_isnumber(L, 1)) {
             return luaL_error(L, "Usage: GetMerchantItemInfo(index)");
         }
 
-        int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+        int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
         MerchantItem* item;
 
         if (index < 0 || index >= CGMerchantInfo::m_numMerchantItems || !CGMerchantInfo::m_merchant || !(item = &CGMerchantInfo::m_items[index]) || !item->m_itemID) {
@@ -454,7 +454,7 @@ static int32_t Script_PickupMerchantItem(lua_State* L) {
     int32_t index;
     MerchantItem* item;
 
-    if (!lua_isnumber(L, 1) || !(item = CGMerchantInfo::GetItem(index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1)) || !item->m_slot) {
+    if (!lua_isnumber(L, 1) || !(item = CGMerchantInfo::GetItem(index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1)) || !item->m_slot) {
         CGGameUI::ClearCursor(1, 1);
         return 0;
     }
@@ -487,10 +487,10 @@ static int32_t Script_BuyMerchantItem(lua_State* L) {
     uint32_t count = 0;
 
     if (lua_isnumber(L, 2) && lua_tonumber(L, 2) >= 1.0) {
-        count = static_cast<uint32_t>(static_cast<int32_t>(lua_tonumber(L, 2)));
+        count = static_cast<uint32_t>(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))));
     }
 
-    const uint32_t index = static_cast<uint32_t>(static_cast<int32_t>(lua_tonumber(L, 1) - 1.0));
+    const uint32_t index = static_cast<uint32_t>(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1) - 1.0)));
 
     if (index < static_cast<uint32_t>(CGMerchantInfo::m_numMerchantItems) && CGMerchantInfo::m_merchant) {
         const MerchantItem& item = CGMerchantInfo::m_items[index];
@@ -540,7 +540,7 @@ static int32_t Script_ShowMerchantSellCursor(lua_State* L) {
         return luaL_error(L, "Usage: ShowMerchantSellCursor(index)");
     }
 
-    MerchantItem* item = CGMerchantInfo::GetItem(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    MerchantItem* item = CGMerchantInfo::GetItem(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
 
     if (!item || !item->m_itemID) {
         return 0;

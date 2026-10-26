@@ -192,7 +192,7 @@ static int32_t Script_SelectGossipOption(lua_State* L) {
         return luaL_error(L, "Usage: SelectGossipOption(index)");
     }
 
-    int32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    int32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     int32_t confirmed = StringToBOOL(L, 3, 0);
     CGGossipInfo::SelectGossipOption(index, lua_tolstring(L, 2, nullptr), confirmed);
     return 0;
@@ -205,7 +205,7 @@ static int32_t Script_SelectGossipAvailableQuest(lua_State* L) {
         return luaL_error(L, "Usage: SelectGossipAvailableQuest(index)");
     }
 
-    CGGossipInfo::SelectGossipAvailableQuest(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    CGGossipInfo::SelectGossipAvailableQuest(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     return 0;
 }
 
@@ -216,7 +216,7 @@ static int32_t Script_SelectGossipActiveQuest(lua_State* L) {
         return luaL_error(L, "Usage: SelectGossipActiveQuest(index)");
     }
 
-    CGGossipInfo::SelectGossipActiveQuest(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    CGGossipInfo::SelectGossipActiveQuest(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     return 0;
 }
 
