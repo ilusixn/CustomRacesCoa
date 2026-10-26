@@ -1,4 +1,5 @@
 #include "AddOns.h"
+#include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/RealmDataClient.h"
 #include <cstdlib>
 #include <cstring>
@@ -837,6 +838,12 @@ int32_t GetAddOnEnableState(const char* name, const char* character, bool comput
 // VERIFY: 34f50be6 manual
 // OFFSET: 0x005F7E90
 bool IsAddOnLoadable(const char* name, bool demandLoad, UIADDON_LOADABLE_REASON& reason, UIADDON_LOADABLE_REASON& dependencyReason, const char* character) {
+    // CoA: AscAddonTaint.cpp:FUN_10312630 (orig hook 0x5F7E90) -- a realm without addons (+0x48 clear) refuses an
+    // addon SMSG 0x94E does not list, without a reason. The loadUnknownAddOns half sits at its two callers.
+    if (CoA::AddonTaint::AddOnLoadRefused(name)) {
+        return false;
+    }
+
     UIADDON* addon = s_addons.Ptr(name);
 
     if (!addon) {
@@ -923,7 +930,10 @@ uint32_t LoadAddOnFileCount() {
             }
         }
 
-        if (!managed && IsAddOnLoadable(addon->m_key.m_str, false, reason, dependencyReason, ClientServices::GetCharacterName())) {
+        // CoA: AscAddonTaint.cpp:FUN_10312630 (orig hook 0x5F7E90, the call at 0x5F8071) -- loadUnknownAddOns 0 refuses
+        // an addon SMSG 0x94E does not list.
+        if (!managed && !CoA::AddonTaint::UnknownAddOnLoadRefused(addon->m_key.m_str) &&
+            IsAddOnLoadable(addon->m_key.m_str, false, reason, dependencyReason, ClientServices::GetCharacterName())) {
             count += addon->m_numFiles;
         }
     }
@@ -1016,7 +1026,10 @@ bool LoadAddOn(const char* name, bool demandLoad, CStatus* status) {
     UIADDON_LOADABLE_REASON reason;
     UIADDON_LOADABLE_REASON dependencyReason;
 
-    if (!IsAddOnLoadable(addonName, demandLoad, reason, dependencyReason, ClientServices::GetCharacterName())) {
+    // CoA: AscAddonTaint.cpp:FUN_10312630 (orig hook 0x5F7E90, the call at 0x5F80FA) -- loadUnknownAddOns 0 refuses
+    // an addon SMSG 0x94E does not list.
+    if (CoA::AddonTaint::UnknownAddOnLoadRefused(addonName) ||
+        !IsAddOnLoadable(addonName, demandLoad, reason, dependencyReason, ClientServices::GetCharacterName())) {
         return false;
     }
 

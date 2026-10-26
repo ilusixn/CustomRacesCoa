@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include <cmath>
 #include <cstdarg>
@@ -196,7 +197,11 @@ static int32_t Script_CancelTrade(lua_State* L) {
 // VERIFY: 64da4b3d auto
 // OFFSET: 0x00510A00
 static int32_t Script_ForceQuit(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313030 (orig hook 0x510A00) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
     ClientPostClose(0);
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
@@ -1909,8 +1914,10 @@ static int32_t Script_LoadAddOn(lua_State* L) {
 
     lua_pushnil(L);
 
-    UIADDON_LOADABLE_REASON reason;
-    UIADDON_LOADABLE_REASON dependencyReason;
+    // CoA: AscAddonTaint.cpp:FUN_10312630 -- a refusal writes no reason; the original then reads two leftover stack
+    // slots. Ruling: they start at UIADDON_LOADABLE here, so the refusal reads "UNKNOWN_ERROR".
+    UIADDON_LOADABLE_REASON reason = UIADDON_LOADABLE;
+    UIADDON_LOADABLE_REASON dependencyReason = UIADDON_LOADABLE;
 
     if (!IsAddOnLoadable(name, true, reason, dependencyReason, ClientServices::GetCharacterName()) && (reason || dependencyReason)) {
         char buffer[128];
@@ -2095,12 +2102,18 @@ static int32_t Script_SetUIVisibility(lua_State* L) {
 // VERIFY: 0647bfed auto
 // OFFSET: 0x0051AC90
 static int32_t Script_CancelLogout(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10312f00 (orig hook 0x51AC90) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+
     if (lua_tainted && CGGameUI::m_simpleTop && !CGGameUI::m_simpleTop->unused_1250) {
         CGGameUI::ShowBlockedActionFeedback(nullptr, 1);
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     ClientServices::Connection()->CharacterAbortLogout();
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
@@ -2466,6 +2479,12 @@ static int32_t Script_GetXPExhaustion(lua_State* L) {
 // VERIFY: 94225d6a auto
 // OFFSET: 0x00525FC0
 static int32_t Script_ClearTarget(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:LAB_10313000 (orig hook 0x525FC0) -- inside Script_RunScript: the blocked-action
+    // feedback (0x513530(0, 2)) and no results, without the client's body.
+    if (CoA::AddonTaint::ClearTargetRefused()) {
+        return 0;
+    }
+
     int32_t hadTarget = CGGameUI::m_lockedTarget != WOWGUID();
     CGGameUI::unused_BD08CC = 0;
 
@@ -2490,41 +2509,59 @@ static int32_t Script_ClearTarget(lua_State* L) {
 // VERIFY: a9e1a777 auto
 // OFFSET: 0x00510450
 static int32_t Script_Quit(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313620 (orig hook 0x510450) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
     ClientServices::Connection()->CharacterLogout(true, false);
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
 // VERIFY: 3003cf92 auto
 // OFFSET: 0x0052B470
 static int32_t Script_RegisterForSave(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313720 (orig hook 0x52B470) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+
     if (lua_tainted) {
         luaL_error(L, "RegisterForSave() is only available to Blizzard scripts");
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RegisterForSave(\"variable\")");
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     CGGameUI::RegisterSavedVariable(lua_tolstring(L, 1, nullptr), 0);
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
 // VERIFY: da056905 auto
 // OFFSET: 0x0052B4E0
 static int32_t Script_RegisterForSavePerCharacter(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313820 (orig hook 0x52B4E0) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+
     if (lua_tainted) {
         luaL_error(L, "RegisterForSavePerCharacter() is only available to Blizzard scripts");
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: RegisterForSavePerCharacter(\"variable\")");
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     CGGameUI::RegisterSavedVariable(lua_tolstring(L, 1, nullptr), 1);
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
@@ -3146,7 +3183,11 @@ int32_t Script_SetPortraitToTexture(lua_State* L) {
 // VERIFY: 13b09c22 auto
 // OFFSET: 0x00510430
 static int32_t Script_Logout(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313520 (orig hook 0x510430) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
     ClientServices::Connection()->CharacterLogout(false, false);
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
@@ -4607,12 +4648,18 @@ static int32_t Script_InviteUnit(lua_State* L) {
 // VERIFY: 7cdc6cc7 manual
 // OFFSET: 0x0051A7A0
 static int32_t Script_UninviteUnit(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313950 (orig hook 0x51A7A0) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+
     if (!ClntObjMgrGetActivePlayerObj()) {
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
     if (lua_tainted && CGGameUI::m_simpleTop && !CGGameUI::m_simpleTop->unused_1250) {
         CGGameUI::ShowBlockedActionFeedback(nullptr, 1);
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
@@ -4631,6 +4678,7 @@ static int32_t Script_UninviteUnit(lua_State* L) {
         CGPlayer_C::Uninvite(guid, scrubbed);
     }
 
+    CoA::AddonTaint::EndCleared(taint);
     return 0;
 }
 
@@ -6087,6 +6135,10 @@ static int32_t Script_AcceptAreaSpiritHeal(lua_State* L) {
 // VERIFY: 1959aa5f auto
 // OFFSET: 0x00527F00
 static int32_t Script_InteractUnit(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313130 (orig hook 0x527F00) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+
     if (!lua_isstring(L, 1)) {
         luaL_error(L, "Usage: InteractUnit(unitToken[, exactMatch])");
         return 0;
@@ -6103,6 +6155,7 @@ static int32_t Script_InteractUnit(lua_State* L) {
 
     if (lua_tainted) {
         CGGameUI::ShowBlockedActionFeedback(nullptr, 0);
+        CoA::AddonTaint::EndCleared(taint);
         return 0;
     }
 
@@ -6112,6 +6165,7 @@ static int32_t Script_InteractUnit(lua_State* L) {
         lua_pushnil(L);
     }
 
+    CoA::AddonTaint::EndCleared(taint);
     return 1;
 }
 

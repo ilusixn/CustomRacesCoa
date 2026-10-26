@@ -47,6 +47,11 @@ const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 bool (*g_formattedSignalHook)(int32_t eventId, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const void* format, const void* va);
 // CoA: set by CoA::ClientHooks::InstallClient (CoA::ClientHooks::AllowSignalEvent).
 bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const char* name);
+// CoA: set by CoA::AddonTaintClient (CoA::AddonTaint::Issecure / Secure / BeginCleared / EndCleared).
+bool (*g_issecureHook)(lua_State* L);
+bool (*g_addonTaintSecureHook)();
+const char* (*g_addonTaintBeginClearedHook)();
+void (*g_addonTaintEndClearedHook)(const char* saved);
 
 // CoA: the DLL reads the event table at 0xD3F7D0 directly (AscRuntime.cpp:EventId / EventName)
 uint32_t FrameScript_GetEventCount() {
