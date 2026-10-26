@@ -21,6 +21,12 @@ namespace {
         bool activitySubscribed = false;      // +0x05
         int32_t result = 0;                   // +0x08
         bool userSubscribed = false;          // Initialize's OnCurrentUserUpdate lambda registered
+        // CoA64's client-built status: the server took over (0x90C / 0x90D seen), the world entry time, the last
+        // activity sent (to skip unchanged ones).
+        bool serverStatus = false;
+        int64_t worldStart = 0;
+        bool sentAny = false;
+        CoA::Discord::Activity lastSent;
     };
 
     CoA::Discord::Deps s_deps;
@@ -37,6 +43,37 @@ namespace {
         }
     }
 
+    bool Same(const CoA::Discord::Activity& a, const CoA::Discord::Activity& b) {
+        return a.state == b.state && a.details == b.details && a.start == b.start && a.end == b.end &&
+            a.largeImage == b.largeImage && a.largeText == b.largeText && a.smallImage == b.smallImage &&
+            a.smallText == b.smallText;
+    }
+
+    bool ClientStatusOn() {
+        return s_deps.clientStatus && s_mgr.enabled && !s_mgr.serverStatus;
+    }
+
+    void SendClientStatus(const CoA::Discord::Activity& a) {
+        if (s_mgr.sentAny && Same(a, s_mgr.lastSent)) {
+            return;
+        }
+
+        s_mgr.lastSent = a;
+        s_mgr.sentAny = true;
+        UpdateActivity(a);
+    }
+
+    void ShowCharacterSelect() {
+        if (!ClientStatusOn()) {
+            return;
+        }
+
+        CoA::Discord::Activity a;
+        a.state = "Selecting World";
+        a.largeImage = "ascension_logo";
+        SendClientStatus(a);
+    }
+
     void OpenGuildInvite(const std::string& code) {   // FUN_10220dd0
         if (!s_mgr.enabled) {
             return;
@@ -49,6 +86,7 @@ namespace {
 
     int32_t OnInitialize(void*, uint32_t, uint32_t, CDataStore*) {   // 0x90C 0x10220EC0
         CoA::Log::Printf("Discord: SMSG 0x90C (enabled %d)", s_mgr.enabled ? 1 : 0);
+        s_mgr.serverStatus = true;
 
         if (!s_mgr.enabled) {
             return 1;
@@ -63,6 +101,7 @@ namespace {
 
     int32_t OnUpdate(void*, uint32_t, uint32_t, CDataStore* msg) {   // 0x90D FUN_10221060
         CoA::Log::Printf("Discord: SMSG 0x90D (enabled %d, subscribed %d)", s_mgr.enabled ? 1 : 0, s_mgr.activitySubscribed ? 1 : 0);
+        s_mgr.serverStatus = true;
 
         if (!s_mgr.enabled) {
             return 1;
@@ -166,6 +205,34 @@ void CoA::Discord::Initialize() {   // FUN_10220b10
     if (s_deps.startCallbacks) {
         s_deps.startCallbacks();
     }
+
+    ShowCharacterSelect();
+}
+
+void CoA::Discord::OnEnterWorld() {
+    s_mgr.worldStart = s_deps.now ? s_deps.now() : 0;
+    CoA::Discord::Refresh();
+}
+
+void CoA::Discord::OnLeaveWorld() {
+    s_mgr.worldStart = 0;
+    ShowCharacterSelect();
+}
+
+void CoA::Discord::Refresh() {
+    CoA::Discord::WorldInfo info;
+
+    if (!ClientStatusOn() || !s_deps.worldInfo || !s_deps.worldInfo(info)) {
+        return;
+    }
+
+    CoA::Discord::Activity a;
+    a.details = Cut(info.level ? "Level " + std::to_string(info.level) + " " + info.className : info.className);
+    a.state = Cut(info.zone);
+    a.start = s_mgr.worldStart;
+    a.largeImage = "ascension_logo";
+    a.largeText = Cut(info.realm);
+    SendClientStatus(a);
 }
 
 void CoA::Discord::OnCurrentUserUpdate() {   // FUN_10221aa0
@@ -203,9 +270,9 @@ void CoA::Discord::Reset() {
     s_mgr.activitySubscribed = false;
     s_mgr.result = 0;
     s_mgr.userSubscribed = false;
+    s_mgr.serverStatus = false;
+    s_mgr.worldStart = 0;
+    s_mgr.sentAny = false;
+    s_mgr.lastSent = Activity();
     s_deps = Deps();
-}
-
-std::vector<std::wstring> CoA::Discord::SdkPaths(const std::wstring& exeDir) {
-    return { exeDir + L"\\x64\\discord_game_sdk.dll", L"discord_game_sdk.dll" };
 }
