@@ -1,4 +1,5 @@
 #include "CoA/Source/Runtime/RenderPipeline.h"
+#include "CoA/Source/Runtime/CVars.h"
 #include <cmath>
 
 namespace CoA::RenderPipeline {
@@ -91,5 +92,32 @@ namespace CoA::RenderPipeline {
 
     void Reset() {
         s_frame = Frame{};
+    }
+}
+
+namespace CoA::RenderPipelineClient {
+    namespace {
+        CVar* s_pipeline;
+        CVar* s_debug;
+        CVar* s_jitter;
+    }
+
+    void QueueCVars() {
+        // name, help, flags, default, callback, category, setCommand, slot, world
+        COA_CVAR("coaRenderPipeline", nullptr, 1, "0", nullptr, 1, false, &s_pipeline, false);
+        COA_CVAR("coaRenderDebug", nullptr, 1, "0", nullptr, 1, false, &s_debug, false);
+        COA_CVAR("coaRenderJitter", nullptr, 1, "0", nullptr, 1, false, &s_jitter, false);
+    }
+
+    CVar** PipelineSlot() {
+        return &s_pipeline;
+    }
+
+    CVar** DebugSlot() {
+        return &s_debug;
+    }
+
+    CVar** JitterSlot() {
+        return &s_jitter;
     }
 }

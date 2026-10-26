@@ -1701,6 +1701,12 @@ void CGWorldFrame::OnWorldRender() {
 
     g_theGxDevicePtr->RsPush();
     GxRsSet(GxRs_Multisample, 1);
+
+    // CoA64: render pipeline -- the 3D world renders into the off-screen world target until endWorld.
+    if (g_renderPipelineHook) {
+        g_renderPipelineHook->beginWorld();
+    }
+
     CGWorldFrame::UpdateScreenEffectParams();
     FFX::Start();
 
@@ -1769,6 +1775,11 @@ void CGWorldFrame::OnWorldRender() {
     CM2Scene* scene = World::s_m2Scene;
 
     if (!scene) {
+        // CoA64: the world target is copied back on this exit too.
+        if (g_renderPipelineHook) {
+            g_renderPipelineHook->endWorld(this->m_viewportNDC);
+        }
+
         return;
     }
 
@@ -1817,6 +1828,12 @@ void CGWorldFrame::OnWorldRender() {
     }
 
     g_theGxDevicePtr->RsPop();
+
+    // CoA64: render pipeline -- copy the world target back to the back buffer before world text and chat bubbles.
+    if (g_renderPipelineHook) {
+        g_renderPipelineHook->endWorld(this->m_viewportNDC);
+    }
+
     SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);

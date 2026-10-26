@@ -1,9 +1,11 @@
 #include "CoA/Shaders/DepthViewPS.h"
 #include "CoA/Shaders/FullscreenVS.h"
+#include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Tests/TestMain.h"
 #include <cmath>
 #include <cstring>
+#include <initializer_list>
 
 namespace {
     using CoA::RenderPipeline::Mat4;
@@ -124,4 +126,17 @@ COA_TEST(RenderPipeline_EmbeddedShadersAreSm3Bytecode) {
     auto token = [](const unsigned char* b) { return uint32_t(b[0]) | uint32_t(b[1]) << 8 | uint32_t(b[2]) << 16 | uint32_t(b[3]) << 24; };
     CHECK(token(kFullscreenVS) == 0xFFFE0300u);   // vs_3_0
     CHECK(token(kDepthViewPS) == 0xFFFF0300u);    // ps_3_0
+}
+
+COA_TEST(RenderPipeline_CVarsQueuedAsGlueWithDefaultsOff) {
+    CoA::CVars::Reset();
+    CoA::RenderPipelineClient::QueueCVars();
+    size_t n = 0;
+    const CoA::CVarEntry* e = CoA::CVars::Glue(n);
+    auto find = [&](const char* name) -> const CoA::CVarEntry* { for (size_t i = 0; i < n; ++i) if (!strcmp(e[i].name, name)) return &e[i]; return nullptr; };
+    for (const char* name : { "coaRenderPipeline", "coaRenderDebug", "coaRenderJitter" }) {
+        const CoA::CVarEntry* v = find(name);
+        CHECK(v && !strcmp(v->defaultValue, "0") && v->flags == 1 && v->category == 1);
+    }
+    CoA::CVars::Reset();
 }

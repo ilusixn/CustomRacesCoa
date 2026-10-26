@@ -922,6 +922,7 @@ bool CGxDeviceD3d::WorldTargetSupported() {
 // CoA64: creates (or reuses, same size) the world colour + INTZ depth textures and swaps their surfaces in as the
 // default surfaces, so the engine's nullptr render target binds them. Already begun: no-op (true). Returns false and
 // changes nothing when the device cannot (no context, multisampled back buffer, creation failure).
+// Every Begin seeds the world colour from the back buffer and clears the world depth / stencil.
 bool CGxDeviceD3d::WorldTargetBegin(uint32_t width, uint32_t height) {
     if (this->m_worldTargetBegun) {
         return true;
@@ -947,6 +948,25 @@ bool CGxDeviceD3d::WorldTargetBegin(uint32_t width, uint32_t height) {
         this->m_worldTargetWidth = width;
         this->m_worldTargetHeight = height;
     }
+
+    // CoA64: seed the world colour with the back buffer's current contents (1:1, clamped to both) and clear the world
+    // depth to 1.0 / stencil to 0, so the copied-back image does not depend on how the world clears its targets.
+    // SetRenderTarget resets the D3D viewport and scissor rect to the full world target, so the clear covers all of it;
+    // IWorldTargetApply below binds the final surfaces and marks both dirty.
+    D3DSURFACE_DESC backBufferDesc;
+
+    if (SUCCEEDED(this->m_defColorSurface->GetDesc(&backBufferDesc))) {
+        RECT rect;
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = static_cast<LONG>(backBufferDesc.Width < width ? backBufferDesc.Width : width);
+        rect.bottom = static_cast<LONG>(backBufferDesc.Height < height ? backBufferDesc.Height : height);
+        this->m_d3dDevice->StretchRect(this->m_defColorSurface, &rect, this->m_worldColorSurface, &rect, D3DTEXF_NONE);
+    }
+
+    this->m_d3dDevice->SetRenderTarget(0, this->m_worldColorSurface);
+    this->m_d3dDevice->SetDepthStencilSurface(this->m_worldDepthSurface);
+    this->m_d3dDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL, 0, 1.0f, 0);
 
     // The default surfaces' references move into the saved slots; the defaults alias the world surfaces.
     this->m_worldSavedColorSurface = this->m_defColorSurface;

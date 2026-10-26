@@ -5,6 +5,7 @@
 #include "CoA/Source/Modules/Camera.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Dxvk.h"
+#include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include <cstdio>
@@ -1781,6 +1782,9 @@ bool InitializeGlobal() {
     SFile::RebuildHash();
     // CoA64: load DXVK's x64 d3d9 (Vulkan) before the first archive opens -- it decides whether the HD archives load.
     CoA::DxvkClient::Preload();
+    // CoA64: the render pipeline's CVars (queued before ClientRegisterConsoleCommands registers the glue CVars) and
+    // its engine hooks.
+    CoA::RenderPipelineClient::Install();
     OpenArchives();
 
     CVar* affinity = CVar::Register("processAffinityMask", "Sets which core(s) WoW may execute on - changes require restart to take effect", 2, "0", ProcessAffinityMaskCallback, CATEGORY_DEBUG, false, nullptr, false);

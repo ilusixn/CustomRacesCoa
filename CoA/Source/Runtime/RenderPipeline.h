@@ -64,4 +64,18 @@ namespace CoA::RenderPipeline {
     void Reset();
 }
 
+struct CVar;
+
+// The render pipeline's engine glue (RenderPipelineClient.cpp): CVars and the g_renderPipelineHook callbacks.
+namespace CoA::RenderPipelineClient {
+    // Queues coaRenderPipeline / coaRenderDebug / coaRenderJitter as glue CVars (flags 1, category 1, default "0").
+    void QueueCVars();
+    // The CVars' registration slots (filled by CoA::CVars::RegisterGlue).
+    CVar** PipelineSlot();
+    CVar** DebugSlot();
+    CVar** JitterSlot();
+    // Queues the CVars and installs g_renderPipelineHook. Called once at client init, before the glue CVars register.
+    void Install();
+}
+
 #endif
