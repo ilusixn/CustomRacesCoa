@@ -1329,25 +1329,10 @@ void World::SetDetailDoodadDist(float dist) {
 // VERIFY: 5f5281b3 auto
 // OFFSET: 0x00780770
 float World::ValidateFarClip(float farClip, int32_t mapID) {
-    float maxFarClip = 4750.0f / 3.0f;
-
-    if (mapID < 530 || mapID == 575 || mapID == 543) {
-        if (!CWorldParam::cvar_farClipOverride || CWorldParam::cvar_farClipOverride->m_intValue < 1) {
-            maxFarClip = 2375.0f / 3.0f;
-        }
-    } else if (OsGetPhysicalMemory() <= 0x40000000) {
-        maxFarClip = 2375.0f / 3.0f;
-    }
-
-    if (farClip < 550.0f / 3.0f) {
-        return 550.0f / 3.0f;
-    }
-
-    if (farClip <= maxFarClip) {
-        return farClip;
-    }
-
-    return maxFarClip;
+    // CoA: AscGraphics.cpp:FUN_1026ad40 (orig hook 0x780770) -- replaced (Extensions.dll's ReplaceFunction): 183.33 ..
+    // 791.66 on maps 0 / 1 / 530 / 571, .. 700 on 909, .. 1583.33 elsewhere. The stock body capped at 4750 / 3 (2375 / 3
+    // below map 530 and on 575 / 543 unless farClipOverride >= 1, or with 1 GB of memory or less), floor 550 / 3.
+    return CoA::Graphics::FarClipClamp(farClip, static_cast<uint32_t>(mapID));
 }
 
 // VERIFY: 1f595043 auto
@@ -2211,11 +2196,15 @@ void CWorldScene::AddDoodadDefModelToModelScene(CMapDoodadDef* doodadDef) {
 // VERIFY: 300a631e auto
 // OFFSET: 0x00792AD0
 void CWorldScene::AddMapObjDefGroup(CMapObjDef* mapObjDef, CMapObjDefGroup* mapObjDefGroup) {
-    if (!(mapObjDef->m_owner->GetGroupFlags(mapObjDefGroup->m_groupNum) & 0x10008)) {
+    // CoA: AscGraphics.cpp:FUN_10263380 (Extensions.dll patch 0x792AF2 / 0x792AFF) -- wmoCulling other than "1" NOPs
+    // both je: the group flags are read but never return, and every group goes to the pending exterior list.
+    const bool wmoCulling = CoA::Graphics::WmoCulling();
+
+    if (!(mapObjDef->m_owner->GetGroupFlags(mapObjDefGroup->m_groupNum) & 0x10008) && wmoCulling) {
         return;
     }
 
-    if (mapObjDef->m_flags & MAPOBJ_FLAG_NO_DEPTH_SORT) {
+    if ((mapObjDef->m_flags & MAPOBJ_FLAG_NO_DEPTH_SORT) || !wmoCulling) {
         CWorldScene::sortTable.m_pendingExteriorGroupList.LinkToTail(mapObjDefGroup);
         return;
     }
@@ -2361,13 +2350,21 @@ void CWorldScene::CullEntitys(CSortEntry* entry) {
 
         CAaSphere sphere = entity->m_sphere;
 
-        if (!CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere) || CWorldOcclusion::QueryVolumes(&entity->m_sphere) || CWorldOcclusion::QueryBuffer(entity->m_sphere.c, entity->m_sphere.r, 0)) {
+        // CoA: AscGraphics.cpp:FUN_1025d520 (Extensions.dll patch 0x793115 / 0x793126 / 0x79313F) -- entityCulling other
+        // than "1" NOPs the three cull jumps: all three queries run, the entity is never culled, and m_culled takes the
+        // buffer query's low byte (the store after it that the stock path only reaches with 0).
+        if (!CoA::Graphics::EntityCulling()) {
+            CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere);
+            CWorldOcclusion::QueryVolumes(&entity->m_sphere);
+            entity->m_culled = static_cast<uint8_t>(CWorldOcclusion::QueryBuffer(entity->m_sphere.c, entity->m_sphere.r, 0));
+        } else if (!CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere) || CWorldOcclusion::QueryVolumes(&entity->m_sphere) || CWorldOcclusion::QueryBuffer(entity->m_sphere.c, entity->m_sphere.r, 0)) {
             CWorldScene::sortTable.m_culledEntityList.LinkToTail(entity);
             entity = next;
             continue;
+        } else {
+            entity->m_culled = 0;
         }
 
-        entity->m_culled = 0;
         CM2Model* model = entity->m_model;
 
         if (model) {

@@ -101,6 +101,8 @@ namespace CoA::SpellShadow { void Init(); }
 namespace CoA::SpellVisuals { void Init(); }
 namespace CoA::ZoneLight { void Init(); }
 namespace CoA::FontRender { void Init(); }
+namespace CoA::Graphics { void Init(); }
+namespace CoA::Cursor { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -188,5 +190,7 @@ namespace CoA::SpellShadowClient { void Init(); }
 namespace CoA::SpellVisualsClient { void Init(); }
 namespace CoA::ZoneLightClient { void Init(); }
 namespace CoA::FontRenderClient { void Init(); }
+namespace CoA::GraphicsClient { void Init(); }
+namespace CoA::CursorClient { void Init(); }
 
 #endif

@@ -1,4 +1,5 @@
 #include "Cursor.h"
+#include "CoA/Source/Modules/Cursor.h"
 #include "CoA/Source/Modules/SpellShadow.h"
 #include <cstring>
 #include "Engine/Source/BLPFile/Types.h"
@@ -187,6 +188,10 @@ void UpdateCursor() {
     }
 
     g_theGxDevicePtr->CursorUnlock(0, 0);
+
+    // CoA: AscCursor.cpp:FUN_10a20530 (orig hook 0x6162C0) -- after the original: with an item on the cursor the device's
+    // CursorSetVisible(1) (the hardware cursor shows the item even in software-cursor mode).
+    CoA::Cursor::AfterUpdateCursor();
 }
 
 // VERIFY: 448b2353 auto
@@ -283,6 +288,12 @@ void CursorGrabVirtualItem(int32_t displayId) {
 // VERIFY: ed01e032 manual
 // OFFSET: 0x00616830
 int32_t CursorSetFromName(const char* name) {
+    // CoA: AscCursor.cpp:FUN_10a1e610 (orig hook 0x616830) -- with the software cursor the texture is loaded by the DLL
+    // (mode 0x35) and the original is skipped.
+    if (CoA::Cursor::SetFromName(name)) {
+        return 0;
+    }
+
     int32_t result = !SStrCmpI(s_cursorFile, name, STORM_MAX_STR);
     int32_t changed = !result || s_cursorMode != NUM_CURSOR_MODES;
 
@@ -425,4 +436,22 @@ void CursorDestroy() {
     s_cursorItemMips = nullptr;
     s_cursorItemMipsWidth = 0;
     s_cursorItemMipsHeight = 0;
+}
+
+// CoA: AscCursor.cpp -- the cursor statics the DLL reads and writes directly (0xC26DE8 s_cursorMode, 0xC25DE0
+// s_cursorItemType, 0xAD2808 s_cursorNames).
+uint32_t CoA_CursorGetMode() {
+    return static_cast<uint32_t>(s_cursorMode);
+}
+
+void CoA_CursorStoreMode(uint32_t mode) {
+    s_cursorMode = static_cast<CURSORMODE>(mode);
+}
+
+bool CoA_CursorHasItem() {
+    return s_cursorItemType != CURSOR_EMPTY;
+}
+
+const char* CoA_CursorName(uint32_t mode) {
+    return mode < NUM_CURSOR_IMAGES ? s_cursorNames[mode] : nullptr;
 }

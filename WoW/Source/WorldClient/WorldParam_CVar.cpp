@@ -377,7 +377,9 @@ bool CWorldParam::GroundEffectDensityCallback(CVar* var, const char* oldValue, c
 bool CWorldParam::GroundEffectDistCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
     float dist = SStrToFloat(value);
 
-    if (dist < 0.0f || dist > 140.0f) {
+    // CoA: AscGraphics.cpp (Extensions.dll patch 0x9E8CFC) -- the attach init raises the upper bound 140.0 to 1400.0 (the
+    // message still names 140).
+    if (dist < 0.0f || dist > 1400.0f) {
         char buffer[256];
         sprintf(buffer, "Ground effect distance must be in range %0f to %0f.", 0.0, 140.0);
         ConsoleWriteA(buffer, DEFAULT_COLOR);

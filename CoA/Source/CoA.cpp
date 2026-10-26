@@ -124,6 +124,9 @@ static const CoA::Module s_modules[] = {
     { "SpellVisuals", CoA::SpellVisuals::Init },
     { "ZoneLight", CoA::ZoneLight::Init },
     { "FontRender", CoA::FontRender::Init },
+    // FUN_10265d20 (the render module) and FUN_10a1e950 (the cursor module).
+    { "Graphics", CoA::Graphics::Init },
+    { "Cursor", CoA::Cursor::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -208,6 +211,8 @@ static const CoA::Module s_modules[] = {
     { "SpellVisualsClient", CoA::SpellVisualsClient::Init },
     { "ZoneLightClient", CoA::ZoneLightClient::Init },
     { "FontRenderClient", CoA::FontRenderClient::Init },
+    { "GraphicsClient", CoA::GraphicsClient::Init },
+    { "CursorClient", CoA::CursorClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

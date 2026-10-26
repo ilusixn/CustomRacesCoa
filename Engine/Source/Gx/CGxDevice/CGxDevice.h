@@ -362,4 +362,7 @@ extern const char* s_formatToInt[CGxFormat::Formats_Last];
 // ILoadD3dLib try it before the system d3d9.dll.
 extern void* (*g_d3d9LibraryHook)();
 
+// CoA: AscCursor.cpp:FUN_10a205f0 (orig hook 0x683640) -- the visibility CGxDevice::CursorSetVisible stores.
+extern int32_t (*g_cursorSetVisibleHook)(int32_t visible);
+
 #endif
