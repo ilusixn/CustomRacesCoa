@@ -27,6 +27,25 @@ extern const int32_t g_quotedCodeLengths[NUM_QUOTEDCODES];
 extern TSList<CGxString, TSGetLink<CGxString> > g_strings;
 extern uint32_t g_widthPixels;
 
+struct BATCHEDRENDERFONTDESC;
+struct GLYPHBITMAPDATA;
+struct TEXTURECACHE;
+
+// AscFontRender.cpp (CoA::FontRenderClient sets these; the Engine does not link CoA):
+// 0x10237210 -- before GxuFontInitialize (the "Font" pixel shader).
+extern void (*g_gxuFontInitializeHook)();
+// 0x10237150 / 0x10237100 -- in place of FT_New_Library + FT_Add_Default_Modules / FT_Done_Library.
+extern FT_Error (*g_gxuFontCreateLibraryHook)(FT_Memory memory, FT_Library* library);
+extern FT_Error (*g_gxuFontReleaseLibraryHook)(FT_Library library);
+// FUN_10237240 -- in place of IGxuFontGlyphRenderGlyph.
+extern bool (*g_gxuFontRenderGlyphHook)(FT_Face face, uint32_t pixelSize, uint32_t code, uint32_t baseline, GLYPHBITMAPDATA* dataPtr, int32_t monochrome, uint32_t padding);
+// FUN_10238130 -- in place of the four TEXTURECACHE::PasteGlyph* copiers.
+extern void (*g_gxuFontPasteGlyphHook)(TEXTURECACHE* cache, const GLYPHBITMAPDATA& data, uint16_t* dest);
+// FUN_10236fd0 -- before BATCHEDRENDERFONTDESC::RenderBatch.
+extern void (*g_gxuFontRenderBatchHook)(BATCHEDRENDERFONTDESC* desc);
+// The setne at 0x6CA067 as "mov al, 1": TEXTURECACHE::CreateTexture always filters.
+extern bool g_gxuFontAlwaysFilter;
+
 QUOTEDCODE GxuDetermineQuotedCode(const char* text, int32_t& advance, CImVector* color, uint32_t flags, uint32_t& wide);
 void GxuFontAddShadow(CGxString* string, const CImVector& color, const C2Vector& offset);
 int32_t GxuFontAddToBatch(CGxStringBatch* batch, CGxString* string);

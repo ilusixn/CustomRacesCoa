@@ -1,52 +1,112 @@
-/***************************************************************************/
-/*                                                                         */
-/*  winfnt.h                                                               */
-/*                                                                         */
-/*    FreeType font driver for Windows FNT/FON files                       */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * winfnt.h
+ *
+ *   FreeType font driver for Windows FNT/FON files
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ * Copyright 2007 Dmitry Timoshkov for Codeweavers
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef WINFNT_H
-#define WINFNT_H
-
-#include <freetype/internal/ftdriver.h>
+#ifndef WINFNT_H_
+#define WINFNT_H_
 
 
-#ifdef __cplusplus
-  extern "C" {
-#endif
+#include <freetype/ftwinfnt.h>
+#include <freetype/internal/ftdrv.h>
 
 
-  typedef struct  WinMZ_Header_
+FT_BEGIN_HEADER
+
+
+  typedef struct  WinMZ_HeaderRec_
   {
     FT_UShort  magic;
     /* skipped content */
     FT_UShort  lfanew;
 
-  } WinMZ_Header;
+  } WinMZ_HeaderRec;
 
 
-  typedef struct  WinNE_Header_
+  typedef struct  WinNE_HeaderRec_
   {
     FT_UShort  magic;
     /* skipped content */
     FT_UShort  resource_tab_offset;
     FT_UShort  rname_tab_offset;
 
-  } WinNE_Header;
+  } WinNE_HeaderRec;
 
 
-  typedef struct  WinNameInfo_
+  typedef struct  WinPE32_HeaderRec_
+  {
+    FT_ULong   magic;
+    FT_UShort  machine;
+    FT_UShort  number_of_sections;
+    /* skipped content */
+    FT_UShort  size_of_optional_header;
+    /* skipped content */
+    FT_UShort  magic32;
+    /* skipped content */
+    FT_ULong   rsrc_virtual_address;
+    FT_ULong   rsrc_size;
+    /* skipped content */
+
+  } WinPE32_HeaderRec;
+
+
+  typedef struct  WinPE32_SectionRec_
+  {
+    FT_Byte   name[8];
+    /* skipped content */
+    FT_ULong  virtual_address;
+    FT_ULong  size_of_raw_data;
+    FT_ULong  pointer_to_raw_data;
+    /* skipped content */
+
+  } WinPE32_SectionRec;
+
+
+  typedef struct  WinPE_RsrcDirRec_
+  {
+    FT_ULong   characteristics;
+    FT_ULong   time_date_stamp;
+    FT_UShort  major_version;
+    FT_UShort  minor_version;
+    FT_UShort  number_of_named_entries;
+    FT_UShort  number_of_id_entries;
+
+  } WinPE_RsrcDirRec;
+
+
+  typedef struct  WinPE_RsrcDirEntryRec_
+  {
+    FT_ULong  name;
+    FT_ULong  offset;
+
+  } WinPE_RsrcDirEntryRec;
+
+
+  typedef struct  WinPE_RsrcDataEntryRec_
+  {
+    FT_ULong  offset_to_data;
+    FT_ULong  size;
+    FT_ULong  code_page;
+    FT_ULong  reserved;
+
+  } WinPE_RsrcDataEntryRec;
+
+
+  typedef struct  WinNameInfoRec_
   {
     FT_UShort  offset;
     FT_UShort  length;
@@ -55,106 +115,50 @@
     FT_UShort  handle;
     FT_UShort  usage;
 
-  } WinNameInfo;
+  } WinNameInfoRec;
 
 
-  typedef struct  WinResourceInfo_
+  typedef struct  WinResourceInfoRec_
   {
     FT_UShort  type_id;
     FT_UShort  count;
 
-  } WinResourceInfo;
+  } WinResourceInfoRec;
 
 
-#define  WINFNT_MZ_MAGIC  0x5A4D
-#define  WINFNT_NE_MAGIC  0x454E
+#define WINFNT_MZ_MAGIC  0x5A4D
+#define WINFNT_NE_MAGIC  0x454E
+#define WINFNT_PE_MAGIC  0x4550
 
 
-  typedef struct  WinFNT_Header_
+  typedef struct  FNT_FontRec_
   {
-    FT_UShort  version;
-    FT_ULong   file_size;
-    FT_Byte    copyright[60];
-    FT_UShort  file_type;
-    FT_UShort  nominal_point_size;
-    FT_UShort  vertical_resolution;
-    FT_UShort  horizontal_resolution;
-    FT_UShort  ascent;
-    FT_UShort  internal_leading;
-    FT_UShort  external_leading;
-    FT_Byte    italic;
-    FT_Byte    underline;
-    FT_Byte    strike_out;
-    FT_UShort  weight;
-    FT_Byte    charset;
-    FT_UShort  pixel_width;
-    FT_UShort  pixel_height;
-    FT_Byte    pitch_and_family;
-    FT_UShort  avg_width;
-    FT_UShort  max_width;
-    FT_Byte    first_char;
-    FT_Byte    last_char;
-    FT_Byte    default_char;
-    FT_Byte    break_char;
-    FT_UShort  bytes_per_row;
-    FT_ULong   device_offset;
-    FT_ULong   face_name_offset;
-    FT_ULong   bits_pointer;
-    FT_ULong   bits_offset;
-    FT_Byte    reserved;
-    FT_ULong   flags;
-    FT_UShort  A_space;
-    FT_UShort  B_space;
-    FT_UShort  C_space;
-    FT_UShort  color_table_offset;
-    FT_Byte    reserved2[4];
+    FT_ULong             offset;
 
-  } WinFNT_Header;
+    FT_WinFNT_HeaderRec  header;
 
+    FT_Byte*             fnt_frame;
+    FT_ULong             fnt_size;
+    FT_String*           family_name;
 
-  typedef struct  FNT_Font_
-  {
-    FT_ULong       offset;
-    FT_Int         size_shift;
-
-    WinFNT_Header  header;
-
-    FT_Byte*       fnt_frame;
-    FT_ULong       fnt_size;
-
-  } FNT_Font;
-
-
-  typedef struct  FNT_SizeRec_
-  {
-    FT_SizeRec  root;
-    FNT_Font*   font;
-
-  } FNT_SizeRec, *FNT_Size;
+  } FNT_FontRec, *FNT_Font;
 
 
   typedef struct  FNT_FaceRec_
   {
     FT_FaceRec     root;
-
-    FT_UInt        num_fonts;
-    FNT_Font*      fonts;
-
-    FT_CharMap     charmap_handle;
-    FT_CharMapRec  charmap;  /* a single charmap per face */
+    FNT_Font       font;
 
   } FNT_FaceRec, *FNT_Face;
 
 
-  FT_EXPORT_VAR( const FT_Driver_Class )  winfnt_driver_class;
+  FT_EXPORT_VAR( const FT_Driver_ClassRec )  winfnt_driver_class;
 
 
-#ifdef __cplusplus
-  }
-#endif
+FT_END_HEADER
 
 
-#endif /* WINFNT_H */
+#endif /* WINFNT_H_ */
 
 
 /* END */

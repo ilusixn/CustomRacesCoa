@@ -1,5 +1,7 @@
 #include "CharacterSelection.h"
 #include "CoA/Source/Modules/CVarHooks.h"
+#include "CoA/Source/Modules/GeosetsClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cstring>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Event/Event.h"
@@ -412,6 +414,9 @@ void CCharacterSelection::EnumerateCharactersCallback(CHARACTER_INFO& info, void
 // VERIFY: 3fe94d69 manual
 // OFFSET: 0x004E3CD0
 void CCharacterSelection::ShowCharacter() {
+    // CoA: AscGeosets.cpp:0x101A12F0 (orig hook 0x4E3CD0) -- after every return the selected entry's pet model takes its
+    // display's geoset overrides.
+    auto geosets = CoA::ClientHooks::OnScopeExit([] { CoA::GeosetsClient::AfterShowCharacter(); });
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
         return;
     }

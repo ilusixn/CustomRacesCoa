@@ -1,79 +1,53 @@
-/***************************************************************************/
-/*                                                                         */
-/*  t1afm.h                                                                */
-/*                                                                         */
-/*    AFM support for Type 1 fonts (specification).                        */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * t1afm.h
+ *
+ *   AFM support for Type 1 fonts (specification).
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef T1AFM_H
-#define T1AFM_H
-
-
-#ifdef FT_FLAT_COMPILE
+#ifndef T1AFM_H_
+#define T1AFM_H_
 
 #include "t1objs.h"
+#include <freetype/internal/t1types.h>
 
-#else
-
-#include <type1/t1objs.h>
-
-#endif
+FT_BEGIN_HEADER
 
 
-#ifdef __cplusplus
-  extern "C" {
-#endif
+  FT_LOCAL( FT_Error )
+  T1_Read_Metrics( FT_Face    face,
+                   FT_Stream  stream );
 
+  FT_LOCAL( void )
+  T1_Done_Metrics( FT_Memory     memory,
+                   AFM_FontInfo  fi );
 
-  typedef struct  T1_Kern_Pair_
-  {
-    FT_UInt    glyph1;
-    FT_UInt    glyph2;
-    FT_Vector  kerning;
+  FT_LOCAL( void )
+  T1_Get_Kerning( AFM_FontInfo  fi,
+                  FT_UInt       glyph1,
+                  FT_UInt       glyph2,
+                  FT_Vector*    kerning );
 
-  } T1_Kern_Pair;
+  FT_LOCAL( FT_Error )
+  T1_Get_Track_Kerning( FT_Face    face,
+                        FT_Fixed   ptsize,
+                        FT_Int     degree,
+                        FT_Fixed*  kerning );
 
+FT_END_HEADER
 
-  typedef struct  T1_AFM_
-  {
-    FT_Int         num_pairs;
-    T1_Kern_Pair*  kern_pairs;
-
-  } T1_AFM;
-
-
-  FT_LOCAL
-  FT_Error  T1_Read_AFM( FT_Face    face,
-                         FT_Stream  stream );
-
-  FT_LOCAL
-  void  T1_Done_AFM( FT_Memory  memory,
-                     T1_AFM*    afm );
-
-  FT_LOCAL
-  void  T1_Get_Kerning( T1_AFM*     afm,
-                        FT_UInt     glyph1,
-                        FT_UInt     glyph2,
-                        FT_Vector*  kerning );
-
-
-#ifdef __cplusplus
-  }
-#endif
-
-
-#endif /* T1AFM_H */
+#endif /* T1AFM_H_ */
 
 
 /* END */

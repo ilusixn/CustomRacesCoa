@@ -8,3 +8,9 @@ target_include_directories(CoA
     PUBLIC
         ${CMAKE_SOURCE_DIR}
 )
+
+# FontRenderClient.cpp: FreeType 2.14.1 (AscFontRender).
+target_link_libraries(CoA
+    PRIVATE
+        freetype
+)

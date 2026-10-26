@@ -1,223 +1,249 @@
-/***************************************************************************/
-/*                                                                         */
-/*  ftdebug.h                                                              */
-/*                                                                         */
-/*    Debugging and logging component (specification).                     */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * ftdebug.h
+ *
+ *   Debugging and logging component (specification).
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ *
+ * IMPORTANT: A description of FreeType's debugging support can be
+ *             found in 'docs/DEBUG.TXT'.  Read it if you need to use or
+ *             understand this code.
+ *
+ */
 
 
-#ifndef FTDEBUG_H
-#define FTDEBUG_H
+#ifndef FTDEBUG_H_
+#define FTDEBUG_H_
 
-#include <freetype/config/ftconfig.h>   /* for FT_DEBUG_LEVEL_TRACE, */
-                                        /* FT_DEBUG_LEVEL_ERROR      */
 
-#ifdef __cplusplus
-  extern "C" {
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
+#include <freetype/freetype.h>
+
+#include "compiler-macros.h"
+
+#ifdef FT_DEBUG_LOGGING
+#define DLG_STATIC
+#include <dlg/output.h>
+#include <dlg/dlg.h>
+
+#include <freetype/ftlogging.h>
+#endif /* FT_DEBUG_LOGGING */
+
+
+FT_BEGIN_HEADER
+
+  /* force the definition of FT_DEBUG_LEVEL_TRACE if FT_DEBUG_LOGGING is */
+  /* already defined.                                                    */
+  /*                                                                     */
+#ifdef FT_DEBUG_LOGGING
+#undef  FT_DEBUG_LEVEL_TRACE
+#define FT_DEBUG_LEVEL_TRACE
+#endif
+
+  /* force the definition of FT_DEBUG_LEVEL_ERROR if FT_DEBUG_LEVEL_TRACE */
+  /* is already defined; this simplifies the following #ifdefs            */
+  /*                                                                      */
+#ifdef FT_DEBUG_LEVEL_TRACE
+#undef  FT_DEBUG_LEVEL_ERROR
+#define FT_DEBUG_LEVEL_ERROR
 #endif
 
 
-  /* A very stupid pre-processor trick.  See K&R version 2 */
-  /* section A12.3 for details...                          */
-  /*                                                       */
-  /* It is also described in the section `Separate         */
-  /* Expansion of Macro Arguments' in the info file        */
-  /* `cpp.info', describing GNU cpp.                       */
-  /*                                                       */
-#define FT_CAT( x, y )   x ## y
-#define FT_XCAT( x, y )  FT_CAT( x, y )
-
+  /**************************************************************************
+   *
+   * Define the trace enums as well as the trace levels array when they are
+   * needed.
+   *
+   */
 
 #ifdef FT_DEBUG_LEVEL_TRACE
 
+#define FT_TRACE_DEF( x )  trace_ ## x ,
 
-  /* note that not all levels are used currently */
-
+  /* defining the enumeration */
   typedef enum  FT_Trace_
   {
-    /* the first level must always be `trace_any' */
-    trace_any = 0,
-
-    /* base components */
-    trace_aaraster,  /* anti-aliasing raster    (ftgrays.c)  */
-    trace_calc,      /* calculations            (ftcalc.c)   */
-    trace_extend,    /* extension manager       (ftextend.c) */
-    trace_glyph,     /* glyph manager           (ftglyph.c)  */
-    trace_io,        /* i/o monitoring          (ftsystem.c) */
-    trace_init,      /* initialization          (ftinit.c)   */
-    trace_list,      /* list manager            (ftlist.c)   */
-    trace_memory,    /* memory manager          (ftobjs.c)   */
-    trace_mm,        /* MM interface            (ftmm.c)     */
-    trace_objs,      /* base objects            (ftobjs.c)   */
-    trace_outline,   /* outline management      (ftoutln.c)  */
-    trace_raster,    /* rasterizer              (ftraster.c) */
-    trace_stream,    /* stream manager          (ftstream.c) */
-
-    /* Cache sub-system */
-    trace_cache,
-
-    /* SFNT driver components */
-    trace_sfobjs,    /* SFNT object handler     (sfobjs.c)   */
-    trace_ttcmap,    /* charmap handler         (ttcmap.c)   */
-    trace_ttload,    /* basic TrueType tables   (ttload.c)   */
-    trace_ttpost,    /* PS table processing     (ttpost.c)   */
-    trace_ttsbit,    /* TrueType sbit handling  (ttsbit.c)   */
-
-    /* TrueType driver components */
-    trace_ttdriver,  /* TT font driver          (ttdriver.c) */
-    trace_ttgload,   /* TT glyph loader         (ttgload.c)  */
-    trace_ttinterp,  /* bytecode interpreter    (ttinterp.c) */
-    trace_ttobjs,    /* TT objects manager      (ttobjs.c)   */
-    trace_ttpload,   /* TT data/program loader  (ttpload.c)  */
-
-    /* Type 1 driver components */
-    trace_t1driver,
-    trace_t1gload,
-    trace_t1hint,
-    trace_t1load,
-    trace_t1objs,
-    trace_t1parse,
-
-    /* PostScript helper module `psaux' */
-    trace_t1decode,
-    trace_psobjs,
-
-    /* Type 2 driver components */
-    trace_t2driver,
-    trace_t2gload,
-    trace_t2load,
-    trace_t2objs,
-    trace_t2parse,
-
-    /* CID driver components */
-    trace_cidafm,
-    trace_ciddriver,
-    trace_cidgload,
-    trace_cidload,
-    trace_cidobjs,
-    trace_cidparse,
-
-    /* Windows fonts component */
-    trace_winfnt,
-
-    /* the last level must always be `trace_max' */
-    trace_max
+#include <freetype/internal/fttrace.h>
+    trace_count
 
   } FT_Trace;
 
 
-  /* declared in ftdebug.c */
-  extern char  ft_trace_levels[trace_max];
+  /* a pointer to the array of trace levels, */
+  /* provided by `src/base/ftdebug.c'        */
+  extern int*  ft_trace_levels;
+
+#undef FT_TRACE_DEF
+
+#endif /* FT_DEBUG_LEVEL_TRACE */
 
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* IMPORTANT!                                                            */
-  /*                                                                       */
-  /* Each component must define the macro FT_COMPONENT to a valid FT_Trace */
-  /* value before using any TRACE macro.                                   */
-  /*                                                                       */
-  /*************************************************************************/
+  /**************************************************************************
+   *
+   * Define the FT_TRACE macro
+   *
+   * IMPORTANT!
+   *
+   * Each component must define the macro FT_COMPONENT to a valid FT_Trace
+   * value before using any TRACE macro.
+   *
+   * To get consistent logging output, there should be no newline character
+   * (i.e., '\n') or a single trailing one in the message string of
+   * `FT_TRACEx` and `FT_ERROR`.
+   */
 
 
-#define FT_TRACE( level, varformat )                      \
-          do                                              \
-          {                                               \
-            if ( ft_trace_levels[FT_COMPONENT] >= level ) \
-              FT_XCAT( FT_Message, varformat );           \
+  /*************************************************************************
+   *
+   * If FT_DEBUG_LOGGING is enabled, tracing messages are sent to dlg's API.
+   * If FT_DEBUG_LOGGING is disabled, tracing messages are sent to
+   * `FT_Message` (defined in ftdebug.c).
+   */
+#ifdef FT_DEBUG_LOGGING
+
+  /* we need two macros to convert the names of `FT_COMPONENT` to a string */
+#define FT_LOGGING_TAG( x )   FT_LOGGING_TAG_( x )
+#define FT_LOGGING_TAG_( x )  #x
+
+  /* we need two macros to convert the component and the trace level */
+  /* to a string that combines them                                  */
+#define FT_LOGGING_TAGX( x, y )   FT_LOGGING_TAGX_( x, y )
+#define FT_LOGGING_TAGX_( x, y )  #x ":" #y
+
+
+#define FT_LOG( level, varformat )                                         \
+          do                                                               \
+          {                                                                \
+            const char*  dlg_tag = FT_LOGGING_TAGX( FT_COMPONENT, level ); \
+                                                                           \
+                                                                           \
+            ft_add_tag( dlg_tag );                                         \
+            if ( ft_trace_levels[FT_TRACE_COMP( FT_COMPONENT )] >= level ) \
+            {                                                              \
+              if ( custom_output_handler != NULL )                         \
+                FT_Logging_Callback varformat;                             \
+              else                                                         \
+                dlg_trace varformat;                                       \
+            }                                                              \
+            ft_remove_tag( dlg_tag );                                      \
+          } while( 0 )
+
+#else /* !FT_DEBUG_LOGGING */
+
+#define FT_LOG( level, varformat )                                         \
+          do                                                               \
+          {                                                                \
+            if ( ft_trace_levels[FT_TRACE_COMP( FT_COMPONENT )] >= level ) \
+              FT_Message varformat;                                        \
           } while ( 0 )
 
-
-  /*************************************************************************/
-  /*                                                                       */
-  /* <Function>                                                            */
-  /*    FT_SetTraceLevel                                                   */
-  /*                                                                       */
-  /* <Description>                                                         */
-  /*    Sets the trace level for debugging.                                */
-  /*                                                                       */
-  /* <Input>                                                               */
-  /*    component :: The component which should be traced.  See above for  */
-  /*                 a complete list.  If set to `trace_any', all          */
-  /*                 components will be traced.                            */
-  /*                                                                       */
-  /*    level     :: The tracing level.                                    */
-  /*                                                                       */
-  FT_EXPORT( void )  FT_SetTraceLevel( FT_Trace  component,
-                                       char      level );
+#endif /* !FT_DEBUG_LOGGING */
 
 
-#elif defined( FT_DEBUG_LEVEL_ERROR )
+#ifdef FT_DEBUG_LEVEL_TRACE
+
+  /* we need two macros here to make cpp expand `FT_COMPONENT' */
+#define FT_TRACE_COMP( x )   FT_TRACE_COMP_( x )
+#define FT_TRACE_COMP_( x )  trace_ ## x
+
+#define FT_TRACE( level, varformat )  FT_LOG( level, varformat )
+
+#else /* !FT_DEBUG_LEVEL_TRACE */
+
+#define FT_TRACE( level, varformat )  do { } while ( 0 )      /* nothing */
+
+#endif /* !FT_DEBUG_LEVEL_TRACE */
 
 
-#define FT_TRACE( level, varformat )  do ; while ( 0 )      /* nothing */
+  /**************************************************************************
+   *
+   * @function:
+   *   FT_Trace_Get_Count
+   *
+   * @description:
+   *   Return the number of available trace components.
+   *
+   * @return:
+   *   The number of trace components.  0 if FreeType 2 is not built with
+   *   FT_DEBUG_LEVEL_TRACE definition.
+   *
+   * @note:
+   *   This function may be useful if you want to access elements of the
+   *   internal trace levels array by an index.
+   */
+  FT_BASE( FT_Int )
+  FT_Trace_Get_Count( void );
 
 
-#else  /* release mode */
+  /**************************************************************************
+   *
+   * @function:
+   *   FT_Trace_Get_Name
+   *
+   * @description:
+   *   Return the name of a trace component.
+   *
+   * @input:
+   *   The index of the trace component.
+   *
+   * @return:
+   *   The name of the trace component.  This is a statically allocated
+   *   C~string, so do not free it after use.  `NULL` if FreeType is not
+   *   built with FT_DEBUG_LEVEL_TRACE definition.
+   *
+   * @note:
+   *   Use @FT_Trace_Get_Count to get the number of available trace
+   *   components.
+   */
+  FT_BASE( const char* )
+  FT_Trace_Get_Name( FT_Int  idx );
 
 
-#define FT_Assert( condition )        do ; while ( 0 )      /* nothing */
-
-#define FT_TRACE( level, varformat )  do ; while ( 0 )      /* nothing */
-#define FT_ERROR( varformat )         do ; while ( 0 )      /* nothing */
-
-
-#endif /* FT_DEBUG_LEVEL_TRACE, FT_DEBUG_LEVEL_ERROR */
-
-
-  /*************************************************************************/
-  /*                                                                       */
-  /* Define macros and functions that are common to the debug and trace    */
-  /* modes.                                                                */
-  /*                                                                       */
-  /* You need vprintf() to be able to compile ftdebug.c.                   */
-  /*                                                                       */
-  /*************************************************************************/
+  /**************************************************************************
+   *
+   * @function:
+   *   FT_Trace_Disable
+   *
+   * @description:
+   *   Switch off tracing temporarily.  It can be activated again with
+   *   @FT_Trace_Enable.
+   */
+  FT_BASE( void )
+  FT_Trace_Disable( void );
 
 
-#if defined( FT_DEBUG_LEVEL_TRACE ) || defined( FT_DEBUG_LEVEL_ERROR )
+  /**************************************************************************
+   *
+   * @function:
+   *   FT_Trace_Enable
+   *
+   * @description:
+   *   Activate tracing.  Use it after tracing has been switched off with
+   *   @FT_Trace_Disable.
+   */
+  FT_BASE( void )
+  FT_Trace_Enable( void );
 
 
-#include "stdio.h"  /* for vprintf() */
-
-
-#define FT_Assert( condition )                                      \
-          do                                                        \
-          {                                                         \
-            if ( !( condition ) )                                   \
-              FT_Panic( "assertion failed on line %d of file %s\n", \
-                        __LINE__, __FILE__ );                       \
-          } while ( 0 )
-
-  /* print a message */
-  FT_EXPORT( void )  FT_Message( const char*  fmt, ... );
-
-  /* print a message and exit */
-  FT_EXPORT( void )  FT_Panic( const char*  fmt, ... );
-
-#define FT_ERROR( varformat )  FT_XCAT( FT_Message, varformat )
-
-
-#endif /* FT_DEBUG_LEVEL_TRACE || FT_DEBUG_LEVEL_ERROR */
-
-
-  /*************************************************************************/
-  /*                                                                       */
-  /* You need two opening resp. closing parentheses!                       */
-  /*                                                                       */
-  /* Example: FT_TRACE0(( "Value is %i", foo ))                            */
-  /*                                                                       */
-  /*************************************************************************/
+  /**************************************************************************
+   *
+   * You need two opening and closing parentheses!
+   *
+   * Example: FT_TRACE0(( "Value is %i", foo ))
+   *
+   * Output of the FT_TRACEX macros is sent to stderr.
+   *
+   */
 
 #define FT_TRACE0( varformat )  FT_TRACE( 0, varformat )
 #define FT_TRACE1( varformat )  FT_TRACE( 1, varformat )
@@ -229,12 +255,188 @@
 #define FT_TRACE7( varformat )  FT_TRACE( 7, varformat )
 
 
-#ifdef __cplusplus
-  }
-#endif
+  /**************************************************************************
+   *
+   * Define the FT_ERROR macro.
+   *
+   * Output of this macro is sent to stderr.
+   *
+   */
+
+#ifdef FT_DEBUG_LEVEL_ERROR
+
+  /**************************************************************************
+   *
+   * If FT_DEBUG_LOGGING is enabled, error messages are sent to dlg's API.
+   * If FT_DEBUG_LOGGING is disabled, error messages are sent to `FT_Message`
+   * (defined in ftdebug.c).
+   *
+   */
+#ifdef FT_DEBUG_LOGGING
+
+#define FT_ERROR( varformat )                                      \
+          do                                                       \
+          {                                                        \
+            const char*  dlg_tag = FT_LOGGING_TAG( FT_COMPONENT ); \
+                                                                   \
+                                                                   \
+            ft_add_tag( dlg_tag );                                 \
+            dlg_trace varformat;                                   \
+            ft_remove_tag( dlg_tag );                              \
+          } while ( 0 )
+
+#else /* !FT_DEBUG_LOGGING */
+
+#define FT_ERROR( varformat )  FT_Message varformat
+
+#endif /* !FT_DEBUG_LOGGING */
 
 
-#endif /* FTDEBUG_H */
+#else  /* !FT_DEBUG_LEVEL_ERROR */
+
+#define FT_ERROR( varformat )  do { } while ( 0 )      /* nothing */
+
+#endif /* !FT_DEBUG_LEVEL_ERROR */
+
+
+  /**************************************************************************
+   *
+   * Define the FT_ASSERT and FT_THROW macros.  The call to `FT_Throw` makes
+   * it possible to easily set a breakpoint at this function.
+   *
+   */
+
+#ifdef FT_DEBUG_LEVEL_ERROR
+
+#define FT_ASSERT( condition )                                      \
+          do                                                        \
+          {                                                         \
+            if ( !( condition ) )                                   \
+              FT_Panic( "assertion failed on line %d of file %s\n", \
+                        __LINE__, __FILE__ );                       \
+          } while ( 0 )
+
+#define FT_THROW( e )                                   \
+          ( FT_Throw( FT_ERR_CAT( FT_ERR_PREFIX, e ),   \
+                      __LINE__,                         \
+                      __FILE__ )                      | \
+            FT_ERR_CAT( FT_ERR_PREFIX, e )            )
+
+#else /* !FT_DEBUG_LEVEL_ERROR */
+
+#define FT_ASSERT( condition )  do { } while ( 0 )
+
+#define FT_THROW( e )  FT_ERR_CAT( FT_ERR_PREFIX, e )
+
+#endif /* !FT_DEBUG_LEVEL_ERROR */
+
+
+  /**************************************************************************
+   *
+   * Define `FT_Message` and `FT_Panic` when needed.
+   *
+   */
+
+#ifdef FT_DEBUG_LEVEL_ERROR
+
+#include "stdio.h"  /* for vfprintf() */
+
+  /* print a message */
+  FT_BASE( void )
+  FT_Message( const char*  fmt,
+              ... );
+
+  /* print a message and exit */
+  FT_BASE( void )
+  FT_Panic( const char*  fmt,
+            ... );
+
+  /* report file name and line number of an error */
+  FT_BASE( int )
+  FT_Throw( FT_Error     error,
+            int          line,
+            const char*  file );
+
+#endif /* FT_DEBUG_LEVEL_ERROR */
+
+
+  FT_BASE( void )
+  ft_debug_init( void );
+
+
+#ifdef FT_DEBUG_LOGGING
+
+  /**************************************************************************
+   *
+   * 'dlg' uses output handlers to control how and where log messages are
+   * printed.  Therefore we need to define a default output handler for
+   * FreeType.
+   */
+  FT_BASE( void )
+  ft_log_handler( const struct dlg_origin*  origin,
+                  const char*               string,
+                  void*                     data );
+
+
+  /**************************************************************************
+   *
+   * 1. `ft_default_log_handler` stores the function pointer that is used
+   *    internally by FreeType to print logs to a file.
+   *
+   * 2. `custom_output_handler` stores the function pointer to the callback
+   *    function provided by the user.
+   *
+   * It is defined in `ftdebug.c`.
+   */
+  extern dlg_handler            ft_default_log_handler;
+  extern FT_Custom_Log_Handler  custom_output_handler;
+
+
+  /**************************************************************************
+   *
+   * If FT_DEBUG_LOGGING macro is enabled, FreeType needs to initialize and
+   * un-initialize `FILE*`.
+   *
+   * These functions are defined in `ftdebug.c`.
+   */
+  FT_BASE( void )
+  ft_logging_init( void );
+
+  FT_BASE( void )
+  ft_logging_deinit( void );
+
+
+  /**************************************************************************
+   *
+   * For printing the name of `FT_COMPONENT` along with the actual log we
+   * need to add a tag with the name of `FT_COMPONENT`.
+   *
+   * These functions are defined in `ftdebug.c`.
+   */
+  FT_BASE( void )
+  ft_add_tag( const char*  tag );
+
+  FT_BASE( void )
+  ft_remove_tag( const char*  tag );
+
+
+  /**************************************************************************
+   *
+   * A function to print log data using a custom callback logging function
+   * (which is set using `FT_Set_Log_Handler`).
+   *
+   * This function is defined in `ftdebug.c`.
+   */
+  FT_BASE( void )
+  FT_Logging_Callback( const char*  fmt,
+                       ... );
+
+#endif /* FT_DEBUG_LOGGING */
+
+
+FT_END_HEADER
+
+#endif /* FTDEBUG_H_ */
 
 
 /* END */

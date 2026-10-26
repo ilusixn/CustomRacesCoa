@@ -12,6 +12,7 @@
 #endif
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "CoA/Source/Modules/ItemCollections.h"
+#include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
@@ -441,6 +442,9 @@ void CCharacterComponent::ComponentOpenFingers(CM2Model* model, COMP_HAND_SLOT h
 // VERIFY: d3d12b40 auto
 // OFFSET: 0x004E7790
 void CCharacterComponent::ApplyMonsterGeosets(CM2Model* model, const CreatureDisplayInfoRec* displayRec) {
+    // CoA: AscGeosets.cpp:0x101A12D0 (orig hook 0x4E7790) -- after every return the DLL applies the current geoset
+    // display's overrides to the model.
+    auto geosets = CoA::ClientHooks::OnScopeExit([model] { CoA::GeosetsClient::AfterApplyMonsterGeosets(model); });
     if (!model || !displayRec || !displayRec->m_creatureGeosetData) {
         return;
     }

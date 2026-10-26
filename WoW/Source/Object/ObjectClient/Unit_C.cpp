@@ -1,6 +1,9 @@
 #include "WoW/Source/Magic/Types.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AnimationCount.h"
+#include "CoA/Source/Modules/Geosets.h"
+#include "CoA/Source/Modules/SpellShadowClient.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
 #include <algorithm>
 #include <vector>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
@@ -1091,6 +1094,9 @@ int32_t CGUnit_C::DisplayInfoNeedsUpdate() {
 // VERIFY: 503fd361 manual
 // OFFSET: 0x0073E410
 void CGUnit_C::UpdateDisplayInfo(int32_t force) {
+    // CoA: AscGeosets.cpp:0x101A1400 (orig hook 0x73E410) -- the display (descriptor +0x10C) is the current geoset
+    // display while the model is built; 0 after. (PostReenable's call passes 1, below.)
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldDisplayid);
     // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73E42E, 0x73E72C, 0x73E749) -- 506 is the loaded AnimationData row count.
     if (!force && !this->DisplayInfoNeedsUpdate()) {
         return;
@@ -9911,6 +9917,9 @@ void CGUnit_C::InitializeActivePlayerComponent() {
 // VERIFY: a44c5498 manual
 // OFFSET: 0x0073FCC0
 void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reenable) {
+    // CoA: AscGeosets.cpp:0x101A13C0 (orig hook 0x73FCC0) -- the display (descriptor +0x10C) is the current geoset
+    // display during PostInit; 0 after.
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldDisplayid);
     this->m_movementData.UpdateTransportStatus(create);
     this->m_modelScale = this->GetModelScale(this->m_unit->m_unitFieldDisplayid);
 
@@ -10271,7 +10280,8 @@ void CGUnit_C::PostReenable() {
 
     this->UpdateBaseAnimation(false, -1);
     this->DestroyUnitMount(1);
-    this->UpdateDisplayInfo(0);
+    // CoA: AscGeosets.cpp:0x101A1400 -- called from here (return 0x74030E) the DLL forces the argument to 1.
+    this->UpdateDisplayInfo(1);
 
     if (static_cast<int32_t>(this->m_unit->m_unitFieldMountdisplayid) > 0) {
         this->CreateUnitMount(1, 1);
@@ -21566,6 +21576,9 @@ void CGUnit_C::DestroyUnitMount(int32_t a2) {
 // VERIFY: 842ee456 manual
 // OFFSET: 0x0073D5D0
 void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
+    // CoA: AscGeosets.cpp:0x101A1390 (orig hook 0x73D5D0) -- the mount display (descriptor +0x114) is the current
+    // geoset display while the mount model is built; 0 after.
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldMountdisplayid);
     this->m_wheelMask = 0;
 
     if (!this->m_mountModel) {
@@ -23414,6 +23427,9 @@ void CGUnit_C::RenderTargetSelection() const {
     int32_t states = CGObject_C::SetCircleRenderStates();
 
     if (states) {
+        // CoA: AscSpellShadow.cpp:FUN_10321830 (orig hook 0x7E4370) -- from here (0x725A8F) the box's z extent grows by
+        // 2.5 at each end (the box stays changed for the combat flash below).
+        CoA::SpellShadowClient::BeforeSelectionRender(box);
         ProjectTex::Render2d(box, color, &matrix, 0.5f, 0x200122, 1, 0.4f);
     }
 
@@ -23505,6 +23521,14 @@ void CGUnit_C::OnSpecialMountAnim() {
 // VERIFY: d5c90727 manual
 // OFFSET: 0x00720F80
 const SpellVisualRec* CGUnit_C::GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t visualId, int32_t lowViolenceVisualId) const {
+    // CoA: AscSpellVisuals.cpp:0x10322B50 (orig hook 0x720F80) -- from OnSpellGo (0x80ED4E) another player's harmful spell
+    // has no visual while hideOtherPlayerHarmfulSpellVisuals is on; after every return the record takes the server's /
+    // the appearance's visual (zeroed when hidden). The result is the original's.
+    if (CoA::SpellVisualsClient::SkipAppropriateVisual(this, spell)) {
+        return nullptr;
+    }
+
+    auto spellVisuals = CoA::ClientHooks::OnScopeExit([this, spell, &visual] { CoA::SpellVisualsClient::AfterAppropriateVisual(this, spell, visual); });
     int32_t id = visualId;
     const SpellVisualRec* weapon = nullptr;
     const SpellVisualRec* base;

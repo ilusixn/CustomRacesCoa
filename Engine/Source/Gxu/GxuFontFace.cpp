@@ -59,6 +59,7 @@ FACEDATA::FACEDATA() {
 // OFFSET: 0x006C81C0
 FACEDATA::~FACEDATA() {
     if (this->m_face) {
+        // CoA: AscFontRender.cpp (orig hook 0x992610) -- FreeType 2.14.1's FT_Done_Face (ThirdParty/freetype).
         FT_Done_Face(this->m_face);
     }
 
@@ -91,6 +92,8 @@ HFACE FontFaceGetHandle(const char* fileName, FT_Library library) {
 
         FT_Face ftFace;
 
+        // CoA: AscFontRender.cpp (orig hook 0x993370) -- FreeType 2.14.1's FT_New_Memory_Face. FT_Select_Charmap is not
+        // hooked by the DLL (its client 2.0 copy runs on the 2.14.1 face); here it is 2.14.1's too.
         if (!FT_New_Memory_Face(library, static_cast<FT_Byte*>(data), size, 0, &ftFace) && ftFace && !FT_Select_Charmap(ftFace, ft_encoding_unicode)) {
             FACEDATA* face = new ("HFACE", SLOG_OBJECT) FACEDATA;
             face->m_data = data;
