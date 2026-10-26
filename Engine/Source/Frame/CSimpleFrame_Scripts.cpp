@@ -623,10 +623,17 @@ static int32_t Script_IsEventRegistered(lua_State* L) {
 // VERIFY: 42b41dfb manual
 // OFFSET: 0x0049F210
 static int32_t Script_AllowAttributeChanges(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10311ac0 (orig hook 0x49F210) -- a listed secure addon's taint is cleared for the
+    // call and the saved one stored back after (not on a Lua error out of it).
+    const char* taint = g_addonTaintBeginClearedHook ? g_addonTaintBeginClearedHook() : lua_tainted;
     CSimpleFrame* frame = static_cast<CSimpleFrame*>(FrameScript_GetObjectThis(L, CSimpleFrame::GetObjectType()));
 
     if (!lua_tainted) {
         frame->AllowAttributeChanges(1);
+    }
+
+    if (g_addonTaintEndClearedHook) {
+        g_addonTaintEndClearedHook(taint);
     }
 
     return 0;

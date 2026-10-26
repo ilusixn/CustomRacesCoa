@@ -7,6 +7,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
+#include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
 #include "CoA/Source/Modules/AttachPatches.h"
@@ -14065,6 +14066,10 @@ void CGUnit_C::BowModelLoaded(CM2Model* model, void* arg) {
 // VERIFY: 2d7e1e97 manual
 // OFFSET: 0x0072B7F0
 int32_t CGUnit_C::ShowRangedWeapon(bool sheathed, bool* rightHand) {
+    // CoA: AscItemCollections.cpp:FUN_102cad20 (orig hook 0x72B7F0) -- after every return: another player's bow gets a
+    // quiver.
+    auto quiver = CoA::ClientHooks::OnScopeExit([this, sheathed]() { CoA::ItemCollectionsClient::AfterShowRangedWeapon(this, sheathed); });
+
     if (this->m_modelData->m_flags & 0x10) {
         return 0;
     }

@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Modules/CustomStore.h"
 #include "CoA/Source/Modules/GameEvents.h"
+#include "CoA/Source/Modules/SkillCard.h"
 #include "CoA/Source/Modules/VanityCollection.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
@@ -415,7 +416,7 @@ COA_TEST(CustomStore_Filters) {
             return false;
         }
 
-        c = { item, 2, item == 9001 ? 7u : 9u, item + 1 };
+        c = { item, 2, item == 9001 ? "Q7" : "Q9", item + 1 };
         return true;
     };
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_UNOWNED = true") == "1,3");
@@ -423,7 +424,7 @@ COA_TEST(CustomStore_Filters) {
     d.skillCardCollectedAtLeast = [](uint32_t card, uint32_t rank) { return card == 9003 && rank == 2; };
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_OWNED = true") == "3");
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = true") == "");
-    d.skillCardQualityIndex = [](uint32_t q) { return q == 7 ? 2 : q == 9 ? 4 : -1; };
+    d.skillCardQualityIndex = [](const std::string& q) { return q == "Q7" ? 2 : q == "Q9" ? 4 : -1; };
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = true") == "1");
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_LEGENDARY = true") == "3");
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_SPELL_FAMILY_GENERIC = true") == "");
@@ -494,5 +495,44 @@ COA_TEST(CustomStore_ShortPackets) {
     CHECK(Run(L, "return C_CustomStore.GetCustomStoreTypeInfo(3)") == (V{ "y", "x" }));
     CoATest::Bytes e;
     CHECK(Dispatch(0x6BA, e) == V{ "QUERY_CUSTOM_STORE_RESULT:" });
+    Stop(L);
+}
+
+// The real skill-card Deps (CoA::SkillCard, Plan 13): SkillCard.dbc names items 9001 (card 100 rank 1, common) and 9003
+// (card 300 rank 2, legendary); owned means collected at least that rank (SMSG 0x648); FUN_101a33d0(q, 5) the quality.
+COA_TEST(CustomStore_RealSkillCards) {
+    lua_State* L = Start();
+    Query("QUERY_CUSTOM_STORE_OK", { { 1, 1, 9001, 0, {}, {}, 0, 0 }, { 2, 1, 9002, 0, {}, {}, 0, 0 }, { 3, 1, 9003, 0, {}, {}, 0, 0 } });
+    CoA::Dbc::SetFileReader([](const char* path, std::vector<uint8_t>& out) {
+        if (!strstr(path, "SkillCard.dbc")) {
+            return false;
+        }
+
+        const std::string s = std::string("SKILL_CARD_COMMON") + '\0' + "SKILL_CARD_LEGENDARY" + '\0';
+        out = CoATest::Wdbc({ { 1, 100, 1, 9001, 7001, 0, 0, 0, 1, 1, 0, 0 }, { 2, 300, 2, 9003, 7003, 0, 0, 0, 19, 1, 0, 0 } }, s);
+        return true;
+    });
+    CoA::Dbc::Get("DBFilesClient/SkillCard.dbc").Unload();
+    CoA::SkillCard::Reset();
+    CoA::SkillCard::Init();
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_UNOWNED = true") == "1,3");
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_OWNED = true") == "");
+    CoATest::Bytes list;
+    list.U32(0);
+
+    for (int i = 0; i < 24; ++i) {
+        list.U32(0);
+    }
+
+    list.U32(2).U32(100).U32(0).U32(1).U32(300).U32(0).U32(1);
+    CoATest::Deliver(CoA::SkillCard::OnList, 0x648, list);
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_OWNED = true") == "1");   // card 300 only at rank 1 of 2
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_UNOWNED = true") == "3");
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_COMMON = true") == "1");
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_LEGENDARY = true") == "3");
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = true") == "");
+    CoA::SkillCard::Reset();
+    CoA::Dbc::Get("DBFilesClient/SkillCard.dbc").Unload();
+    CoA::Dbc::SetFileReader(nullptr);
     Stop(L);
 }

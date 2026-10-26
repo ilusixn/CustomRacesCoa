@@ -26,6 +26,8 @@ namespace CoA::GlobalsJ {
 
     // The detour on Script_RunScript (0x510B30): set while it runs.
     void SetInsideRunScript(bool inside);
+    // AscAddons::InsideProtectedCall (0x10BE3F60 set): Script_RunScript is running.
+    bool InsideRunScript();
 
     // FUN_10296df0's addition to the error handler (FrameScript_HandleError): entering counts the stack depth,
     // leaving resets it.

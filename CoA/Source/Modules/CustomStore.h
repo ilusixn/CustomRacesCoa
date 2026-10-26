@@ -2,6 +2,7 @@
 #define COA_SOURCE_MODULES_CUSTOMSTORE_H
 
 #include <cstdint>
+#include <string>
 
 // AscCustomStore.cpp: C_CustomStore (11, 0x101A5DE0..0x101A6C00), the server-defined NPC / game-object stores.
 //
@@ -19,7 +20,7 @@ namespace CoA::CustomStore {
     struct SkillCard {
         uint32_t cardId = 0;
         uint32_t rank = 0;
-        uint32_t quality = 0;
+        std::string quality;   // SKILL_CARD_COMMON..
         uint32_t spell = 0;
     };
 
@@ -30,10 +31,10 @@ namespace CoA::CustomStore {
         bool (*nearby)(uint32_t entry, bool gameObject) = nullptr;        // FUN_101a3d50 / FUN_101a3bf0 (5.5 yd)
         bool (*achievementDone)(uint32_t id) = nullptr;                   // FUN_103087e0 over 0xACFDB0
         bool (*spellFamily)(uint32_t spell, uint32_t& family) = nullptr;  // FetchSpell, Spell +0x240
-        // AscSkillCard (not ported yet): unset answers as the original does with no skill card for the item.
+        // AscSkillCard, installed by CoA::SkillCard::Init; unset answers as the original does with no skill card for the item.
         bool (*skillCardByItem)(uint32_t item, SkillCard& out) = nullptr;               // FUN_102142a0
-        bool (*skillCardCollectedAtLeast)(uint32_t cardId, uint32_t rank) = nullptr;
-        int32_t (*skillCardQualityIndex)(uint32_t quality) = nullptr;                   // QualityIndex(q, 5)
+        bool (*skillCardCollectedAtLeast)(uint32_t cardId, uint32_t rank) = nullptr;   // FUN_1031bbf0
+        int32_t (*skillCardQualityIndex)(const std::string& quality) = nullptr;        // FUN_101a33d0(q, 5)
     };
 
     Deps& Dependencies();

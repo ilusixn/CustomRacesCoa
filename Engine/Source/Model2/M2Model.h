@@ -502,5 +502,7 @@ M2ModelTrack<T>::M2ModelTrack() {
 
 // CoA: AscAnimationCount.cpp -- the 506 the Engine sites compare with; CoA sets the loaded row count.
 extern uint32_t g_animationCount;
+// CoA: AscItemCollections.cpp:FUN_102caed0 (orig hook 0x824ED0) -- before CM2Model::Release, with the model.
+extern void (*g_m2ReleaseHook)(CM2Model* model);
 
 #endif

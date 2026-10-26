@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Modules/RealmInfo.h"
 #include "CoA/Source/Modules/TemporalContracts.h"
+#include "CoA/Source/Modules/QuestAddon.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
@@ -15,6 +16,7 @@
 #include "CoA/Tests/TestMain.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
+#include <algorithm>
 #include <cstring>
 #include <map>
 #include <string>
@@ -389,5 +391,26 @@ COA_TEST(TemporalContracts_QuestSort) {
 COA_TEST(TemporalContracts_NativesRegistered) {
     lua_State* L = Start();
     CHECK((Run(L, "local n = 0 for k, v in pairs(C_TemporalContracts) do n = n + 1 end return n") == V{ "16" }));
+    Stop(L);
+}
+
+// The real questAddonPoints (CoA::QuestAddon, Plan 13): no points while quest 31's record is fetched (CMSG 0x731), then
+// the SMSG 0x732 points, times the completions in the totals.
+COA_TEST(TemporalContracts_QuestAddonPoints) {
+    lua_State* L = Start();
+    CoA::TemporalContracts::SetTypes({ Type("A", 2, 100, 3, { 5, 0, 6 }, "Dungeon", "Alpha") });
+    s_quests[31] = Rec(500, 20, 7, { 900, 901 }, { 1, 2 });
+    CoA::QuestAddon::Reset();
+    CoA::QuestAddon::Init();
+    CoATest::RecordPackets();
+    CHECK((Run(L, "return C_TemporalContracts.GetCategoryData('A').rewards.CallboardCachePoints") == V{ "0" }));
+    const std::vector<uint8_t> query = CoATest::Expected(0x731, CoATest::Bytes().U32(31));
+    CHECK(std::find(CoATest::SentPackets().begin(), CoATest::SentPackets().end(), query) != CoATest::SentPackets().end());
+    CoATest::Bytes b;
+    b.U32(31).U32(4).U32(0);
+    CoATest::Deliver(CoA::QuestAddon::OnResponse, 0x732, b);
+    CHECK((Run(L, "return C_TemporalContracts.GetCategoryData('A').rewards.CallboardCachePoints, "
+                  "C_TemporalContracts.GetTotalContractTypeRewards('A').CallboardCachePoints") == V{ "4", "8" }));
+    CoA::QuestAddon::Reset();
     Stop(L);
 }

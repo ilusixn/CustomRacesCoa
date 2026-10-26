@@ -45,6 +45,8 @@ extern uint32_t s_numShownLootRolls;
 PendingLootRoll* FindRoll(int32_t id);
 WOWGUID GetMasterLootCandidate(uint32_t index);
 void LootRollShowPending();
+// CoA: AscItemStats.cpp handler_0x073f reads s_nextLootRollId (0xCA0690).
+int32_t LootRollNextId();
 void LootRoll(int32_t id, int32_t rollType, bool confirmed);
 
 void CloseAllLootRolls();

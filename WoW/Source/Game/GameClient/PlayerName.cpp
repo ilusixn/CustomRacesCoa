@@ -58,6 +58,17 @@ static C3Vector s_iconPositions[4] = {
     C3Vector(-0.5f, 0.0f, 0.0f),
 };
 
+// CoA: AscManastorm.cpp:FUN_102a6c10 -- the objective-icon scale: x of the four corners -s / 2, s / 2, s / 2, -s / 2
+// and y of the top two s (0xAF46AC, 0xAF46B0, 0xAF46B8, 0xAF46BC, 0xAF46C4, 0xAF46D0); the bottom y and every z stay.
+void PlayerNameSetIconScale(float scale) {
+    s_iconPositions[0].x = scale * -0.5f;
+    s_iconPositions[0].y = scale;
+    s_iconPositions[1].x = scale * 0.5f;
+    s_iconPositions[1].y = scale;
+    s_iconPositions[2].x = scale * 0.5f;
+    s_iconPositions[3].x = scale * -0.5f;
+}
+
 // STATIC: 0x00AF46DC
 static C2Vector s_iconTexCoords[4] = {
     C2Vector(0.0f, 0.0f),
