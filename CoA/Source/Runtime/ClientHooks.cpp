@@ -53,4 +53,6 @@ void CoA::ClientHooks::Reset() {
     CoA::ClientHooks::initialSpellsAlternate.Clear();
     CoA::ClientHooks::addAuraEffect.Clear();
     CoA::ClientHooks::removeEffect.Clear();
+    CoA::ClientHooks::addKnownSpell = nullptr;
+    CoA::ClientHooks::afterAddKnownSpell.Clear();
 }

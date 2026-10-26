@@ -121,13 +121,8 @@ namespace CoA::CA::detail {
         void Ensure(uint32_t i);        // FUN_10149380
     };
 
-    // FUN_10a315d0 +0x198: learn / unlearn requests sent and not yet answered ({id, ..., rank at +0xC}).
-    struct Request {
-        uint32_t id = 0;
-        uint32_t u4 = 0;
-        uint32_t u8 = 0;
-        uint32_t rank = 0;
-    };
+    // FUN_10a315d0 +0x198: the wildcard mode manager's reveal records (CoA::CA::Request, CA.h).
+    using CoA::CA::Request;
 
     using PairCallback = void (*)(uint32_t, uint32_t);
 

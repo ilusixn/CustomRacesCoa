@@ -171,7 +171,7 @@ namespace {
         g.entries.clear();
     }
 
-    void SuggestionsDirty(uint32_t, uint32_t) {   // 0x10333950
+    void DirtyOnListChange(uint32_t, uint32_t) {   // 0x10333950
         Sugg().dirty = true;
     }
 
@@ -557,8 +557,17 @@ void CoA::CA::detail::ResetSuggest() {
     s_statSuggestions.clear();
 }
 
+void CoA::CA::SuggestionsDirty(uint32_t) {   // 0x10333950
+    Sugg().dirty = true;
+}
+
+std::vector<uint32_t> CoA::CA::SuggestedList(bool abilities, uint32_t max, bool skipKnown) {   // FUN_10333770
+    return detail::SuggestedEntries(abilities, max, skipKnown);
+}
+
 // The suggestion manager's registration (0x10333880): glue reset, the tick, and a dirty mark on every CA list change.
-// Its two wildcard-manager lists (0x10be2cac / 0x10be2ccc) land with C_Wildcard.
+// Its marks in the wildcard manager's two lists (0x10be2cac / 0x10be2ccc) are registered by CoA::Wildcard::Init, which
+// owns the lists (CoA::CA::SuggestionsDirty).
 void CoA::CA::detail::InitSuggest() {
     COA_PACKET(0x6CE, OnSpellSuggestion);
     COA_PACKET(0x6E2, OnInspectResult);
@@ -568,7 +577,7 @@ void CoA::CA::detail::InitSuggest() {
     Mgr& m = M();
 
     for (std::vector<PairCallback>* list : { &m.onLearned, &m.onRankChanged, &m.onUnlearned, &m.onSpecChanged }) {
-        list->push_back(SuggestionsDirty);
+        list->push_back(DirtyOnListChange);
     }
 
     COA_EVENT("CHARACTER_ADVANCEMENT_SUGGESTIONS_UPDATED");
