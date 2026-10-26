@@ -152,6 +152,8 @@ static const CoA::Module s_modules[] = {
     { "RealmDataClient", CoA::RealmDataClient::Init },
     // CoA addition: the live addon list (Interface\AddOns watch).
     { "AddOnWatchClient", CoA::AddOnWatchClient::Init },
+    // The reconstruction's AscTooltipInsertFix (not in the original; until patch-B's Tooltip.lua is fixed).
+    { "TooltipInsertFixClient", CoA::TooltipInsertFixClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
     { "AttachFixesClient", CoA::AttachFixesClient::Init },
