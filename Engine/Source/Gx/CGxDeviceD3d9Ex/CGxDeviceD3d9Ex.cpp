@@ -895,14 +895,20 @@ static const D3DFORMAT s_worldDepthFormat = static_cast<D3DFORMAT>(MAKEFOURCC('I
 
 // CoA64: the device can render the world into a back-buffer-format colour texture with an INTZ depth texture. INTZ
 // has 24 depth bits, so only a 24-bit default depth buffer (the present parameters' AutoDepthStencilFormat) gives
-// identical depth test results.
+// identical depth test results. Asked once per device; IReleaseD3dResources (before every reset or destroy) forgets the
+// answer so the recreated device is asked again.
 bool CGxDeviceD3d9Ex::WorldTargetSupported() {
-    if (!this->m_d3d || (this->m_devDepthFormat != D3DFMT_D24S8 && this->m_devDepthFormat != D3DFMT_D24X8)) {
+    if (!this->m_d3d) {
         return false;
     }
 
-    return this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, s_worldDepthFormat) == D3D_OK
-        && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, this->m_devAdapterFormat) == D3D_OK;
+    if (this->m_worldTargetSupported < 0) {
+        this->m_worldTargetSupported = (this->m_devDepthFormat == D3DFMT_D24S8 || this->m_devDepthFormat == D3DFMT_D24X8)
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_TEXTURE, s_worldDepthFormat) == D3D_OK
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, this->m_devAdapterFormat) == D3D_OK;
+    }
+
+    return this->m_worldTargetSupported != 0;
 }
 
 // CoA64: creates (or reuses, same size) the world colour + INTZ depth textures and swaps their surfaces in as the
@@ -2846,8 +2852,10 @@ void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
     memset(this->m_deviceStates, 0xFF, sizeof(this->m_deviceStates));
 
     // CoA64: put the original default surfaces back (if the world target is begun) and free the D3DPOOL_DEFAULT world
-    // textures before the defaults are released and the device is reset or destroyed.
+    // textures before the defaults are released and the device is reset or destroyed. The device's formats may change
+    // with it, so WorldTargetSupported asks again.
     this->WorldTargetRelease();
+    this->m_worldTargetSupported = -1;
 
     if (this->m_defColorSurface) {
         this->m_defColorSurface->Release();

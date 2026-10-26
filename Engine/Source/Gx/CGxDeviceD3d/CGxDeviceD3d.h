@@ -255,6 +255,8 @@ class CGxDeviceD3d : public CGxDevice {
     uint32_t m_worldTargetWidth = 0;
     uint32_t m_worldTargetHeight = 0;
     int32_t m_worldTargetBegun = 0;
+    // CoA64: WorldTargetSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
+    int32_t m_worldTargetSupported = -1;
 
     virtual void ITexMarkAsUpdated(CGxTex* texId);
     virtual void IRsSendToHw(EGxRenderState which);

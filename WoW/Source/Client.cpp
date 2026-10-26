@@ -1782,8 +1782,8 @@ bool InitializeGlobal() {
     SFile::RebuildHash();
     // CoA64: load DXVK's x64 d3d9 (Vulkan) before the first archive opens -- it decides whether the HD archives load.
     CoA::DxvkClient::Preload();
-    // CoA64: the render pipeline's CVars (queued before ClientRegisterConsoleCommands registers the glue CVars) and
-    // its engine hooks.
+    // CoA64: the render pipeline's CVars (queued before ClientRegisterConsoleCommands registers the glue CVars); its
+    // engine hooks are installed only while coaRenderPipeline is 1.
     CoA::RenderPipelineClient::Install();
     OpenArchives();
 

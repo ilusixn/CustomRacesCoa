@@ -1,7 +1,9 @@
 // RenderPipeline's engine half: the g_renderPipelineHook callbacks (CGWorldFrame::OnWorldRender begin/end,
-// CGCamera::SetupWorldProjection), the activation rules' inputs and the device's world target. Not part of the
-// original (CoA64 addition).
+// CGCamera::SetupWorldProjection), the activation rules' inputs and the device's world target. The hook is installed
+// only while coaRenderPipeline is 1, so at 0 the engine runs its original paths. Not part of the original (CoA64
+// addition).
 #include "CoA/Source/Runtime/RenderPipeline.h"
+#include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -10,6 +12,7 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/CRect.h"
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 static_assert(sizeof(C44Matrix) == sizeof(CoA::RenderPipeline::Mat4), "C44Matrix and Mat4 must share a layout");
@@ -79,6 +82,17 @@ namespace {
         }
     }
 
+    // coaRenderPipeline went to 0: frees the world target and removes the hook. Only outside a world render (from
+    // EndWorld, or from the CVar callback while nothing is held).
+    void Uninstall() {
+        if (g_theGxDevicePtr) {
+            Deactivate(g_theGxDevicePtr);
+        }
+
+        g_renderPipelineHook = nullptr;
+        LogState(static_cast<int>(Inactive::CVarOff));
+    }
+
     void BeginWorld() {
         CGxDevice* device = g_theGxDevicePtr;
 
@@ -138,16 +152,20 @@ namespace {
         }
     }
 
-    void EndWorld(const CRect& viewportNDC) {
-        if (!s_begun) {
-            return;
+    void EndWorld(const CRect& /* viewportNDC */) {
+        if (s_begun) {
+            s_begun = false;
+
+            // The whole target, not only the viewport: it started as a copy of the back buffer and the partial-viewport
+            // GxSceneClear cleared all of it, so a full copy reproduces the original back buffer exactly.
+            // coaRenderDebug 1 (the depth view) replaces this copy in a later stage-1 step.
+            g_theGxDevicePtr->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height));
         }
 
-        s_begun = false;
-
-        // coaRenderDebug 1 (the depth view) replaces this copy in a later stage-1 step.
-        const Rect rect = CopyRect(viewportNDC.minX, viewportNDC.maxX, viewportNDC.minY, viewportNDC.maxY, s_width, s_height);
-        g_theGxDevicePtr->WorldTargetEnd(rect.left, rect.top, rect.right, rect.bottom);
+        // Turned off since the hook was installed: done with this frame, so release and uninstall now.
+        if (!CVarOn(CoA::RenderPipelineClient::PipelineSlot())) {
+            Uninstall();
+        }
     }
 
     void SetupWorldProjection(C44Matrix& projection, const C44Matrix& view, const C3Vector& position, float fovY, float aspect, float nearZ, float farZ, const C3Vector& forward, const C3Vector& up) {
@@ -192,9 +210,22 @@ namespace {
     }
 
     RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection };
+
+    // coaRenderPipeline's callback; also runs at registration with the value loaded from Config.wtf, so a 1 there
+    // installs the hook at startup. 1 installs; 0 uninstalls at once when no world target is held, else at the next
+    // EndWorld (never in the middle of a world render).
+    bool OnPipeline(CVar* /* var */, const char* /* oldValue */, const char* value, void* /* arg */) {
+        if (value && atoi(value) != 0) {
+            g_renderPipelineHook = &s_hook;
+        } else if (g_renderPipelineHook && !s_begun && !s_targetHeld) {
+            Uninstall();
+        }
+
+        return true;
+    }
 }
 
 void CoA::RenderPipelineClient::Install() {
     CoA::RenderPipelineClient::QueueCVars();
-    g_renderPipelineHook = &s_hook;
+    CoA::CVars::SetCallback("coaRenderPipeline", OnPipeline);
 }

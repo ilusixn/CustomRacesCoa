@@ -74,7 +74,8 @@ namespace CoA::RenderPipelineClient {
     CVar** PipelineSlot();
     CVar** DebugSlot();
     CVar** JitterSlot();
-    // Queues the CVars and installs g_renderPipelineHook. Called once at client init, before the glue CVars register.
+    // Queues the CVars with coaRenderPipeline's callback, which installs g_renderPipelineHook while the CVar is 1
+    // (including a 1 loaded from Config.wtf). Called once at client init, before the glue CVars register.
     void Install();
 }
 
