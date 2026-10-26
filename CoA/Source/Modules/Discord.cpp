@@ -32,6 +32,10 @@ namespace {
     CoA::Discord::Deps s_deps;
     Mgr s_mgr;
 
+    // CoA64: the art key in CoA64's own Discord application (DiscordClient's kClientId); the original's
+    // "ascension_logo" lives in Ascension's application.
+    constexpr const char* kLogo = "descension_logo";
+
     // The wrapper's setters (strncpy 0x80, last byte 0): cut at the first NUL and at 127 bytes.
     std::string Cut(const std::string& s) {
         return std::string(s.c_str()).substr(0, 0x7F);
@@ -70,7 +74,7 @@ namespace {
 
         CoA::Discord::Activity a;
         a.state = "Selecting World";
-        a.largeImage = "ascension_logo";
+        a.largeImage = kLogo;
         SendClientStatus(a);
     }
 
@@ -94,7 +98,7 @@ namespace {
 
         CoA::Discord::Activity a;
         a.state = "Selecting World";
-        a.smallImage = "ascension_logo";
+        a.smallImage = kLogo;
         UpdateActivity(a);
         return 1;
     }
@@ -230,7 +234,7 @@ void CoA::Discord::Refresh() {
     a.details = Cut(info.level ? "Level " + std::to_string(info.level) + " " + info.className : info.className);
     a.state = Cut(info.zone);
     a.start = s_mgr.worldStart;
-    a.largeImage = "ascension_logo";
+    a.largeImage = kLogo;
     a.largeText = Cut(info.realm);
     SendClientStatus(a);
 }

@@ -192,7 +192,8 @@ COA_TEST(Discord_CoreCreated) {
     Stop(L);
 }
 
-// 0x90C: "Selecting World" / "ascension_logo"; 0x90D: the parsed activity, sent and subscribed only the first time;
+// 0x90C: "Selecting World" / the logo (CoA64's "descension_logo"; the original's "ascension_logo"); 0x90D: the parsed
+// activity, sent and subscribed only the first time;
 // the join callbacks send only after that.
 COA_TEST(Discord_Activities) {
     lua_State* L = Start();
@@ -202,7 +203,7 @@ COA_TEST(Discord_Activities) {
     CoATest::Bytes empty;
     Dispatch(0x90C, empty);
     CHECK(s_activities.size() == 1);
-    CHECK(s_activities[0].state == "Selecting World" && s_activities[0].smallImage == "ascension_logo");
+    CHECK(s_activities[0].state == "Selecting World" && s_activities[0].smallImage == "descension_logo");
     CHECK(s_activities[0].details.empty() && s_activities[0].largeImage.empty() && s_activities[0].partyMax == 0);
 
     CoATest::RecordPackets();
@@ -308,7 +309,7 @@ COA_TEST(Discord_ClientStatusWithoutServerPackets) {
     s_core = true;
     Initialize();
     CHECK(s_activities.size() == 1);
-    CHECK(s_activities.size() == 1 && s_activities[0].state == "Selecting World" && s_activities[0].largeImage == "ascension_logo");
+    CHECK(s_activities.size() == 1 && s_activities[0].state == "Selecting World" && s_activities[0].largeImage == "descension_logo");
 
     CoA::Discord::OnEnterWorld();
     CHECK(s_activities.size() == 2);
@@ -316,7 +317,7 @@ COA_TEST(Discord_ClientStatusWithoutServerPackets) {
         const CoA::Discord::Activity& a = s_activities[1];
         CHECK(a.details == "Level 59 Necromancer");
         CHECK(a.state == "The Hinterlands");
-        CHECK(a.largeImage == "ascension_logo" && a.largeText == "Pale Reach");
+        CHECK(a.largeImage == "descension_logo" && a.largeText == "Pale Reach");
         CHECK(a.start == 1793030619);
     }
 
