@@ -12106,8 +12106,9 @@ void CGUnit_C::HandleNPCFeedback() {
 
 // VERIFY: e4a08d14 manual
 // OFFSET: 0x0071B7F0
-bool CGUnit_C::IsOutdoors() const {
+__declspec(noinline) bool CGUnit_C::IsOutdoors() const {
     // CoA: AscAttachFixes.cpp:sub_10a456d0 (orig hook 0x71B7F0) -- a call from outside the image is reported (CMSG 0x51F).
+    // noinline: _ReturnAddress() must be this function's own return address, not an inlining caller's.
     if (CoA::AttachFixesClient::CalledFromOutside(_ReturnAddress())) {
         CoA::AttachFixes::SendTamperReport("IsOutdoors");
     }
@@ -22800,9 +22801,10 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 
 // VERIFY: 1484b729 manual
 // OFFSET: 0x00727400
-bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
+__declspec(noinline) bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
     // CoA: AscUnitSelect.cpp:FUN_102da340 (orig hook 0x727400) -- a call from past the exe image reports a bot first
     // (CMSG 0x51F); after the original the tracking turn rate is AutoInteractTurnSpeed and the time is kept.
+    // noinline: _ReturnAddress() must be this function's own return address, not an inlining caller's.
     CoA::UnitSelectClient::BeforeClickToMove(_ReturnAddress());
     auto afterClick = CoA::ClientHooks::OnScopeExit([]() { CoA::UnitSelect::AfterClickToMove(); });
 
