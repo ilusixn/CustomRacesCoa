@@ -377,14 +377,18 @@ void CoA::RealmDataClient::AfterOpenArchives() {
 }
 
 // FUN_102fb130: after InitializeAddOns, each realm archive's Interface\AddOns\ and -addonspath <dir>.
-void CoA::RealmDataClient::AfterInitializeAddOns(int32_t (*archiveCallback)(const char*, void*), int32_t (*diskCallback)(OS_FILE_DATA&, void*)) {
+void CoA::RealmDataClient::AfterInitializeAddOns(int32_t (*archiveCallback)(const char*, void*), int32_t (*diskCallback)(OS_FILE_DATA&, void*), void* param) {
     for (SArchive* archive : s_archives) {
-        ListArchiveFiles(archive, "Interface\\AddOns\\", archiveCallback, nullptr);
+        ListArchiveFiles(archive, "Interface\\AddOns\\", archiveCallback, param);
     }
 
-    if (const char* dir = CoA::Script::CommandLineArg("addonspath")) {
-        OsFileList(dir, "*", diskCallback, nullptr, 0);
+    if (const char* dir = AddOnsPath()) {
+        OsFileList(dir, "*", diskCallback, param, 0);
     }
+}
+
+const char* CoA::RealmDataClient::AddOnsPath() {
+    return CoA::Script::CommandLineArg("addonspath");
 }
 
 // FUN_102fb520.
