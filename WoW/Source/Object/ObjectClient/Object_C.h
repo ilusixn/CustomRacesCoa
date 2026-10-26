@@ -209,7 +209,7 @@ class CGObject_C : public CGObject, public TSHashObject<CGObject_C, CHashKeyGUID
     void ShowHighlightType(HIGHLIGHTTYPE type);
     void UpdateEffectAttachments();
     void Fadeout();
-    static void __stdcall BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position);
+    void BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position) const;
     static int32_t SetCircleRenderStates();
     void SetModelFinish(CM2Model* model);
     void SetModel(CM2Model* model);

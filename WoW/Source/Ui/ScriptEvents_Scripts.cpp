@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/ConsoleBase/IConsole.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -2569,7 +2570,8 @@ static int32_t Script_UnitLevel(lua_State* L) {
         CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
         level = unit->m_unit->m_unitFieldLevel;
 
-        if ((player && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) <= static_cast<int32_t>(unit->m_unit->m_unitFieldLevel) - 10) || unit->IsBossMob()) {
+        // CoA: AscClientOptions.cpp:FUN_10a49850 (callback patch 0x60FAB2) -- hideDangerousEnemyLevel not 1 NOPs the level test.
+        if ((player && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE && CoA::ClientHooks::options.dangerousEnemyLevelHidden && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) <= static_cast<int32_t>(unit->m_unit->m_unitFieldLevel) - 10) || unit->IsBossMob()) {
             level = -1;
         } else if (level > 0 && player && (player->m_player->m_playerBytes3[1] || player->m_player->m_playerFakeInebriation) && player->CanAttack(unit)) {
             level -= RoundToInt64(player->GetDrunknessTurnValue() * 5.0f);

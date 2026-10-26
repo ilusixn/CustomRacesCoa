@@ -1,5 +1,6 @@
 #include "Tooltip.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -1921,7 +1922,8 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
         }
 
         if (unit->GetCreatureType() == 10 || activePlayer) {
-            if (activePlayer && unit->UnitReaction(activePlayer) <= UNIT_REACTION_HOSTILE && static_cast<int32_t>(activePlayer->m_unit->m_unitFieldLevel) <= unitLevel - 10) {
+            // CoA: AscClientOptions.cpp:FUN_10a49850 (callback patch 0x621766) -- hideDangerousEnemyLevel not 1 NOPs the level test.
+            if (activePlayer && unit->UnitReaction(activePlayer) <= UNIT_REACTION_HOSTILE && CoA::ClientHooks::options.dangerousEnemyLevelHidden && static_cast<int32_t>(activePlayer->m_unit->m_unitFieldLevel) <= unitLevel - 10) {
                 showLevel = 0;
             }
         }

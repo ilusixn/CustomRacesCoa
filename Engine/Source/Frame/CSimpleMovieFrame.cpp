@@ -852,9 +852,21 @@ CSimpleMovieFrame::~CSimpleMovieFrame() {
     }
 }
 
+// CoA: AscSceneTransform.cpp:FUN_101ae900 (orig hook 0x95EED0).
+void (*g_movieFrameRenderHook)(CSimpleMovieFrame* frame, bool after);
+
+// CoA: AscSceneTransform.cpp:FUN_101aed40 (orig hook 0x681F60).
+void (*g_movieFrameViewportHook)(float& minX, float& maxX, float& minY, float& maxY);
+
 // VERIFY: 12d84d1a manual
 // OFFSET: 0x0095EED0
 void CSimpleMovieFrame::Render() {
+    // CoA: AscSceneTransform.cpp:FUN_101ae900 (orig hook 0x95EED0) -- before: the frame's rect kept, the projection and
+    // view saved; after: both set back.
+    if (g_movieFrameRenderHook) {
+        g_movieFrameRenderHook(this, false);
+    }
+
     float aspect = CoordinateGetAspectCompensation();
 
     float minX;
@@ -864,7 +876,19 @@ void CSimpleMovieFrame::Render() {
     float minZ;
     float maxZ;
     GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
-    GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+
+    // CoA: AscSceneTransform.cpp:FUN_101aed40 (orig hook 0x681F60) -- this call (return 0x95EF4A) gets the kept rect as its
+    // first four arguments: the movie draws inside its frame.
+    float viewMinX = 0.0f;
+    float viewMaxX = 1.0f;
+    float viewMinY = 0.0f;
+    float viewMaxY = 1.0f;
+
+    if (g_movieFrameViewportHook) {
+        g_movieFrameViewportHook(viewMinX, viewMaxX, viewMinY, viewMaxY);
+    }
+
+    GxXformSetViewport(viewMinX, viewMaxX, viewMinY, viewMaxY, 0.0f, 1.0f);
 
     CImVector clearColor;
     clearColor.b = 0;
@@ -910,6 +934,10 @@ void CSimpleMovieFrame::Render() {
 
     g_theGxDevicePtr->RsPop();
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+
+    if (g_movieFrameRenderHook) {
+        g_movieFrameRenderHook(this, true);
+    }
 }
 
 // VERIFY: 953adff9 auto

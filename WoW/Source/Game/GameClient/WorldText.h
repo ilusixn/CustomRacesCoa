@@ -78,5 +78,8 @@ bool WorldTextUpdate(WORLDTEXTSTRING* text, uint32_t time);
 // CoA: AscMisc.cpp:CreateWorldText -- the world text styles and icon positions it writes.
 WORLDTEXTTYPE* WorldTextTypeStyle(uint32_t type);
 C3Vector* WorldTextIconPositions();
+// CoA: AscClientOptions.cpp:FUN_10a47b70 (WorldTextScale) -- the eleven floats from 0xAF487C: the shadow offset (0, 1),
+// then s_iconPositions[0..2] (2..10).
+void WorldTextSetScaleFloat(uint32_t index, float value);
 
 #endif

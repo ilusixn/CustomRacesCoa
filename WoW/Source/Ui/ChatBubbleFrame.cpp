@@ -1,5 +1,7 @@
 #include "ChatBubbleFrame.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/ClientOptionsClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -153,6 +155,9 @@ void CGChatBubbleFrame::Render(CGWorldFrame* worldFrame) {
 // VERIFY: aa475361 manual
 // OFFSET: 0x0056C500
 bool CGChatBubbleFrame::Update(CGUnit_C* player, CGUnit_C* unit) {
+    // CoA: AscClientOptions.cpp:sub_10a429a0 (orig hook 0x56C500) -- the bubble height first (chatBubblesNameplate).
+    CoA::ClientOptionsClient::BeforeChatBubbleUpdate(unit);
+
     if (!player) {
         return false;
     }
@@ -235,7 +240,8 @@ bool CGChatBubbleFrame::Update(CGUnit_C* player, CGUnit_C* unit) {
     this->m_worldPosition.x = position.x;
     this->m_worldPosition.y = position.y;
     this->m_positionValid = 1;
-    this->m_worldPosition.z = position.z + this->m_height + 0.7f;
+    // CoA: AscClientOptions.cpp:FUN_10a48c10 (callback patch 0x56C76B) -- the DLL's height (DAT_10bccb9c) replaces 0.7.
+    this->m_worldPosition.z = position.z + this->m_height + CoA::ClientHooks::options.chatBubbleHeight;
     return true;
 }
 

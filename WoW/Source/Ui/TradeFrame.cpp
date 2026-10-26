@@ -1,4 +1,5 @@
 #include "TradeFrame.h"
+#include "CoA/Source/Modules/ClientOptions.h"
 #include "WoW/Source/Ui/GossipInfo.h"
 #include "WoW/Source/Ui/MailInfo.h"
 #include "WoW/Source/Ui/MerchantFrame.h"
@@ -548,6 +549,12 @@ void CGTradeInfo::SetTradePartner(WOWGUID partner, int32_t suppressMoneyEvent) {
 // VERIFY: 15291c4e auto
 // OFFSET: 0x005873E0
 void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, int32_t bagResult, int32_t target, int32_t itemId, uint8_t slot) {
+    // CoA: AscClientOptions.cpp:FUN_10a44c90 (orig hook 0x5873E0) -- a proposal (1) with autoAcceptTrades off becomes
+    // TRADE_REQUEST(trader) instead of the stock prompt.
+    if (CoA::ClientOptions::HandleTradeProposal(static_cast<int32_t>(status))) {
+        return;
+    }
+
     switch (status) {
         case TRADE_STATUS_PLAYER_BUSY:
         case TRADE_STATUS_ALREADY_TRADING:

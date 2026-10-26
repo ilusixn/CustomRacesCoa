@@ -1,4 +1,6 @@
 #include <cstdint>
+#include "CoA/Source/Modules/LoadingScreen.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cstring>
 #include <malloc.h>
 #include "Engine/Source/Base/Handle.h"
@@ -462,6 +464,10 @@ static void PaintLoadingBar(const BackgroundImage* images, int32_t count, CTextu
 // VERIFY: e5620ae9 manual
 // OFFSET: 0x00409ED0
 static bool LoadSimpleBackgroundTexture() {
+    // CoA: AscLoadingScreen.cpp:FUN_10290810 (orig hook 0x409ED0) -- first: the map's Map.dbc loading screen becomes one of
+    // its LoadingScreenVariation.dbc entries.
+    CoA::LoadingScreen::ApplyVariation(static_cast<uint32_t>(s_simpleMapID));
+
     CStatus status;
     MapRec* mapRec = g_mapDB.GetRecord(s_simpleMapID);
 
@@ -701,6 +707,8 @@ void LoadingScreenSpellUpdateProgress(float progress) {
 // VERIFY: 2d94348d manual
 // OFFSET: 0x0040AB70
 void LoadingScreenEnable(int32_t mapID, bool loadingWorld) {
+    // CoA: AscLoadingScreen.cpp:FUN_10290890 (orig hook 0x40AB70) -- after the original the sleep gate closes.
+    auto closeGate = CoA::ClientHooks::OnScopeExit([]() { CoA::LoadingScreen::AfterLoadingScreenEnable(); });
     CGGameUI::SetAspect();
 
     if (s_gameTip) {
@@ -818,6 +826,8 @@ static void ClearDynamicData() {
 // VERIFY: 2116833b manual
 // OFFSET: 0x00409550
 void LoadingScreenDisable() {
+    // CoA: AscLoadingScreen.cpp:FUN_10290870 (orig hook 0x409550) -- after the original the sleep gate opens.
+    auto openGate = CoA::ClientHooks::OnScopeExit([]() { CoA::LoadingScreen::AfterLoadingScreenDisable(); });
     if (s_loadingScreenLayer) {
         HandleClose(reinterpret_cast<HOBJECT>(s_loadingScreenLayer));
     }

@@ -1,5 +1,6 @@
 #include "World.h"
 #include "CoA/Source/Modules/Graphics.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
@@ -2197,7 +2198,10 @@ void CWorldScene::AddDoodadDefModelToModelScene(CMapDoodadDef* doodadDef) {
         model->m_fFlags |= 0x10000;
     }
 
-    doodadDef->m_model->m_fadeAlpha = alpha;
+    // CoA: AscCamera.cpp:FUN_1019a190 (callback patch 0x791E60) -- cameraM2Collision 0 NOPs the store.
+    if (CoA::ClientHooks::options.doodadFadeStore) {
+        doodadDef->m_model->m_fadeAlpha = alpha;
+    }
 }
 
 // VERIFY: 300a631e auto
