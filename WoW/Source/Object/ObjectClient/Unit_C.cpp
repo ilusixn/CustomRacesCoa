@@ -7,6 +7,8 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
+#include "CoA/Source/Modules/ClientOptions.h"
+#include "CoA/Source/Modules/ClientOptionsClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
@@ -337,6 +339,11 @@ static float s_forcedRunSpeed;
 
 // STATIC: 0x00CA11DC
 static float s_trackingTurnRate;
+
+// CoA: AscCamera.cpp:FUN_1019bcb0 -- cameraTargetFocusTurnSpeed writes 0xCA11DC.
+void UnitSetTrackingTurnRate(float rate) {
+    s_trackingTurnRate = rate;
+}
 
 // STATIC: 0x00CA11E0
 static float s_trackingInteractDistanceSq;
@@ -2334,7 +2341,8 @@ void CGUnit_C::OnCollideFallLand(uint32_t a1, int32_t a2) {
     float distance = this->m_movementData.GetDistanceFallen();
 
     if (distance >= 70.0f || (distance > 13.0f && !this->IsDeadOrGhost())) {
-        if (!(this->m_obj->m_type & TYPE_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && this->m_unit->m_unitFieldHealth > 0)) {
+        // CoA: AscClientOptions.cpp:FUN_10a47780 (callback patch 0x73D46A) -- Sound_EnableFall not 1 makes the jle a jmp.
+        if (!(this->m_obj->m_type & TYPE_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && CoA::ClientHooks::options.fallInjurySound && this->m_unit->m_unitFieldHealth > 0)) {
             this->PlayUnitSound(UNITSOUNDTYPE_INJURY_FALL, 1);
         }
 
@@ -4753,7 +4761,8 @@ int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
             return flags & 0x1;
         }
 
-        if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
+        // CoA: AscClientOptions.cpp:FUN_10a4a270 (callback patch 0x729D3D) -- targetName not 1 NOPs the je.
+        if (CoA::ClientHooks::options.lockedTargetNameShown && this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
             return 1;
         }
 
@@ -8459,6 +8468,12 @@ void CGUnit_C::ChooseDefaultAnim(uint32_t& anim, int32_t force) const {
 // VERIFY: 3787d22a auto
 // OFFSET: 0x00720330
 void CGUnit_C::UpdateSelectionRadius() {
+    // CoA: AscClientOptions.cpp:sub_10a462f0 (orig hook 0x720330) -- unless ObjectSelectionCircleMode is 0 the radius comes
+    // from both units' combat reach instead.
+    if (CoA::ClientOptionsClient::UpdateSelectionRadius(this)) {
+        return;
+    }
+
     CAaBox box = this->GetStandBox();
     float dx = box.t.x - box.b.x;
     float dy = box.t.y - box.b.y;
@@ -10871,7 +10886,8 @@ void CGUnit_C::OnTurnStopLocal(uint32_t eventTime) {
 // VERIFY: c9647570 manual
 // OFFSET: 0x0072E5D0
 void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E5FE) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10889,7 +10905,8 @@ void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
 // VERIFY: 97b45c2f manual
 // OFFSET: 0x0072E680
 void CGUnit_C::OnStrafeStartLocal(uint32_t eventTime, int32_t left) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E6AE) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10931,7 +10948,8 @@ void CGUnit_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {
         Spell_C_CancelChannelSpell(this->m_unit->m_unitChannelSpell);
     }
 
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E870) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -15130,6 +15148,9 @@ static bool IsOwnedByActivePlayer(const WOWGUID& guid, bool* isPlayer) {
 // VERIFY: d0bc6fd3 auto
 // OFFSET: 0x0071F990
 void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const SpellRec* spell, bool periodic) {
+    // CoA: AscClientOptions.cpp:FUN_10a468f0 (orig hook 0x71F990) -- after the original: an absorb (10) plays
+    // "AbsorbGetHit" with absorbSoundOnSpellHit 1.
+    auto absorbSound = CoA::ClientHooks::OnScopeExit([this, reason]() { CoA::ClientOptionsClient::AfterAddWorldText(this, static_cast<uint32_t>(reason)); });
     bool melee = !spell || (spell->m_attributesExC & 0x8000);
     bool isPlayer;
 
@@ -15167,6 +15188,11 @@ void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const Spe
 // VERIFY: 813b4b44 manual
 // OFFSET: 0x00722340
 void CGUnit_C::AddWorldDamageText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, bool periodic, bool spellColor) {
+    // CoA: AscClientOptions.cpp:sub_10a468b0 (orig hook 0x722340) -- a melee number (no spell) needs CombatLogMelee.
+    if (!CoA::ClientOptions::ShowDamageText(spell != nullptr)) {
+        return;
+    }
+
     bool melee = !spellColor && (!spell || (spell->m_attributesExC & 0x8000));
     bool isPlayer;
 
@@ -19667,7 +19693,9 @@ void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
     // first: 170^2 in a dungeon or raid, else 100^2, for types 0xC / 0xE / 0x33; else 25^2.
     CoA::AttachFixes::SetChatBubbleRange(type, CoA::AttachFixesClient::CurrentMapInstanceType());
 
-    if (this->m_namePlateFrame || !text || !*text || !this->m_worldObject) {
+    // CoA: AscClientOptions.cpp:FUN_10a48c10 (callback patch 0x720020) -- with chatBubblesNameplate 1 the nameplate test is
+    // NOPed: a unit with a nameplate gets a bubble too.
+    if ((!CoA::ClientHooks::options.bubblesOverNameplates && this->m_namePlateFrame) || !text || !*text || !this->m_worldObject) {
         return;
     }
 
@@ -20245,7 +20273,9 @@ void CGUnit_C::NamePlateAddOrUpdate(const C3Vector& position, CGWorldFrame* worl
         NamePlateSort(this->m_namePlateFrame);
         worldFrame->SetNamePlateUpdate();
 
-        if (this->m_chatBubble) {
+        // CoA: AscClientOptions.cpp:FUN_10a48c10 (callback patch 0x725737) -- with chatBubblesNameplate 1 the je is a jmp: a new
+        // nameplate keeps the bubble.
+        if (this->m_chatBubble && !CoA::ClientHooks::options.bubblesOverNameplates) {
             CGChatBubbleFrame::Remove(this->m_chatBubble);
             this->m_chatBubble = nullptr;
         }
@@ -22666,7 +22696,10 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
     CGUnit_C::s_trackingDirection = facing;
     CGUnit_C::s_trackingGUID = *guid;
     CGUnit_C::s_trackingPosition = *position;
-    s_trackingTurnRate = (this->m_movement->m_flags2 & 0x8) ? this->m_movement->m_turnRate : 3.1415927f;
+    // CoA: AscCamera.cpp:FUN_1019bcb0 (callback patch 0x727520) -- the write is NOPed once cameraTargetFocusTurnSpeed is set.
+    if (!CoA::ClientHooks::options.trackingTurnRateFixed) {
+        s_trackingTurnRate = (this->m_movement->m_flags2 & 0x8) ? this->m_movement->m_turnRate : 3.1415927f;
+    }
     CGUnit_C::s_trackingStuckCount = 0;
     s_trackingInteractDistance = sqrt(s_trackingInteractDistanceSq);
     CGUnit_C::s_unused_CA11D0 = 0.0f;
@@ -23047,7 +23080,10 @@ bool CGUnit_C::HandleTrackingFacing(float facing, float maxTurn, uint32_t time) 
 
     CMovementShared* movement = this->m_movement;
 
-    if (movement->m_flags2 & 0x8) {
+    // CoA: AscCamera.cpp:FUN_1019bcb0 (callback patch 0x731720) -- the shared store of both writes is NOPed once
+    // cameraTargetFocusTurnSpeed is set.
+    if (CoA::ClientHooks::options.trackingTurnRateFixed) {
+    } else if (movement->m_flags2 & 0x8) {
         s_trackingTurnRate = movement->m_turnRate;
     } else if (3.1415927f == s_trackingTurnRate) {
         s_trackingTurnRate = (delta <= 2.0943952f || delta >= 4.1887903f ? 800.0f : 1200.0f) * 0.017453292f;
@@ -23321,7 +23357,7 @@ void CGUnit_C::RenderTargetSelection() const {
     this->GetSelectionHighlightColor(&color);
 
     C44Matrix matrix;
-    CGObject_C::BuildSelectionRotMatrix(&matrix, &position);
+    this->BuildSelectionRotMatrix(&matrix, &position);
     g_theGxDevicePtr->RsPush();
     int32_t states = CGObject_C::SetCircleRenderStates();
 
@@ -23398,7 +23434,7 @@ void CGUnit_C::RenderPetTargetSelection() const {
     box.Expand(amount);
 
     C44Matrix matrix;
-    CGObject_C::BuildSelectionRotMatrix(&matrix, &position);
+    this->BuildSelectionRotMatrix(&matrix, &position);
     g_theGxDevicePtr->RsPush();
 
     if (CGObject_C::SetCircleRenderStates()) {

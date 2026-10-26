@@ -600,3 +600,12 @@ WORLDTEXTTYPE* WorldTextTypeStyle(uint32_t type) {
 C3Vector* WorldTextIconPositions() {
     return s_iconPositions;
 }
+
+void WorldTextSetScaleFloat(uint32_t index, float value) {
+    if (index < 2) {
+        (index == 0 ? s_shadowOffset.x : s_shadowOffset.y) = value;
+    } else if (index < 11) {
+        float* corner = &s_iconPositions[(index - 2) / 3].x;
+        corner[(index - 2) % 3] = value;
+    }
+}

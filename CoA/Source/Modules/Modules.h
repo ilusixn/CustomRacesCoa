@@ -85,6 +85,12 @@ namespace CoA::SpellCharges { void Init(); }
 namespace CoA::Aura137 { void Init(); }
 namespace CoA::AssetQuery { void Init(); }
 namespace CoA::Templates { void Init(); }
+namespace CoA::ClientOptions { void Init(); }
+namespace CoA::Camera { void Init(); }
+namespace CoA::AlphaAmbience { void Init(); }
+namespace CoA::TerrainScale { void Init(); }
+namespace CoA::SceneTransform { void Init(); }
+namespace CoA::LoadingScreen { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -156,5 +162,11 @@ namespace CoA::SpellChargesClient { void Init(); }
 namespace CoA::Aura137Client { void Init(); }
 namespace CoA::AssetQueryClient { void Init(); }
 namespace CoA::TemplatesClient { void Init(); }
+namespace CoA::ClientOptionsClient { void Init(); }
+namespace CoA::CameraClient { void Init(); }
+namespace CoA::AlphaAmbienceClient { void Init(); }
+namespace CoA::TerrainScaleClient { void Init(); }
+namespace CoA::SceneTransformClient { void Init(); }
+namespace CoA::LoadingScreenClient { void Init(); }
 
 #endif

@@ -317,7 +317,8 @@ int32_t CoA::AttachFixesClient::CreatureName(const CGUnit_C* unit, int32_t resul
         return result;
     }
 
-    // The five CVars belong to AscClientOptions (not ported yet); without them the client's answer stands.
+    // The five CVars are AscClientOptions' world CVars (ClientOptions.cpp); until the world registers them the client's
+    // answer stands (the original reads their slots, which the world load has filled by then).
     if (!CVar::Lookup("UnitNameAllNPC")) {
         return result;
     }

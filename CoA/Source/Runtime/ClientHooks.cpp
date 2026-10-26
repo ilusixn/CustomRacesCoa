@@ -55,4 +55,5 @@ void CoA::ClientHooks::Reset() {
     CoA::ClientHooks::removeEffect.Clear();
     CoA::ClientHooks::addKnownSpell = nullptr;
     CoA::ClientHooks::afterAddKnownSpell.Clear();
+    CoA::ClientHooks::options = CoA::ClientHooks::OptionPatches();
 }

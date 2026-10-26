@@ -1,4 +1,5 @@
 #include "UnitCombat_C.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -820,12 +821,14 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 
                 attacker->PlayAttackerRound(info);
 
-                if (attacker->m_lastAttackRound.m_target == ClntObjMgrGetActivePlayer()) {
+                // CoA: AscCamera.cpp:FUN_10199650 (callback patch 0x75697C) -- autoTarget not 1 makes the jne a jmp.
+                if (CoA::ClientHooks::options.autoTargetAttacker && attacker->m_lastAttackRound.m_target == ClntObjMgrGetActivePlayer()) {
                     WOWGUID guid = attacker->m_obj->m_guid;
                     TargetAttacker(guid);
                 }
 
-                if (attacker->IsAutoTracking() && !attacker->IsActiveMoverTracking(4)) {
+                // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x7569B6) -- cameraTargetFocusEnemyEnable 1 NOPs the call.
+                if (attacker->IsAutoTracking() && !attacker->IsActiveMoverTracking(4) && !CoA::ClientHooks::options.movementKeepsTracking) {
                     attacker->ClearTrackingTarget(true, true);
                 }
             } else {

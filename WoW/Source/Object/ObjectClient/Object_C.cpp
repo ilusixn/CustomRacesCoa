@@ -2,6 +2,7 @@
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
+#include "CoA/Source/Modules/ClientOptionsClient.h"
 #include "WoW/Source/Object/ObjectClient/DynamicObject_C.h"
 #include "WoW/Source/UIUtil/Types.h"
 #include "Engine/Source/Gx/Gx.h"
@@ -1372,7 +1373,8 @@ void CGObject_C::Initialize() {
     }
 
     CStatus status;
-    CGObject_C::s_selectionTexture = TextureCreate("Textures\\UnitSelectTexture.blp", CGxTexFlags(), &status, 1);
+    // CoA: AscClientOptions.cpp:FUN_10a46fa0 (callback patch 0x746147) -- the texture ObjectSelectionCircleTexture picked.
+    CGObject_C::s_selectionTexture = TextureCreate(CoA::ClientHooks::options.selectionTexture, CGxTexFlags(), &status, 1);
     LoadInteractIcons(1);
     ClntObjMgrSetTypeMirrorHandler(ID_OBJECT, OBJECT_FIELD_SCALE_X * sizeof(uint32_t), sizeof(float), &ScaleUpdateHandler, nullptr, HANDLER_PRIORITY_NORMAL, 0);
 }
@@ -1956,7 +1958,13 @@ void CGObject_C::SetModel(CM2Model* model) {
 
 // VERIFY: 51db1246 auto
 // OFFSET: 0x00744150
-void __stdcall CGObject_C::BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position) {
+void CGObject_C::BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* position) const {
+    // CoA: AscClientOptions.cpp:sub_10a44df0 (orig hook 0x744150) -- with an arrow texture the caller's matrix is turned by
+    // the object's render facing and a half turn instead. (The client passes the object in ecx; the decomp had dropped it.)
+    if (CoA::ClientOptionsClient::BuildArrowMatrix(this, matrix)) {
+        return;
+    }
+
     matrix->d3 = 1.0f;
     matrix->c2 = 1.0f;
     matrix->b1 = 1.0f;

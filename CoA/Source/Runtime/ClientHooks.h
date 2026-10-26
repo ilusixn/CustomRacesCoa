@@ -175,6 +175,49 @@ namespace CoA::ClientHooks {
     // 0x989053) are NOPed and SetRawFacing (0x989B97 / 0x989B9A) always re-anchors with force 1 (turning while falling).
     inline bool aura137TurnWhileFalling = false;
 
+    // AscClientOptions.cpp / AscCamera.cpp: the client bytes their CVar callbacks rewrite, as source flags (Plan 13
+    // ruling). Each starts at the stock bytes; the callbacks run at every world CVar registration.
+    struct OptionPatches {
+        // AscAttachInline (0x52ADCC): InitializeFrameXML's call to CGGameUI::Initialize (0x5238A0) is NOPed; the DLL
+        // makes that call at glue (ClientOptions). False once the patch is applied.
+        bool frameXmlRegistersUiScale = true;
+        // FUN_10a48c10 (chatBubblesNameplate "1"): 0x720020's jne NOPed (a bubble shows over a nameplate) and 0x725737's
+        // je a jmp (a new nameplate keeps the bubble).
+        bool bubblesOverNameplates = false;
+        // 0x56C76B: the bubble's height above the head; the DLL's float (DAT_10bccb9c) once the callback ran, 0.7 both.
+        float chatBubbleHeight = 0.7f;
+        // FUN_10a46fa0 (ObjectSelectionCircleTexture): the selection texture 0x746147 pushes.
+        const char* selectionTexture = "Textures\\UnitSelectTexture.blp";
+        // FUN_10a47c30 (autoAssistCast): "1" NOPs 0x80C8C1 / 0x80D7C1 (every spell casts through assist targets) and
+        // the `or eax, 0x80` at 0x80C91D; any other value writes `or eax, 0x89` there (the original's quirk).
+        bool assistCastAlways = false;
+        uint32_t assistCastNeedTargets = 0x80;
+        // FUN_10a49850 (hideDangerousEnemyLevel): not "1" NOPs 0x60FAB2 / 0x621766, the "??" level test for an enemy
+        // ten levels above the player.
+        bool dangerousEnemyLevelHidden = true;
+        // FUN_10a4a270 (targetName): not "1" NOPs 0x729D3D's je, the locked target's name shortcut.
+        bool lockedTargetNameShown = true;
+        // FUN_10a47780 (Sound_EnableFall): not "1" makes 0x73D46A's jle a jmp (no fall-damage injury sound).
+        bool fallInjurySound = true;
+        // FUN_10199420 / FUN_10199da0 (ActionCam "1" / cameraActionHeadBobs): 0x5FFD34's jp a jmp (head bobbing at any
+        // camera distance).
+        bool bobAtAnyDistance = false;
+        // FUN_1019a9e0 (cameraTargetFocusEnemyEnable "1"): the jne at 0x72E870 / 0x72E5FE / 0x72E6AE / 0x5FBC80 become
+        // jmp (moving, strafing, turning, a blocked turn keep the tracking target) and the ClearTrackingTarget call at
+        // 0x7569B6 (a melee round) is NOPed.
+        bool movementKeepsTracking = false;
+        // FUN_1019bcb0 (cameraTargetFocusTurnSpeed): the client's own writers of the tracking turn rate (0xCA11DC) at
+        // 0x727520 (ClickToMove) and 0x731720 (HandleTrackingFacing) are NOPed.
+        bool trackingTurnRateFixed = false;
+        // FUN_1019a190 (cameraM2Collision): "1" keeps the doodad fade store at 0x791E60 and the M2 bit of the camera
+        // collision flags (0x605E13: 0x100171, else 0x170).
+        bool doodadFadeStore = true;
+        uint32_t cameraCollisionFlags = 0x100171;
+        // FUN_10199650 (autoTarget): not "1" makes 0x75697C / 0x806AA2 jmp (an attacker is never auto-targeted).
+        bool autoTargetAttacker = true;
+    };
+    inline OptionPatches options;
+
     // 0x102776A0: the alternate list runs on every second SMSG_INITIAL_SPELLS (flag 0x10BE2E38, starting clear).
     void InitialSpellsReceived();
 

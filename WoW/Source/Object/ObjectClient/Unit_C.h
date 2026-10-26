@@ -143,6 +143,9 @@ class CGUnitVirtualItem {
 };
 
 class UnitBloodRec;
+// CoA: AscCamera.cpp:FUN_1019bcb0 -- the tracking turn rate (0xCA11DC).
+void UnitSetTrackingTurnRate(float rate);
+
 class CGUnit_C : public CGObject_C, public CGUnit {
     public:
     int32_t InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDisplayInfo);

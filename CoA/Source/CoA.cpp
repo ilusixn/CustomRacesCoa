@@ -22,6 +22,10 @@ extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 // The ported modules, in AscBindings::InitModules order. Filled as modules are ported.
 static const CoA::Module s_modules[] = {
     { "DbcPatch", CoA::DbcPatch::Init },
+    // FUN_1019c510's camera CVars, then the attach init's option CVars, register before every other world CVar
+    // (RegisterWorldQueue).
+    { "Camera", CoA::Camera::Init },
+    { "ClientOptions", CoA::ClientOptions::Init },
     { "RealmInfo", CoA::RealmInfo::Init },
     { "Account", CoA::Account::Init },
     { "Config", CoA::Config::Init },
@@ -104,6 +108,10 @@ static const CoA::Module s_modules[] = {
     { "Aura137", CoA::Aura137::Init },
     { "AssetQuery", CoA::AssetQuery::Init },
     { "Templates", CoA::Templates::Init },
+    { "AlphaAmbience", CoA::AlphaAmbience::Init },
+    { "TerrainScale", CoA::TerrainScale::Init },
+    { "SceneTransform", CoA::SceneTransform::Init },
+    { "LoadingScreen", CoA::LoadingScreen::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -172,6 +180,12 @@ static const CoA::Module s_modules[] = {
     { "Aura137Client", CoA::Aura137Client::Init },
     { "AssetQueryClient", CoA::AssetQueryClient::Init },
     { "TemplatesClient", CoA::TemplatesClient::Init },
+    { "ClientOptionsClient", CoA::ClientOptionsClient::Init },
+    { "CameraClient", CoA::CameraClient::Init },
+    { "AlphaAmbienceClient", CoA::AlphaAmbienceClient::Init },
+    { "TerrainScaleClient", CoA::TerrainScaleClient::Init },
+    { "SceneTransformClient", CoA::SceneTransformClient::Init },
+    { "LoadingScreenClient", CoA::LoadingScreenClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

@@ -1,4 +1,8 @@
 #include "Camera.h"
+#include "CoA/Source/Modules/Camera.h"
+#include "CoA/Source/Modules/CameraClient.h"
+#include "CoA/Source/Modules/ClientOptions.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Coordinate.h"
 #include <cmath>
 #include <cstring>
@@ -1483,6 +1487,11 @@ float CGCamera::GetDefaultZoomMaxDistance() {
 // VERIFY: cfc63e8a manual
 // OFFSET: 0x00606330
 void CGCamera::AddShake(const C3Vector& position, int32_t type, CGCameraDir dir, float amplitude, float frequency, float duration, float timeOffset, float damping) {
+    // CoA: AscClientOptions.cpp:sub_10a42930 (orig hook 0x606330) -- no shake with cameraShake 0.
+    if (!CoA::ClientOptions::ShakeAllowed()) {
+        return;
+    }
+
     CameraShake* shake = this->m_cameraShakeList.NewNode(2, 0, 0);
 
     if (shake) {
@@ -1686,6 +1695,8 @@ C3Vector CGCamera::GetCameraPosition(const C3Vector& target, float distance, con
     position.y = offset.y + position.y;
     position.z = offset.z + position.z;
 
+    // CoA: AscCamera.cpp:sub_101992c0 (orig hook 0x601D60) -- after the original: the ActionCam offset.
+    CoA::CameraClient::AfterCameraPosition(this, position);
     return position;
 }
 
@@ -1709,7 +1720,8 @@ int32_t CGCamera::HasTargetOffset() {
 // VERIFY: 2f9adb7e manual
 // OFFSET: 0x005FFD20
 uint32_t CGCamera::IsBobbingAllowed(CGObject_C* target) {
-    if (this->m_distance > 0.16666667f) {
+    // CoA: AscCamera.cpp:FUN_10199da0 (callback patch 0x5FFD34) -- cameraActionHeadBobs 1 makes the jp a jmp: any distance.
+    if (!CoA::ClientHooks::options.bobAtAnyDistance && this->m_distance > 0.16666667f) {
         return 0;
     }
 
@@ -2246,6 +2258,7 @@ void CGCamera::UpdateVehicleTarget(uint32_t time) {
 // VERIFY: d360aee9 manual
 // OFFSET: 0x005FF950
 void CGCamera::ZoomIn(float distance, uint32_t time, float duration) {
+    // CoA: AscCamera.cpp:sub_10198ff0 (orig hook 0x5FF950) -- a pass-through detour.
     if (this->m_flags & 0x40) {
         return;
     }
@@ -2275,6 +2288,7 @@ void CGCamera::ZoomIn(float distance, uint32_t time, float duration) {
 // VERIFY: b31ca820 manual
 // OFFSET: 0x005FFA60
 void CGCamera::ZoomOut(float distance, uint32_t time, float duration) {
+    // CoA: AscCamera.cpp:sub_10199020 (orig hook 0x5FFA60) -- a pass-through detour.
     if (this->m_flags & 0x40) {
         return;
     }
@@ -3631,6 +3645,10 @@ void CGCamera::UpdateUncontrolledState(int32_t uncontrolled) {
 // VERIFY: 13ff6f44 manual
 // OFFSET: 0x00605D60
 uint32_t CGCamera::CollideCameraWithWorld(const C3Vector& target, float& distance, float& height, const C3Vector& offset, float liquid, float& extent) {
+    // CoA: AscCamera.cpp:sub_10199050 (orig hook 0x605D60) -- before: the faded M2s restored, the M2s in front of the
+    // player faded (cameraM2Collision 0); after: the ActionCam shift of the caller's target.
+    CoA::CameraClient::BeforeCollide(this, target);
+    const uint32_t collided = [&]() -> uint32_t {
     extent = 1.0f;
     uint32_t result = 0;
     distance = this->m_distance < this->m_smoothDistance.m_target ? this->m_smoothDistance.m_target : this->m_distance;
@@ -3642,7 +3660,8 @@ uint32_t CGCamera::CollideCameraWithWorld(const C3Vector& target, float& distanc
         return 0;
     }
 
-    uint32_t flags = s_cameraWaterCollision->m_intValue ? 0x120171 : 0x100171;
+    // CoA: AscCamera.cpp:FUN_1019a190 (callback patch 0x605E13) -- cameraM2Collision 0 drops the M2 bit (0x170).
+    uint32_t flags = (s_cameraWaterCollision->m_intValue ? 0x20000u : 0u) + CoA::ClientHooks::options.cameraCollisionFlags;
     float minHeight = 0.83333331f;
     float maxHeight = this->m_height;
 
@@ -3757,6 +3776,10 @@ uint32_t CGCamera::CollideCameraWithWorld(const C3Vector& target, float& distanc
     }
 
     return result;
+    }();
+
+    CoA::CameraClient::AfterCollide(this, collided, const_cast<C3Vector&>(target), distance);
+    return collided;
 }
 
 
