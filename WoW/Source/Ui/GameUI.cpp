@@ -1,5 +1,6 @@
 #include "GameUI.h"
 #include "CoA/Source/Modules/AddonTaint.h"
+#include "CoA/Source/Modules/Camera.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -1811,7 +1812,13 @@ void CGGameUI::InitializeFrameXML() {
     BugReportRegister();
     LoadAddOns(&status);
     FrameXML_RegisterLoadProgressCallback(nullptr, nullptr, 0);
-    CGGameUI::Initialize();
+
+    // CoA: AscAttachInline.cpp (Extensions.dll patch 0x52ADCC) -- the call is NOPed; AscClientOptions' FUN_10a6b890 makes it
+    // on the glue state instead (ClientOptions.cpp), so uiScale / useUiScale exist before GlueXML reads them.
+    if (CoA::ClientHooks::options.frameXmlRegistersUiScale) {
+        CGGameUI::Initialize();
+    }
+
     LoadSavedVariables(&status);
     LoadAccountData(6, LoadPlacedFrames, nullptr);
     LoadAccountVariables();
@@ -2685,6 +2692,10 @@ bool IsTutorialFlagged(uint32_t tutorial) {
 // VERIFY: 9f2b88f1 manual
 // OFFSET: 0x005241B0
 void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
+    // CoA: AscCamera.cpp:sub_101993b0 (orig hook 0x5241B0) -- ActionCam with enemy focus: clearing the locked target clears
+    // the player's tracking first.
+    CoA::Camera::BeforeClearTarget(guid.m_guid, CGGameUI::m_lockedTarget.m_guid);
+
     int32_t noMgr = ClntObjMgrGetCurrent() == nullptr;
 
     if (!CGGameUI::m_lockedTarget || (guid && guid != CGGameUI::m_lockedTarget)) {

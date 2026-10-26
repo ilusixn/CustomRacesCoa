@@ -34,6 +34,17 @@ static int32_t s_tradeEnchantSpell[2];
 // STATIC: 0x00CA0FF8
 static uint32_t s_nextTradeRequestTime;
 
+// CoA: AscTooltipScaling.cpp:FUN_1027eee0 -- the dword at 0xCA0DE0 + slot * 0x50: the trade target's slot, +0x30.
+uint32_t Trade_C_GetTargetSlotDword30(uint32_t slot) {
+    if (slot >= 7) {
+        return 0;
+    }
+
+    uint32_t value;
+    memcpy(&value, reinterpret_cast<const uint8_t*>(&s_tradeItems[1][slot]) + 0x30, sizeof(value));
+    return value;
+}
+
 // VERIFY: bcd077ea auto
 // OFFSET: 0x00703C10
 WOWGUID Trade_C_GetTradeTarget() {

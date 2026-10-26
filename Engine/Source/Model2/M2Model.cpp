@@ -63,6 +63,8 @@ CM2ModelCall::CM2ModelCall() {
 uint32_t g_animationCount = 506;
 // CoA: set by CoA::ItemCollectionsClient.
 void (*g_m2ReleaseHook)(CM2Model* model);
+// CoA: set by CoA::GeosetsClient.
+void (*g_m2SetGeometryVisibleHook)(CM2Model* model, uint32_t first, uint32_t last, int32_t visible);
 
 // VERIFY: 35d86a94 auto
 // OFFSET: 0x00823D50
@@ -4043,6 +4045,13 @@ CAaSphere CM2Model::GetCurrentBoundingSphere() {
 // OFFSET: 0x0082C7C0
 void CM2Model::SetGeometryVisible(uint32_t first, uint32_t last, int32_t visible) {
     if (this->m_fFlags & 1) {
+        // CoA: AscGeosets.cpp:0x101A1440 (orig hook 0x82C7C0) -- the DLL replaces this branch: no shared model or no skin
+        // sections does nothing, and a section's flag is compared with the value itself (not visible / hidden).
+        if (g_m2SetGeometryVisibleHook) {
+            g_m2SetGeometryVisibleHook(this, first, last, visible);
+            return;
+        }
+
         M2SkinProfile* skin = this->m_shared->m_skinData;
         int32_t changed = 0;
 

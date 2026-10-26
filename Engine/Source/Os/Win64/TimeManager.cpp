@@ -233,8 +233,16 @@ void OsTimeManagerDestroy() {
     }
 }
 
+// CoA: AscLoadingScreen.cpp:FUN_102908b0 (orig hook 0x86B280).
+bool (*g_osSleepHook)();
+
 // OFFSET: 0x0086B280
 void OsSleep(uint32_t milliseconds) {
+    // CoA: AscLoadingScreen.cpp:FUN_102908b0 (orig hook 0x86B280) -- no sleeping while a loading screen is up.
+    if (g_osSleepHook && !g_osSleepHook()) {
+        return;
+    }
+
     Sleep(milliseconds);
 }
 

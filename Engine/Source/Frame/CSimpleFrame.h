@@ -228,5 +228,6 @@ extern void (*g_globalMouseHook)(int32_t down, uint32_t button);
 // CoA: AscWidget.cpp:RegistrarDetour (orig hooks 0x49E540, 0x57C040, 0x9603D0, 0x970610) -- after a registrar
 // has filled the method table (at -1), the DLL adds its "#<widget>" methods.
 extern void (*g_widgetMethodsHook)(const char* widget, lua_State* L);
+extern int32_t (*g_frameScriptHook)(int32_t which, lua_State* L);
 
 #endif

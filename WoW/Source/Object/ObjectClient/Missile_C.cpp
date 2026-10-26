@@ -1,4 +1,6 @@
 #include "Missile_C.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cfloat>
 #include <cmath>
 #include "Engine/Source/Base/ObjectAlloc.h"
@@ -1517,6 +1519,9 @@ int32_t CMissile::PossiblyHandleBounce() {
 // VERIFY: 87fb757a manual
 // OFFSET: 0x00702DB0
 void CMissile::HitTarget(CGUnit_C* target, const SpellRec* spell, const SpellVisualRec* visual) {
+    // CoA: AscSpellVisuals.cpp:0x10322AD0 (orig hook 0x702DB0) -- the visual record follows the caster's server-assigned
+    // visual (none when hidden).
+    visual = CoA::SpellVisualsClient::MissileHitVisual(this, spell, visual);
     if (target->m_unit->m_unitFieldHealth > 0) {
         if (!visual || !(visual->m_flags & 0x40)) {
             target->PlayWoundAnimKit(0);
@@ -1966,6 +1971,9 @@ void CMissile::MissedTarget(CGUnit_C* target, const C3Vector* direction) {
 // VERIFY: d0f1a70e manual
 // OFFSET: 0x007022D0
 void CMissile::FireMissiles(const C3Vector* position) {
+    // CoA: AscSpellVisuals.cpp:0x10322810 (orig hook 0x7022D0) -- after it, our missiles and those of units no other player
+    // owns are reported (CMSG 0x9C7).
+    auto spellVisuals = CoA::ClientHooks::OnScopeExit([this] { CoA::SpellVisualsClient::AfterFireMissiles(this); });
     if (!this->m_currentTarget) {
         this->m_lastUpdateTime = OsGetAsyncTimeMs();
     }

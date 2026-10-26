@@ -1,5 +1,6 @@
 #include <cstdint>
 #include "CoA/Source/Modules/AttachMisc.h"
+#include "CoA/Source/Modules/Camera.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
@@ -1930,6 +1931,10 @@ void GameClientCommands::Install() {
 // VERIFY: 94d63d11 auto
 // OFFSET: 0x00401480
 int32_t Packet_SMSG_TRANSFER_PENDING(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscCamera.cpp:sub_1019c970 (orig hook 0x401480) -- the faded M2s get their alpha back first (the detour returns 1,
+    // as the client does).
+    CoA::Camera::RestoreAlphas();
+
     uint32_t transportEntry = 0;
     uint32_t mapID = 0;
     msg->Get(mapID);

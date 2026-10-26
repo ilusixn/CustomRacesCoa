@@ -1,5 +1,7 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "CoA/Source/Modules/SmallApisClient.h"
+#include "CoA/Source/Modules/ZoneLightClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -1205,6 +1207,9 @@ void DayNight::SetDirection() {
 // VERIFY: 3766e44c manual
 // OFFSET: 0x007EECC0
 void DayNight::SetPlanets() {
+    // CoA: AscZoneLight.cpp:sub_10a4baa0 (orig hook 0x7EECC0) -- after every return the second glare follows the second
+    // moon.
+    auto zoneLight = CoA::ClientHooks::OnScopeExit([] { CoA::ZoneLightClient::AfterSetPlanets(); });
     static C2Vector s_sunTheta[5] = { C2Vector(SUNRISE, 1.7453293f), C2Vector(0.49652779f, 0.087266468f), C2Vector(NOON, 0.087266468f), C2Vector(0.50347221f, 0.087266468f), C2Vector(SUNSET, 1.7453293f) };
     static C2Vector s_sunPhi[3] = { C2Vector(SUNRISE, 0.78539819f), C2Vector(NOON, 0.78539819f), C2Vector(SUNSET, 0.78539819f) };
     static C2Vector s_moonTheta[5] = { C2Vector(MIDNIGHT, 0.61086524f), C2Vector(0.0034722222f, 0.61086524f), C2Vector(MOONSET, 1.7453293f), C2Vector(MOONRISE, 1.7453293f), C2Vector(0.99652779f, 0.61086524f) };
@@ -2527,6 +2532,8 @@ void DayNight::DNSky::GenSphere(float sphRadius) {
 // VERIFY: 2cd09dd6 manual
 // OFFSET: 0x007F2790
 void DayNight::LoadMap(int32_t mapId) {
+    // CoA: AscZoneLight.cpp:FUN_10a4b030 (orig hook 0x7F2790) -- after it: the second moon's glare and the zone table.
+    auto zoneLight = CoA::ClientHooks::OnScopeExit([] { CoA::ZoneLightClient::AfterLoadMap(); });
     DayNight::s_mapId = mapId;
     DayNight::LightLoad(DayNight::g_areaLights, mapId);
 
@@ -2626,6 +2633,9 @@ DayNight::DNOverrideSky* DayNight::GetOverrideSky(const char* path, uint32_t fla
 // VERIFY: 774391af manual
 // OFFSET: 0x007F3230
 void DayNight::SetColors() {
+    // CoA: AscZoneLight.cpp:sub_10a4ba70 (orig hook 0x7F3230) -- after every return the second moon and its glare take the
+    // first moon's colour.
+    auto zoneLight = CoA::ClientHooks::OnScopeExit([] { CoA::ZoneLightClient::AfterSetColors(); });
     DNInfo& info = DayNight::g_dnInfo;
     float liquidDepth = 0.0f;
     int32_t liquidStatus = World::SceneCamLiquidStatus(&liquidDepth);
@@ -2906,6 +2916,9 @@ void DayNight::SetFlashColor(CImVector color, float blend) {
 // VERIFY: 8f429e9d auto
 // OFFSET: 0x007F0870
 void DayNight::RenderGlares() {
+    // CoA: AscZoneLight.cpp:sub_10a4ba30 (orig hook 0x7F0870) -- after every return (and only with the sky shown) the
+    // second glare is updated and drawn.
+    auto zoneLight = CoA::ClientHooks::OnScopeExit([] { CoA::ZoneLightClient::AfterRenderGlares(); });
     if (!DayNight::g_dnInfo.m_showSky) {
         return;
     }

@@ -93,6 +93,7 @@ int32_t CGxFont::UpdateDimensions() {
         this->m_cellHeight = pixelSize + 2;
     }
 
+    // CoA: AscFontRender.cpp (orig hook 0x992780) -- FreeType 2.14.1's FT_Set_Pixel_Sizes.
     int32_t result = FT_Set_Pixel_Sizes(face, pixelSize, 0) == FT_Err_Ok;
 
     this->m_pixelsPerUnit = static_cast<float>(face->size->metrics.x_ppem) / static_cast<float>(face->units_per_EM);
@@ -252,6 +253,7 @@ float CGxFont::ComputeStep(uint32_t code, uint32_t nextCode) {
     }
 
     FT_Face face = FontFaceGetFace(this->m_fontFaceHandle);
+    // CoA: AscFontRender.cpp (orig hook 0x9911A0, 0x991050) -- FreeType 2.14.1's FT_Get_Char_Index / FT_Get_Kerning.
     FT_UInt leftIndex = FT_Get_Char_Index(face, code);
     FT_UInt rightIndex = FT_Get_Char_Index(face, nextCode);
 

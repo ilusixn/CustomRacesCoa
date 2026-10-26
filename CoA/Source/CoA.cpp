@@ -22,6 +22,12 @@ extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 // The ported modules, in AscBindings::InitModules order. Filled as modules are ported.
 static const CoA::Module s_modules[] = {
     { "DbcPatch", CoA::DbcPatch::Init },
+    // FUN_1019c510's camera CVars, then the attach init's option CVars, register before every other world CVar
+    // (RegisterWorldQueue).
+    { "Camera", CoA::Camera::Init },
+    { "ClientOptions", CoA::ClientOptions::Init },
+    // FUN_102bf920, called from the attach init (FUN_10a66100).
+    { "NamePlates", CoA::NamePlates::Init },
     { "RealmInfo", CoA::RealmInfo::Init },
     { "Account", CoA::Account::Init },
     { "Config", CoA::Config::Init },
@@ -104,6 +110,20 @@ static const CoA::Module s_modules[] = {
     { "Aura137", CoA::Aura137::Init },
     { "AssetQuery", CoA::AssetQuery::Init },
     { "Templates", CoA::Templates::Init },
+    { "AlphaAmbience", CoA::AlphaAmbience::Init },
+    { "TerrainScale", CoA::TerrainScale::Init },
+    { "SceneTransform", CoA::SceneTransform::Init },
+    { "LoadingScreen", CoA::LoadingScreen::Init },
+    { "UnitSelect", CoA::UnitSelect::Init },
+    { "TooltipScaling", CoA::TooltipScaling::Init },
+    { "ModelNames", CoA::ModelNames::Init },
+    { "SpawnVisibility", CoA::SpawnVisibility::Init },
+    // After PatchData, whose geosetsRebuild it fills.
+    { "Geosets", CoA::Geosets::Init },
+    { "SpellShadow", CoA::SpellShadow::Init },
+    { "SpellVisuals", CoA::SpellVisuals::Init },
+    { "ZoneLight", CoA::ZoneLight::Init },
+    { "FontRender", CoA::FontRender::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -172,6 +192,22 @@ static const CoA::Module s_modules[] = {
     { "Aura137Client", CoA::Aura137Client::Init },
     { "AssetQueryClient", CoA::AssetQueryClient::Init },
     { "TemplatesClient", CoA::TemplatesClient::Init },
+    { "ClientOptionsClient", CoA::ClientOptionsClient::Init },
+    { "CameraClient", CoA::CameraClient::Init },
+    { "AlphaAmbienceClient", CoA::AlphaAmbienceClient::Init },
+    { "TerrainScaleClient", CoA::TerrainScaleClient::Init },
+    { "SceneTransformClient", CoA::SceneTransformClient::Init },
+    { "LoadingScreenClient", CoA::LoadingScreenClient::Init },
+    { "NamePlatesClient", CoA::NamePlatesClient::Init },
+    { "UnitSelectClient", CoA::UnitSelectClient::Init },
+    { "TooltipScalingClient", CoA::TooltipScalingClient::Init },
+    { "ModelNamesClient", CoA::ModelNamesClient::Init },
+    { "SpawnVisibilityClient", CoA::SpawnVisibilityClient::Init },
+    { "GeosetsClient", CoA::GeosetsClient::Init },
+    { "SpellShadowClient", CoA::SpellShadowClient::Init },
+    { "SpellVisualsClient", CoA::SpellVisualsClient::Init },
+    { "ZoneLightClient", CoA::ZoneLightClient::Init },
+    { "FontRenderClient", CoA::FontRenderClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

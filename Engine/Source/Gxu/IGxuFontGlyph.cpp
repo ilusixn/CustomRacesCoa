@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstring>
 #include "Engine/Source/Gxu/IGxuFontGlyph.h"
+#include "Engine/Source/Gxu/GxuFont.h"
 #include "Engine/Source/Gxu/GxuFontMiscClasses.h"
 #include "Engine/Source/Storm/H/storm.h"
 
@@ -52,6 +53,14 @@ static void CalculateYOffset(uint32_t pixelSize, int32_t baseline, FT_Face face,
 // VERIFY: 86715750 manual
 // OFFSET: 0x006C8CC0
 bool IGxuFontGlyphRenderGlyph(FT_Face face, uint32_t pixelSize, uint32_t code, uint32_t baseline, GLYPHBITMAPDATA* dataPtr, int32_t monochrome, uint32_t padding) {
+    // CoA: AscFontRender.cpp:FUN_10237240 (orig hook 0x6C8CC0) -- replaced: the glyph rendered as an SDF, copied without
+    // its border.
+    // CoA: AscFontRender.cpp (orig hook 0x992DA0, 0x992B60) -- the replacement's FT_Load_Glyph / FT_Render_Glyph are
+    // FreeType 2.14.1's.
+    if (g_gxuFontRenderGlyphHook) {
+        return g_gxuFontRenderGlyphHook(face, pixelSize, code, baseline, dataPtr, monochrome, padding);
+    }
+
     if (!face || !pixelSize || !dataPtr) {
         SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return false;
