@@ -1,3 +1,5 @@
+#include "CoA/Shaders/DepthViewPS.h"
+#include "CoA/Shaders/FullscreenVS.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Tests/TestMain.h"
 #include <cmath>
@@ -116,4 +118,10 @@ COA_TEST(RenderPipeline_CopyRectFullAndLetterbox) {
     CHECK(r.left == 0 && r.top == 0 && r.right == 1920 && r.bottom == 1080);
     r = CoA::RenderPipeline::CopyRect(0.0f, 1.0f, 0.1f, 0.9f, 1920, 1000);
     CHECK(r.left == 0 && r.top == 100 && r.right == 1920 && r.bottom == 900);
+}
+
+COA_TEST(RenderPipeline_EmbeddedShadersAreSm3Bytecode) {
+    auto token = [](const unsigned char* b) { return uint32_t(b[0]) | uint32_t(b[1]) << 8 | uint32_t(b[2]) << 16 | uint32_t(b[3]) << 24; };
+    CHECK(token(kFullscreenVS) == 0xFFFE0300u);   // vs_3_0
+    CHECK(token(kDepthViewPS) == 0xFFFF0300u);    // ps_3_0
 }
