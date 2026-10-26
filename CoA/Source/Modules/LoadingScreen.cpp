@@ -37,7 +37,7 @@ uint32_t CoA::LoadingScreen::PickVariation(const uint8_t* row) {
 }
 
 void CoA::LoadingScreen::ApplyVariation(uint32_t map) {
-    const uint8_t* variation = CoA::Dbc::Get("DBFilesClient\LoadingScreenVariation.dbc").Row(map);
+    const uint8_t* variation = CoA::Dbc::Get("DBFilesClient\\LoadingScreenVariation.dbc").Row(map);
 
     if (!variation || !s_deps.hasMap || !s_deps.hasMap(map)) {
         return;

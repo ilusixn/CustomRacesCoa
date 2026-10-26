@@ -71,6 +71,7 @@ namespace CoA::NamePlates {
     // Registry (FUN_102c0bc0 / FUN_102c0d80 / FUN_102bf3c0).
     void AddPlate(void* unit);
     void RemovePlate(void* unit);
+    void ForgetUnit(const void* unit);       // CoA64 Ruling: drop a torn-down unit's entries, no event
     uint32_t IdForUnit(const void* unit);
     void* UnitForToken(const char* token);   // FUN_10a4ea40; nullptr when the token is not a registered plate
     void ClearPlates();                      // LAB_102bd620
