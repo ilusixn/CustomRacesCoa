@@ -304,3 +304,20 @@ Final review (opus): 1 Critical (Lua RegisterPacket handler Put* wrote past a re
 2 Important (any userdata taken as a packet; crash report re-locking a held recorder lock) -- all fixed test-first.
 Deferred minors: Graphics SetVar vs EventPackets assert inconsistency, per-frame recorder mutex cost, weak MovementForce
 tests, RegisterPacket refs across UI reloads.
+
+### Plan 15 review minors (resolved 2026-10-26)
+
+- M1 fixed: every port of FUN_10114c40 (GlueCVars, Graphics, Misc, SuperTrack, EventPackets) goes through
+  CoA::CrashContext::SetCVar, which asserts like the original when name + value exceed 249 characters
+  (CrashContext_SetCVarAssertsOnOverlongValues). Four ports used to refuse silently.
+- M2 measured, no change: a crash recorder call costs 15.5 ns on one thread and 39 ns per call with four threads
+  contending (2M calls); std::string keeps its capacity, so no per-frame allocation. Thousands of calls per frame stay
+  around 0.1 ms.
+- M3 fixed: MovementForce_OtherUnitsForceAndSmoothing pins the tick's exact calls; MovementForce_RemoveNeverFiresTheStop
+  covers the kept bug (a mutant that fires the stop fails it). Ruling: the client half's ReadMovement (CMovementStatus
+  read, m_read > m_size guard) stays covered by review only -- CoATests does not link WoW -- cost if wrong: a short
+  0x765 / 0x766 is caught only in game.
+- M4 fixed: RegisterPacket handlers are dropped when a new Lua state gets its natives (UI reload, glue <-> world);
+  Ruling: the original keeps the stale registry refs and calls whatever the new registry holds there
+  (PacketApi_HandlersDroppedOnANewLuaState) -- cost if wrong: an addon must re-register after a reload, which addons do
+  anyway because their code runs again.
