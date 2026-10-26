@@ -281,7 +281,7 @@ void CoA::PatchData::Init() {
     // 0x676 GLOBAL_STRINGS (FUN_1025ad00): {id, flags, key, value} with the two strings after the image.
     CoA::DbcPatch::Register(0x676, "DBFilesClient\\GlobalStrings.dbc", 0x10, (1ull << 2) | (1ull << 3), ApplyGlobalString);
     CoA::DbcPatch::Register(0x568, "DBFilesClient\\DungeonEncounterExtra.dbc", 0x10, 0, nullptr);
-    // 0x56F (FUN_101e2a30, a whole Quest.dbc row) patches the MemoryBridge quest store: BridgeStore.
+    // 0x56F (FUN_101e2a30, a whole Quest.dbc row) patches the bridged quest store: BridgeStore.
     CoA::DbcPatch::Register(0x681, "DBFilesClient\\ZoneLightPoint.dbc", 0x14, 0, nullptr);
     CoA::DbcPatch::Register(0x68C, "DBFilesClient\\ManastormPlayerGroupModifiers.dbc", 0x14, 0, nullptr);
     CoA::DbcPatch::Register(0x68D, "DBFilesClient\\ManastormModifiers.dbc", 0x3C, 0, nullptr);

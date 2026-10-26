@@ -9,7 +9,6 @@
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/LuaReg.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Source/Runtime/Timer.h"
 #include "CoA/Tests/Support.h"
@@ -91,7 +90,6 @@ namespace {
         CoA::ClientHooks::enterWorld.Clear();
         CoA::Dbc::SetFileReader(ReadQuests);
         CoA::BridgeStore::Reset();
-        CoA::MemoryBridge::Reset();
         CoA::BridgeStore::LoadTables();
         CoA::BridgeStore::BuildIndexes();
         Realm(0, 1.5f);
@@ -134,7 +132,6 @@ namespace {
         CoA::Timer::SetBackend(nullptr, nullptr);
         CoA::ClientHooks::enterWorld.Clear();
         CoA::BridgeStore::Reset();
-        CoA::MemoryBridge::Reset();
         CoA::Dbc::SetFileReader(nullptr);
     }
 
