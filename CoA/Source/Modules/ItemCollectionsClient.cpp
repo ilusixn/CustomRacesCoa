@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include "CoA/Source/Modules/ItemCollections.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
@@ -69,8 +70,8 @@ namespace {
         static_cast<CM2Model*>(model)->SetWorldTransform(m);
     }
 
-    // CM2Scene::CreateModel's and CM2Model::Release's Engine hook pointers.
-    void ModelCreated(const char* name, CM2Model* model) {
+    // CM2Scene::CreateModel's list (ClientHooks::afterCreateModel) and CM2Model::Release's Engine hook pointer.
+    void ModelCreated(void* model) {
         CoA::ItemCollections::ModelCreated(model);
     }
 
@@ -147,6 +148,6 @@ void CoA::ItemCollectionsClient::Init() {
     d.addLink = AddLink;
     d.racePrefix = RacePrefix;
     d.scaleModel = ScaleModel;
-    g_m2CreateModelHook = ModelCreated;
+    CoA::ClientHooks::afterCreateModel.Add(ModelCreated);
     g_m2ReleaseHook = ModelReleasing;
 }

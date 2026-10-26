@@ -539,7 +539,7 @@ void CGCorpse_C::RenderTargetSelection() const {
     box.b.z = position.z - (size + size);
     C44Matrix matrix;
     C3Vector center = this->GetPosition();
-    CGObject_C::BuildSelectionRotMatrix(&matrix, &center);
+    this->BuildSelectionRotMatrix(&matrix, &center);
     g_theGxDevicePtr->RsPush();
 
     if (CGObject_C::SetCircleRenderStates()) {

@@ -1,4 +1,5 @@
 #include <cstdint>
+#include "CoA/Source/Modules/NamePlatesClient.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
@@ -97,6 +98,11 @@ static bool ParseTrailingTokens(const char* token, WOWGUID& guid, CGPlayer_C* pl
 // VERIFY: 618bd45a auto
 // OFFSET: 0x0060ABF0
 bool Script_GetGUIDFromToken(const char* token, WOWGUID& guid, bool defaultToTarget) {
+    // CoA: AscNamePlates.cpp:FUN_10a4ea40 (orig hook 0x60ABF0) -- a registered "nameplateN" token names its unit.
+    if (CoA::NamePlatesClient::TokenGuid(token, guid)) {
+        return true;
+    }
+
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!token || !*token) {

@@ -3,6 +3,7 @@
 #include "CoA/Source/Modules/ClientDbcPatch.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Modules/SpellApi.h"
+#include "CoA/Source/Modules/SpellApiClient.h"
 #include "CoA/Source/Modules/SpellRank.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/SkillLineAbilityRec.h"
@@ -25,25 +26,7 @@ namespace {
             return false;
         }
 
-        out.id = U(rec.m_id);
-        out.mechanic = U(rec.m_mechanic);
-        out.attributes = U(rec.m_attributes);
-
-        for (uint32_t i = 0; i < 3; ++i) {
-            out.effect[i] = U(rec.m_effect[i]);
-            out.dieSides[i] = U(rec.m_effectDieSides[i]);
-            out.basePoints[i] = U(rec.m_effectBasePoints[i]);
-            out.targetA[i] = U(rec.m_implicitTargetA[i]);
-            out.targetB[i] = U(rec.m_implicitTargetB[i]);
-            out.aura[i] = U(rec.m_effectAura[i]);
-            out.miscValue[i] = U(rec.m_effectMiscValue[i]);
-            out.triggerSpell[i] = U(rec.m_effectTriggerSpell[i]);
-        }
-
-        out.iconId = U(rec.m_spellIconID);
-        out.family = U(rec.m_spellClassSet);
-        out.familyFlags = U(rec.m_spellClassMask[0]);
-        out.spellLevel = U(rec.m_spellLevel);
+        CoA::SpellApiClient::Fields(rec, out);
         return true;
     }
 
@@ -78,6 +61,28 @@ namespace {
         category = U(row->m_categoryID);
         return true;
     }
+}
+
+void CoA::SpellApiClient::Fields(const SpellRec& rec, CoA::SpellApi::SpellFields& out) {
+    out.id = U(rec.m_id);
+    out.mechanic = U(rec.m_mechanic);
+    out.attributes = U(rec.m_attributes);
+
+    for (uint32_t i = 0; i < 3; ++i) {
+        out.effect[i] = U(rec.m_effect[i]);
+        out.dieSides[i] = U(rec.m_effectDieSides[i]);
+        out.basePoints[i] = U(rec.m_effectBasePoints[i]);
+        out.targetA[i] = U(rec.m_implicitTargetA[i]);
+        out.targetB[i] = U(rec.m_implicitTargetB[i]);
+        out.aura[i] = U(rec.m_effectAura[i]);
+        out.miscValue[i] = U(rec.m_effectMiscValue[i]);
+        out.triggerSpell[i] = U(rec.m_effectTriggerSpell[i]);
+    }
+
+    out.iconId = U(rec.m_spellIconID);
+    out.family = U(rec.m_spellClassSet);
+    out.familyFlags = U(rec.m_spellClassMask[0]);
+    out.spellLevel = U(rec.m_spellLevel);
 }
 
 void CoA::SpellApiClient::Init() {

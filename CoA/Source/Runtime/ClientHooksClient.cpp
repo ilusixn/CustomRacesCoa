@@ -5,6 +5,7 @@
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "Engine/Source/Frame/CSimpleTop.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "Engine/Source/Model2/M2Scene.h"
 #include "WoW/Source/Object/ObjectClient/Effect_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
@@ -35,6 +36,11 @@ namespace {
         }
 
         return 1;
+    }
+
+    // 0x81F8F0 CM2Scene::CreateModel, after: the afterCreateModel list.
+    void ModelCreated(const char*, CM2Model* model) {
+        CoA::ClientHooks::afterCreateModel.Run(model);
     }
 
     // 0x10277970 (after ClientIdle): every visible unit's effects are filtered. The original's guard compares
@@ -82,5 +88,6 @@ void CoA::ClientHooksClient::RefreshMorphPortrait(CGUnit_C* unit) {
 void CoA::ClientHooks::InstallClient() {
     g_signalEventHook = CoA::ClientHooks::AllowSignalEvent;
     g_keyEventHook = KeyEvent;
+    g_m2CreateModelHook = ModelCreated;
     CoA::Lifecycle::OnAfterIdle(Sweep);
 }

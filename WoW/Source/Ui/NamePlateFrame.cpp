@@ -1,6 +1,8 @@
 #include "NamePlateFrame.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AttachPatches.h"
+#include "CoA/Source/Modules/NamePlatesClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Frame/CSimpleRender.h"
@@ -93,6 +95,11 @@ void CGNamePlateFrame::operator delete(void* ptr) {
 // VERIFY: eb556f09 auto
 // OFFSET: 0x00715C30
 CGNamePlateFrame* CGNamePlateFrame::GetNamePlateFocus() {
+    // CoA: AscNamePlates.cpp:sub_102be530 (orig hook 0x715C30) -- never the player's own plate.
+    if (CoA::NamePlatesClient::IsOwnFocus()) {
+        return nullptr;
+    }
+
     return CGUnit_C::s_namePlateFocus;
 }
 
@@ -227,6 +234,12 @@ static int32_t GetAdjustedLevel(CGPlayer_C* player, CGUnit_C* unit) {
 // VERIFY: f6ec6204 auto
 // OFFSET: 0x0098E910
 void CGNamePlateFrame::OnGainFocus() {
+    // CoA: AscNamePlates.cpp:FUN_102c2e90 (orig hook 0x98E910) -- skipped while the focused plate (0xCA1204) is the
+    // player's own.
+    if (CoA::NamePlatesClient::IsOwnFocus()) {
+        return;
+    }
+
     this->m_namePlateGlow->m_shown = 1;
     this->m_namePlateGlow->ShowThis();
 
@@ -257,7 +270,13 @@ void CGNamePlateFrame::OnLoseFocus() {
 // VERIFY: b1bdd517 manual
 // OFFSET: 0x0098E9F0
 void CGNamePlateFrame::OnLayerUpdate(float elapsedSec) {
-    if (this->m_guid == CGGameUI::m_lockedTarget) {
+    // CoA: AscNamePlates.cpp:FUN_102be570 (orig hook 0x98E9F0) -- after the original: distance fade and intersect opacity.
+    auto fade = CoA::ClientHooks::OnScopeExit([this]() { CoA::NamePlatesClient::AfterLayerUpdate(this); });
+
+    // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x98E9F9, 0x98EA07) -- the target compare NOPed and the jne
+    // retargeted past both calls: no frame level here (the DLL's tick sets them).
+    if (!CoA::ClientHooks::options.namePlateTargetLevel) {
+    } else if (this->m_guid == CGGameUI::m_lockedTarget) {
         this->SetFrameLevel(20, 1);
     } else {
         this->SetFrameLevel(10, 1);

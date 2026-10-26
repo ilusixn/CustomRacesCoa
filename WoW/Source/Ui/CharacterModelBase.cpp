@@ -1,4 +1,6 @@
 #include "CharacterModelBase.h"
+#include "CoA/Source/Modules/GeosetsClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Frame/CScriptObject.h"
@@ -296,6 +298,9 @@ void CGCharacterModelBase::SetUpModel(CGUnit_C* unit) {
 // VERIFY: 5476abab auto
 // OFFSET: 0x00597700
 void CGCharacterModelBase::SetUpModel(CreatureStats_C* stats) {
+    // CoA: AscGeosets.cpp:0x101A1340 (orig hook 0x597700) -- after every return the last model CreateModel made takes the
+    // geoset overrides of the argument's display (+0x24).
+    auto geosets = CoA::ClientHooks::OnScopeExit([stats] { CoA::GeosetsClient::AfterSetUpModel(stats); });
     if (!stats) {
         return;
     }

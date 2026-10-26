@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/AttachMisc.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -1102,7 +1103,8 @@ void PendingSpellCast::OnSpellStartPacket(CDataStore* msg) {
     } else if ((this->m_data.m_targetFlags & 0x2) && this->m_data.m_objectTarget.m_guid && this->m_data.m_objectTarget == ClntObjMgrGetActivePlayer()) {
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
-        if (player && !unit->CanAssist(player, false)) {
+        // CoA: AscCamera.cpp:FUN_10199650 (callback patch 0x806AA2) -- autoTarget not 1 makes the jne a jmp.
+        if (player && !unit->CanAssist(player, false) && CoA::ClientHooks::options.autoTargetAttacker) {
             WOWGUID guid = unit->m_obj->m_guid;
             TargetAttacker(guid);
         }
@@ -2038,6 +2040,8 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     const SpellVisualRec* visual;
 
     if (unit) {
+        // CoA: AscSpellVisuals.cpp:0x10322B50 -- the DLL's detour on 0x720F80 tells this call (return 0x80ED4E) apart.
+        CoA::SpellVisualsClient::SpellGoScope spellGo;
         visual = unit->GetAppropriateSpellVisual(&spell, visualRec, visualA, visualB);
 
         if (visual && Spell_C_SpellVisualHasChainEffect(visual)) {
@@ -8058,7 +8062,8 @@ static bool Spell_C_BeginCast(CGUnit_C* caster, const SpellRec* spell, WOWGUID t
         return true;
     }
 
-    if (spell->m_attributesExE & 0x800) {
+    // CoA: AscClientOptions.cpp:FUN_10a47c30 (callback patch 0x80C8C1) -- autoAssistCast 1 NOPs the je: every spell.
+    if (CoA::ClientHooks::options.assistCastAlways || (spell->m_attributesExE & 0x800)) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_UNIT, __FILE__, __LINE__));
         CGUnit_C* implied = unit ? Spell_C_TargetImpliedTarget(unit, spell, s_needTargets, caster) : nullptr;
 
@@ -8067,7 +8072,8 @@ static bool Spell_C_BeginCast(CGUnit_C* caster, const SpellRec* spell, WOWGUID t
                 target = implied->m_obj->m_guid;
             }
         } else if ((s_needTargets & 0x8) | 0x104) {
-            s_needTargets |= 0x80;
+            // CoA: AscClientOptions.cpp:FUN_10a47c30 (callback patch 0x80C91D) -- 0x80 stock, NOPed (0) by "1", 0x89 otherwise.
+            s_needTargets |= CoA::ClientHooks::options.assistCastNeedTargets;
         } else if (s_needTargets & 0x80) {
             s_needTargets |= 0x100;
         }
@@ -8501,7 +8507,8 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
             return false;
         }
 
-        if ((s_needTargets & 0x80) && (static_cast<uint32_t>(target.m_guid) & static_cast<uint32_t>(target.m_guid >> 32)) != 0xFFFFFFFF && (!(spell.m_attributesExE & 0x800) || !(s_needTargets & 0x10C))) {
+        // CoA: AscClientOptions.cpp:FUN_10a47c30 (callback patch 0x80D7C1) -- autoAssistCast 1 NOPs the attribute je.
+        if ((s_needTargets & 0x80) && (static_cast<uint32_t>(target.m_guid) & static_cast<uint32_t>(target.m_guid >> 32)) != 0xFFFFFFFF && ((!CoA::ClientHooks::options.assistCastAlways && !(spell.m_attributesExE & 0x800)) || !(s_needTargets & 0x10C))) {
             Spell_C_SpellFailed(cast, &spell, CGGameUI::m_lockedTarget ? SPELL_FAILED_BAD_TARGETS : SPELL_FAILED_BAD_IMPLICIT_TARGETS, -1, -1, false);
             return false;
         }

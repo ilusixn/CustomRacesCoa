@@ -1,4 +1,5 @@
 #include "MapRenderChunk.h"
+#include "CoA/Source/Modules/TerrainScaleClient.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cmath>
 #include <cstring>
@@ -2105,6 +2106,10 @@ void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t laye
     CGxShader* shader = CMapRenderChunk::GetVertexShader(pointLights, layerCount - 1, specular, vertexColor, a3, CShadowCache::GetShadowValue());
     g_theGxDevicePtr->RsSet(GxRs_VertexShader, shader);
     g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&consts), sizeof(SVertexShaderConstants) / sizeof(C4Vector));
+
+    // CoA: AscTerrainScale.cpp:FUN_1033bef0 (orig hook 0x7D0050) -- after the original: the layers' texture scale bits, then
+    // the constants again.
+    CoA::TerrainScaleClient::AfterSetVertexShader(renderChunk);
 }
 
 // VERIFY: 2226742d manual

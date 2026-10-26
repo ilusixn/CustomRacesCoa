@@ -1,52 +1,46 @@
-/***************************************************************************/
-/*                                                                         */
-/*  ttpost.h                                                               */
-/*                                                                         */
-/*    Postcript name table processing for TrueType and OpenType fonts      */
-/*    (specification).                                                     */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * ttpost.h
+ *
+ *   PostScript name table processing for TrueType and OpenType fonts
+ *   (specification).
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef TTPOST_H
-#define TTPOST_H
+#ifndef TTPOST_H_
+#define TTPOST_H_
 
-#include <freetype/config/ftconfig.h>
+
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
 #include <freetype/internal/tttypes.h>
 
-#ifdef __cplusplus
-  extern "C" {
-#endif
+
+FT_BEGIN_HEADER
 
 
-#define TT_Err_Invalid_Post_Table_Format  0x0B00
-#define TT_Err_Invalid_Post_Table         0x0B01
+  FT_LOCAL( FT_Error )
+  tt_face_get_ps_name( TT_Face      face,
+                       FT_UInt      idx,
+                       FT_String**  PSname );
+
+  FT_LOCAL( void )
+  tt_face_free_ps_names( TT_Face  face );
 
 
-  FT_LOCAL
-  FT_Error TT_Get_PS_Name( TT_Face      face,
-                           FT_UInt      index,
-                           FT_String**  PSname );
+FT_END_HEADER
 
-  FT_LOCAL
-  void  TT_Free_Post_Names( TT_Face  face );
-
-
-#ifdef __cplusplus
-  }
-#endif
-
-
-#endif /* TTPOST_H */
+#endif /* TTPOST_H_ */
 
 
 /* END */

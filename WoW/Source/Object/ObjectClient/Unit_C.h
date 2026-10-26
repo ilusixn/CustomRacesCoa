@@ -143,6 +143,11 @@ class CGUnitVirtualItem {
 };
 
 class UnitBloodRec;
+// CoA: AscCamera.cpp:FUN_1019bcb0 -- the tracking turn rate (0xCA11DC).
+void UnitSetTrackingTurnRate(float rate);
+// CoA: AscNamePlates.cpp -- the client's plate list (0xADAA88, linked through +0x2A0), in order.
+void UnitForEachNamePlate(void (*cb)(CGNamePlateFrame* frame, void* param), void* param);
+
 class CGUnit_C : public CGObject_C, public CGUnit {
     public:
     int32_t InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDisplayInfo);

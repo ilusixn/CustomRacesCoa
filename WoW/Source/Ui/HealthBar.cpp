@@ -1,4 +1,5 @@
 #include "HealthBar.h"
+#include "WoW/Source/Ui/ScriptEvents.h"
 #include "Engine/Source/Frame/CSimpleTexture.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
@@ -28,6 +29,9 @@ static int32_t SimpleHealthUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uin
         bar->SetValue(static_cast<float>(unit->m_unit->m_unitFieldHealth));
     }
 
+    // CoA: AscNamePlates.cpp:sub_102c28b0 (orig hook 0x9900E0) -- after the original: client event 0x12 (UNIT_HEALTH) for
+    // every token naming the unit (0x60BF10).
+    Script_SendUnitSignal(guid, 0x12);
     return 1;
 }
 

@@ -1,4 +1,5 @@
 #include <cmath>
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <cstdint>
 #include <new>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -1246,7 +1247,8 @@ void CGInputControl::UpdatePlayer(uint32_t time, int32_t a2) {
         this->StrafePlayer(time, mover);
         this->AscendDescendPlayer(time, mover);
     } else {
-        if (!canTurn) {
+        // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x5FBC80) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+        if (!canTurn && !CoA::ClientHooks::options.movementKeepsTracking) {
             mover->ClearTrackingTarget(false, true);
         }
 

@@ -397,6 +397,15 @@ static int32_t Script_SetFrameLevel(lua_State* L) {
 // VERIFY: 24a44dfc auto
 // OFFSET: 0x0049EAB0
 static int32_t Script_HasScript(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027e0a0 (orig hook 0x49EAB0) -- a GameTooltip's "OnTextChanged" is the DLL's.
+    if (g_frameScriptHook) {
+        const int32_t coaResult = g_frameScriptHook(0, L);
+
+        if (coaResult >= 0) {
+            return coaResult;
+        }
+    }
+
     CSimpleFrame* frame = static_cast<CSimpleFrame*>(FrameScript_GetObjectThis(L, CSimpleFrame::GetObjectType()));
 
     if (!lua_isstring(L, 2)) {
@@ -419,6 +428,15 @@ static int32_t Script_HasScript(lua_State* L) {
 // VERIFY: 6acdff0d auto
 // OFFSET: 0x0049EB70
 static int32_t Script_GetScript(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027dfb0 (orig hook 0x49EB70) -- a GameTooltip's "OnTextChanged" is the DLL's.
+    if (g_frameScriptHook) {
+        const int32_t coaResult = g_frameScriptHook(1, L);
+
+        if (coaResult >= 0) {
+            return coaResult;
+        }
+    }
+
     CSimpleFrame* frame = static_cast<CSimpleFrame*>(FrameScript_GetObjectThis(L, CSimpleFrame::GetObjectType()));
 
     if (!lua_isstring(L, 2)) {
@@ -452,6 +470,15 @@ static int32_t Script_GetScript(lua_State* L) {
 // VERIFY: 95f390db auto
 // OFFSET: 0x0049EC80
 static int32_t Script_SetScript(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027e1a0 (orig hook 0x49EC80) -- a GameTooltip's "OnTextChanged" is kept by the DLL.
+    if (g_frameScriptHook) {
+        const int32_t coaResult = g_frameScriptHook(2, L);
+
+        if (coaResult >= 0) {
+            return coaResult;
+        }
+    }
+
     CSimpleFrame* frame = static_cast<CSimpleFrame*>(FrameScript_GetObjectThis(L, CSimpleFrame::GetObjectType()));
 
     if (!lua_isstring(L, 2) || (lua_type(L, 3) != LUA_TFUNCTION && lua_type(L, 3) != LUA_TNIL)) {
@@ -2075,6 +2102,9 @@ static FrameScript_Method s_ScriptMethods[] = {
 
 // CoA: AscWidget.cpp:RegistrarDetour -- set by WidgetClient.cpp.
 void (*g_widgetMethodsHook)(const char* widget, lua_State* L) = nullptr;
+
+// CoA: AscTooltipScaling.cpp -- Has/Get/SetScript (0 / 1 / 2) ask this first; a result >= 0 is returned instead.
+int32_t (*g_frameScriptHook)(int32_t which, lua_State* L) = nullptr;
 
 // VERIFY: c7ad299d auto
 // OFFSET: 0x0049E540

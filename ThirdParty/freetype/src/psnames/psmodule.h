@@ -1,40 +1,37 @@
-/***************************************************************************/
-/*                                                                         */
-/*  psmodule.h                                                             */
-/*                                                                         */
-/*    High-level PSNames module interface (specification).                 */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * psmodule.h
+ *
+ *   High-level psnames module interface (specification).
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef PSDRIVER_H
-#define PSDRIVER_H
-
-#include <freetype/ftmodule.h>
+#ifndef PSMODULE_H_
+#define PSMODULE_H_
 
 
-#ifdef __cplusplus
-  extern "C" {
-#endif
+#include <freetype/ftmodapi.h>
 
 
-  FT_EXPORT_VAR( const FT_Module_Class )  psnames_module_class;
-
-#ifdef __cplusplus
-  }
-#endif
+FT_BEGIN_HEADER
 
 
-#endif /* PSDRIVER_H */
+  FT_DECLARE_MODULE( psnames_module_class )
+
+
+FT_END_HEADER
+
+#endif /* PSMODULE_H_ */
 
 
 /* END */

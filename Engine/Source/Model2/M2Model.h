@@ -504,5 +504,7 @@ M2ModelTrack<T>::M2ModelTrack() {
 extern uint32_t g_animationCount;
 // CoA: AscItemCollections.cpp:FUN_102caed0 (orig hook 0x824ED0) -- before CM2Model::Release, with the model.
 extern void (*g_m2ReleaseHook)(CM2Model* model);
+// AscGeosets.cpp:0x101A1440 -- replaces SetGeometryVisible's loaded-model branch (CoA::GeosetsClient sets it).
+extern void (*g_m2SetGeometryVisibleHook)(CM2Model* model, uint32_t first, uint32_t last, int32_t visible);
 
 #endif

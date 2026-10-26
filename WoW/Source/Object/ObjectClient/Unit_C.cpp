@@ -1,12 +1,21 @@
 #include "WoW/Source/Magic/Types.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AnimationCount.h"
+#include "CoA/Source/Modules/Geosets.h"
+#include "CoA/Source/Modules/SpellShadowClient.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
 #include <algorithm>
 #include <vector>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
+#include "CoA/Source/Modules/ClientOptions.h"
+#include "CoA/Source/Modules/ClientOptionsClient.h"
+#include "CoA/Source/Modules/NamePlates.h"
+#include "CoA/Source/Modules/NamePlatesClient.h"
+#include "CoA/Source/Modules/UnitSelect.h"
+#include "CoA/Source/Modules/UnitSelectClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
@@ -337,6 +346,11 @@ static float s_forcedRunSpeed;
 
 // STATIC: 0x00CA11DC
 static float s_trackingTurnRate;
+
+// CoA: AscCamera.cpp:FUN_1019bcb0 -- cameraTargetFocusTurnSpeed writes 0xCA11DC.
+void UnitSetTrackingTurnRate(float rate) {
+    s_trackingTurnRate = rate;
+}
 
 // STATIC: 0x00CA11E0
 static float s_trackingInteractDistanceSq;
@@ -812,6 +826,12 @@ int32_t DynamicFlagsChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // VERIFY: 74767534 manual
 // OFFSET: 0x00725840
 void CGUnit_C::DestroyNamePlate() {
+    // CoA: AscNamePlates.cpp:FUN_102beb40 (orig hook 0x725840) -- after the original: once the plate pointer's low byte is
+    // 0 the unit leaves the nameplate registry (NAME_PLATE_UNIT_REMOVED).
+    auto released = CoA::ClientHooks::OnScopeExit([this]() {
+        CoA::NamePlates::AfterPlateRelease(this, reinterpret_cast<uintptr_t>(this->m_namePlateFrame));
+    });
+
     if (!this->m_namePlateFrame) {
         return;
     }
@@ -1074,6 +1094,9 @@ int32_t CGUnit_C::DisplayInfoNeedsUpdate() {
 // VERIFY: 503fd361 manual
 // OFFSET: 0x0073E410
 void CGUnit_C::UpdateDisplayInfo(int32_t force) {
+    // CoA: AscGeosets.cpp:0x101A1400 (orig hook 0x73E410) -- the display (descriptor +0x10C) is the current geoset
+    // display while the model is built; 0 after. (PostReenable's call passes 1, below.)
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldDisplayid);
     // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x73E42E, 0x73E72C, 0x73E749) -- 506 is the loaded AnimationData row count.
     if (!force && !this->DisplayInfoNeedsUpdate()) {
         return;
@@ -2276,6 +2299,12 @@ void CGUnit_C::RenderAutoTrackCursor() {
 // VERIFY: dc8d76e1 auto
 // OFFSET: 0x0072B7E0
 void CGUnit_C::Render() {
+    // CoA: AscUnitSelect.cpp:FUN_102da6c0 (orig hook 0x72B7E0) -- replaced: skipped once AutoInteractCursorTime has passed
+    // since the last click-to-move, else drawn with the tracking texture.
+    if (CoA::UnitSelectClient::RenderUnit(this)) {
+        return;
+    }
+
     this->RenderAutoTrackCursor();
 }
 
@@ -2334,7 +2363,8 @@ void CGUnit_C::OnCollideFallLand(uint32_t a1, int32_t a2) {
     float distance = this->m_movementData.GetDistanceFallen();
 
     if (distance >= 70.0f || (distance > 13.0f && !this->IsDeadOrGhost())) {
-        if (!(this->m_obj->m_type & TYPE_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && this->m_unit->m_unitFieldHealth > 0)) {
+        // CoA: AscClientOptions.cpp:FUN_10a47780 (callback patch 0x73D46A) -- Sound_EnableFall not 1 makes the jle a jmp.
+        if (!(this->m_obj->m_type & TYPE_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && CoA::ClientHooks::options.fallInjurySound && this->m_unit->m_unitFieldHealth > 0)) {
             this->PlayUnitSound(UNITSOUNDTYPE_INJURY_FALL, 1);
         }
 
@@ -3255,7 +3285,9 @@ void CGUnit_C::ObjectNameVisibilityChanged() {
         return;
     }
 
-    if (PlayerNameShowing(this->m_nameDesc) || this->m_namePlateFrame) {
+    // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x71557D, 0x715586) -- both jne are jmp: the raised
+    // sequence always.
+    if (CoA::ClientHooks::options.interactIconRaised || PlayerNameShowing(this->m_nameDesc) || this->m_namePlateFrame) {
         this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 190, 0xFFFFFFFF, 0, 1.0f, 1, 1);
     } else {
         this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
@@ -4753,7 +4785,8 @@ int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
             return flags & 0x1;
         }
 
-        if (this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
+        // CoA: AscClientOptions.cpp:FUN_10a4a270 (callback patch 0x729D3D) -- targetName not 1 NOPs the je.
+        if (CoA::ClientHooks::options.lockedTargetNameShown && this->m_obj->m_guid == CGGameUI::m_lockedTarget) {
             return 1;
         }
 
@@ -8459,6 +8492,12 @@ void CGUnit_C::ChooseDefaultAnim(uint32_t& anim, int32_t force) const {
 // VERIFY: 3787d22a auto
 // OFFSET: 0x00720330
 void CGUnit_C::UpdateSelectionRadius() {
+    // CoA: AscClientOptions.cpp:sub_10a462f0 (orig hook 0x720330) -- unless ObjectSelectionCircleMode is 0 the radius comes
+    // from both units' combat reach instead.
+    if (CoA::ClientOptionsClient::UpdateSelectionRadius(this)) {
+        return;
+    }
+
     CAaBox box = this->GetStandBox();
     float dx = box.t.x - box.b.x;
     float dy = box.t.y - box.b.y;
@@ -9878,6 +9917,9 @@ void CGUnit_C::InitializeActivePlayerComponent() {
 // VERIFY: a44c5498 manual
 // OFFSET: 0x0073FCC0
 void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reenable) {
+    // CoA: AscGeosets.cpp:0x101A13C0 (orig hook 0x73FCC0) -- the display (descriptor +0x10C) is the current geoset
+    // display during PostInit; 0 after.
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldDisplayid);
     this->m_movementData.UpdateTransportStatus(create);
     this->m_modelScale = this->GetModelScale(this->m_unit->m_unitFieldDisplayid);
 
@@ -10238,7 +10280,8 @@ void CGUnit_C::PostReenable() {
 
     this->UpdateBaseAnimation(false, -1);
     this->DestroyUnitMount(1);
-    this->UpdateDisplayInfo(0);
+    // CoA: AscGeosets.cpp:0x101A1400 -- called from here (return 0x74030E) the DLL forces the argument to 1.
+    this->UpdateDisplayInfo(1);
 
     if (static_cast<int32_t>(this->m_unit->m_unitFieldMountdisplayid) > 0) {
         this->CreateUnitMount(1, 1);
@@ -10537,6 +10580,10 @@ void CGUnit_C::Disable() {
         this->m_namePlateFrame = nullptr;
         this->ObjectNameVisibilityChanged();
     }
+
+    // CoA64: Ruling (Plan 14 final review) -- this inline release bypasses 0x725840, so the original's nameplate
+    // registry keeps the torn-down unit; here its entries are dropped silently so "nameplateN" never reaches freed memory.
+    CoA::NamePlates::ForgetUnit(this);
 
     if (this->m_chatBubble) {
         CGChatBubbleFrame::Remove(this->m_chatBubble);
@@ -10871,7 +10918,8 @@ void CGUnit_C::OnTurnStopLocal(uint32_t eventTime) {
 // VERIFY: c9647570 manual
 // OFFSET: 0x0072E5D0
 void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E5FE) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10889,7 +10937,8 @@ void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
 // VERIFY: 97b45c2f manual
 // OFFSET: 0x0072E680
 void CGUnit_C::OnStrafeStartLocal(uint32_t eventTime, int32_t left) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E6AE) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10931,7 +10980,8 @@ void CGUnit_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {
         Spell_C_CancelChannelSpell(this->m_unit->m_unitChannelSpell);
     }
 
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    // CoA: AscCamera.cpp:FUN_1019a9e0 (callback patch 0x72E870) -- cameraTargetFocusEnemyEnable 1 makes the jne a jmp.
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !CoA::ClientHooks::options.movementKeepsTracking && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -15130,6 +15180,9 @@ static bool IsOwnedByActivePlayer(const WOWGUID& guid, bool* isPlayer) {
 // VERIFY: d0bc6fd3 auto
 // OFFSET: 0x0071F990
 void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const SpellRec* spell, bool periodic) {
+    // CoA: AscClientOptions.cpp:FUN_10a468f0 (orig hook 0x71F990) -- after the original: an absorb (10) plays
+    // "AbsorbGetHit" with absorbSoundOnSpellHit 1.
+    auto absorbSound = CoA::ClientHooks::OnScopeExit([this, reason]() { CoA::ClientOptionsClient::AfterAddWorldText(this, static_cast<uint32_t>(reason)); });
     bool melee = !spell || (spell->m_attributesExC & 0x8000);
     bool isPlayer;
 
@@ -15167,6 +15220,11 @@ void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const Spe
 // VERIFY: 813b4b44 manual
 // OFFSET: 0x00722340
 void CGUnit_C::AddWorldDamageText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, bool periodic, bool spellColor) {
+    // CoA: AscClientOptions.cpp:sub_10a468b0 (orig hook 0x722340) -- a melee number (no spell) needs CombatLogMelee.
+    if (!CoA::ClientOptions::ShowDamageText(spell != nullptr)) {
+        return;
+    }
+
     bool melee = !spellColor && (!spell || (spell->m_attributesExC & 0x8000));
     bool isPlayer;
 
@@ -19667,7 +19725,9 @@ void CGUnit_C::ChatBubbleShow(int32_t type, const char* text) {
     // first: 170^2 in a dungeon or raid, else 100^2, for types 0xC / 0xE / 0x33; else 25^2.
     CoA::AttachFixes::SetChatBubbleRange(type, CoA::AttachFixesClient::CurrentMapInstanceType());
 
-    if (this->m_namePlateFrame || !text || !*text || !this->m_worldObject) {
+    // CoA: AscClientOptions.cpp:FUN_10a48c10 (callback patch 0x720020) -- with chatBubblesNameplate 1 the nameplate test is
+    // NOPed: a unit with a nameplate gets a bubble too.
+    if ((!CoA::ClientHooks::options.bubblesOverNameplates && this->m_namePlateFrame) || !text || !*text || !this->m_worldObject) {
         return;
     }
 
@@ -20158,7 +20218,9 @@ const char* GetObjectNameFromGuid(const WOWGUID& guid) {
 // OFFSET: 0x00715720
 static bool GetNamePlateScreenPos(CGUnit_C* unit, CGWorldFrame* worldFrame, C3Vector* screen) {
     C3Vector position = unit->GetNamePosition();
-    position.z = position.z + 0.6666667f;
+    // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x715739) -- the fadd reads the DLL's float (0.6666667 until
+    // nameplateVerticalOffset's callback writes it).
+    position.z = position.z + CoA::NamePlates::VerticalOffset();
     return worldFrame->GetScreenCoordinates(position, screen, nullptr);
 }
 
@@ -20237,6 +20299,11 @@ static void NamePlateSort(CGNamePlateFrame* frame) {
 // VERIFY: 20cca2b5 manual
 // OFFSET: 0x007256C0
 void CGUnit_C::NamePlateAddOrUpdate(const C3Vector& position, CGWorldFrame* worldFrame) {
+    // CoA: AscNamePlates.cpp:sub_102beb70 (orig hook 0x7256C0) -- after the original: a unit whose plate pointer's low byte
+    // was 0 before joins the nameplate registry (NAME_PLATE_UNIT_ADDED on the next tick).
+    const uintptr_t plateBefore = reinterpret_cast<uintptr_t>(this->m_namePlateFrame);
+    auto added = CoA::ClientHooks::OnScopeExit([this, plateBefore]() { CoA::NamePlates::AfterPlateCreate(this, plateBefore); });
+
     if (!this->m_namePlateFrame) {
         this->m_namePlateFrame = CGNamePlateFrame::GetNewNameplateFrame(worldFrame);
         this->m_namePlateFrame->Initialize(this);
@@ -20245,7 +20312,9 @@ void CGUnit_C::NamePlateAddOrUpdate(const C3Vector& position, CGWorldFrame* worl
         NamePlateSort(this->m_namePlateFrame);
         worldFrame->SetNamePlateUpdate();
 
-        if (this->m_chatBubble) {
+        // CoA: AscClientOptions.cpp:FUN_10a48c10 (callback patch 0x725737) -- with chatBubblesNameplate 1 the je is a jmp: a new
+        // nameplate keeps the bubble.
+        if (this->m_chatBubble && !CoA::ClientHooks::options.bubblesOverNameplates) {
             CGChatBubbleFrame::Remove(this->m_chatBubble);
             this->m_chatBubble = nullptr;
         }
@@ -20282,7 +20351,9 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
     while (frame) {
         CGNamePlateFrame* next = s_namePlates.Next(frame);
 
-        if (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue) {
+        // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x7258CE, 0x72594B) -- the two tests are NOPed: always the
+        // anchored path.
+        if (CoA::ClientHooks::options.namePlatesAnchored || (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue)) {
             C3Vector position = frame->m_position;
             // CoA: AscAttachLate.cpp (Extensions.dll patch 0x725915) -- point 1 (TOP) became 7 (BOTTOM).
             frame->SetPoint(FRAMEPOINT_BOTTOM, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
@@ -20296,6 +20367,17 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
     }
 
     CLayoutFrame::ResizePending();
+
+    // CoA: AscNamePlates.cpp:FUN_102be880 (orig hook 0x725890) -- after the original: nameplateAngle's distance and
+    // facing-angle culling.
+    CoA::NamePlates::AfterPlatePass();
+}
+
+// CoA: AscNamePlates.cpp -- the plate list for the DLL's culling pass.
+void UnitForEachNamePlate(void (*cb)(CGNamePlateFrame* frame, void* param), void* param) {
+    for (CGNamePlateFrame* frame = s_namePlates.Head(); frame; frame = s_namePlates.Next(frame)) {
+        cb(frame, param);
+    }
 }
 
 // VERIFY: fb0e4f71 manual
@@ -20437,7 +20519,16 @@ void CGUnit_C::SetNamePlateFocus(const C2Vector& position) {
 // VERIFY: 5739ef94 manual
 // OFFSET: 0x0072B060
 int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* position) {
-    if (this->m_unit->m_unitFieldHealth <= 0) {
+    // CoA: AscNamePlates.cpp:FUN_102c2630 (orig hook 0x72B060) -- the personal plate, the neutral / in-combat filters and
+    // the fixed vertical offset decide first.
+    int32_t coaResult = 0;
+
+    if (CoA::NamePlatesClient::BeforeShouldShow(this, worldFrame, position, coaResult)) {
+        return coaResult;
+    }
+
+    // CoA: AscNamePlates.cpp:FUN_102bee60 (callback patch 0x72B07A) -- nameplateShowDead 1 NOPs the jle.
+    if (!CoA::ClientHooks::options.namePlatesShowDead && this->m_unit->m_unitFieldHealth <= 0) {
         return 0;
     }
 
@@ -21489,6 +21580,9 @@ void CGUnit_C::DestroyUnitMount(int32_t a2) {
 // VERIFY: 842ee456 manual
 // OFFSET: 0x0073D5D0
 void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
+    // CoA: AscGeosets.cpp:0x101A1390 (orig hook 0x73D5D0) -- the mount display (descriptor +0x114) is the current
+    // geoset display while the mount model is built; 0 after.
+    CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldMountdisplayid);
     this->m_wheelMask = 0;
 
     if (!this->m_mountModel) {
@@ -22642,6 +22736,11 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 // VERIFY: 1484b729 manual
 // OFFSET: 0x00727400
 bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
+    // CoA: AscUnitSelect.cpp:FUN_102da340 (orig hook 0x727400) -- a call from past the exe image reports a bot first
+    // (CMSG 0x51F); after the original the tracking turn rate is AutoInteractTurnSpeed and the time is kept.
+    CoA::UnitSelectClient::BeforeClickToMove(_ReturnAddress());
+    auto afterClick = CoA::ClientHooks::OnScopeExit([]() { CoA::UnitSelect::AfterClickToMove(); });
+
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
         // CoA: AscAttachLate.cpp (Extensions.dll patch 0x727431) -- jne became jmp: AUTOFOLLOW_END is not signalled here.
         if (false && CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
@@ -22666,7 +22765,10 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
     CGUnit_C::s_trackingDirection = facing;
     CGUnit_C::s_trackingGUID = *guid;
     CGUnit_C::s_trackingPosition = *position;
-    s_trackingTurnRate = (this->m_movement->m_flags2 & 0x8) ? this->m_movement->m_turnRate : 3.1415927f;
+    // CoA: AscCamera.cpp:FUN_1019bcb0 (callback patch 0x727520) -- the write is NOPed once cameraTargetFocusTurnSpeed is set.
+    if (!CoA::ClientHooks::options.trackingTurnRateFixed) {
+        s_trackingTurnRate = (this->m_movement->m_flags2 & 0x8) ? this->m_movement->m_turnRate : 3.1415927f;
+    }
     CGUnit_C::s_trackingStuckCount = 0;
     s_trackingInteractDistance = sqrt(s_trackingInteractDistanceSq);
     CGUnit_C::s_unused_CA11D0 = 0.0f;
@@ -23047,7 +23149,10 @@ bool CGUnit_C::HandleTrackingFacing(float facing, float maxTurn, uint32_t time) 
 
     CMovementShared* movement = this->m_movement;
 
-    if (movement->m_flags2 & 0x8) {
+    // CoA: AscCamera.cpp:FUN_1019bcb0 (callback patch 0x731720) -- the shared store of both writes is NOPed once
+    // cameraTargetFocusTurnSpeed is set.
+    if (CoA::ClientHooks::options.trackingTurnRateFixed) {
+    } else if (movement->m_flags2 & 0x8) {
         s_trackingTurnRate = movement->m_turnRate;
     } else if (3.1415927f == s_trackingTurnRate) {
         s_trackingTurnRate = (delta <= 2.0943952f || delta >= 4.1887903f ? 800.0f : 1200.0f) * 0.017453292f;
@@ -23321,11 +23426,14 @@ void CGUnit_C::RenderTargetSelection() const {
     this->GetSelectionHighlightColor(&color);
 
     C44Matrix matrix;
-    CGObject_C::BuildSelectionRotMatrix(&matrix, &position);
+    this->BuildSelectionRotMatrix(&matrix, &position);
     g_theGxDevicePtr->RsPush();
     int32_t states = CGObject_C::SetCircleRenderStates();
 
     if (states) {
+        // CoA: AscSpellShadow.cpp:FUN_10321830 (orig hook 0x7E4370) -- from here (0x725A8F) the box's z extent grows by
+        // 2.5 at each end (the box stays changed for the combat flash below).
+        CoA::SpellShadowClient::BeforeSelectionRender(box);
         ProjectTex::Render2d(box, color, &matrix, 0.5f, 0x200122, 1, 0.4f);
     }
 
@@ -23398,7 +23506,7 @@ void CGUnit_C::RenderPetTargetSelection() const {
     box.Expand(amount);
 
     C44Matrix matrix;
-    CGObject_C::BuildSelectionRotMatrix(&matrix, &position);
+    this->BuildSelectionRotMatrix(&matrix, &position);
     g_theGxDevicePtr->RsPush();
 
     if (CGObject_C::SetCircleRenderStates()) {
@@ -23417,6 +23525,14 @@ void CGUnit_C::OnSpecialMountAnim() {
 // VERIFY: d5c90727 manual
 // OFFSET: 0x00720F80
 const SpellVisualRec* CGUnit_C::GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t visualId, int32_t lowViolenceVisualId) const {
+    // CoA: AscSpellVisuals.cpp:0x10322B50 (orig hook 0x720F80) -- from OnSpellGo (0x80ED4E) another player's harmful spell
+    // has no visual while hideOtherPlayerHarmfulSpellVisuals is on; after every return the record takes the server's /
+    // the appearance's visual (zeroed when hidden). The result is the original's.
+    if (CoA::SpellVisualsClient::SkipAppropriateVisual(this, spell)) {
+        return nullptr;
+    }
+
+    auto spellVisuals = CoA::ClientHooks::OnScopeExit([this, spell, &visual] { CoA::SpellVisualsClient::AfterAppropriateVisual(this, spell, visual); });
     int32_t id = visualId;
     const SpellVisualRec* weapon = nullptr;
     const SpellVisualRec* base;

@@ -1,5 +1,6 @@
 #include "Map.h"
 #include "CoA/Source/Modules/Misc.h"
+#include "CoA/Source/Modules/CameraClient.h"
 #include "WoW/Source/WorldClient/WorldLightingConstants.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include "Engine/Source/ShaderEffect/ShadowCache.h"
@@ -1160,6 +1161,11 @@ World::ObjectCollisionData::ObjectCollisionData() {
 // VERIFY: 09bec685 manual
 // OFFSET: 0x007A25F0
 static void AddHitDebugModel(World::HitTestDebug* hitInfo, int32_t depth, CM2Model* model) {
+    // CoA: AscCamera.cpp:FUN_1019c2f0 (orig hook 0x7A25F0) -- replaced: the hit model and its alpha are recorded for the
+    // camera fade; nothing goes into the debug record.
+    CoA::CameraClient::RecordHit(model);
+    return;
+
     for (; model; model = model->m_attachNext) {
         if (hitInfo->m_numModels == 16) {
             break;

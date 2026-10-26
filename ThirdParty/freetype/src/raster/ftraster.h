@@ -1,50 +1,47 @@
-/***************************************************************************/
-/*                                                                         */
-/*  ftraster.h                                                             */
-/*                                                                         */
-/*    The FreeType glyph rasterizer (specification).                       */
-/*                                                                         */
-/*  Copyright 1996-2000 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used        */
-/*  modified and distributed under the terms of the FreeType project       */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * ftraster.h
+ *
+ *   The FreeType glyph rasterizer (specification).
+ *
+ * Copyright (C) 1996-2025 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used
+ * modified and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-#ifndef FTRASTER_H
-#define FTRASTER_H
+#ifndef FTRASTER_H_
+#define FTRASTER_H_
 
-#ifdef __cplusplus
-  extern "C" {
-#endif
 
+#include <ft2build.h>
+#include FT_CONFIG_CONFIG_H
 #include <freetype/ftimage.h>
 
+#include <freetype/internal/compiler-macros.h>
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* Uncomment the following line if you are using ftraster.c as a         */
-  /* standalone module, fully independent of FreeType.                     */
-  /*                                                                       */
-/* #define _STANDALONE_ */
+FT_BEGIN_HEADER
 
-#ifndef FT_EXPORT_VAR
-#define FT_EXPORT_VAR( x )  extern x
-#endif
+
+  /**************************************************************************
+   *
+   * Uncomment the following line if you are using ftraster.c as a
+   * standalone module, fully independent of FreeType.
+   */
+/* #define STANDALONE_ */
 
   FT_EXPORT_VAR( const FT_Raster_Funcs )  ft_standard_raster;
 
-#ifdef __cplusplus
-  }
-#endif
 
+FT_END_HEADER
 
-#endif /* FTRASTER_H */
+#endif /* FTRASTER_H_ */
 
 
 /* END */

@@ -5,6 +5,7 @@
 #include "Engine/Source/Gx/CGxTexFlags.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gxu/GxuFontFont.h"
+#include "Engine/Source/Gxu/GxuFont.h"
 #include "Engine/Source/Gxu/GxuFontMiscClasses.h"
 #include "Engine/Source/Gxu/GxuFontUtil.h"
 #include "Engine/Source/Services/Texture.h"
@@ -380,7 +381,11 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
             CGxFont* font = cache->m_theFace;
             uint16_t* dest = &s_textureData[glyph->m_glyphStartPixel + ((glyph->m_rowNumber * font->m_cellHeight) << 8)];
 
-            if (font->m_fontFlags & 1) {
+            // CoA: AscFontRender.cpp:FUN_10238130 (orig hook 0x6C8E70, 0x6C9330, 0x6C9420, 0x6C9C70) -- the four copiers are
+            // replaced by one: the SDF value in each texel's high byte.
+            if (g_gxuFontPasteGlyphHook) {
+                g_gxuFontPasteGlyphHook(cache, glyph->m_bitmapData, dest);
+            } else if (font->m_fontFlags & 1) {
                 if (font->m_fontFlags & 2) {
                     cache->PasteGlyphOutlinedMonochrome(glyph->m_bitmapData, dest);
                 } else {
@@ -401,7 +406,8 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
 // VERIFY: 0f656a97 auto
 // OFFSET: 0x006CA050
 void TEXTURECACHE::CreateTexture(int32_t filter) {
-    CGxTexFlags flags(static_cast<EGxTexFilter>(filter != 0), 0, 0, 0, 0, 0, 1, 0, 0, 0);
+    // CoA: AscFontRender.cpp (Extensions.dll callback patch 0x6CA067) -- the setne is "mov al, 1": always filtered.
+    CGxTexFlags flags(static_cast<EGxTexFilter>(g_gxuFontAlwaysFilter ? 1 : filter != 0), 0, 0, 0, 0, 0, 1, 0, 0, 0);
     this->m_texture = TextureCreate(256, 256, GxTex_Argb4444, GxTex_Argb4444, flags, this, TEXTURECACHE::TextureCallback, "GxuFont", 0);
 }
 

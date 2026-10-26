@@ -717,6 +717,8 @@ static void ProjectTexRender2d(const CAaBox& box, const CImVector& color, uint32
 // VERIFY: 5f932eb3 manual
 // OFFSET: 0x007E4370
 void ProjectTex::Render2d(const CAaBox& box, const CImVector& color, const C44Matrix* matrix, float fade, uint32_t a5, uint32_t a6, float polygonOffset) {
+    // CoA: AscSpellShadow.cpp:FUN_10321830 (orig hook 0x7E4370) -- the DLL's detour acts by return address only; its two
+    // callers carry it (DrawSpellCursorShadow, CGUnit_C::RenderTargetSelection). Any other caller is passed through.
     C44Matrix texMatrix;
     C44Matrix fadeMatrix;
     ProjectTex2dMakeMatrices(texMatrix, fadeMatrix, box, matrix, fade, 0);
