@@ -324,9 +324,10 @@ namespace {
         }
 
         if (!device->WorldTargetBegin(width, height)) {
-            s_beginFailed = true;
             LogState(kBeginFailed);
             Deactivate(device);
+            // After Deactivate: its release hook clears s_beginFailed.
+            s_beginFailed = true;
             return;
         }
 
@@ -360,6 +361,7 @@ namespace {
         C44Matrix projection;
         memcpy(&projection, &jittered, sizeof(projection));
         device->XformSetProjection(projection);
+        SetJitter(jx, jy);
     }
 
     void EndWorld(const CRect& /* viewportNDC */) {
