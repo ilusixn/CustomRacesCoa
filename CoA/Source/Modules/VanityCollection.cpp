@@ -777,7 +777,7 @@ int32_t CoA::VanityCollection::OnCustomizationUnlocks(void* param, uint32_t opco
 // SMSG 0x573 (FUN_101e55d0): the record's fields in order with its three strings as C strings in place, then three
 // more C strings (read and dropped). FUN_1032ec60 patches the store; only on success does it rebuild the browser and
 // signal HOT_PATCH_VANITY_COLLECTION("%u", item). MMgr64.exe refused the patch, so the original never did either; the
-// in-process bridge applies it (MemoryBridge.h). Rebuilding the 10k-item browser per row would freeze a login stream
+// x64 store applies it (BridgeStore.cpp). Rebuilding the 10k-item browser per row would freeze a login stream
 // that prices every row, so (as the reconstruction does) a built browser takes the record in place (Refresh) and an
 // unbuilt one picks it up when it is first built.
 int32_t CoA::VanityCollection::OnPatchVanity(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {

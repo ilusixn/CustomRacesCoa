@@ -4,7 +4,6 @@
 #include "CoA/Source/Modules/VanityCollection.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/LuaReg.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
@@ -73,7 +72,6 @@ namespace {
 
     lua_State* Setup() {
         CoA::Dbc::SetFileReader(ReadTables);
-        CoA::MemoryBridge::Reset();
         CoA::BridgeStore::Reset();
         CoA::BridgeStore::LoadTables();
         CoA::BridgeStore::BuildIndexes();

@@ -37,9 +37,10 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 - **Interface hot patches.** The reconstruction's `AscHotPatch` (SMSG `0x8F0`, the `0x5BC` formatter check; not in the
   original, `ASCENSION_HOT_PATCH` default off) is not ported.
 - **Bridged table patches.** Server patches of the six bridged tables (SMSG `0x567`, `0x569`, `0x56D`, `0x56F`,
-  `0x573`, `0x574`) take effect: the in-process table server serves PatchRecord `0x73`, which `MMgr64.exe` refused, so
-  the 32-bit client dropped every such patch. The reconstruction applies them too (its `3c8f196`, by pinning). A built
-  vanity browser takes a patched row in place instead of being rebuilt per row.
+  `0x573`, `0x574`) take effect: `MMgr64.exe` refused the row write (PatchRecord `0x73`), so the 32-bit client dropped
+  every such patch. The reconstruction applies them too (its `3c8f196`, by pinning). The creature (`0x567`) and
+  keystone (`0x56D`) patches of a known row, which the original wrote only into its record cache until an eviction
+  reverted them, are kept. A built vanity browser takes a patched row in place instead of being rebuilt per row.
 - **Early fixes taken from the reconstruction.** Quest log ids are read as 32 bits (the original's low word never
   matched custom quests above 65535). `GameTooltip:InsertLine` / `InsertLines` hide the font strings past
   `NumLines()` while they run (`TooltipInsertFixClient`), so keystone tooltips keep every Dungeon Modifier; temporary,
@@ -54,11 +55,10 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 
 ## Forced by x64
 
-- **MemoryBridge / `MMgr64.exe`.** No helper process: its table server runs in-process with the same semantics
-  (result codes, the 0xFEFD0-byte reply limit with batch halving), except that PatchRecord 0x73 is served (see
-  Bridged table patches above). The six bridged DBCs (Creature, Quest, ItemAddon,
-  VanityCollection, SpellAffect, MythicKeystones) keep their 32-bit rows in the tables; the cached records handed to
-  callers are x64 structs with string pointers. The memory commands and the start-up self-test are gone.
+- **MemoryBridge / `MMgr64.exe`.** No helper process, protocol or record cache: the six bridged DBCs (Creature, Quest,
+  ItemAddon, VanityCollection, SpellAffect, MythicKeystones) are kept in the client as the x64 records `BridgeStore`
+  hands out, answering lookups as the helper's indexes did (the first row holding the key; nothing for a field the
+  original never indexed). The memory commands and the start-up self-test are gone.
 - **HD content.** The eight HD archives and the ten HD model tables load only while the DXVK (Vulkan) renderer is
   active (`CoA::Hd`), and never with `-hd 0`. HD tables are read through the client's own record readers (x64
   records) and applied right after each one loads.

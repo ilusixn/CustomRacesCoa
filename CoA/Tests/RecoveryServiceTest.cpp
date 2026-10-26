@@ -5,7 +5,6 @@
 #include "CoA/Source/Modules/RecoveryService.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/LuaReg.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
@@ -67,7 +66,6 @@ namespace {
 
     lua_State* Start(bool deps = true) {
         CoA::Dbc::SetFileReader(ReadTables);
-        CoA::MemoryBridge::Reset();
         CoA::BridgeStore::Reset();
         CoA::BridgeStore::LoadTables();
         CoA::BridgeStore::BuildIndexes();

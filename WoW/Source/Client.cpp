@@ -1730,8 +1730,8 @@ void ForEveryRunOnceWTF::Execute(int32_t (*callback)(const char*)) {
 bool InitializeGlobal() {
     // CoA: AscMemoryBridge.cpp:StartupDetour (orig hook 0x4067F0) -- after this function the DLL starts MMgr64.exe and runs
     // its allocate / write / read / free self-test (fatal on failure, "MemoryBridge communication test passed." in
-    // MemoryBridge.log). The x64 client has no helper process (its table server runs in-process) and no memory commands,
-    // so there is nothing to start or test (Ruling).
+    // MemoryBridge.log). The x64 client keeps the bridged tables in its own memory (BridgeStore), so there is nothing to
+    // start or test (Ruling).
     SCmdRegisterArgList(s_wowArgList, sizeof(s_wowArgList) / sizeof(s_wowArgList[0]));
     CmdLineProcess();
     LoadMFIL("WoW.mfil");

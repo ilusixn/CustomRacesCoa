@@ -1,6 +1,5 @@
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Runtime/Dbc.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
 #include <cstring>
@@ -91,7 +90,6 @@ namespace {
         s_badCreature = badCreature;
         CoA::Dbc::SetFileReader(ReadBridge);
         CoA::BridgeStore::Reset();
-        CoA::MemoryBridge::Reset();
         CoA::BridgeStore::LoadTables();
         CoA::BridgeStore::BuildIndexes();
         CoA::Dbc::SetFileReader(nullptr);
@@ -197,4 +195,20 @@ COA_TEST(BridgeStore_QuestPatchApplies) {
 
     CoATest::Deliver(CoA::BridgeStore::OnPatchQuest, 0x56F, row);
     CHECK(CoA::BridgeStore::QuestsInGroup(5).size() == 3);
+}
+
+// Only the id is indexed at load: lookups by item / entry / group answer nothing until BuildIndexes, as the helper's
+// queries on an unindexed field failed.
+COA_TEST(BridgeStore_KeyLookupsNeedTheirIndex) {
+    s_badCreature = false;
+    CoA::Dbc::SetFileReader(ReadBridge);
+    CoA::BridgeStore::Reset();
+    CoA::BridgeStore::LoadTables();
+    CoA::Dbc::SetFileReader(nullptr);
+    CHECK(CoA::BridgeStore::CreatureByEntry(200) == nullptr);
+    CHECK(CoA::BridgeStore::QuestsInGroup(5).empty());
+    CHECK(CoA::BridgeStore::QuestById(31) != nullptr);
+    CoA::BridgeStore::BuildIndexes();
+    CHECK(CoA::BridgeStore::CreatureByEntry(200) != nullptr);
+    CHECK(CoA::BridgeStore::QuestsInGroup(5).size() == 2);
 }
