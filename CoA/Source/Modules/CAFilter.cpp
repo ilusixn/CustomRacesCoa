@@ -1501,11 +1501,12 @@ namespace {
         return 1;
     }
 
+    // FUN_1016ec70: mgr +0x28, +0x190, +0x2F8. The editor container (BuildCreator +0x228) is emptied by the Build
+    // Creator's own glue reset FUN_100fc070 (CoA::BuildCreator), through ResetEditor.
     void ResetOnGlue() {
-        ResetContainer(s_normal);    // FUN_1016ec70: mgr +0x28, +0x190, +0x2F8
+        ResetContainer(s_normal);
         ResetContainer(s_classes);
         ResetContainer(s_entries);
-        ResetContainer(s_editor);    // FUN_100fc070: BuildCreator +0x228
     }
 
     const CoA::Binding s_bindings[] = {
@@ -1643,6 +1644,7 @@ void CoA::CAFilter::Init() {
 
 void CoA::CAFilter::Reset() {
     ResetOnGlue();
+    ResetContainer(s_editor);
     s_category = 0;
     s_tagTypeStats.clear();
     s_tagTypeStatsBuilt = false;

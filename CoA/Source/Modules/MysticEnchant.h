@@ -61,6 +61,9 @@ namespace CoA::MysticEnchant {
     bool Slotted(uint32_t spell);               // FUN_102E9680
     bool Collected(uint32_t spell);             // FUN_102E96B0
     bool Worldforged(uint32_t spell);
+    // The row of a spell (map 0x10BE04C8, FUN_100A0420) and its RE_QUALITY_* index (FUN_102E65D0), for AscBuildCreator.
+    const uint8_t* RowOfSpell(uint32_t spell);
+    uint32_t QualityOfRow(const uint8_t* row);
 
     // 0x10A42DD0 -> FUN_102EA1A0: a used game object; FUN_10A42F30's first two branches: a used item.
     void OnGameObjectUse(uint32_t entry);

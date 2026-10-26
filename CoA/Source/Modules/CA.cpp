@@ -870,6 +870,10 @@ CoA::CA::Build* CoA::CA::BuildOf(uint64_t guid) {
     return p ? p->Get(p->spec) : nullptr;
 }
 
+std::vector<CoA::CA::Request>& CoA::CA::WildcardReveals() {
+    return s_mgr.requests;
+}
+
 const std::vector<CoA::CA::Row>& CoA::CA::IndexedRows() {
     return s_index.visible;
 }
