@@ -1,4 +1,5 @@
 #include "DynamicObject_C.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -383,6 +384,12 @@ void CGDynamicObject_C::PostReenable() {
 // VERIFY: dc132a97 manual
 // OFFSET: 0x00705100
 int32_t CGDynamicObject_C::GetModelFileName(const char** name) const {
+    // CoA: AscSpellVisuals.cpp:0x10322760 (orig hook 0x705100) -- with hideOtherPlayerHarmfulSpellVisuals on, another
+    // player's harmful dynamic object gets no model.
+    if (CoA::SpellVisualsClient::SkipDynamicObject(this)) {
+        return 0;
+    }
+
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(this->m_dynamicObject->m_spellID, &spell)) {

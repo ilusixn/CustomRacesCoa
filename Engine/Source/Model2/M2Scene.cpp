@@ -1517,6 +1517,7 @@ void CM2ModelHeap::Delete(CM2Model* model) {
 // OFFSET: 0x0081F8F0
 CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
     // CoA: AscItemCollections.cpp:FUN_102cb000 (orig hook 0x81F8F0) -- the DLL's detour runs after each return.
+    // CoA: AscGeosets.cpp:0x101A14F0 (orig hook 0x81F8F0) -- the DLL's second detour keeps each result as the last model.
     if (!fileName) {
         if (g_m2CreateModelHook) {
             g_m2CreateModelHook(fileName, nullptr);

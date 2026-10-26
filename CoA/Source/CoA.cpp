@@ -117,6 +117,13 @@ static const CoA::Module s_modules[] = {
     { "UnitSelect", CoA::UnitSelect::Init },
     { "TooltipScaling", CoA::TooltipScaling::Init },
     { "ModelNames", CoA::ModelNames::Init },
+    { "SpawnVisibility", CoA::SpawnVisibility::Init },
+    // After PatchData, whose geosetsRebuild it fills.
+    { "Geosets", CoA::Geosets::Init },
+    { "SpellShadow", CoA::SpellShadow::Init },
+    { "SpellVisuals", CoA::SpellVisuals::Init },
+    { "ZoneLight", CoA::ZoneLight::Init },
+    { "FontRender", CoA::FontRender::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -195,6 +202,12 @@ static const CoA::Module s_modules[] = {
     { "UnitSelectClient", CoA::UnitSelectClient::Init },
     { "TooltipScalingClient", CoA::TooltipScalingClient::Init },
     { "ModelNamesClient", CoA::ModelNamesClient::Init },
+    { "SpawnVisibilityClient", CoA::SpawnVisibilityClient::Init },
+    { "GeosetsClient", CoA::GeosetsClient::Init },
+    { "SpellShadowClient", CoA::SpellShadowClient::Init },
+    { "SpellVisualsClient", CoA::SpellVisualsClient::Init },
+    { "ZoneLightClient", CoA::ZoneLightClient::Init },
+    { "FontRenderClient", CoA::FontRenderClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

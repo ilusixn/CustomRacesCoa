@@ -289,6 +289,12 @@ CGxVertexPCT* BATCHEDRENDERFONTDESC::UnlockVertexPtrAndRender(CGxBuf*& buf, int3
 // VERIFY: 7e6d9f88 manual
 // OFFSET: 0x006C4AD0
 void BATCHEDRENDERFONTDESC::RenderBatch() {
+    // CoA: AscFontRender.cpp:FUN_10236fd0 (orig hook 0x6C4AD0) -- before each batch: the "Font" pixel shader and its
+    // constants c4 / c5.
+    if (g_gxuFontRenderBatchHook) {
+        g_gxuFontRenderBatchHook(this);
+    }
+
     if (!BATCHEDRENDERFONTDESC::s_indexPool) {
         return;
     }

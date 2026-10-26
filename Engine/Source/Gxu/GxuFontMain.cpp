@@ -4,7 +4,7 @@
 #include <cstring>
 #include <malloc.h>
 #include <typeinfo>
-#include <freetype/ftmodule.h>
+#include <freetype/ftmodapi.h>
 #include "Engine/Source/Gxu/GxuFont.h"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include "Engine/Source/Gx/CGxBuf.h"
@@ -80,6 +80,15 @@ static CGxVertexPC s_graphVerts[30 * 4];
 
 // STATIC: 0x00C7D2B4
 FT_Library g_FTLibrary;
+
+// CoA: AscFontRender.cpp -- set by CoA::FontRenderClient (see GxuFont.h).
+void (*g_gxuFontInitializeHook)();
+FT_Error (*g_gxuFontCreateLibraryHook)(FT_Memory memory, FT_Library* library);
+FT_Error (*g_gxuFontReleaseLibraryHook)(FT_Library library);
+bool (*g_gxuFontRenderGlyphHook)(FT_Face face, uint32_t pixelSize, uint32_t code, uint32_t baseline, GLYPHBITMAPDATA* dataPtr, int32_t monochrome, uint32_t padding);
+void (*g_gxuFontPasteGlyphHook)(TEXTURECACHE* cache, const GLYPHBITMAPDATA& data, uint16_t* dest);
+void (*g_gxuFontRenderBatchHook)(BATCHEDRENDERFONTDESC* desc);
+bool g_gxuFontAlwaysFilter = false;
 
 // STATIC: 0x00C7D2B8
 float g_indentNormWidth;
@@ -948,13 +957,24 @@ void GxuFontWindowSizeChanged() {
 // VERIFY: c5d92c78 auto
 // OFFSET: 0x006BE230
 void GxuFontInitialize() {
+    // CoA: AscFontRender.cpp:0x10237210 (orig hook 0x6BE230) -- first the DLL creates the "Font" pixel shader.
+    if (g_gxuFontInitializeHook) {
+        g_gxuFontInitializeHook();
+    }
+
     g_theGxDevicePtr->ShaderCreate(g_fontVertexShader, GxSh_Vertex, "Shaders\\Vertex", "UI", 2);
     g_theGxDevicePtr->ShaderCreate(&g_fontPixelShader, GxSh_Pixel, "Shaders\\Pixel", "UI", 1);
 
     BATCHEDRENDERFONTDESC::Initialize();
 
-    FT_New_Library(&s_GxuMemoryRecord, &g_FTLibrary);
-    FT_Add_Default_Modules(g_FTLibrary);
+    // CoA: AscFontRender.cpp:0x10237150 (orig hook 0x991320) -- the DLL's shared FT_Init_FreeType library (the memory record
+    // unused), and (Extensions.dll callback patch 0x6BE290) the FT_Add_Default_Modules call NOPed.
+    if (g_gxuFontCreateLibraryHook) {
+        g_gxuFontCreateLibraryHook(&s_GxuMemoryRecord, &g_FTLibrary);
+    } else {
+        FT_New_Library(&s_GxuMemoryRecord, &g_FTLibrary);
+        FT_Add_Default_Modules(g_FTLibrary);
+    }
 
     GxuFontWindowSizeChanged();
     InitializeFrameGraph();
@@ -1173,7 +1193,12 @@ void GxuFontShutdown() {
     BATCHEDRENDERFONTDESC::Shutdown();
 
     if (g_FTLibrary) {
-        FT_Done_Library(g_FTLibrary);
+        // CoA: AscFontRender.cpp:0x10237100 (orig hook 0x992CB0) -- FT_Done_FreeType on the shared library.
+        if (g_gxuFontReleaseLibraryHook) {
+            g_gxuFontReleaseLibraryHook(g_FTLibrary);
+        } else {
+            FT_Done_Library(g_FTLibrary);
+        }
     }
 
     g_FTLibrary = nullptr;

@@ -1,5 +1,6 @@
 #include "World.h"
 #include "CoA/Source/Modules/Graphics.h"
+#include "CoA/Source/Modules/ZoneLightClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
@@ -579,6 +580,9 @@ static void ZonesInitialize() {
 // VERIFY: 5f002705 manual
 // OFFSET: 0x0077EED0
 void DayNight::FindAndAddZoneLight(const C3Vector* position) {
+    // CoA: AscZoneLight.cpp:FUN_10a4b880 (orig hook 0x77EED0) -- after every return each ZoneLight.dbc zone the position is
+    // near blends its light in.
+    auto zoneLight = CoA::ClientHooks::OnScopeExit([position] { CoA::ZoneLightClient::AfterFindZoneLight(position); });
     DNInfo* info = DayNight::GetInfo();
 
     if (!info) {

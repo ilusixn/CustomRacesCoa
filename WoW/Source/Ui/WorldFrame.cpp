@@ -1,5 +1,6 @@
 #include "WorldFrame.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Modules/SpellShadowClient.h"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include <cstring>
 #include <typeinfo>
@@ -1518,11 +1519,17 @@ static C3Vector GetFacingVector(CGObject_C* object) {
 // VERIFY: 5b70d219 manual
 // OFFSET: 0x004F8A40
 static void DrawSpellCursorShadow(uint32_t a1) {
-    if (!s_spellShadowTexture[s_spellShadowStyle]) {
+    // CoA: AscSpellShadow.cpp:FUN_10321240 (orig hook 0x4F8A40) -- before the draw: the half height follows the style, and
+    // while the cone aims the target point becomes the player's position (style 0, the spell's radius as the size).
+    CoA::SpellShadowClient::BeforeDraw(reinterpret_cast<int32_t&>(s_spellShadowStyle), s_spellShadowPos, s_spellShadowSize);
+    // CoA: AscSpellShadow.cpp:FUN_10320c20 (callback patch 0x4F8A4B) -- the texture table the style indexes.
+    CTexture* const* textures = CoA::ClientHooks::options.spellShadowTextures ? reinterpret_cast<CTexture* const*>(CoA::ClientHooks::options.spellShadowTextures) : s_spellShadowTexture;
+
+    if (!textures[s_spellShadowStyle]) {
         return;
     }
 
-    CGxTex* texture = TextureGetGxTex(s_spellShadowTexture[s_spellShadowStyle], 0, nullptr);
+    CGxTex* texture = TextureGetGxTex(textures[s_spellShadowStyle], 0, nullptr);
 
     if (!texture) {
         return;
@@ -1538,9 +1545,11 @@ static void DrawSpellCursorShadow(uint32_t a1) {
         size = 1.3888888f;
     }
 
+    // CoA: AscSpellShadow.cpp:FUN_10321240 (callback patch 0x4F8AD4) -- the half height: 2.0, or the shadow size.
+    const float halfHeight = CoA::ClientHooks::options.spellShadowSizedHeight ? s_spellShadowSize : 2.0f;
     CAaBox box;
-    box.t = C3Vector(s_spellShadowPos.x + size, s_spellShadowPos.y + size, s_spellShadowPos.z + 2.0f);
-    box.b = C3Vector(s_spellShadowPos.x - size, s_spellShadowPos.y - size, s_spellShadowPos.z - 2.0f);
+    box.t = C3Vector(s_spellShadowPos.x + size, s_spellShadowPos.y + size, s_spellShadowPos.z + halfHeight);
+    box.b = C3Vector(s_spellShadowPos.x - size, s_spellShadowPos.y - size, s_spellShadowPos.z - halfHeight);
 
     g_theGxDevicePtr->RsPush();
     GxRsSet(GxRs_Lighting, 0);
@@ -1559,7 +1568,12 @@ static void DrawSpellCursorShadow(uint32_t a1) {
     color.g = 0xFF;
     color.r = 0xFF;
     color.a = 0xFF;
-    ProjectTex::Render2d(box, color, nullptr, 0.5f, a1, 5, 0.4f);
+    // CoA: AscSpellShadow.cpp:FUN_10321830 (orig hook 0x7E4370) -- from here (0x4F8CF0) the aimed cone moves 7.5 yd
+    // along its angle and draws in the tooltip green with the DLL's rotation.
+    const CImVector* colorArg = &color;
+    const C44Matrix* matrix = nullptr;
+    CoA::SpellShadowClient::BeforeShadowRender(box, colorArg, matrix);
+    ProjectTex::Render2d(box, *colorArg, matrix, 0.5f, a1, 5, 0.4f);
     g_theGxDevicePtr->RsPop();
 }
 

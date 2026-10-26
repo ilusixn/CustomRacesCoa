@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/AttachMisc.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/SpellVisualsClient.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -2039,6 +2040,8 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
     const SpellVisualRec* visual;
 
     if (unit) {
+        // CoA: AscSpellVisuals.cpp:0x10322B50 -- the DLL's detour on 0x720F80 tells this call (return 0x80ED4E) apart.
+        CoA::SpellVisualsClient::SpellGoScope spellGo;
         visual = unit->GetAppropriateSpellVisual(&spell, visualRec, visualA, visualB);
 
         if (visual && Spell_C_SpellVisualHasChainEffect(visual)) {

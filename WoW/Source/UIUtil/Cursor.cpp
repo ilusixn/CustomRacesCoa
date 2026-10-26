@@ -1,4 +1,5 @@
 #include "Cursor.h"
+#include "CoA/Source/Modules/SpellShadow.h"
 #include <cstring>
 #include "Engine/Source/BLPFile/Types.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -241,6 +242,9 @@ CURSORMODE CursorGetModeFromName(const char* name) {
 // VERIFY: c3ebf462 auto
 // OFFSET: 0x00616800
 void CursorSetMode(CURSORMODE mode) {
+    // CoA: AscSpellShadow.cpp:FUN_10320c20 (orig hook 0x616800) -- before every call: POINT_CURSOR restores the stock
+    // ground-target texture, CAST_ERROR_CURSOR with a flagged targeting spell switches to the cone.
+    CoA::SpellShadow::OnCursorMode(static_cast<uint32_t>(mode));
     if (mode != NUM_CURSOR_MODES && s_cursorMode != mode) {
         s_cursorMode = mode;
         UpdateCursor();

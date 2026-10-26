@@ -95,6 +95,12 @@ namespace CoA::NamePlates { void Init(); }
 namespace CoA::UnitSelect { void Init(); }
 namespace CoA::TooltipScaling { void Init(); }
 namespace CoA::ModelNames { void Init(); }
+namespace CoA::SpawnVisibility { void Init(); }
+namespace CoA::Geosets { void Init(); }
+namespace CoA::SpellShadow { void Init(); }
+namespace CoA::SpellVisuals { void Init(); }
+namespace CoA::ZoneLight { void Init(); }
+namespace CoA::FontRender { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -176,5 +182,11 @@ namespace CoA::NamePlatesClient { void Init(); }
 namespace CoA::UnitSelectClient { void Init(); }
 namespace CoA::TooltipScalingClient { void Init(); }
 namespace CoA::ModelNamesClient { void Init(); }
+namespace CoA::SpawnVisibilityClient { void Init(); }
+namespace CoA::GeosetsClient { void Init(); }
+namespace CoA::SpellShadowClient { void Init(); }
+namespace CoA::SpellVisualsClient { void Init(); }
+namespace CoA::ZoneLightClient { void Init(); }
+namespace CoA::FontRenderClient { void Init(); }
 
 #endif

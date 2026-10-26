@@ -122,6 +122,9 @@ namespace CoA::ClientHooks {
     inline Hooks<void*> afterPreAnimate;             // 0x743EC0 CGObject_C::PreAnimate, after (list 0x10BE2CF8)
     inline Hooks<void*> afterActivePlayerInit;       // 0x6E7F50 CGPlayer_C::PostInitActivePlayer, after (0x10BE2DB8)
     inline Hooks<void*> afterUnitCreated;            // 0x73F660 CGUnit_C::CGUnit_C, after (list 0x10BE2BCC)
+    // 0x81F8F0 CM2Scene::CreateModel, after, with its result (also nullptr): AscItemCollections' FUN_102cb000 and
+    // AscGeosets' 0x101A14F0 detours (ClientHooksClient.cpp installs the Engine pointer).
+    inline Hooks<void*> afterCreateModel;
     inline Hooks<void*> beforeTeleport;              // 0x6ECF80 CMovement_C::Teleport, before, with its unit (0x10BE2BAC)
     inline Hooks<void*, uint32_t, uint32_t, void*> beforeSpellPacket;   // 0x80FEE0 Packet_Group_30, before (0x10BE2D58)
     inline Hooks<const void*> beforeKeyDown;         // 0x4943C0 CSimpleTop::OnKeyDown, in world (list 0x10BE2B0C)
@@ -133,6 +136,9 @@ namespace CoA::ClientHooks {
     inline Predicates<void*, const void*, const void*, const void*, bool> usableAction;
     // 0x744AC0 CGObject_C::ClearEffectList (replaced): true removes the effect (list 0x10BE2D78).
     inline Predicates<void*, void*> removeEffect;
+    // FUN_10278820 -> list 0x10BE2D98, asked by FUN_10277870 (AscSpellVisuals' resolve): true hides the spell's visual for
+    // (guid kind, guid lo, guid hi, spell).
+    inline Predicates<uint32_t, uint32_t, uint32_t, uint32_t> visualHide;
     // FUN_102766c0 (0x81AA00 FrameScript_SignalEvent): callbacks for one stock event id, before its listeners.
     inline std::vector<std::pair<int32_t, void (*)(lua_State*)>> stockEvents;
 
@@ -235,6 +241,13 @@ namespace CoA::ClientHooks {
         bool tooltipItemSet = true;
         // FUN_1027cf90: 0x631760's je a jmp while false (GetItemComparison fails at the first summary).
         bool itemComparison = true;
+
+        // AscSpellShadow.cpp FUN_10320c20: the texture table DrawSpellCursorShadow indexes by style (the operand at
+        // 0x4F8A4B); nullptr is the stock s_spellShadowTexture (0xB74350), else the cone / unacceptable pair.
+        void* const* spellShadowTextures = nullptr;
+        // FUN_10321240 (before every draw): the shadow box's half height (the operand at 0x4F8AD4) -- false the stock 2.0
+        // (0xA4040C), true the shadow size (0xB74370).
+        bool spellShadowSizedHeight = false;
     };
     inline OptionPatches options;
 
