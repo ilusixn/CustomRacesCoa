@@ -274,3 +274,5 @@ Live run 2026-10-26 (test account, ~60 s in world, screenshot out/baseline/plan1
   NewCharacterSetupUtil.lua:49 assertion under Prat-3.0 taint (+ the "Prat-3.0 has been blocked" popup).
 - World renders with the SDF font path (FontRender) at defaults; no crash, client responsive.
 - Inventory: natives 1251/1346, packets 525/533, events 245/259, hooks 240/346, patches 126/126, CVars 77/93.
+- Final review fixes: LoadingScreenVariation.dbc path had an invalid "\L" escape (variations never applied); a unit
+  torn down with its nameplate up no longer leaves "nameplateN" pointing at freed memory (ledgered Ruling).
