@@ -71,6 +71,12 @@ namespace CoA::BridgeStore { void Init(); }
 namespace CoA::VanityCollection { void Init(); }
 namespace CoA::MythicPlus { void Init(); }
 namespace CoA::CharacterCreate { void Init(); }
+namespace CoA::QuestAddon { void Init(); }
+namespace CoA::CollectorCache { void Init(); }
+namespace CoA::SkillCard { void Init(); }
+namespace CoA::SkillCardSlots { void Init(); }
+namespace CoA::AlternatePower { void Init(); }
+namespace CoA::ItemCollections { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -132,5 +138,8 @@ namespace CoA::GlobalsCClient { void Init(); }
 namespace CoA::GlobalsDClient { void Init(); }
 namespace CoA::GlobalsHClient { void Init(); }
 namespace CoA::SmallApisClient { void Init(); }
+namespace CoA::SkillCardClient { void Init(); }
+namespace CoA::AlternatePowerClient { void Init(); }
+namespace CoA::ItemCollectionsClient { void Init(); }
 
 #endif

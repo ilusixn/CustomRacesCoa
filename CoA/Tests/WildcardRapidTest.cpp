@@ -3,6 +3,7 @@
 // outstanding-unlearn flag, the selections, the plain roll / unlearn natives, the starting choice, the roll icons, and
 // the resets.
 #include "CoA/Tests/WildcardFixture.h"
+#include "CoA/Source/Modules/SkillCard.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include <algorithm>
 
@@ -552,5 +553,42 @@ COA_TEST(WildcardRapid_Resets) {
     CHECK((Phase(L) == V{ "Cancelled", "CANCELLED" }));
     CHECK(CoA::WildcardRapid::InFlight());
     CHECK(!CoA::WildcardRapid::Active());
+    Stop(L);
+}
+
+// The real skillCardUnblocked (CoA::SkillCard::AnyUnblocked, FUN_102f4f70, Plan 13): a slotted, unblocked card in the
+// active spec (0) refuses the start; the server's block flag or an empty slot does not.
+COA_TEST(WildcardRapid_RealSkillCards) {
+    lua_State* L = Ready();
+    CoA::SkillCard::Reset();
+    CoA::SkillCardSlots::Reset();
+    CoA::SkillCard::Init();
+    CoA::SkillCardSlots::Init();
+    CoA::SkillCard::Dependencies().hasPlayer = [] { return true; };
+    CoA::SkillCard::Dependencies().playerLevel = [] { return 60u; };
+    CHECK((CanStart(L) == V{ "true", "nil" }));
+    // The card in a default and a starter slot: one of them is open whatever the build's starting phase.
+    auto slots = [](uint32_t card, uint8_t blocked) {
+        CoATest::Bytes b;
+        b.U32(1);
+
+        for (int t = 0; t < 9; ++t) {
+            if (t == 0 || t == 2) {
+                b.U32(1).U32(card).U32(1).U8(blocked);
+            } else {
+                b.U32(0);
+            }
+        }
+
+        CoATest::Deliver(CoA::SkillCardSlots::OnList, 0x624, b);
+    };
+    slots(200, 0);
+    CHECK((CanStart(L) == V{ "false", "CAN_START_RAPID_ROLLING_UNBLOCKED_SKILL_CARDS" }));
+    slots(200, 1);
+    CHECK((CanStart(L) == V{ "true", "nil" }));
+    slots(0, 0);
+    CHECK((CanStart(L) == V{ "true", "nil" }));
+    CoA::SkillCard::Reset();
+    CoA::SkillCardSlots::Reset();
     Stop(L);
 }

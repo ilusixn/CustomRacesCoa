@@ -6,6 +6,7 @@
 #include <initializer_list>
 #include <map>
 #include <string>
+#include <vector>
 
 struct lua_State;
 
@@ -44,6 +45,10 @@ namespace CoA::Script {
     // a number key in place, which breaks the walk as in the original), nil / boolean / number values, the last write
     // winning. A non-table, a bad key or a bad value logs and leaves the map empty.
     void ToBoolMap(lua_State* L, int idx, std::map<std::string, bool>& out);
+    // FUN_1011f710 (FrameScript::lua_toarray into a string vector): each value of the table in lua_next order, as a
+    // string. A value lua_isstring refuses (not a string or a number) logs and leaves the vector empty; a non-table
+    // logs and leaves it empty.
+    void ToStringArray(lua_State* L, int idx, std::vector<std::string>& out);
 
     // The value after "-name", "/name" or "--name" on the command line, or nullptr (ScriptClient.cpp).
     const char* CommandLineArg(const char* name);

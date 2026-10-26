@@ -1,6 +1,7 @@
 #include "Player_C.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
+#include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -10424,6 +10425,10 @@ void CGPlayer_C::AutoEquipItem(WOWGUID container, uint32_t slot, int32_t ignoreB
 // VERIFY: d775d48d manual
 // OFFSET: 0x006E08C0
 void CGPlayer_C::EquipVisibleItem(const VisibleItem_C* item, int32_t slot) {
+    // CoA: AscItemCollections.cpp:FUN_102cab70 (orig hook 0x6E08C0) -- before it the slot's collections are re-attached
+    // for the component's current display.
+    CoA::ItemCollectionsClient::BeforeEquipVisibleItem(this, slot);
+
     if (!item || !abs(item->m_itemId) || static_cast<int32_t>(const_cast<VisibleItem_C*>(item)->GetDisplayID()) <= 0) {
         return;
     }
@@ -10467,6 +10472,10 @@ void CGPlayer_C::EquipVisibleItem(const VisibleItem_C* item, int32_t slot) {
 // VERIFY: 0dbd89fa manual
 // OFFSET: 0x006E09E0
 int32_t CGPlayer_C::RefreshVisibleItems() {
+    // CoA: AscItemCollections.cpp:FUN_102cac10 (orig hook 0x6E09E0) -- after every return: the ranged weapon is shown
+    // again when the ranged slot's item has a sheathe type.
+    auto ranged = CoA::ClientHooks::OnScopeExit([this]() { CoA::ItemCollectionsClient::RefreshRanged(this); });
+
     if (!this->CanEquipItemsInThisForm()) {
         return 0;
     }
@@ -10616,6 +10625,8 @@ void CGPlayer_C::UpdateHandItemVisual(GEOCOMPONENTLINKS link, int32_t hand) {
 // VERIFY: 8210ca7a manual
 // OFFSET: 0x006E1E10
 void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleItem_C* oldItem) {
+    // CoA: AscItemCollections.cpp:sub_102cac90 (orig hook 0x6E1E10) -- after every return: as RefreshVisibleItems.
+    auto ranged = CoA::ClientHooks::OnScopeExit([this]() { CoA::ItemCollectionsClient::RefreshRanged(this); });
     VisibleItem_C* item = nullptr;
 
     if (!oldItem || slot > 18 || !(item = &this->m_player->m_playerVisibleItems[slot])) {

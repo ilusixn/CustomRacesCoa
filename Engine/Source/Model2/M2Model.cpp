@@ -61,6 +61,8 @@ CM2ModelCall::CM2ModelCall() {
 
 // CoA: AscAnimationCount.cpp -- AnimationData.dbc's row count (stock 506); set by CoA after ClientDBInitialize.
 uint32_t g_animationCount = 506;
+// CoA: set by CoA::ItemCollectionsClient.
+void (*g_m2ReleaseHook)(CM2Model* model);
 
 // VERIFY: 35d86a94 auto
 // OFFSET: 0x00823D50
@@ -582,6 +584,11 @@ void CM2Model::FreeExternalResources() {
 // VERIFY: 78234ce5 manual
 // OFFSET: 0x00824ED0
 int32_t CM2Model::Release() {
+    // CoA: AscItemCollections.cpp:FUN_102caed0 (orig hook 0x824ED0) -- before it: the last reference drops the model's id.
+    if (g_m2ReleaseHook) {
+        g_m2ReleaseHook(this);
+    }
+
     if (this->m_refCount-- == 1) {
         g_modelPool->Delete(this);
         return 0;
@@ -1681,6 +1688,9 @@ void CM2Model::SetSecondaryBoneSequence(uint16_t sequenceIndex, uint16_t boneInd
 // VERIFY: ddf01210 manual
 // OFFSET: 0x00826E60
 void CM2Model::PickRandomSequenceVariation(uint32_t* variation, uint16_t* sequenceIndex) {
+    // CoA: AscItemCollections.cpp:sub_102ccf50 (orig hook 0x826E60) -- after it the DLL remembers the sequence index the
+    // human male model picks (DAT_10be35e4); the override flag that would replay it (DAT_10be35e3) is never set, so
+    // nothing observable happens and nothing is done here.
     *variation = 0;
 
     uint32_t count = 0;
@@ -6788,6 +6798,7 @@ void CM2Model::UnsetBoneSequence(uint32_t boneId, int32_t blend, int32_t primary
 // VERIFY: 6d0c8da6 manual
 // OFFSET: 0x00832AB0
 void CM2Model::SetBoneSequence(uint32_t boneId, uint32_t sequenceId, uint32_t variation, uint32_t time, float speed, int32_t blend, int32_t primary) {
+    // CoA: AscItemCollections.cpp:sub_102cafb0 (orig hook 0x832AB0) -- the DLL's detour passes every argument through.
     if (sequenceId == 0xFFFFFFFF) {
         this->UnsetBoneSequence(boneId, blend, primary);
         return;

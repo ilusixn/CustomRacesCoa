@@ -37,7 +37,7 @@ namespace CoA::TemporalContracts {
         bool (*questRecord)(uint32_t quest, QuestRecord& out) = nullptr;   // 0x67DE90: false when not cached
         const char* (*areaName)(uint32_t id) = nullptr;                    // FUN_100b1240: AreaTable +0x2C, or nullptr
         const char* (*questSortName)(uint32_t id) = nullptr;               // FUN_100b1ea0: QuestSort +4, or nullptr
-        // AscQuestAddon::Get: the quest's Callboard cache points. Not ported yet; unset answers as the original does
+        // AscQuestAddon::Get: the quest's Callboard cache points, installed by CoA::QuestAddon::Init; unset answers as the original does
         // without a record (no points).
         bool (*questAddonPoints)(uint32_t quest, uint32_t& points) = nullptr;
         // AscCallboard::ForEachCompletion (FUN_10337270): each sub-category with completions left handed to fn once per

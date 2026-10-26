@@ -177,3 +177,30 @@ void CoA::Script::ToBoolMap(lua_State* L, int idx, std::map<std::string, bool>& 
         lua_settop(L, -2);
     }
 }
+
+void CoA::Script::ToStringArray(lua_State* L, int idx, std::vector<std::string>& out) {
+    out.clear();
+
+    if (lua_type(L, idx) != LUA_TTABLE) {
+        CoA::Log::Printf("FrameScript::lua_toarray Value at index %d is not a table", idx);
+        return;
+    }
+
+    if (idx < 0) {
+        idx = lua_gettop(L) + 1 + idx;
+    }
+
+    lua_pushnil(L);
+
+    while (lua_next(L, idx)) {
+        if (!lua_isstring(L, -1)) {
+            lua_settop(L, -3);
+            CoA::Log::Printf("FrameScript::lua_toarray Invalid lua value type");
+            out.clear();
+            return;
+        }
+
+        out.emplace_back(lua_tolstring(L, -1, nullptr));
+        lua_settop(L, -2);
+    }
+}

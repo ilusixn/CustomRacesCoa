@@ -1813,6 +1813,8 @@ void CGWorldFrame::OnWorldRender() {
 // VERIFY: 79b17fb9 manual
 // OFFSET: 0x004F9F70
 int32_t CGWorldFrame::ObjectEnumProc(void* param, uint32_t flags, uint64_t guid, uintptr_t param32) {
+    // CoA: AscItemCollections.cpp:sub_102caea0 (orig hook 0x4F9F70) -- the DLL stores the guid argument in
+    // DAT_10be3580 / 3584, which nothing reads; nothing observable, so nothing is done here.
     CGWorldFrame* frame = CGWorldFrame::s_currentWorldFrame;
     CGObject_C* object = ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPE_OBJECT, __FILE__, __LINE__);
 

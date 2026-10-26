@@ -135,6 +135,8 @@ extern const uint32_t s_localLighting[M2BLEND_COUNT];
 
 // CoA: AscAttachFixes.cpp:sub_10a46590 (orig hook 0x81F970) -- a path not "" replaces the model DuplicateModel copies.
 extern const char* (*g_m2DuplicateModelHook)();
+// CoA: AscItemCollections.cpp:FUN_102cb000 (orig hook 0x81F8F0) -- after CreateModel, with its result (may be nullptr).
+extern void (*g_m2CreateModelHook)(const char* fileName, CM2Model* model);
 
 uint32_t ParticleBlendToM2Blend(uint32_t blend);
 uint32_t ParticleFlagsToM2Flags(uint32_t flags);
