@@ -19,6 +19,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1153,21 +1154,18 @@ namespace {
         const std::string search = StringAt(L, 1);
         std::vector<uint32_t> filters;
         std::vector<uint32_t> sorts;
-        lua_pushnil(L);
+        std::map<std::string, bool> names;
+        CoA::Script::ToBoolMap(L, 2, names);   // FUN_100bed80: the map's (alphabetical) order
 
-        while (lua_next(L, 2)) {
-            const std::string key = StringAt(L, -2);
-
-            if (lua_toboolean(L, -1)) {
+        for (const auto& n : names) {
+            if (n.second) {
                 for (uint32_t i = 0; i < 8; ++i) {
-                    if (key == kFilters[i]) {
+                    if (n.first == kFilters[i]) {
                         filters.push_back(i);
                         break;
                     }
                 }
             }
-
-            lua_settop(L, -2);
         }
 
         lua_pushnil(L);

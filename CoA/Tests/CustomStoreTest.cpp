@@ -432,6 +432,12 @@ COA_TEST(CustomStore_Filters) {
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_SPELL_FAMILY_DEATH_KNIGHT = true") == "3");
     CHECK(Filter(L, "", "FILTER_SKILL_CARD_SPELL_FAMILY_MAGE = true") == "");
     CHECK(Run(L, "return select('#', C_CustomStore.ApplyCustomStoreFilter('', {}, {}))") == V{ "0" });
+    // FUN_100bed80 (FrameScript::lua_totable): a bad value or key type empties the whole map -- no filter applies.
+    const std::string all = Filter(L, "", "");
+    CHECK(all != "1");
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = 'yes'") == all);
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = true, [true] = true") == all);
+    CHECK(Filter(L, "", "FILTER_SKILL_CARD_QUALITY_RARE = 1") == "1");
     Stop(L);
 }
 

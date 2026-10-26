@@ -144,3 +144,36 @@ void CoA::Script::SetField(lua_State* L, const char* key, int32_t value) {
     lua_pushinteger(L, value);
     lua_settable(L, -3);
 }
+
+void CoA::Script::ToBoolMap(lua_State* L, int idx, std::map<std::string, bool>& out) {
+    out.clear();
+
+    if (lua_type(L, idx) != LUA_TTABLE) {
+        CoA::Log::Printf("FrameScript::lua_totable Value at index %d is not a table", idx);
+        return;
+    }
+
+    lua_pushnil(L);
+
+    while (lua_next(L, idx)) {
+        if (!lua_isstring(L, -2)) {
+            CoA::Log::Printf("FrameScript::lua_totable Invalid lua key type");
+            lua_settop(L, -3);
+            out.clear();
+            return;
+        }
+
+        const int vt = lua_type(L, -1);
+
+        if (vt != LUA_TNIL && vt != LUA_TBOOLEAN && vt != LUA_TNUMBER) {
+            CoA::Log::Printf("FrameScript::lua_totable Invalid lua value type");
+            lua_settop(L, -3);
+            out.clear();
+            return;
+        }
+
+        const bool value = lua_toboolean(L, -1) != 0;
+        out[lua_tolstring(L, -2, nullptr)] = value;
+        lua_settop(L, -2);
+    }
+}

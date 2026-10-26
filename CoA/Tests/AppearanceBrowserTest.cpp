@@ -48,6 +48,7 @@ COA_TEST(AppearanceBrowser_Filter) {
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'copper', {}, {})") == V{ "100" }));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'helm', {}, {})") == V{ "100", "108" }));
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, 'zzz', {}, {})") == V{}));
+    CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = 'x' }, {})") == V{ "100", "108" }));   // FUN_100bed80
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = true }, {})") == V{}));
     Collect({ 100 });
     CHECK((Page(L, "C_AppearanceCollection.ApplyCategoryFilter(1, '', { FILTER_COLLECTED = true }, {})") == V{ "100" }));
