@@ -1,6 +1,7 @@
 #include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Tests/TestMain.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include <cstring>
 #include <mutex>
 #include <sstream>
@@ -279,4 +280,27 @@ COA_TEST(CrashContext_ReportWhileTheLockIsHeld) {
     const std::string r = CoA::CrashContext::ReportWithClientDbRow(&table, 42);
     CHECK(Has(r, "Ascension Debug"));
     CHECK(Has(r, "Last ClientDB::GetRow: DB = " + Pointer(&table) + " ID = 42"));
+}
+
+// Review M1: FUN_10114c40 (every module's CVar set) asserts when name + value exceed 249 characters -- one shared port.
+COA_TEST(CrashContext_SetCVarAssertsOnOverlongValues) {
+    Start();
+    CVar* var = CVar::Register("coaTestSetCVar", nullptr, 1, "0", nullptr, 5, false, nullptr, false);
+    CoA::CrashContext::SetCVar(var, "7", false);
+    CHECK(strcmp(var->m_stringValue.m_str, "7") == 0);
+    CHECK(s_fatals.empty());
+
+    const std::string fits(249 - strlen("coaTestSetCVar"), 'x');
+    CoA::CrashContext::SetCVar(var, fits.c_str(), false);
+    CHECK(s_fatals.empty());
+    CHECK(var->m_stringValue.m_str == fits);
+
+    CoA::CrashContext::SetCVar(var, (fits + "y").c_str(), false);
+    CHECK(s_fatals.size() == 1);
+    CHECK(!s_fatals.empty() && s_fatals[0].message == "CVar::Set (m_key.str + value) > 249, m_key = coaTestSetCVar");
+    CHECK(var->m_stringValue.m_str == fits);
+
+    CoA::CrashContext::SetCVar(nullptr, "1", false);
+    CoA::CrashContext::SetCVar(var, nullptr, false);
+    CHECK(s_fatals.size() == 1);
 }

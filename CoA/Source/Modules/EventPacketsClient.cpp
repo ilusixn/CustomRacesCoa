@@ -166,15 +166,9 @@ namespace {
         return 1;
     }
 
-    // FUN_10114c40 -> CVar::Set: name and value together over 0xF9 characters are AscCrashContext::Assert's fatal error.
+    // FUN_10114c40 -> CVar::Set, with its length assert (CrashContext::SetCVar).
     void SetCVar(CVar* cvar, const char* value, bool setNeedsSave) {
-        if (strlen(value) + strlen(cvar->m_key.m_str) > 0xF9) {
-            const std::string message = std::string("CVar::Set (m_key.str + value) > 249, m_key = ") + cvar->m_key.m_str;
-            CoA::CrashContext::Assert(message.c_str(), nullptr, 0);
-            return;
-        }
-
-        cvar->Set(value, true, false, false, setNeedsSave);
+        CoA::CrashContext::SetCVar(cvar, value, setNeedsSave);
     }
 
     std::unordered_map<std::string, std::string> s_cvarOverrides;   // 0x10D3DC48
