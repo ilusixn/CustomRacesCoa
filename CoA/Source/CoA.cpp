@@ -101,6 +101,8 @@ static const CoA::Module s_modules[] = {
     { "SkillCardSlots", CoA::SkillCardSlots::Init },
     { "AlternatePower", CoA::AlternatePower::Init },
     { "ItemCollections", CoA::ItemCollections::Init },
+    // AscItemUse (0x10A42F30) and AscGameObjectUse (0x10A42DD0).
+    { "ObjectUse", CoA::ObjectUse::Init },
     // After MysticEnchant / GlobalsJ, whose Deps they fill.
     { "Manastorm", CoA::Manastorm::Init },
     { "LootLockout", CoA::LootLockout::Init },
@@ -190,6 +192,7 @@ static const CoA::Module s_modules[] = {
     { "UnitAddonClient", CoA::UnitAddonClient::Init },
     { "ExtraActionButtonClient", CoA::ExtraActionButtonClient::Init },
     { "MysticEnchantClient", CoA::MysticEnchantClient::Init },
+    { "ObjectUseClient", CoA::ObjectUseClient::Init },
     { "CAClient", CoA::CAClient::Init },
     { "SpellApiClient", CoA::SpellApiClient::Init },
     { "AppearanceClient", CoA::AppearanceClient::Init },

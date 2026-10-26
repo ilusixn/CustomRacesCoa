@@ -48,7 +48,6 @@ namespace {
     const uint32_t kMysticScroll = 0xF25D0;        // "Untarnished Mystic Scroll"
     const uint32_t kMarkOfAscension = 0x5B9D2;
     const uint32_t kMysticExtract = 0x1809F;
-    const uint32_t kPresetUnlockToken = 0x1B9271;
 
     // ---- string tables at the addresses given -----------------------------------------------------------------
     const char* const kFilters[55] = {   // 0x10B55DA0
@@ -3532,21 +3531,13 @@ uint32_t CoA::MysticEnchant::QualityOfRow(const uint8_t* row) {
     return QualityOf(row);
 }
 
-void CoA::MysticEnchant::OnGameObjectUse(uint32_t entry) {   // FUN_102EA1A0 / FUN_102EA2C0
+void CoA::MysticEnchant::GameObjectUsed(uint32_t entry) {   // FUN_102EA1A0 / FUN_102EA2C0
     if (!IsAltarEntry(entry)) {
         return;
     }
 
     M().altarOpen = true;
     CoA::Events::Signal("MYSTIC_ALTAR_USED", nullptr);
-}
-
-void CoA::MysticEnchant::OnItemUse(uint32_t entry) {
-    if (entry == kMysticScroll) {
-        CoA::Events::Signal("MYSTIC_SCROLL_USED", "%u", entry);   // FUN_102EA3A0
-    } else if (entry == kPresetUnlockToken) {
-        CoA::Events::Signal("MYSTIC_ENCHANT_UNLOCK_PRESET_USED", nullptr);   // FUN_102EA330
-    }
 }
 
 void CoA::MysticEnchant::Init() {   // the tail of FUN_102E9850
@@ -3584,8 +3575,6 @@ void CoA::MysticEnchant::Init() {   // the tail of FUN_102E9850
     COA_EVENT("MYSTIC_ENCHANT_PATCHED");
     COA_EVENT("MYSTIC_ALTAR_USED");
     COA_EVENT("MYSTIC_ALTAR_CLOSED");
-    COA_EVENT("MYSTIC_SCROLL_USED");
-    COA_EVENT("MYSTIC_ENCHANT_UNLOCK_PRESET_USED");
 }
 
 void CoA::MysticEnchant::Reset() {

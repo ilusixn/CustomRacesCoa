@@ -72,11 +72,12 @@ namespace CoA::VanityCollection { void Init(); }
 namespace CoA::MythicPlus { void Init(); }
 namespace CoA::CharacterCreate { void Init(); }
 namespace CoA::QuestAddon { void Init(); }
-namespace CoA::CollectorCache { void Init(); }
+namespace CoA::CollectorCache { void Init(); void ItemUsed(uint32_t entry); }   // FUN_10194230
 namespace CoA::SkillCard { void Init(); }
 namespace CoA::SkillCardSlots { void Init(); }
 namespace CoA::AlternatePower { void Init(); }
 namespace CoA::ItemCollections { void Init(); }
+namespace CoA::ObjectUse { void Init(); }
 namespace CoA::Manastorm { void Init(); }
 namespace CoA::LootLockout { void Init(); }
 namespace CoA::ItemStats { void Init(); }
@@ -136,6 +137,7 @@ namespace CoA::AppearanceClient { void Init(); }
 namespace CoA::SpellApiClient { void Init(); }
 namespace CoA::CAClient { void Init(); }
 namespace CoA::MysticEnchantClient { void Init(); }
+namespace CoA::ObjectUseClient { void Init(); }
 namespace CoA::ExtraActionButtonClient { void Init(); }
 namespace CoA::UnitAddonClient { void Init(); }
 namespace CoA::GlobalsIClient { void Init(); }
