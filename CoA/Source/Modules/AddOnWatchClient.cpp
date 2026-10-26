@@ -5,6 +5,7 @@
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "Engine/Source/Base/Status.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Source/Ui/AddOns.h"
 #include <string>
@@ -167,6 +168,8 @@ namespace {
 
         CoA::Log::Printf("AddOnWatch: rescanned %s (%u addons, %u in the list)", all ? "all" : "changed", static_cast<unsigned>(list.size()), GetNumAddOns());
         CoA::Events::Signal("ADDON_LIST_UPDATE", nullptr);
+        // The stock AddonList only redraws on show; redraw an open one (no UI file changes).
+        FrameScript_Execute("if AddonList and AddonList:IsVisible() and AddonList_Update then AddonList_Update() end", "AddOnWatch", nullptr);
     }
 
     void AddWatch(const char* path) {
