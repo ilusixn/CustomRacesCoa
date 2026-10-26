@@ -53,7 +53,13 @@ Tests: every packet / native / event, containers and filters, glue resets, and t
 skill-card filters, quest points in Wildcard / TemporalContracts / CallboardCache, AlternatePower on
 afterAddKnownSpell, Wildcard `skillCardUnblocked`).
 
-### Task 2: Manastorm, LootLockout, ItemStats, POI, SpellCharges, Aura137, AssetQuery
+### Task 2: Manastorm, LootLockout, ItemStats, POI, SpellCharges, Aura137, AssetQuery, Templates
+
+Added from a live finding: AscTemplates (GetQuestTemplate / GetCreatureTemplate / GetCreatureModelData /
+GetCreatureDisplayInfo(Extra)). Its absence makes ChallengeItemMixin:Update throw (ChallengeUtil
+ApplyMiscValueFormatting -> Creature:Query -> GetCreatureTemplate nil) while scrolling the Trials / Challenges list,
+which aborts ScrollList:RefreshScrollFrame and leaves rows stale. LootLockout also fixes the Sound Kit Player frame
+(UIParent PLAYER_ENTERING_WORLD errors before CloseAllWindows).
 
 Tests: every packet / native / event, Manastorm phases and timers, lockout lists, item stat / spell charge / aura
 readers, POI, the asset query service callbacks, glue resets.
