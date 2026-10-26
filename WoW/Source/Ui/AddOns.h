@@ -40,5 +40,7 @@ bool IsAddonVersionCheckEnabled();
 void SetAddonVersionCheck(int32_t enable);
 const char* GetAddOnURL(const char* name);
 bool IsAddOnUpdateAvailable(const char* name);
+// CoA: AddOnWatchClient.cpp -- the live addon list: re-reads the named addons (all: every addon) and rebuilds the list.
+bool RescanAddOns(const char* const* names, uint32_t count, bool all);
 
 #endif
