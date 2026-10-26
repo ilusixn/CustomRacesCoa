@@ -1027,6 +1027,95 @@ void* CGxDeviceD3d9Ex::WorldColorTexture() {
     return this->m_worldColorTexture;
 }
 
+// CoA64: the device can render into G16R16F (motion) and A8R8G8B8 (translucency mask) render-target textures; the
+// snapshot uses the world colour format, which WorldTargetSupported already checks. Asked once per device like
+// WorldTargetSupported (IReleaseD3dResources forgets the answer); a no is logged once per device so the motion pass
+// staying off is explained.
+bool CGxDeviceD3d9Ex::WorldMotionSupported() {
+    if (!this->m_d3d) {
+        return false;
+    }
+
+    if (this->m_worldMotionSupported < 0) {
+        this->m_worldMotionSupported = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_G16R16F) == D3D_OK
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8) == D3D_OK;
+
+        if (!this->m_worldMotionSupported) {
+            CGxDevice::Log("CGxDeviceD3d9Ex::WorldMotionSupported(): no G16R16F / A8R8G8B8 render-target textures, motion stays off");
+        }
+    }
+
+    return this->m_worldMotionSupported != 0;
+}
+
+// CoA64: creates (or reuses, same size) the motion, mask and snapshot render-target textures at the world colour
+// texture's size. Only valid while the world target is held (its colour texture exists, begun or not). False when it
+// is not held, when the device cannot (WorldMotionSupported) or when any creation fails -- then none of the three are
+// kept.
+bool CGxDeviceD3d9Ex::WorldMotionTargetsEnsure() {
+    if (!this->m_d3dDevice || !this->m_worldColorTexture || !this->WorldMotionSupported()) {
+        return false;
+    }
+
+    uint32_t width = this->m_worldTargetWidth;
+    uint32_t height = this->m_worldTargetHeight;
+
+    if (this->m_worldMotionTexture && (this->m_worldMotionWidth != width || this->m_worldMotionHeight != height)) {
+        this->IWorldMotionTargetsFree();
+    }
+
+    if (!this->m_worldMotionTexture) {
+        if (FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_G16R16F, D3DPOOL_DEFAULT, &this->m_worldMotionTexture, nullptr))
+            || FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &this->m_worldMaskTexture, nullptr))
+            || FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, this->m_devAdapterFormat, D3DPOOL_DEFAULT, &this->m_worldSnapshotTexture, nullptr))) {
+            this->IWorldMotionTargetsFree();
+            return false;
+        }
+
+        this->m_worldMotionWidth = width;
+        this->m_worldMotionHeight = height;
+    }
+
+    return true;
+}
+
+// CoA64: the motion texture (IDirect3DTexture9*, G16R16F) or nullptr.
+void* CGxDeviceD3d9Ex::WorldMotionTexture() {
+    return this->m_worldMotionTexture;
+}
+
+// CoA64: the translucency mask texture (IDirect3DTexture9*, A8R8G8B8) or nullptr.
+void* CGxDeviceD3d9Ex::WorldMaskTexture() {
+    return this->m_worldMaskTexture;
+}
+
+// CoA64: the opaque snapshot texture (IDirect3DTexture9*, colour format) or nullptr.
+void* CGxDeviceD3d9Ex::WorldSnapshotTexture() {
+    return this->m_worldSnapshotTexture;
+}
+
+// CoA64: copies the world colour as it is now (the default colour surface while begun) into the snapshot texture, full
+// size, D3DTEXF_NONE. False when not begun, when there is no snapshot at the world size (WorldMotionTargetsEnsure) or
+// when the copy fails.
+bool CGxDeviceD3d9Ex::WorldSnapshotOpaque() {
+    if (!this->m_worldTargetBegun || !this->m_worldSnapshotTexture || !this->m_worldColorSurface
+        || this->m_worldMotionWidth != this->m_worldTargetWidth || this->m_worldMotionHeight != this->m_worldTargetHeight) {
+        return false;
+    }
+
+    LPDIRECT3DSURFACE9 snapshotSurface = nullptr;
+
+    if (FAILED(this->m_worldSnapshotTexture->GetSurfaceLevel(0, &snapshotSurface))) {
+        return false;
+    }
+
+    // GetSurfaceLevel added a reference; the texture keeps its own, so drop this one once the copy is issued.
+    HRESULT result = this->m_d3dDevice->StretchRect(this->m_worldColorSurface, nullptr, snapshotSurface, nullptr, D3DTEXF_NONE);
+    snapshotSurface->Release();
+
+    return SUCCEEDED(result);
+}
+
 // CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before
 // every Reset and on destroy -- see IReleaseD3dResources).
 void CGxDeviceD3d9Ex::WorldTargetRelease() {
@@ -1042,6 +1131,9 @@ void CGxDeviceD3d9Ex::WorldTargetRelease() {
     }
 
     this->IWorldTargetFree();
+
+    // CoA64: the motion targets are D3DPOOL_DEFAULT too and are sized by the world target.
+    this->IWorldMotionTargetsFree();
 }
 
 // CoA64: the IDirect3DDevice9* (for the render pipeline's debug draw).
@@ -1115,6 +1207,27 @@ void CGxDeviceD3d9Ex::IWorldTargetRestore(bool rebind) {
     if (rebind && this->m_d3dDevice) {
         this->IWorldTargetApply();
     }
+}
+
+// CoA64: releases the motion, mask and snapshot textures (one reference each).
+void CGxDeviceD3d9Ex::IWorldMotionTargetsFree() {
+    if (this->m_worldMotionTexture) {
+        this->m_worldMotionTexture->Release();
+        this->m_worldMotionTexture = nullptr;
+    }
+
+    if (this->m_worldMaskTexture) {
+        this->m_worldMaskTexture->Release();
+        this->m_worldMaskTexture = nullptr;
+    }
+
+    if (this->m_worldSnapshotTexture) {
+        this->m_worldSnapshotTexture->Release();
+        this->m_worldSnapshotTexture = nullptr;
+    }
+
+    this->m_worldMotionWidth = 0;
+    this->m_worldMotionHeight = 0;
 }
 
 // VERIFY: f8ff0fdc manual
@@ -2866,9 +2979,10 @@ void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
 
     // CoA64: put the original default surfaces back (if the world target is begun) and free the D3DPOOL_DEFAULT world
     // textures before the defaults are released and the device is reset or destroyed. The device's formats may change
-    // with it, so WorldTargetSupported asks again.
+    // with it, so WorldTargetSupported (and WorldMotionSupported) ask again.
     this->WorldTargetRelease();
     this->m_worldTargetSupported = -1;
+    this->m_worldMotionSupported = -1;
 
     if (this->m_defColorSurface) {
         this->m_defColorSurface->Release();

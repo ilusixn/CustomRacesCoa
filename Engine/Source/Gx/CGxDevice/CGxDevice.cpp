@@ -2158,6 +2158,36 @@ void* CGxDevice::WorldColorTexture() {
 void CGxDevice::WorldTargetRelease() {
 }
 
+// CoA64: render pipeline motion targets -- only the D3D9 devices implement them.
+bool CGxDevice::WorldMotionSupported() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldMotionTargetsEnsure() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMotionTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMaskTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldSnapshotTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldSnapshotOpaque() {
+    return false;
+}
+
 // CoA64: see WorldTargetSupported.
 void* CGxDevice::D3dDevice() {
     return nullptr;
