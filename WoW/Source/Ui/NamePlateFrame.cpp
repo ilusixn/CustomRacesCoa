@@ -44,7 +44,7 @@ static CImVector s_hostileColor = CImVector(0x00, 0x00, 0xFF, 0xFF);
 static CImVector s_levelTextColor = CImVector(0xFF, 0xFF, 0xFF, 0xFF);
 
 // STATIC: 0x00B2DA20
-// CoA: AscAttachPatches.cpp:Init (FUN_10a5f0e0, Extensions.dll patch 0x98EE8B) -- the nameplates read the DLL's 33-entry
+// CoA: AscAttachPatches.cpp:Init (FUN_10a5f0e0, orig hook 0x98EE8B) -- the nameplates read the DLL's 33-entry
 // table (CoA::AttachPatches::kClassColours); the client's original 12 follow, unused.
 static CImVector s_coaClassColors[33];
 
