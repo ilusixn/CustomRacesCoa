@@ -121,6 +121,12 @@ char *FMOD_strlwr(char *string)
 // OFFSET: 0x008D2400
 int FMOD_strcmp( const char *string1, const char *string2 )
 {
+    // CoA: AscInitHooks.cpp:Detour8D2400 (orig hook 0x8D2400) -- 1 when either string is null.
+    if (!string1 || !string2)
+    {
+        return 1;
+    }
+
     register char c1, c2;
     do 
     {

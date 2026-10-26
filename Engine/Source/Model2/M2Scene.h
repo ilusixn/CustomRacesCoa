@@ -143,4 +143,7 @@ uint32_t ParticleFlagsToM2Flags(uint32_t flags);
 void M2BlendBoneMatrices(const C44Matrix* bones, ubyte4 weights, ubyte4 indices, C44Matrix* result);
 void M2BlendBoneMatricesSSE(const C44Matrix* bones, ubyte4 weights, ubyte4 indices, C44Matrix* result);
 
+// CoA: AscGraphics.cpp (Extensions.dll patch 0x81E548) -- CM2Scene::SelectLights' stamp test; false skips it.
+extern bool (*g_m2LightStampCullingHook)();
+
 #endif

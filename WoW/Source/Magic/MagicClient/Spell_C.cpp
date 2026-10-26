@@ -3,6 +3,9 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/SpellVisualsClient.h"
+#include "CoA/Source/Modules/SpellMods.h"
+#include "CoA/Source/Modules/SpellModsClient.h"
+#include "CoA/Source/Modules/SmallHooks.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -414,7 +417,9 @@ int32_t Spell_C_GetPowerCost(const SpellRec* spell, const CGUnit_C* unit) {
         }
     }
 
-    return cost <= 0 ? 0 : cost;
+    // CoA: AscSpellMods.cpp:0x10328CB0 (orig hook 0x8012F0) -- after the original (the -1 without a unit passes
+    // unchanged): the unit addon float scaling, and an instant mana cost times 1 - addon field 6.
+    return CoA::SpellModsClient::AfterPowerCost(spell, unit, cost <= 0 ? 0 : cost);
 }
 
 // VERIFY: fc34e07a manual
@@ -1189,6 +1194,10 @@ void CGUnit_C::ReleaseMissiles() {
 // VERIFY: 936f6df8 manual
 // OFFSET: 0x007FD970
 bool Spell_C_GetSpellModifiers(const SpellRec* spell, int32_t modifier, int32_t& flat, int32_t& pct) {
+    // CoA: AscSpellMods.cpp:0x103288A0 (orig hook 0x7FD970) -- replaced: both server tables over the spell's family
+    // bits (any class set), plus the per-spell maps.
+    return CoA::SpellModsClient::GetSpellModifiers(spell, modifier, flat, pct);
+
     if (!spell->m_spellClassSet || spell->m_spellClassSet != s_spellClassSet) {
         flat = 0;
         pct = 100;
@@ -2691,6 +2700,10 @@ void Spell_C::GetSpellRange(CGUnit_C* caster, int32_t spellId, float* minRange, 
         *minRange = 0.0f;
         *maxRange = 0.0f;
     }
+
+    // CoA: AscSpellMods.cpp:0x103287F0 (orig hook 0x802C30) -- after the original: no min range under the aura flag or
+    // aura type 0x138.
+    CoA::SpellMods::AfterSpellRange(caster, static_cast<uint32_t>(spellId), minRange);
 }
 
 // VERIFY: e951a560 manual
@@ -2909,6 +2922,9 @@ int32_t Packet_SMSG_GAMEOBJECT_RESET_STATE(void* param, NETMESSAGE msgId, uint32
 // VERIFY: e42c1b1d auto
 // OFFSET: 0x007FDC60
 int32_t Packet_Group_32(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
+    // CoA: AscSpellMods.cpp:0x10325B70 (orig hook 0x7FDC60) -- replaced: Ascension's family / class modifier layout.
+    return CoA::SpellMods::OnSpellModifier(param, static_cast<uint32_t>(msgId), time, msg);
+
     uint8_t group;
     uint8_t op;
     uint32_t value;
@@ -3454,16 +3470,24 @@ int32_t Spell_C_GetPowerCostPerSecond(const SpellRec* spell, const CGUnit_C* uni
         return 0;
     }
 
+    // CoA: AscSpellMods.cpp:0x10328DB0 (orig hook 0x7FF100) -- SpellCustomAttr +0x18 & 0x20000 replaces the cost with
+    // ManaPerSecond% of the base power; otherwise the result is scaled by the unit addon float.
+    int32_t replaced;
+
+    if (CoA::SpellModsClient::PowerPerSecondReplaced(spell, unit, replaced)) {
+        return replaced;
+    }
+
     uint32_t rank = unit->GetSpellRank(spell);
     int32_t cost = spell->m_manaPerSecond + spell->m_manaPerSecondPerLevel * (static_cast<int32_t>(rank / 5) - spell->m_baseLevel);
     int32_t flat;
     int32_t pct;
 
     if (cost > 0 && Spell_C_GetSpellModifiers(spell, 14, flat, pct)) {
-        return cost * pct / 100;
+        return CoA::SpellModsClient::AfterPowerPerSecond(spell, unit, cost * pct / 100);
     }
 
-    return cost;
+    return CoA::SpellModsClient::AfterPowerPerSecond(spell, unit, cost);
 }
 
 // VERIFY: 9130a9d8 manual
@@ -3532,11 +3556,13 @@ int32_t SpellRec::GetCastTime(const SpellRec* spell, int32_t isPet, int32_t isUn
         }
     }
 
+    // CoA: AscSpellMods.cpp:0x103284E0 (orig hook 0x7FF180) -- after the original: the player's SpellAddon type-0x15D
+    // effects scale it by (100 - server amount) / 100. (The early 0 returns stay 0 under any scale.)
     if (!allowNegative) {
-        return castTime > 0 ? castTime : 0;
+        return CoA::SpellModsClient::AfterCastTime(spell, castTime > 0 ? castTime : 0);
     }
 
-    return castTime;
+    return CoA::SpellModsClient::AfterCastTime(spell, castTime);
 }
 
 // VERIFY: 5d32a52a auto
@@ -5499,6 +5525,13 @@ PendingSpellCast* Spell_C_GetActivePlayerPendingCast() {
 // VERIFY: fd2d4d6a manual
 // OFFSET: 0x00806200
 void Spell_C_CancelSpell(PendingSpellCast* cast, bool stopRecast, bool notifyServer, int32_t reason) {
+    // CoA: AscSpellMods.cpp:FUN_10327240 (orig hook 0x806200) -- a null cast link is never passed on (from
+    // Spell_C_StopCasting it is the DLL's assert, there); from Spell_C_CancelCastingSpellByMovement a spell the player
+    // passes aura-type check 0x139 for is kept (there).
+    if (!cast) {
+        return;
+    }
+
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(cast->m_data.m_spellId, &spell)) {
@@ -5627,7 +5660,9 @@ void Spell_C_CancelCastingSpellByMovement() {
         if (cast != s_targetingSpell) {
             SpellRec spell;
 
-            if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_interruptFlags & 0x1)) {
+            // CoA: AscSpellMods.cpp:FUN_10327240's 0x8066DA case (orig hook 0x806200).
+            if (g_spellDB.GetRecord(cast->m_data.m_spellId, &spell) && (spell.m_interruptFlags & 0x1)
+                && !CoA::SpellMods::KeepCastOnMove(static_cast<uint32_t>(cast->m_data.m_spellId))) {
                 Spell_C_CancelSpell(cast, false, true, 40);
             }
         }
@@ -6310,7 +6345,8 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
-    if (player && reason != SPELL_FAILED_DONT_REPORT) {
+    // CoA: AscSpellMods.cpp:FUN_103273F0 (orig hook 0x80CCE0) -- 0x808323's je a jmp: no fizzle sound.
+    if (player && CoA::SpellMods::FizzleSound() && reason != SPELL_FAILED_DONT_REPORT) {
         SI2::PlaySpellFizzleSound(spellId, player);
     }
 
@@ -7257,7 +7293,14 @@ void Spell_C_StopCasting() {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (player && player->m_castSpellId) {
-        Spell_C_CancelSpell(Spell_C_GetActivePlayerPendingCast(), true, true, 27);
+        // CoA: AscSpellMods.cpp:FUN_10327240's 0x809AB9 case (orig hook 0x806200) -- a null cast link is the assert.
+        PendingSpellCast* cast = Spell_C_GetActivePlayerPendingCast();
+
+        if (!cast) {
+            CoA::SpellMods::NullCancelFromStopCasting();
+        }
+
+        Spell_C_CancelSpell(cast, true, true, 27);
     }
 }
 
@@ -7958,6 +8001,10 @@ static void GameObjectStatsCallback(int32_t id, const WOWGUID& guid, void* param
 // VERIFY: 95fdd19a manual
 // OFFSET: 0x00805F60
 static bool Spell_C_IsSpellPending(const WOWGUID& castItem, int32_t spellId, const PendingSpellCast* except) {
+    // CoA: AscSmallHooks.cpp:FUN_10322440 (orig hook 0x805F60) -- REPLACED: whether the player's cast ends outside the
+    // SpellQueueWindow (or has ended); false without a player or a cast end time. The arguments are not read.
+    return CoA::SmallHooks::SpellQueueReady();
+
     for (PendingSpellCast* cast = s_pendingSpellCasts.Head(); cast; cast = s_pendingSpellCasts.Next(cast)) {
         if (cast != except && (!castItem || cast->m_data.m_castItem == castItem) && cast->m_data.m_spellId == static_cast<uint32_t>(spellId)) {
             return true;
@@ -8205,6 +8252,10 @@ static bool Spell_C_BeginCast(CGUnit_C* caster, const SpellRec* spell, WOWGUID t
 // VERIFY: f2938ae3 manual
 // OFFSET: 0x0080CCE0
 bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, WOWGUID target, PendingSpellCast* cast, bool confirmed) {
+    // CoA: AscSpellMods.cpp:FUN_103273F0 (orig hook 0x80CCE0) -- the cast's code patches (cast while moving, the
+    // sheathe jump, the error-speech sounds) before the original; the first two back to stock after it.
+    CoA::SpellMods::BeforeCastSpell(caster, static_cast<uint32_t>(spellId));
+    auto restorePatches = CoA::ClientHooks::OnScopeExit([] { CoA::SpellMods::AfterCastSpell(); });
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(spellId, &spell) || (spell.m_attributes & 0x40)) {
@@ -8490,6 +8541,8 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
 
     if (item) {
         SndInterfacePlayItemSound(ITEMSOUND_USE, const_cast<CGItem_C*>(item));
+    } else if (!CoA::SpellMods::ActivateSound()) {
+        // CoA: AscSpellMods.cpp:FUN_103273F0 (orig hook 0x80CCE0) -- 0x80D6EF..0x80D711 NOPed: no activate sound.
     } else if (spell.m_attributes & 0x10) {
         SI2::PlaySoundKit("GAMEABILITYACTIVATE", nullptr, nullptr, nullptr);
     } else {

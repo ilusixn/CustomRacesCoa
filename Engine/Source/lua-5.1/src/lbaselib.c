@@ -643,7 +643,7 @@ void (*g_luaBaseOpenedHook)(lua_State *L);
 LUALIB_API int luaopen_base (lua_State *L) {
   base_open(L);
   luaL_register(L, LUA_COLIBNAME, co_funcs);
-  /* CoA: AscRegistry.cpp:LuaSetupDetour (orig hook 0x855060) -- the CoA natives, before the client's own */
+  // CoA: AscRegistry.cpp:LuaSetupDetour (orig hook 0x855060) -- the CoA natives, before the client's own.
   if (g_luaBaseOpenedHook)
     g_luaBaseOpenedHook(L);
   return 2;

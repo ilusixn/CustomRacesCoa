@@ -1,4 +1,5 @@
 #include "SpellTable.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/Types.h"
@@ -92,6 +93,10 @@ bool SpellTableGetSkillLineLinkInfo(int32_t skillLine, const SkillLineAbilityRec
 // VERIFY: c2ad67d0 auto
 // OFFSET: 0x00810ED0
 const SkillRaceClassInfoRec* SpellTableLookupInfo(int32_t race, int32_t classId, int32_t skillId) {
+    // CoA: AscCrashContext.cpp:SpellLookupB (orig hook 0x810ED0) -- the third argument as the crash report's "Last Spell
+    // Table Lookup ID".
+    CoA::CrashContext::RecordNumber(CoA::CrashContext::Field::SpellTableLookup, static_cast<uint32_t>(skillId));
+
     HASHKEY_NONE key;
     RACECLASSINFO* info = s_raceClassInfo.Ptr(skillId, key);
 
@@ -246,6 +251,10 @@ void SpellTableInitialize() {
 // VERIFY: e0671a08 manual
 // OFFSET: 0x00812410
 SkillLineAbilityRec* SpellTableLookupAbility(int32_t race, int32_t classId, int32_t spellId) {
+    // CoA: AscCrashContext.cpp:SpellLookupA (orig hook 0x812410) -- the third argument as the crash report's "Last Spell
+    // Table Lookup ID".
+    CoA::CrashContext::RecordNumber(CoA::CrashContext::Field::SpellTableLookup, static_cast<uint32_t>(spellId));
+
     if (s_skillLineLinkInfoDirty) {
         SpellTableBuildSkillLineLinkInfo();
     }

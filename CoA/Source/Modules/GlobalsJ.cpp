@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/QuestAddon.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/BridgeStore.h"
+#include "CoA/Source/Modules/Cursor.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Dbc.h"
@@ -679,6 +680,8 @@ namespace {
         COA_NATIVE("", "IsQuestSequenced", IsQuestSequenced),
         COA_NATIVE("", "RequestMultipleAssetQuery", RequestMultipleAssetQuery),
         COA_NATIVE("", "RequestSingleAssetQuery", RequestSingleAssetQuery),
+        // FUN_10a1edf0: the cursor module's table (Cursor.cpp).
+        COA_NATIVE("", "SetAttackCursor", CoA::Cursor::SetAttackCursor),
         COA_NATIVE("", "SetAttackAnimation", SetAttackAnimation),
         COA_NATIVE("", "SetAttackDistance", SetAttackDistance),
         COA_NATIVE("", "SetFadeOutGameObjects", SetFadeOutGameObjects),
@@ -785,6 +788,10 @@ void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     while (lua_getstack(L, s_errorCallstackHeight, &ar)) {
         ++s_errorCallstackHeight;
     }
+}
+
+bool CoA::GlobalsJ::CombatLogAllDisabled() {
+    return s_combatLogDisableAll;
 }
 
 bool CoA::GlobalsJ::CombatLogAllowed(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60) {

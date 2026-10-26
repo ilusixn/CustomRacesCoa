@@ -124,6 +124,21 @@ static const CoA::Module s_modules[] = {
     { "SpellVisuals", CoA::SpellVisuals::Init },
     { "ZoneLight", CoA::ZoneLight::Init },
     { "FontRender", CoA::FontRender::Init },
+    // FUN_10265d20 (the render module) and FUN_10a1e950 (the cursor module).
+    { "Graphics", CoA::Graphics::Init },
+    { "Cursor", CoA::Cursor::Init },
+    // FUN_10324a90 (spell modifiers) and FUN_102b9830 (movement forces).
+    { "SpellMods", CoA::SpellMods::Init },
+    { "MovementForce", CoA::MovementForce::Init },
+    // FUN_1030f1b0.. (the Lua packet API), FUN_103223a0 / FUN_10227970 (small hooks), FUN_100d4b90 / FUN_100e0cc0
+    // (gossip and quest events) and FUN_10a11840 (spell-description tokens).
+    { "PacketApi", CoA::PacketApi::Init },
+    { "SmallHooks", CoA::SmallHooks::Init },
+    { "GossipQuest", CoA::GossipQuest::Init },
+    { "SpellTokens", CoA::SpellTokens::Init },
+    // FUN_10a60cd0 / FUN_10296fd0 (client guards); AscCrashContext (FUN_1019dc80), AscInitHooks (FUN_10a60d20) and
+    // AscLargeAlloc (FUN_102a85f0) are client sites only (their *Client halves).
+    { "ClientGuards", CoA::ClientGuards::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -208,6 +223,17 @@ static const CoA::Module s_modules[] = {
     { "SpellVisualsClient", CoA::SpellVisualsClient::Init },
     { "ZoneLightClient", CoA::ZoneLightClient::Init },
     { "FontRenderClient", CoA::FontRenderClient::Init },
+    { "GraphicsClient", CoA::GraphicsClient::Init },
+    { "CursorClient", CoA::CursorClient::Init },
+    { "SpellModsClient", CoA::SpellModsClient::Init },
+    { "MovementForceClient", CoA::MovementForceClient::Init },
+    { "PacketApiClient", CoA::PacketApiClient::Init },
+    { "SmallHooksClient", CoA::SmallHooksClient::Init },
+    { "GossipQuestClient", CoA::GossipQuestClient::Init },
+    { "SpellTokensClient", CoA::SpellTokensClient::Init },
+    { "CrashContextClient", CoA::CrashContextClient::Init },
+    { "InitHooksClient", CoA::InitHooksClient::Init },
+    { "ClientGuardsClient", CoA::ClientGuardsClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

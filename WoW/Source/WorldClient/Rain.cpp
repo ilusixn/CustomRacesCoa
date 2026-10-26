@@ -1,4 +1,5 @@
 #include "Rain.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include <cmath>
 #include <cstdint>
 #include "Engine/Source/Base/Handle.h"
@@ -816,7 +817,9 @@ Rain::~Rain() {
 
 // VERIFY: 7c030b6b manual
 // OFFSET: 0x0078CA90
-Rain::Rain(float width, float height) : m_bbox(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f)), m_mists(12.0f, C3Vector(44.0f, 44.0f, 25.0f), "textures\\Weather\\SnowMist01.blp", -1.5700001f, 0.34906587f, 5.0f, 1.2f, 128) {
+Rain::Rain(float width, float height) : m_bbox(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f)), m_mists(CoA::Graphics::MistDensity(), C3Vector(44.0f, 44.0f, 25.0f), "textures\\Weather\\SnowMist01.blp", -1.5700001f, 0.34906587f, 5.0f, 1.2f, 128) {
+    // CoA: AscGraphics.cpp:FUN_102622d0 (Extensions.dll patch 0x78CB05) -- the mist density (the first m_mists argument)
+    // reads mistDensity's float instead of the constant 12.0.
     this->m_useWeatherShaders = 1;
     this->m_fadeOut = 0;
     this->m_rainDropPacketList.m_activePacketsCount = 0;

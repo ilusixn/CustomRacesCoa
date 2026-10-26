@@ -1,5 +1,6 @@
 #include <cstdint>
 #include "CoA/Source/Modules/CVarHooks.h"
+#include "CoA/Source/Modules/Cursor.h"
 #include <cstdio>
 #include <cstring>
 #include "ConsoleDevice.h"
@@ -223,6 +224,9 @@ static bool CVGxMaximizeCallback(CVar* var, const char* oldValue, const char* va
 // VERIFY: 5986dd1d auto
 // OFFSET: 0x007695E0
 static bool CVGxCursorCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
+    // CoA: AscCursor.cpp:FUN_10a1e260 (orig hook 0x7695E0) -- before the original: "1" is the hardware cursor (the
+    // software cursor's render layer released), anything else adds the software cursor's layer.
+    CoA::Cursor::OnGxCursor(value);
     s_requestedFormat.m_hwCursor = SStrToInt(value) != 0;
     ConsoleWrite("set pending gxRestart", DEFAULT_COLOR);
     return true;

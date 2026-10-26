@@ -395,13 +395,21 @@ int32_t GxTexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourc
 // VERIFY: 1ff03c68 auto
 // OFFSET: 0x00681580
 int32_t GxTexReusable(CGxTex* texId) {
-    return texId && texId->m_char5D && texId->m_depth == 0 && !texId->m_flags.m_generateMipMaps && !texId->m_flags.m_renderTarget && texId->m_target == GxTex_2d && texId->m_format <= GxTex_Dxt5;
+    // CoA: AscGraphics.cpp:sub_10265d10 (orig hook 0x681580) -- replaced by "return 0" (Extensions.dll's
+    // ReplaceFunction): no texture is ever reused. The stock body was:
+    //   texId && texId->m_char5D && texId->m_depth == 0 && !generateMipMaps && !renderTarget && 2d && format <= Dxt5
+    (void)texId;
+    return 0;
 }
 
 // VERIFY: d90f6ed2 auto
 // OFFSET: 0x006815C0
 int32_t GxTexReusable(CGxTexParms& parms) {
-    return parms.m_depth == 0 && !parms.m_flags.m_generateMipMaps && !parms.m_flags.m_renderTarget && parms.m_target == GxTex_2d && parms.m_format <= GxTex_Dxt5;
+    // CoA: AscGraphics.cpp:sub_10265d10 (orig hook 0x6815C0) -- replaced by "return 0" (Extensions.dll's
+    // ReplaceFunction): no texture is ever created reusable. The stock body was:
+    //   parms.m_depth == 0 && !generateMipMaps && !renderTarget && 2d && format <= Dxt5
+    (void)parms;
+    return 0;
 }
 
 // VERIFY: 01ea0eb4 manual

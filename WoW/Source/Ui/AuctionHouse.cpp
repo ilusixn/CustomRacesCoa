@@ -19,6 +19,7 @@
 #include "WoW/Source/Ui/Types.h"
 #include "WoW/Source/Ui/UILCD/LCD.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Ui/ContainerFrame.h"
 
 struct AuctionFindItemsParam {
     /* 0000 */ int32_t m_itemId;
@@ -1223,6 +1224,14 @@ bool CGAuctionHouse::IsSellItemValid(CGItem_C* item, int32_t showError) {
         } else if (item->GetItemStaticFlags(0) & ITEM_FLAG_HAS_LOOT) {
             error = ERR_AUCTION_LOOT_ITEM;
         } else {
+            // CoA: AscInitHooks.cpp:Detour59D0B0 (orig hook 0x59D0B0) -- after the body: false (no error) for one of the
+            // four equipped bags.
+            for (uint32_t i = 0; i < 4; i++) {
+                if (CGContainerInfo::m_containers[i] == item->m_obj->m_guid && ClntObjMgrObjectPtr(CGContainerInfo::m_containers[i], TYPE_CONTAINER, __FILE__, __LINE__)) {
+                    return false;
+                }
+            }
+
             return true;
         }
     }

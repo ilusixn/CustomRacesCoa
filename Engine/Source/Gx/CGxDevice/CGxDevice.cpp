@@ -214,9 +214,18 @@ int32_t CGxDevice::BufUnlock(CGxBuf* buf, uint32_t size) {
     return 1;
 }
 
+// CoA: set by CoA::CursorClient (Engine does not link CoA).
+int32_t (*g_cursorSetVisibleHook)(int32_t visible);
+
 // VERIFY: 51c4b8e7 auto
 // OFFSET: 0x00683640
 void CGxDevice::CursorSetVisible(int32_t visible) {
+    // CoA: AscCursor.cpp:FUN_10a205f0 (orig hook 0x683640) -- with the software cursor (and no item on the cursor) the
+    // show flag is kept for the software cursor and the device gets 0.
+    if (g_cursorSetVisibleHook) {
+        visible = g_cursorSetVisibleHook(visible);
+    }
+
     this->m_cursorVisible = visible;
 }
 

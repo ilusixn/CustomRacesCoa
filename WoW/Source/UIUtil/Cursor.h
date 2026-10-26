@@ -25,4 +25,10 @@ void CursorGrabMoney(uint32_t amount);
 void CursorGrabSpell(const char* texture);
 void CursorGrabVirtualItem(int32_t displayId);
 
+// CoA: AscCursor.cpp -- the statics the DLL reads and writes directly (CursorClient.cpp).
+uint32_t CoA_CursorGetMode();
+void CoA_CursorStoreMode(uint32_t mode);
+bool CoA_CursorHasItem();
+const char* CoA_CursorName(uint32_t mode);
+
 #endif

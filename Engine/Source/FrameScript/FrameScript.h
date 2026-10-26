@@ -41,6 +41,8 @@ extern const luaL_Reg s_extraFuncs[];
 
 int32_t FrameScript_CompileFunction(const char* name, const char* wrapper, const char* body, CStatus* status);
 void FrameScript_CreateEvents(const char** names, uint32_t count);
+// CoA: AscCrashContext.cpp:FrameScriptExecute (orig hook 0x819210) -- with the source, before FrameScript_Execute.
+extern void (*g_frameScriptExecuteHook)(const char* source);
 // CoA: see FrameScript.cpp
 extern const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 // CoA: AscRuntime.cpp:DispatchDetour (orig hook 0x81AA00) -- false refuses the signal.

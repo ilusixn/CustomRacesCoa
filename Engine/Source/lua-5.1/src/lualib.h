@@ -32,6 +32,8 @@ LUALIB_API int (lua_strformat) (lua_State *L);
 
 #define LUA_STRLIBNAME	"string"
 LUALIB_API int (luaopen_string) (lua_State *L);
+// CoA: AscClientGuards.cpp:FUN_10296fd0 (orig hook 0x8540D0) -- when set, luaopen_string adds it as string.toboolean.
+extern lua_CFunction g_luaStringToBoolean;
 
 #define LUA_MATHLIBNAME	"math"
 LUALIB_API int (luaopen_math) (lua_State *L);

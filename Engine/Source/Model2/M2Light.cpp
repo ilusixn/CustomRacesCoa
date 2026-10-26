@@ -66,6 +66,10 @@ int32_t CM2Lighting::GetPointLight(uint32_t index, C3Vector& pos, C3Vector& colo
     return 1;
 }
 
+// CoA: set by CoA::GraphicsClient (Engine does not link CoA).
+void (*g_m2LightCreatedHook)(CM2Light* light);
+void (*g_m2LightUnlinkHook)(CM2Light* light);
+
 // VERIFY: a0e7de7f auto
 // OFFSET: 0x00834A40
 CM2Light::CM2Light() {
@@ -78,6 +82,12 @@ CM2Light::CM2Light() {
     this->m_visible = 0;
     this->m_lightPrev = nullptr;
     this->m_lightNext = nullptr;
+
+    // CoA: AscGraphics.cpp:sub_1025d020 (orig hook 0x834A40) -- after the original: in world the light is attenuated by
+    // lightLinearAttenuation / lightQuadraticAttenuation and tracked.
+    if (g_m2LightCreatedHook) {
+        g_m2LightCreatedHook(this);
+    }
 }
 
 // INLINED
@@ -88,6 +98,12 @@ CM2Light::~CM2Light() {
 // VERIFY: 42088760 manual
 // OFFSET: 0x00834AB0
 void CM2Light::Unlink() {
+    // CoA: AscGraphics.cpp:sub_1025d0c0 (orig hook 0x834AB0) -- before the original: the light is no longer tracked. The
+    // 32-bit client's array destructors call this function directly (it is ~CM2Light).
+    if (g_m2LightUnlinkHook) {
+        g_m2LightUnlinkHook(this);
+    }
+
     if (this->m_lightPrev) {
         *this->m_lightPrev = this->m_lightNext;
     }

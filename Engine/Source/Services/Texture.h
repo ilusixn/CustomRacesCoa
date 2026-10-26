@@ -182,6 +182,8 @@ void TextureSetUserData(CTexture* texture, GxTexUserFunc userFunc, void* userArg
 int32_t TextureUnloadBlob(const char* fileName);
 int32_t TextureUpdate(const void* data, void* param);
 void UpdateBlpTextureAsync(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
+// CoA: AscLargeAlloc.cpp:Hook4B9760 (orig hook 0x4B9760) -- with the file name, before TextureCreate.
+extern void (*g_textureCreateHook)(const char* fileName);
 void UpdateTgaTexture(EGxTexCommand command, uint32_t width, uint32_t height, uint32_t face, uint32_t level, void* userArg, uint32_t& texelStrideInBytes, const void*& texels);
 
 #endif

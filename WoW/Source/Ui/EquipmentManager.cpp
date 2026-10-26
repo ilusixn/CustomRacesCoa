@@ -1,4 +1,6 @@
 #include "EquipmentManager.h"
+#include "CoA/Source/Modules/SmallHooks.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/Ui/ActionBarFrame.h"
@@ -517,6 +519,10 @@ int32_t Packet_SMSG_EQUIPMENT_SET_USE_RESULT(void* param, NETMESSAGE msgId, uint
 // VERIFY: 12a136d2 manual
 // OFFSET: 0x005ADA20
 bool CGEquipmentManager::UseEquipmentSet(const EQUIPMENT_SET* set) {
+    // CoA: AscSmallHooks.cpp:FUN_10228610 (orig hook 0x5ADA20) -- with bankEquipmentManager on and no banker GUID, the
+    // GUID is 1 while the function runs, and 0 again after when the CVar is still on.
+    const bool coaBankWrote = CoA::SmallHooks::BeforeUseEquipmentSet();
+    auto coaBankAfter = CoA::ClientHooks::OnScopeExit([coaBankWrote] { CoA::SmallHooks::AfterUseEquipmentSet(coaBankWrote); });
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (!player) {

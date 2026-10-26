@@ -1,6 +1,7 @@
 #include "Tooltip.h"
 #include "CoA/Source/Modules/TooltipScaling.h"
 #include "CoA/Source/Modules/TooltipScalingClient.h"
+#include "CoA/Source/Modules/SpellTokens.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -119,6 +120,7 @@
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/UIMacros.h"
 #include "WoW/Source/UIUtil/Cursor.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 static const float LINE_SPACING = 2.0f;
 static const float COLUMN_SPACING = 38.400002f;
@@ -3192,6 +3194,9 @@ void CGTooltip::AddColoredItemStat(int32_t value, const char* name, int32_t* fir
 // VERIFY: 8edeac88 manual
 // OFFSET: 0x006238A0
 int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, int32_t isPet, int32_t showRank, int32_t isInspect, int32_t a8, const TalentRec* talent, CGTalentGroup_C* talentGroup, int32_t append, int32_t usePreview, int32_t a13, int32_t rank, int32_t maxRank, int32_t showLearn) {
+    // CoA: AscSpellTokens.cpp:FUN_10a11130 (orig hook 0x6238A0) -- for a spell with SpellCustomAttr +0x14 0x40 the jne at
+    // 0x62442C is a jmp while this runs: the cast-time / cooldown line below is skipped.
+    const bool coaHideCastTime = CoA::SpellTokens::HidesCastTime(static_cast<uint32_t>(spellId));
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
     const CImVector& redColor = *reinterpret_cast<const CImVector*>(&s_tooltipRedColor);
@@ -3306,7 +3311,7 @@ int32_t CGTooltip::SetSpell(int32_t spellId, int32_t brief, uint32_t cooldown, i
     int32_t recast = recovery > categoryRecovery ? recovery : categoryRecovery;
     int32_t isTradeSkill = 0;
 
-    if (!brief && !tradeSkill) {
+    if (!brief && !tradeSkill && !coaHideCastTime) {
         isTradeSkill = AddSpellCastTimeLine(this, &spell, isPet, isInspect, powerCost, recast);
     }
 
@@ -5696,9 +5701,21 @@ static int32_t CollectItemSetData(CGTooltip* tooltip, const ItemSetRec* set, CGP
         if (ownerPlayer) {
             for (int32_t slot = 0; slot < 19; slot++) {
                 const VisibleItem_C* visible = ownerPlayer->GetVisibleItem(slot);
+                bool coaHave = visible != nullptr;
+                int32_t coaItemId = visible ? visible->m_itemId : 0;
 
-                if (visible) {
-                    int32_t itemId = abs(visible->m_itemId);
+                // CoA: AscInitHooks.cpp:Detour6DE330 (orig hook 0x6DE330) -- this call (return address 0x62BAC8) on the active
+                // player reads the entry of the item in the inventory slot, not the visible (displayed) one; without an
+                // item there, the visible one as before.
+                if (ownerPlayer == ClntObjMgrGetActivePlayerObj()) {
+                    if (const CGObject_C* item = ClntObjMgrObjectPtr(ownerPlayer->m_player->m_playerFieldInvSlotHead[slot], TYPE_ITEM, __FILE__, __LINE__)) {
+                        coaHave = true;
+                        coaItemId = static_cast<int32_t>(item->m_obj->m_entryID);
+                    }
+                }
+
+                if (coaHave) {
+                    int32_t itemId = abs(coaItemId);
 
                     if (itemId && ResolveItemSetItem(&data, pass, itemId, slot)) {
                         (*numEquipped)++;
@@ -6734,6 +6751,10 @@ const char* CGTooltip::GetItemHyperlinkString(int32_t itemId, uint32_t quality, 
 // VERIFY: 2118de6f auto
 // OFFSET: 0x0061E5C0
 const char* CGTooltip::GetQuestLink(int32_t questId, int32_t level) {
+    // CoA: AscInitHooks.cpp:Detour61E5C0 (orig hook 0x61E5C0) -- a quest in the player's log links with the level of the
+    // player's addon field 0x3D + slot (the last matching slot).
+    level = CoA::InitHooks::QuestLinkLevel(static_cast<uint32_t>(questId), level);
+
     WOWGUID none = { 0 };
     QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
 

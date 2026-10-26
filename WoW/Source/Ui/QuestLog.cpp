@@ -37,6 +37,7 @@
 #include "WoW/Source/DB/Rec/DungeonMapRec.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/Rec/WorldMapAreaRec.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 // STATIC: 0x00C23618
 int32_t CGQuestLog::m_sortTypes[25];
@@ -967,6 +968,14 @@ void CGQuestLog::CollapseHeader(uint32_t index, int32_t collapse) {
 // VERIFY: 89bc5f8b manual
 // OFFSET: 0x005E0D20
 int32_t GetQuestLevel(int32_t questId) {
+    // CoA: AscInitHooks.cpp:Detour5E0D20 (orig hook 0x5E0D20) -- REPLACED for a quest in the player's log: its level is
+    // the player's addon field 0x3D + slot.
+    int32_t coaLevel = 0;
+
+    if (CoA::InitHooks::QuestLevel(static_cast<uint32_t>(questId), coaLevel)) {
+        return coaLevel;
+    }
+
     WOWGUID none = { 0 };
     QuestCache* quest = g_questDBCache.GetRecord(questId, none, QuestQueryCallback, nullptr, false);
 
@@ -1268,6 +1277,14 @@ int32_t CGQuestLog::GetQuestLogSlot(int32_t index) {
 // VERIFY: f0f3c6ea manual
 // OFFSET: 0x005E0420
 int32_t CalculateExperience(int32_t questId, int32_t level) {
+    // CoA: AscInitHooks.cpp:Detour5E0420 (orig hook 0x5E0420) -- REPLACED for a quest in the player's log: its XP is the
+    // player's addon field 0x24 + slot.
+    int32_t coaXp = 0;
+
+    if (CoA::InitHooks::QuestExperience(static_cast<uint32_t>(questId), coaXp)) {
+        return coaXp;
+    }
+
     WOWGUID none = { 0 };
     QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
 

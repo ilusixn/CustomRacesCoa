@@ -2,6 +2,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
+#include "CoA/Source/Modules/GossipQuest.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -155,6 +156,7 @@
 #include "WoW/Source/Ui/Tutorial.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/PortraitButton.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -1868,6 +1870,13 @@ void __stdcall CGPlayer_C::PushQuestToParty(int32_t questId) {
 // VERIFY: 2068fcba manual
 // OFFSET: 0x006D4F80
 void __stdcall CGPlayer_C::QuestLogRemoveQuest(uint8_t slot) {
+    // CoA: AscGossipQuest.cpp:FUN_100e0ba0 (orig hook 0x6D4F80) -- after the original: QUEST_REMOVED with the quest id the
+    // player's log slot holds (the DLL reads ecx as the player; here the active player).
+    auto coaRemoved = CoA::ClientHooks::OnScopeExit([slot] {
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+        PlayerQuestLogEntry* entry = player ? player->GetQuestLogEntry(slot) : nullptr;
+        CoA::GossipQuest::AfterQuestRemoved(entry ? entry->m_questId : 0);
+    });
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_QUEST_LOG_REMOVE_QUEST));
     msg.Put(slot);
@@ -4659,6 +4668,17 @@ void CGPlayer_C::PlayerInitializeMessageHandlers() {
 // VERIFY: ea8acbe5 manual
 // OFFSET: 0x006E4950
 void CGPlayer_C::CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int32_t silent) {
+    // CoA: AscInitHooks.cpp:Detour6E4950 (orig hook 0x6E4950) -- before the body: autoRangedCombat "1" -> its int is
+    // whether the active player's ranged slot holds an item.
+    if (CVar* coaRanged = CVar::Lookup("autoRangedCombat")) {
+        CGPlayer_C* coaPlayer = ClntObjMgrGetActivePlayerObj();
+        int32_t coaValue = 0;
+
+        if (coaPlayer && CoA::InitHooks::AutoRangedCombatValue(coaRanged->m_stringValue.m_str, static_cast<bool>(coaPlayer->m_player->m_playerFieldInvSlotHead[17]), coaValue)) {
+            coaRanged->m_intValue = coaValue;
+        }
+    }
+
     if (!CGGameUI::CanPerformAction(1)) {
         return;
     }
@@ -7911,6 +7931,9 @@ static void QuestCompleteCallback(int32_t id, const WOWGUID& guid, void* param, 
 // VERIFY: bd6214c4 manual
 // OFFSET: 0x006D1110
 int32_t __stdcall CGPlayer_C::OnQuestGiverQuestComplete(CDataStore* msg) {
+    // CoA: AscGossipQuest.cpp:FUN_100e0ab0 (orig hook 0x6D1110) -- after the original: QUEST_TURNED_IN with the first three
+    // dwords of the message buffer (the opcode included, as shipped).
+    auto coaTurnedIn = CoA::ClientHooks::OnScopeExit([msg] { CoA::GossipQuest::AfterQuestComplete(msg->m_data, msg->m_size); });
     QuestCompleteRewards* rewards = new (__FILE__, __LINE__) QuestCompleteRewards;
 
     uint32_t questId;

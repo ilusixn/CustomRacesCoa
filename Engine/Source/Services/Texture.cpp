@@ -19,6 +19,9 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 
+// CoA: set by CoA::CrashContextClient.
+void (*g_textureCreateHook)(const char* fileName);
+
 // STATIC: 0x009F1028
 static const uint16_t s_pixelFormatBytesPerBlock[NUM_PIXEL_FORMATS] = { 8, 16, 0, 0, 0, 0, 0, 16, 0, 0 };
 
@@ -2474,6 +2477,12 @@ CTexture* CreateTgaTexture(const char* fileName, char* extension, int32_t flags,
 // VERIFY: 8821b223 manual
 // OFFSET: 0x004B9760
 CTexture* TextureCreate(const char* fileName, CGxTexFlags texFlags, CStatus* status, uint32_t flags) {
+    // CoA: AscLargeAlloc.cpp:Hook4B9760 (orig hook 0x4B9760) -- the name as the crash report's "Last TextureCreate"
+    // (and the DLL's current BLP, read only by a size report nothing ever triggers).
+    if (g_textureCreateHook) {
+        g_textureCreateHook(fileName);
+    }
+
     if (!fileName) {
         DebugValidate("fileName");
         SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);

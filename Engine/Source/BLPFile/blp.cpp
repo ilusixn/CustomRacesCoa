@@ -8,6 +8,9 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
 
+// CoA: set by CoA::CrashContextClient.
+void (*g_blpLockChainHook)(const char* fileName);
+
 // STATIC: 0x00AD90B0
 uint8_t CBLPFile::s_eightBitAlphaLookup[16] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF };
 
@@ -924,6 +927,11 @@ int32_t CBLPFile::Open(const char* fileName, int32_t flags) {
 // VERIFY: 3d8e87b0 manual
 // OFFSET: 0x006AFFD0
 int32_t CBLPFile::LockChain2(const char* fileName, PIXEL_FORMAT format, MipBits*& images, uint32_t mipLevel, int32_t inPlace) {
+    // CoA: AscCrashContext.cpp:LoadBlp (orig hook 0x6AFFD0) -- the crash report's "Last BLP".
+    if (g_blpLockChainHook) {
+        g_blpLockChainHook(fileName);
+    }
+
     if (!this->IsValidMip(mipLevel)) {
         return 0;
     }

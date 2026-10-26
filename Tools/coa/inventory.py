@@ -21,7 +21,12 @@ PACKET_RE = re.compile(r'COA_PACKET\(\s*(0x[0-9A-Fa-f]+|\d+)')
 DBC_PATCH_RE = re.compile(r'DbcPatch::Register\w*\(\s*(0x[0-9A-Fa-f]+)')
 DBC_PATCH_ROW_RE = re.compile(r'^\{(0x[0-9A-Fa-f]+),\s*"DBFilesClient', re.M)
 CVAR_RE = re.compile(r'COA_CVAR\(\s*"([^"]+)"')
+# DLL_REFERENCE lists a module's CVar table as "name.default" Lua API rows and its string-pair tables as "A.B" rows.
+CVAR_DEFAULT_RE = re.compile(r'COA_CVAR\(\s*"([^"]+)"\s*,[^,]*,[^,]*,\s*"([^"]*)"')
+STRING_PAIR_RE = re.compile(r'\{\s*"([A-Z][A-Z0-9_]*)"\s*,\s*"([A-Z][A-Z0-9_]*)"\s*,\s*0x[0-9A-Fa-f]+\s*\}')
 EVENT_RE = re.compile(r'COA_EVENT\(\s*"([^"]+)"')
+# Events the DLL fires without registering them (stock client events, or unregistered names it signals anyway).
+SIGNAL_RE = re.compile(r'Events::Signal\(([^;]*?)(?:,|\);)')
 HOOK_RE = re.compile(r'//\s*CoA:.*?orig hook ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_RE = re.compile(r'//\s*CoA:.*?Extensions\.dll patch ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_ROW_RE = re.compile(r'^\s*\{(0x[0-9A-Fa-f]+)\s*,', re.M)
@@ -121,6 +126,10 @@ def scan_coa(root):
                 inv.packets.update(int(op, 16) for op in DBC_PATCH_ROW_RE.findall(text))
             inv.cvars.update(CVAR_RE.findall(text))
             inv.events.update(EVENT_RE.findall(text))
+            inv.natives.update((cvar, default, '') for cvar, default in CVAR_DEFAULT_RE.findall(text))
+            inv.natives.update((a, b, '') for a, b in STRING_PAIR_RE.findall(text))
+            for head in SIGNAL_RE.findall(text):
+                inv.events.update(re.findall(r'"([A-Z][A-Z0-9_]*)"', head))
     return inv
 
 

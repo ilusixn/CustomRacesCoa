@@ -1,4 +1,5 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/SmallApisClient.h"
 #include "CoA/Source/Modules/ZoneLightClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -287,7 +288,11 @@ static C3Vector GetLightPosition(const LightRec* const* light) {
 // VERIFY: 28940a59 auto
 // OFFSET: 0x007EB180
 const LightParamsRec* DayNight::GetLightParams(const LightRec* light, int32_t param) {
-    return g_lightParamsDB.GetRecord(light->m_lightParamsID[param]);
+    const LightParamsRec* params = g_lightParamsDB.GetRecord(light->m_lightParamsID[param]);
+    // CoA: AscGraphics.cpp:sub_102648c0 (orig hook 0x7EB180) -- after the original: with an SMSG 0x650 skybox override a
+    // copy with the override is returned; ambientGlow scales the returned row's glow (the client's own row, in place).
+    static_assert(sizeof(LightParamsRec) == 9 * sizeof(uint32_t), "LightParamsRec is the 9-dword DBC row");
+    return reinterpret_cast<const LightParamsRec*>(CoA::Graphics::LightParams(reinterpret_cast<uint32_t*>(const_cast<LightParamsRec*>(params))));
 }
 
 // VERIFY: 731bfb93 auto
@@ -295,6 +300,10 @@ const LightParamsRec* DayNight::GetLightParams(const LightRec* light, int32_t pa
 float DayNight::CalcIndividualColorFromDBRec(int32_t time, const LightParamsRec* params, int32_t band) {
     LightFloatBandRec rec;
     g_lightFloatBandDB.GetRecord(band + 6 * params->m_id - 5, &rec);
+    // CoA: AscGraphics.cpp:FUN_10264820 (orig hook 0x7EB210) -- after the original: the 32-bit client folds this GetRecord
+    // with LightIntBand's (0x7EB210), so ambientShade scales the float values' low three bytes too.
+    static_assert(sizeof(LightFloatBandRec) == 0x88, "the band row the detour scales at +0x48");
+    CoA::Graphics::ScaleBandRecord(reinterpret_cast<uint8_t*>(&rec));
     return DayNight::InterpFloatBand(&rec, time, band);
 }
 
@@ -319,7 +328,14 @@ void DayNight::LoadLightingBands(int32_t time, CurrentLight* light, const LightP
     light->m_waterColors[1] = DayNight::LoadLightIntBand(time, params, 15);
     light->m_waterColors[2] = DayNight::LoadLightIntBand(time, params, 16);
     light->m_waterColors[3] = DayNight::LoadLightIntBand(time, params, 17);
-    light->m_fogEnd = DayNight::CalcIndividualColorFromDBRec(time, params, 0);
+    // CoA: AscGraphics.cpp:FUN_10260400 (Extensions.dll patch 0x7EC15A) -- with fogOverride and a fogDistance above 498
+    // the fog end store is NOPed (the band is still read).
+    const float fogEnd = DayNight::CalcIndividualColorFromDBRec(time, params, 0);
+
+    if (CoA::Graphics::FogEndStores()) {
+        light->m_fogEnd = fogEnd;
+    }
+
     light->m_fogStartMul = DayNight::CalcIndividualColorFromDBRec(time, params, 1);
 
     if (light->m_fogStartMul < -1.0f) {
@@ -833,7 +849,12 @@ DayNight::CurrentLight& DayNight::CurrentLight::operator=(const CurrentLight& so
     this->m_waterColors[1] = source.m_waterColors[1];
     this->m_waterColors[2] = source.m_waterColors[2];
     this->m_waterColors[3] = source.m_waterColors[3];
-    this->m_fogEnd = source.m_fogEnd;
+    // CoA: AscGraphics.cpp:FUN_10260400 (Extensions.dll patch 0x7ED982) -- with fogOverride and a fogDistance above 498
+    // the fog end is not copied.
+    if (CoA::Graphics::FogEndStores()) {
+        this->m_fogEnd = source.m_fogEnd;
+    }
+
     this->m_fogStartMul = source.m_fogStartMul;
     this->m_fogRate = source.m_fogRate;
     this->m_highlightSky = source.m_highlightSky;
@@ -968,7 +989,8 @@ void DayNight::DNPlanet::ClipGeometry(C3Vector* verts, C2Vector* texCoords, CImV
 // OFFSET: 0x007EE0D0
 void DayNight::DNStars::Update() {
     this->m_position = DayNight::g_dnInfo.m_cameraPos;
-    this->m_color.a = static_cast<uint8_t>(DayNight::InterpTable(s_starFadeTable, 4, DayNight::g_dnInfo.m_dayProgression) * 254.0f + 1.0f);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    this->m_color.a = static_cast<uint8_t>(DayNight::InterpTable(s_starFadeTable, 4, CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression)) * 254.0f + 1.0f);
 }
 
 // VERIFY: ece2840b auto
@@ -1052,14 +1074,16 @@ DayNight::CurrentLight::CurrentLight() {
 // VERIFY: bc27af6c manual
 // OFFSET: 0x007EE510
 void DayNight::BlendAreaLightColors(CurrentLight* dst, const LightRec* light, int32_t underwater) {
-    float progression = DayNight::g_dnInfo.m_dayProgression * 2880.0f;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    float progression = CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression) * 2880.0f;
     int32_t time = CMath::fint_(progression - 0.5f);
     const LightParamsRec* params = DayNight::GetLightParams(light, underwater != 0);
     DayNight::CalcColors(time, dst, params);
 
     if (DayNight::g_dnInfo.m_stormBlend > 0.0f) {
         CurrentLight storm;
-        progression = DayNight::g_dnInfo.m_dayProgression * 2880.0f;
+        // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+        progression = CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression) * 2880.0f;
         time = CMath::fint_(progression - 0.5f);
         params = DayNight::GetLightParams(light, (underwater != 0) + 2);
         DayNight::CalcColors(time, &storm, params);
@@ -1188,8 +1212,9 @@ void DayNight::SetDirection() {
     static C2Vector s_elevationTable[4] = { C2Vector(0.0f, 2.2165682f), C2Vector(0.25f, 1.9198623f), C2Vector(0.5f, 2.2165682f), C2Vector(0.75f, 1.9198623f) };
     static C2Vector s_azimuthTable[4] = { C2Vector(0.0f, 3.926991f), C2Vector(0.25f, 3.926991f), C2Vector(0.5f, 3.926991f), C2Vector(0.75f, 3.926991f) };
 
-    float elevation = DayNight::InterpTable(s_elevationTable, 4, DayNight::g_dnInfo.m_dayProgression);
-    float azimuth = DayNight::InterpTable(s_azimuthTable, 4, DayNight::g_dnInfo.m_dayProgression);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    float elevation = DayNight::InterpTable(s_elevationTable, 4, CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression));
+    float azimuth = DayNight::InterpTable(s_azimuthTable, 4, CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression));
     float sinElevation = CMath::sin_(elevation);
     float cosElevation = CMath::cos_(elevation);
     float sinAzimuth = CMath::sin_(azimuth);
@@ -1222,8 +1247,9 @@ void DayNight::SetPlanets() {
     DNInfo& info = DayNight::g_dnInfo;
     DNPlanets& planets = DayNight::g_planets;
 
-    float theta = DayNight::InterpTable(s_sunTheta, 5, info.m_dayProgression);
-    float phi = DayNight::InterpTable(s_sunPhi, 3, info.m_dayProgression);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    float theta = DayNight::InterpTable(s_sunTheta, 5, CoA::Graphics::DayProgress(info.m_dayProgression));
+    float phi = DayNight::InterpTable(s_sunPhi, 3, CoA::Graphics::DayProgress(info.m_dayProgression));
     float sinTheta = CMath::sin_(theta);
     float cosTheta = CMath::cos_(theta);
     float sinPhi = CMath::sin_(phi);
@@ -1234,11 +1260,13 @@ void DayNight::SetPlanets() {
     planets.m_sun.m_position.x = x * scale + info.m_cameraPos.x;
     planets.m_sun.m_position.y = y * scale + info.m_cameraPos.y;
     planets.m_sun.m_position.z = cosTheta * scale + info.m_cameraPos.z;
-    planets.m_sun.m_scale = DayNight::InterpTable(s_sunScale, 4, info.m_dayProgression) * planets.m_sun.m_baseScale;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    planets.m_sun.m_scale = DayNight::InterpTable(s_sunScale, 4, CoA::Graphics::DayProgress(info.m_dayProgression)) * planets.m_sun.m_baseScale;
     DayNight::g_sunGlare.m_position = planets.m_sun.m_position;
 
-    theta = DayNight::InterpTable(s_moonTheta, 5, info.m_dayProgression);
-    phi = DayNight::InterpTable(s_moonPhi, 3, info.m_dayProgression);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    theta = DayNight::InterpTable(s_moonTheta, 5, CoA::Graphics::DayProgress(info.m_dayProgression));
+    phi = DayNight::InterpTable(s_moonPhi, 3, CoA::Graphics::DayProgress(info.m_dayProgression));
     sinTheta = CMath::sin_(theta);
     cosTheta = CMath::cos_(theta);
     sinPhi = CMath::sin_(phi);
@@ -1249,15 +1277,18 @@ void DayNight::SetPlanets() {
     planets.m_moon.m_position.x = x * scale + info.m_cameraPos.x;
     planets.m_moon.m_position.y = y * scale + info.m_cameraPos.y;
     planets.m_moon.m_position.z = cosTheta * scale + info.m_cameraPos.z;
-    planets.m_moon.m_scale = DayNight::InterpTable(s_moonScale, 4, info.m_dayProgression) * planets.m_moon.m_baseScale;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    planets.m_moon.m_scale = DayNight::InterpTable(s_moonScale, 4, CoA::Graphics::DayProgress(info.m_dayProgression)) * planets.m_moon.m_baseScale;
     DayNight::g_moonGlare.m_scaleMin = planets.m_moon.m_scale;
     DayNight::g_moonGlare.m_position = planets.m_moon.m_position;
     DayNight::g_moonGlare.m_scaleMax = planets.m_moon.m_scale;
 
     int32_t day = CMath::fint_(info.m_day * 65536.0f - 0.5f);
-    int32_t progression = CMath::fint_(info.m_dayProgression * 65536.0f - 0.5f);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    int32_t progression = CMath::fint_(CoA::Graphics::DayProgress(info.m_dayProgression) * 65536.0f - 0.5f);
     int32_t total = progression + day;
-    int32_t cycleStart = CMath::fint_(floorf((info.m_day + info.m_dayProgression) / planets.m_moon2.m_period) * planets.m_moon2.m_period * 65536.0f - 0.5f);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    int32_t cycleStart = CMath::fint_(floorf((info.m_day + CoA::Graphics::DayProgress(info.m_dayProgression)) / planets.m_moon2.m_period) * planets.m_moon2.m_period * 65536.0f - 0.5f);
 
     if (cycleStart >= total) {
         cycleStart = total;
@@ -1278,7 +1309,8 @@ void DayNight::SetPlanets() {
     planets.m_moon2.m_position.z = cosTheta * scale + info.m_cameraPos.z;
     planets.m_moon2.m_scale = DayNight::InterpTable(s_moonScale, 4, cycle) * planets.m_moon2.m_baseScale;
 
-    float time = info.m_dayProgression;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    float time = CoA::Graphics::DayProgress(info.m_dayProgression);
 
     if (time >= SUNRISE && time < NOON) {
         info.m_sunMoonPath = (time - SUNRISE) * 3.6923077f;
@@ -1361,7 +1393,8 @@ void DayNight::DNClouds::SetupBumpMap(C3Vector* shadeColor, C3Vector* sunColor, 
     DNInfo& info = DayNight::g_dnInfo;
     C3Vector light;
 
-    if (info.m_dayProgression < 0.2013889f || info.m_dayProgression > 0.9236111f) {
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    if (CoA::Graphics::DayProgress(info.m_dayProgression) < 0.2013889f || CoA::Graphics::DayProgress(info.m_dayProgression) > 0.9236111f) {
         light = DayNight::g_planets.m_moon.m_position;
     } else {
         light = DayNight::g_planets.m_sun.m_position;
@@ -1399,7 +1432,8 @@ void DayNight::DNClouds::SetupBumpMap(C3Vector* shadeColor, C3Vector* sunColor, 
     baseColor->y = base.g * 0.0039215689f;
     baseColor->z = 0.0039215689f * base.b;
 
-    *intensity = DayNight::InterpTable(s_cloudLightCurve, 8, info.m_dayProgression) * *intensity;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    *intensity = DayNight::InterpTable(s_cloudLightCurve, 8, CoA::Graphics::DayProgress(info.m_dayProgression)) * *intensity;
     sunPos->z = info.m_stormBlend * 192.0f + sunPos->z;
     *intensity = (1.0f - info.m_stormBlend * 0.75f) * *intensity;
 }
@@ -1685,7 +1719,8 @@ void DayNight::DNSky::SetColors() {
     DNInfo& info = DayNight::g_dnInfo;
     CImVector* colors = this->m_clrVerts.m_data;
     CImVector ramp[6] = {};
-    float highlight = DayNight::InterpTable(s_highlightCurve, 6, info.m_dayProgression) * info.m_bands.m_highlightSky;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    float highlight = DayNight::InterpTable(s_highlightCurve, 6, CoA::Graphics::DayProgress(info.m_dayProgression)) * info.m_bands.m_highlightSky;
 
     if (DayNight::s_lightFlags & 1) {
         for (int32_t i = 0; i < 6; i++) {
@@ -1996,6 +2031,12 @@ DayNight::DNInfo::DNInfo() {
 // VERIFY: c02cdeae auto
 // OFFSET: 0x007F1010
 void DayNight::DNClouds::Update() {
+    // CoA: AscGraphics.cpp:sub_102647f0 (orig hook 0x7F1010) -- runs only when the clouds were marked (CloudLODCallback,
+    // every second SMSG_INITIAL_SPELLS) or animateClouds is 0.
+    if (!CoA::Graphics::CloudsTick()) {
+        return;
+    }
+
     DayNight::g_clouds.UpdateTextureAnimation();
 }
 
@@ -2145,6 +2186,10 @@ void DayNight::DoAreaLights(CurrentLight* light, int32_t underwater) {
 void DayNight::UpdateFog() {
     DNInfo& info = DayNight::g_dnInfo;
     float end = info.m_farClip;
+    // CoA: AscGraphics.cpp:FUN_1025ebf0 (Extensions.dll patch 0x7F1777 / 0x7F19F4 / 0x7F1A13 / 0x7F1A1B / 0x7F1A49) -- with
+    // fogOverride on and a fogDensity other than 1.0 the five density stores below are NOPed, so m_fog.m_density keeps
+    // the DLL's value (the x87 stack the NOPed fstp leave behind has no x64 counterpart).
+    const bool densityStores = CoA::Graphics::FogDensityStores();
 
     if (s_fogOverride) {
         if (s_overrideFogEnd < end) {
@@ -2154,7 +2199,10 @@ void DayNight::UpdateFog() {
         info.m_fog.m_end = end;
         info.m_fog.m_color = s_overrideFogColor;
         info.m_fog.m_start = end * s_overrideFogStart;
-        info.m_fog.m_density = s_overrideFogRate;
+
+        if (densityStores) {
+            info.m_fog.m_density = s_overrideFogRate;
+        }
     } else {
         if (info.m_bands.m_fogEnd < end) {
             end = info.m_bands.m_fogEnd;
@@ -2163,7 +2211,10 @@ void DayNight::UpdateFog() {
         info.m_fog.m_end = end;
         info.m_fog.m_color = info.m_bands.m_skyColors[5];
         info.m_fog.m_start = end * info.m_bands.m_fogStartMul;
-        info.m_fog.m_density = info.m_bands.m_fogRate;
+
+        if (densityStores) {
+            info.m_fog.m_density = info.m_bands.m_fogRate;
+        }
     }
 
     SMOFog fog;
@@ -2251,19 +2302,29 @@ void DayNight::UpdateFog() {
         info.m_fog.m_end = info.m_fogInterior.m_end;
         info.m_fog.m_start = info.m_fogInterior.m_start;
         density = info.m_fogInterior.m_density;
-        info.m_fog.m_density = density;
+
+        if (densityStores) {
+            info.m_fog.m_density = density;
+        }
+
         interiorDensity = density;
     } else {
         info.m_fogInterior.m_color = info.m_fog.m_color;
         info.m_fogInterior.m_start = info.m_fog.m_start;
         info.m_fogInterior.m_end = info.m_fog.m_end;
-        info.m_fogInterior.m_density = density;
+
+        if (densityStores) {
+            info.m_fogInterior.m_density = density;
+        }
+
         interiorDensity = density;
     }
 
     if (s_fogMode == 1 && liquidStatus) {
-        info.m_fog.m_density = density * 2.0f;
-        info.m_fogInterior.m_density = 2.0f * interiorDensity;
+        if (densityStores) {
+            info.m_fog.m_density = density * 2.0f;
+            info.m_fogInterior.m_density = 2.0f * interiorDensity;
+        }
     }
 
     if (DayNight::s_lightFlags & 2) {
@@ -2331,6 +2392,9 @@ void DayNight::DNClouds::SetLOD(uint32_t lod, uint32_t rowsPerUpdate) {
 // VERIFY: 92e57f89 auto
 // OFFSET: 0x007F1CD0
 bool CWorldParam::CloudLODCallback(CVar* var, const char* oldValue, const char* value, void* arg) {
+    // CoA: AscGraphics.cpp:sub_102647c0 (orig hook 0x7F1CD0) -- before the original: the clouds are marked for an update.
+    CoA::Graphics::CloudsSet();
+
     int32_t lod = SStrToInt(value);
 
     if (lod < 0) {
@@ -2655,19 +2719,22 @@ void DayNight::SetColors() {
         if (liquidStatus && liquidLight) {
             if (liquid) {
                 const LightParamsRec* params = g_lightParamsDB.GetRecord(liquid->m_lightID);
-                float progression = info.m_dayProgression * 2880.0f;
+                // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+                float progression = CoA::Graphics::DayProgress(info.m_dayProgression) * 2880.0f;
                 DayNight::CalcColors(CMath::fint_(progression - 0.5f), &info.m_bands, params);
             }
         } else {
             CurrentLight light;
-            float progression = info.m_dayProgression * 2880.0f;
+            // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+            float progression = CoA::Graphics::DayProgress(info.m_dayProgression) * 2880.0f;
             int32_t time = CMath::fint_(progression - 0.5f);
             const LightParamsRec* params = DayNight::GetLightParams(DayNight::g_areaLights.m_data[0], liquidStatus != 0);
             DayNight::CalcColors(time, &light, params);
 
             if (info.m_stormBlend > 0.0f) {
                 CurrentLight storm;
-                progression = info.m_dayProgression * 2880.0f;
+                // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+                progression = CoA::Graphics::DayProgress(info.m_dayProgression) * 2880.0f;
                 time = CMath::fint_(progression - 0.5f);
                 params = DayNight::GetLightParams(DayNight::g_areaLights.m_data[0], (liquidStatus != 0) + 2);
                 DayNight::CalcColors(time, &storm, params);
@@ -2681,7 +2748,8 @@ void DayNight::SetColors() {
             if (info.m_overrideLightParamsId == -1 || !(override = DayNight::GetLightParams(DayNight::g_areaLights.m_data[0], info.m_overrideLightParamsId))) {
                 info.m_bands = light;
             } else {
-                progression = info.m_dayProgression * 2880.0f;
+                // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+                progression = CoA::Graphics::DayProgress(info.m_dayProgression) * 2880.0f;
                 DayNight::CalcColors(CMath::fint_(progression - 0.5f), &info.m_bands, override);
                 info.m_bands.m_glow = light.m_glow;
                 info.m_bands.m_waterShallowAlpha = light.m_waterShallowAlpha;
@@ -2829,8 +2897,9 @@ void DayNight::SetColors() {
         info.m_blendSkyboxWeight[count] = 0.0f;
     }
 
-    info.m_curve0 = DayNight::InterpTable(s_curveTable0, 4, info.m_dayProgression);
-    info.m_curve1 = DayNight::InterpTable(s_curveTable1, 2, info.m_dayProgression);
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    info.m_curve0 = DayNight::InterpTable(s_curveTable0, 4, CoA::Graphics::DayProgress(info.m_dayProgression));
+    info.m_curve1 = DayNight::InterpTable(s_curveTable1, 2, CoA::Graphics::DayProgress(info.m_dayProgression));
 }
 
 // VERIFY: d95f0d18 auto
@@ -2995,7 +3064,8 @@ void DayNight::DNGlare::Update(float deltaSec) {
 
     float target = (1.0f - skyboxWeight) * this->m_fadeTarget;
     this->m_fadeTarget = target;
-    this->m_fadeTarget = DayNight::InterpTable(reinterpret_cast<const C2Vector*>(this->m_alphaCurve), 4, DayNight::g_dnInfo.m_dayProgression) * target;
+    // CoA: AscGraphics.cpp:FUN_10266c30 (Extensions.dll patch, one of the 24 reads of 0xD38B04) -- overrideDayProgress from 0.1 up.
+    this->m_fadeTarget = DayNight::InterpTable(reinterpret_cast<const C2Vector*>(this->m_alphaCurve), 4, CoA::Graphics::DayProgress(DayNight::g_dnInfo.m_dayProgression)) * target;
 
     if (this->m_fadeTarget != 0.0f) {
         this->m_fadeTarget = this->GetOcclusionFade() * this->m_fadeTarget;

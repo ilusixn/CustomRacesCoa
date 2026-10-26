@@ -1143,6 +1143,8 @@ void ClientDBInitialize() {
         }
     }
 
+    // CoA: AscLargeAlloc.cpp:Hook6348B0 (orig hook 0x6348B0) -- the DLL's detour on this load thunk looks each table up
+    // in a list nothing fills and reports past a counter nothing raises: it only calls through, nothing to port (Ruling).
     StaticDBLoadAll(&WowClientDB_Base::Load);
     GameTablesInitialize();
     InitResistances();
