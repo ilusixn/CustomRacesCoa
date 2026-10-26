@@ -221,3 +221,13 @@ Capture 2026-10-26, `-extlog 1`, test account, about 2 minutes in world, no cras
 `C_LootLockout` 2, one each for `C_BuildCreator`, `C_CustomStore`, `C_AssetQueryService`, `C_PlayerTicket`,
 `C_SkillCardCollection`, the profanity widget, the three CVars, and the `NewCharacterSetupUtil.lua:49` assertion (still
 there with `C_Tutorial` present, so it has another cause; to look at when the remaining modules land).
+
+## Plan 11 result
+
+Live run 2026-10-26 (test account, Pale Reach, 120 s in world after "registered (world)"): 22 Lua errors.
+- Gone: `C_BuildCreator`. BuildCreator / Wildcard / TemporalContracts initialise without errors.
+- Remaining: C stack overflow x4 (not investigated yet); C_Manastorm x3, C_LootLockout x2, C_SkillCardCollection,
+  C_AssetQueryService (Plan 13); C_PlayerTicket x2, C_PlayerPoll x2, C_CustomStore, RecoverCategoryItemAtIndex
+  (Plan 12); CVars useUiScale / autoAcceptTrades / ObjectSelectionCircleTexture and the profanity-filter widget
+  (Plan 14); NewCharacterSetupUtil.lua:49 assertion (open).
+- Inventory: natives 1051/1346, packets 433/533, events 186/259, hooks 126/346, patches 125/126, CVars 22/93.
