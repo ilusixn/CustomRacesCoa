@@ -240,6 +240,11 @@ static int32_t Script_strconcat(lua_State* L) {
 // VERIFY: 8c9d9de7 auto
 // OFFSET: 0x00816DA0
 static int32_t Script_issecure(lua_State* L) {
+    // CoA: AscAddonTaint.cpp:FUN_10313a50 (orig hook 0x816DA0) -- a listed secure addon reads 1.
+    if (g_issecureHook && g_issecureHook(L)) {
+        return 1;
+    }
+
     if (lua_tainted) {
         lua_pushnil(L);
     } else {

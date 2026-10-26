@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -1541,6 +1542,11 @@ static int32_t TargetDirectionProc(WOWGUID guid, void* param) {
 // VERIFY: b87710b1 manual
 // OFFSET: 0x005252D0
 void CGGameUI::TargetDirection(float facing, float angle, int32_t type) {
+    // CoA: AscAddonTaint.cpp:FUN_103118b0 (orig hook 0x5252D0) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+    auto restore = CoA::ClientHooks::OnScopeExit([taint]() { CoA::AddonTaint::EndCleared(taint); });
+
     if (lua_tainted) {
         CGGameUI::ShowBlockedActionFeedback(nullptr, 0);
         return;
@@ -1620,6 +1626,11 @@ void CGGameUI::TargetDirection(float facing, float angle, int32_t type) {
 // VERIFY: 9da22ed9 auto
 // OFFSET: 0x005191C0
 int32_t CGGameUI::CanPerformAction(uint32_t action) {
+    // CoA: AscAddonTaint.cpp:FUN_103115b0 (orig hook 0x5191C0) -- allowed while a listed secure addon runs.
+    if (CoA::AddonTaint::Secure()) {
+        return 1;
+    }
+
     if (lua_tainted) {
         switch (action) {
             case 0:
@@ -2189,6 +2200,11 @@ CGPartyPetState* CGPartyMemberStateRepository::FindPetState(const WOWGUID& guid)
 // VERIFY: c132a45d auto
 // OFFSET: 0x0051FB80
 void CGGameUI::ScaleToScreenSize(int32_t width, int32_t height, int32_t force) {
+    // CoA: AscAddonTaint.cpp:FUN_103117b0 (orig hook 0x51FB80) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+    auto restore = CoA::ClientHooks::OnScopeExit([taint]() { CoA::AddonTaint::EndCleared(taint); });
+
     if (!force && CGGameUI::m_screenWidth > 0 && CGGameUI::m_screenWidth == width && CGGameUI::m_screenHeight > 0 && CGGameUI::m_screenHeight == height) {
         return;
     }
@@ -4021,6 +4037,11 @@ void CGGameUI::UpdateUnitHighlights() {
 // VERIFY: f64f959d auto
 // OFFSET: 0x0051FF20
 void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
+    // CoA: AscAddonTaint.cpp:FUN_103116b0 (orig hook 0x51FF20) -- a listed secure addon's taint is cleared for
+    // the call and stored back after.
+    const char* taint = CoA::AddonTaint::BeginCleared();
+    auto restore = CoA::ClientHooks::OnScopeExit([taint]() { CoA::AddonTaint::EndCleared(taint); });
+
     if (guid == CGGameUI::m_focusTarget) {
         return;
     }

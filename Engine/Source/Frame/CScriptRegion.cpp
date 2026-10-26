@@ -112,6 +112,11 @@ CLayoutFrame* CScriptRegion::GetLayoutFrameByName(const char* name) {
 // VERIFY: 6a00f6bb manual
 // OFFSET: 0x00488540
 bool CScriptRegion::ProtectedFunctionsAllowed() {
+    // CoA: AscAddonTaint.cpp:FUN_103119c0 (orig hook 0x488540) -- allowed while a listed secure addon runs.
+    if (g_addonTaintSecureHook && g_addonTaintSecureHook()) {
+        return true;
+    }
+
     return !this->IsProtected() || !lua_tainted || CSimpleTop::s_instance->m_allowProtectedActions != 0;
 }
 

@@ -736,6 +736,10 @@ void CoA::GlobalsJ::SetInsideRunScript(bool inside) {
     s_insideProtectedCall = inside ? 1 : 0;
 }
 
+bool CoA::GlobalsJ::InsideRunScript() {
+    return s_insideProtectedCall != 0;
+}
+
 void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     if (!entering) {
         s_errorCallstackHeight = 0;

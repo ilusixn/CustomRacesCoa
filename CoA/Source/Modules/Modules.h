@@ -15,6 +15,7 @@ namespace CoA::GlobalsD { void Init(); }
 namespace CoA::GlobalsG { void Init(); }
 namespace CoA::Bindings { void Init(); }
 namespace CoA::GlobalsJ { void Init(); }
+namespace CoA::AddonTaint { void Init(); }
 namespace CoA::Json { void Init(); }
 namespace CoA::LoggerApi { void Init(); }
 namespace CoA::SmallApis { void Init(); }
@@ -117,6 +118,7 @@ namespace CoA::LibraryClient { void Init(); }
 namespace CoA::SpellTextClient { void Init(); }
 namespace CoA::ClassRaceClient { void Init(); }
 namespace CoA::GlobalsJClient { void Init(); }
+namespace CoA::AddonTaintClient { void Init(); }
 namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
 namespace CoA::CharacterCreateClient { void Init(); }
