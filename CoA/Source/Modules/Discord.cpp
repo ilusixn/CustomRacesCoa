@@ -48,6 +48,8 @@ namespace {
     }
 
     int32_t OnInitialize(void*, uint32_t, uint32_t, CDataStore*) {   // 0x90C 0x10220EC0
+        CoA::Log::Printf("Discord: SMSG 0x90C (enabled %d)", s_mgr.enabled ? 1 : 0);
+
         if (!s_mgr.enabled) {
             return 1;
         }
@@ -60,6 +62,8 @@ namespace {
     }
 
     int32_t OnUpdate(void*, uint32_t, uint32_t, CDataStore* msg) {   // 0x90D FUN_10221060
+        CoA::Log::Printf("Discord: SMSG 0x90D (enabled %d, subscribed %d)", s_mgr.enabled ? 1 : 0, s_mgr.activitySubscribed ? 1 : 0);
+
         if (!s_mgr.enabled) {
             return 1;
         }
@@ -168,7 +172,10 @@ void CoA::Discord::OnCurrentUserUpdate() {   // FUN_10221aa0
     uint64_t id = 0;
     std::string name;
 
-    if (s_mgr.userSubscribed && s_deps.currentUser && s_deps.currentUser(id, name)) {
+    const bool got = s_mgr.userSubscribed && s_deps.currentUser && s_deps.currentUser(id, name);
+    CoA::Log::Printf("Discord: OnCurrentUserUpdate (user %s)", got ? "read" : "not read");
+
+    if (got) {
         CoA::Packet(0x52A).U64(id).Str(name.c_str()).Send();
     }
 }
