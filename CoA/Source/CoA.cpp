@@ -95,6 +95,15 @@ static const CoA::Module s_modules[] = {
     { "SkillCardSlots", CoA::SkillCardSlots::Init },
     { "AlternatePower", CoA::AlternatePower::Init },
     { "ItemCollections", CoA::ItemCollections::Init },
+    // After MysticEnchant / GlobalsJ, whose Deps they fill.
+    { "Manastorm", CoA::Manastorm::Init },
+    { "LootLockout", CoA::LootLockout::Init },
+    { "ItemStats", CoA::ItemStats::Init },
+    { "POI", CoA::POI::Init },
+    { "SpellCharges", CoA::SpellCharges::Init },
+    { "Aura137", CoA::Aura137::Init },
+    { "AssetQuery", CoA::AssetQuery::Init },
+    { "Templates", CoA::Templates::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -156,6 +165,13 @@ static const CoA::Module s_modules[] = {
     { "SkillCardClient", CoA::SkillCardClient::Init },
     { "AlternatePowerClient", CoA::AlternatePowerClient::Init },
     { "ItemCollectionsClient", CoA::ItemCollectionsClient::Init },
+    { "ManastormClient", CoA::ManastormClient::Init },
+    { "LootLockoutClient", CoA::LootLockoutClient::Init },
+    { "ItemStatsClient", CoA::ItemStatsClient::Init },
+    { "SpellChargesClient", CoA::SpellChargesClient::Init },
+    { "Aura137Client", CoA::Aura137Client::Init },
+    { "AssetQueryClient", CoA::AssetQueryClient::Init },
+    { "TemplatesClient", CoA::TemplatesClient::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

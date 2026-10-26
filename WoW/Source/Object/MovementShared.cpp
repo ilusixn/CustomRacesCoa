@@ -13,6 +13,7 @@
 #include "WoW/Source/Object/CMoveSpline.h"
 #include "WoW/Source/Object/ObjectClient/Movement_C.h"
 #include "WoW/Source/Object/Types.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 
 // STATIC: 0x00B2D9E8
 float CMovementShared::s_terminalVelocity = 60.148003f;
@@ -1242,7 +1243,9 @@ void CMovementShared::StartTurn(int32_t left) {
     }
 
     this->m_flags2 &= ~MOVEMENTFLAG2_INTERPOLATED_TURNING;
-    this->UpdateAnchors(0);
+    // CoA: AscAura137.cpp:FUN_10a73ea0 (Extensions.dll patch 0x988E48) -- while on, the inlined anchor update's falling
+    // test is NOPed (the same as force 1).
+    this->UpdateAnchors(CoA::ClientHooks::aura137TurnWhileFalling ? 1 : 0);
 }
 
 // VERIFY: a15f6480 manual
@@ -1319,7 +1322,8 @@ int32_t CMovementShared::StopTurn() {
     }
 
     this->m_flags = flags & ~(MOVEMENTFLAG_TURN_LEFT | MOVEMENTFLAG_TURN_RIGHT);
-    this->UpdateAnchors(0);
+    // CoA: AscAura137.cpp:FUN_10a73ea0 (Extensions.dll patch 0x989053) -- as in StartTurn.
+    this->UpdateAnchors(CoA::ClientHooks::aura137TurnWhileFalling ? 1 : 0);
     return 1;
 }
 
@@ -1492,7 +1496,11 @@ void CMovementShared::SetRawFacing(float facing) {
         int32_t falling = this->m_flags & MOVEMENTFLAG_FALLING;
         this->m_facing = facing;
 
-        if (!falling) {
+        // CoA: AscAura137.cpp:FUN_10a73ea0 (Extensions.dll patch 0x989B97 / 0x989B9A) -- while on, the falling jne is
+        // NOPed and the push 0 becomes push 1: every facing change re-anchors with force.
+        if (CoA::ClientHooks::aura137TurnWhileFalling) {
+            this->UpdateAnchors(1);
+        } else if (!falling) {
             this->UpdateAnchors(0);
         }
     }

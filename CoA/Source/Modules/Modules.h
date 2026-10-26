@@ -77,6 +77,14 @@ namespace CoA::SkillCard { void Init(); }
 namespace CoA::SkillCardSlots { void Init(); }
 namespace CoA::AlternatePower { void Init(); }
 namespace CoA::ItemCollections { void Init(); }
+namespace CoA::Manastorm { void Init(); }
+namespace CoA::LootLockout { void Init(); }
+namespace CoA::ItemStats { void Init(); }
+namespace CoA::POI { void Init(); }
+namespace CoA::SpellCharges { void Init(); }
+namespace CoA::Aura137 { void Init(); }
+namespace CoA::AssetQuery { void Init(); }
+namespace CoA::Templates { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -141,5 +149,12 @@ namespace CoA::SmallApisClient { void Init(); }
 namespace CoA::SkillCardClient { void Init(); }
 namespace CoA::AlternatePowerClient { void Init(); }
 namespace CoA::ItemCollectionsClient { void Init(); }
+namespace CoA::ManastormClient { void Init(); }
+namespace CoA::LootLockoutClient { void Init(); }
+namespace CoA::ItemStatsClient { void Init(); }
+namespace CoA::SpellChargesClient { void Init(); }
+namespace CoA::Aura137Client { void Init(); }
+namespace CoA::AssetQueryClient { void Init(); }
+namespace CoA::TemplatesClient { void Init(); }
 
 #endif

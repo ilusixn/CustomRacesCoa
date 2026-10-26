@@ -29,6 +29,10 @@ WOWGUID s_masterLootCandidates[40];
 // STATIC: 0x00CA0690
 static int32_t s_nextLootRollId;
 
+int32_t LootRollNextId() {
+    return s_nextLootRollId;
+}
+
 // STATIC: 0x00CA0694
 uint32_t s_numShownLootRolls;
 
