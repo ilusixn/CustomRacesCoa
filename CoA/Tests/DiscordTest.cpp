@@ -278,11 +278,96 @@ COA_TEST(Discord_GuildInvite) {
     Stop(L);
 }
 
-// CoA64: the install's discord_game_sdk.dll is Ascension.exe's 32-bit one (LoadLibrary error 193 here); the x64 SDK
-// sits next to DXVK's d3d9.dll in <exe dir>\x64\ and is tried first, then the plain name.
-COA_TEST(Discord_SdkPathsPreferTheX64Folder) {
-    const std::vector<std::wstring> paths = CoA::Discord::SdkPaths(L"D:\\WoW\\Coa");
-    CHECK(paths.size() == 2);
-    CHECK(paths.size() == 2 && paths[0] == L"D:\\WoW\\Coa\\x64\\discord_game_sdk.dll");
-    CHECK(paths.size() == 2 && paths[1] == L"discord_game_sdk.dll");
+namespace {
+    CoA::Discord::WorldInfo s_world;
+    bool s_inWorld = true;
+
+    void ClientStatus() {
+        CoA::Discord::Deps& d = CoA::Discord::Dependencies();
+        d.clientStatus = true;
+        d.worldInfo = [](CoA::Discord::WorldInfo& out) {
+            out = s_world;
+            return s_inWorld;
+        };
+        d.now = [] { return static_cast<int64_t>(1793030619); };
+        s_world = CoA::Discord::WorldInfo();
+        s_world.level = 59;
+        s_world.className = "Necromancer";
+        s_world.zone = "The Hinterlands";
+        s_world.realm = "Pale Reach";
+        s_inWorld = true;
+    }
+}
+
+// CoA64 (user decision 2026-10-26): when the server sends no status (0x90C / 0x90D), the client builds one --
+// "Selecting World" on the character screen, then level / class / zone / realm in world, sent only when it changes.
+COA_TEST(Discord_ClientStatusWithoutServerPackets) {
+    lua_State* L = Start();
+    Sdk();
+    ClientStatus();
+    s_core = true;
+    Initialize();
+    CHECK(s_activities.size() == 1);
+    CHECK(s_activities.size() == 1 && s_activities[0].state == "Selecting World" && s_activities[0].largeImage == "ascension_logo");
+
+    CoA::Discord::OnEnterWorld();
+    CHECK(s_activities.size() == 2);
+    if (s_activities.size() == 2) {
+        const CoA::Discord::Activity& a = s_activities[1];
+        CHECK(a.details == "Level 59 Necromancer");
+        CHECK(a.state == "The Hinterlands");
+        CHECK(a.largeImage == "ascension_logo" && a.largeText == "Pale Reach");
+        CHECK(a.start == 1793030619);
+    }
+
+    CoA::Discord::Refresh();   // nothing changed: not resent
+    CHECK(s_activities.size() == 2);
+    s_world.zone = "Hillsbrad Foothills";
+    CoA::Discord::Refresh();
+    CHECK(s_activities.size() == 3 && s_activities.back().state == "Hillsbrad Foothills" && s_activities.back().start == 1793030619);
+
+    CoA::Discord::OnLeaveWorld();
+    CHECK(s_activities.size() == 4 && s_activities.back().state == "Selecting World");
+    Stop(L);
+}
+
+// Server packets win: after 0x90C / 0x90D the client stops building its own status.
+COA_TEST(Discord_ServerStatusWins) {
+    lua_State* L = Start();
+    Sdk();
+    ClientStatus();
+    s_core = true;
+    Initialize();
+    CoATest::Bytes u = Update("from server");
+    Dispatch(0x90D, u);
+    const size_t n = s_activities.size();
+    CHECK(s_activities.back().state == "from server");
+    CoA::Discord::OnEnterWorld();
+    CoA::Discord::Refresh();
+    CoA::Discord::OnLeaveWorld();
+    CHECK(s_activities.size() == n);
+    Stop(L);
+}
+
+// Without a Discord connection (no core) or outside the world nothing is sent.
+COA_TEST(Discord_ClientStatusNeedsACore) {
+    lua_State* L = Start();
+    Sdk();
+    ClientStatus();
+    s_core = false;
+    Initialize();
+    CoA::Discord::OnEnterWorld();
+    CoA::Discord::Refresh();
+    CHECK(s_activities.empty());
+    Stop(L);
+
+    L = Start();
+    Sdk();
+    ClientStatus();
+    s_core = true;
+    Initialize();
+    s_inWorld = false;
+    CoA::Discord::Refresh();
+    CHECK(s_activities.size() == 1);   // only "Selecting World"
+    Stop(L);
 }

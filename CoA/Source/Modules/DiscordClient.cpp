@@ -1,240 +1,270 @@
-// AscDiscord.cpp's SDK half: discord_game_sdk.dll loaded at run time (LoadLibraryExW + GetProcAddress("DiscordCreate"))
-// in place of the original's static import, its C ABI (discord_game_sdk.h, DISCORD_VERSION 2) and the callback thread.
-// The x64 SDK is taken from <exe dir>\x64\ first (Discord::SdkPaths); the install's own copy is the 32-bit one. With no
-// loadable SDK, Create reports Discord::kNoSdkResult with no core and the pure half takes the original's "no core" path
-// (CMSG 0x52E, no thread).
+// AscDiscord.cpp's client half. The original links the 2019 Discord Game SDK; with current Discord apps that SDK still
+// "creates" a core but never completes its session (no current user, no visible activity), so CoA64 speaks the
+// desktop app's local IPC protocol itself (DiscordIpc.h) over \\.\pipe\discord-ipc-N -- no discord_game_sdk.dll.
+// Ruling (CoA64, Discord status 2026-10-26): Create always reports a core, as the SDK did with NoRequireDiscord; the
+// callback thread keeps (re)connecting every 5 s while Discord is closed. The guild invite opens the discord.gg link
+// (IPC has no overlay); the overlay reads as disabled. The client-built status (Discord::Deps::clientStatus) reads
+// the player from the main Lua state.
 #include "CoA/Source/Modules/Discord.h"
+#include "CoA/Source/Modules/DiscordIpc.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Log.h"
+#include "CoA/Source/Runtime/Timer.h"
+#include "Engine/Source/Os/System.h"
+#include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "Engine/Source/lua-5.1/src/lua.h"
 #include <windows.h>
-#include <cstring>
+#include <ctime>
+#include <mutex>
+#include <string>
 #include <thread>
+#include <vector>
 
 namespace {
-    // ---- the Game SDK's C ABI ---------------------------------------------------------------------------------------
-    struct DiscordUser {
-        int64_t id;
-        char username[256];
-        char discriminator[8];
-        char avatar[128];
-        bool bot;
-    };
+    constexpr uint64_t kClientId = 0x0C7C30A11D421000ull;   // FUN_10220b10's application id
+    constexpr DWORD kReconnectMs = 5000;
+    constexpr uint32_t kRefreshMs = 15000;                  // Discord accepts 5 activity updates per 20 s
 
-    struct DiscordActivity {
-        int32_t type;
-        int64_t applicationId;
-        char name[128], state[128], details[128];
-        struct { int64_t start, end; } timestamps;
-        struct { char largeImage[128], largeText[128], smallImage[128], smallText[128]; } assets;
-        struct { char id[128]; struct { int32_t current, max; } size; } party;
-        struct { char match[128], join[128], spectate[128]; } secrets;
-        bool instance;
-    };
+    std::mutex s_lock;                    // the pipe, the user and the pending activity
+    HANDLE s_pipe = INVALID_HANDLE_VALUE;
+    std::vector<uint8_t> s_inbox;
+    uint32_t s_nonce = 0;
+    bool s_haveUser = false;
+    uint64_t s_userId = 0;
+    std::string s_username;
+    bool s_haveActivity = false;
+    CoA::Discord::Activity s_activity;    // re-sent after every (re)connect
+    bool s_refreshTimer = false;
 
-    using ResultCallback = void (*)(void* data, int32_t result);
+    bool WriteLocked(const std::vector<uint8_t>& frame) {
+        DWORD written = 0;
 
-    struct IDiscordUserManager {
-        int32_t (*get_current_user)(IDiscordUserManager*, DiscordUser*);
-    };
+        if (s_pipe == INVALID_HANDLE_VALUE) {
+            return false;
+        }
 
-    struct IDiscordActivityManager {
-        void* register_command;
-        void* register_steam;
-        void (*update_activity)(IDiscordActivityManager*, DiscordActivity*, void*, ResultCallback);
-    };
+        if (!WriteFile(s_pipe, frame.data(), static_cast<DWORD>(frame.size()), &written, nullptr) || written != frame.size()) {
+            CloseHandle(s_pipe);
+            s_pipe = INVALID_HANDLE_VALUE;
+            return false;
+        }
 
-    struct IDiscordOverlayManager {
-        void (*is_enabled)(IDiscordOverlayManager*, bool*);
-        void* is_locked;
-        void* set_locked;
-        void* open_activity_invite;
-        void (*open_guild_invite)(IDiscordOverlayManager*, const char*, void*, ResultCallback);
-    };
-
-    struct IDiscordCore {
-        void (*destroy)(IDiscordCore*);
-        int32_t (*run_callbacks)(IDiscordCore*);
-        void* set_log_hook;
-        void* get_application_manager;
-        IDiscordUserManager* (*get_user_manager)(IDiscordCore*);
-        void* get_image_manager;
-        IDiscordActivityManager* (*get_activity_manager)(IDiscordCore*);
-        void* get_relationship_manager;
-        void* get_lobby_manager;
-        void* get_network_manager;
-        IDiscordOverlayManager* (*get_overlay_manager)(IDiscordCore*);
-    };
-
-    struct IDiscordUserEvents {
-        void (*on_current_user_update)(void*);
-    };
-
-    struct IDiscordActivityEvents {
-        void (*on_activity_join)(void*, const char*);
-        void (*on_activity_spectate)(void*, const char*);
-        void (*on_activity_join_request)(void*, DiscordUser*);
-        void (*on_activity_invite)(void*, int32_t, DiscordUser*, DiscordActivity*);
-    };
-
-    struct DiscordCreateParams {
-        int64_t clientId;
-        uint64_t flags;
-        void* events;
-        void* eventData;
-        struct { void* events; int32_t version; } managers[12];   // application, user, image, activity,
-                                                                  // relationship, lobby, network, overlay,
-                                                                  // storage, store, voice, achievement
-    };
-
-    using DiscordCreate_t = int32_t (*)(int32_t version, DiscordCreateParams* params, IDiscordCore** core);
-
-    IDiscordCore* s_core = nullptr;
-    DiscordUser s_user{};   // DiscordMgr +0x10
-
-    void IgnoreResult(void*, int32_t) {}   // the wrapper's empty lambdas (0x10221A90)
-
-    // CoA64 diagnostic: the original ignores UpdateActivity's result; it is logged here (Discord status reports).
-    void LogActivityResult(void*, int32_t result) {
-        CoA::Log::Printf("Discord: UpdateActivity result %d", result);
+        return true;
     }
 
-    void UserUpdated(void*) {
-        CoA::Discord::OnCurrentUserUpdate();
+    void DisconnectLocked() {
+        if (s_pipe != INVALID_HANDLE_VALUE) {
+            CloseHandle(s_pipe);
+            s_pipe = INVALID_HANDLE_VALUE;
+        }
+
+        s_inbox.clear();
     }
 
-    void ActivityJoin(void*, const char* secret) {
-        CoA::Discord::OnActivityJoin(secret);
+    // Reads whatever the pipe holds without blocking; false when it broke.
+    bool PumpLocked() {
+        DWORD available = 0;
+
+        if (!PeekNamedPipe(s_pipe, nullptr, 0, nullptr, &available, nullptr)) {
+            return false;
+        }
+
+        while (available) {
+            uint8_t chunk[4096];
+            DWORD got = 0;
+
+            if (!ReadFile(s_pipe, chunk, available < sizeof(chunk) ? available : sizeof(chunk), &got, nullptr) || !got) {
+                return false;
+            }
+
+            s_inbox.insert(s_inbox.end(), chunk, chunk + got);
+            available -= got;
+        }
+
+        return !CoA::DiscordIpc::Broken(s_inbox);
     }
 
-    void ActivitySpectate(void*, const char*) {}
+    // Opens discord-ipc-0..9 and sends the handshake; READY arrives through the pump.
+    bool ConnectLocked() {
+        for (int i = 0; i < 10; ++i) {
+            const std::wstring name = L"\\\\.\\pipe\\discord-ipc-" + std::to_wstring(i);
+            HANDLE pipe = CreateFileW(name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
 
-    void ActivityJoinRequest(void*, DiscordUser* user) {
-        CoA::Discord::OnActivityJoinRequest(static_cast<uint64_t>(user->id));
-    }
+            if (pipe != INVALID_HANDLE_VALUE) {
+                s_pipe = pipe;
+                s_inbox.clear();
 
-    void ActivityInvite(void*, int32_t, DiscordUser*, DiscordActivity*) {}
-
-    IDiscordUserEvents s_userEvents = { UserUpdated };
-    IDiscordActivityEvents s_activityEvents = { ActivityJoin, ActivitySpectate, ActivityJoinRequest, ActivityInvite };
-
-    std::wstring ExeDir() {
-        wchar_t path[MAX_PATH];
-        const DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
-        std::wstring dir(path, n);
-        const size_t slash = dir.find_last_of(L"\\/");
-        return slash == std::wstring::npos ? std::wstring(L".") : dir.substr(0, slash);
-    }
-
-    int32_t Create(bool& core) {   // discord::Core::Create (FUN_10088d30)
-        core = false;
-        DiscordCreate_t create = nullptr;
-
-        for (const std::wstring& path : CoA::Discord::SdkPaths(ExeDir())) {
-            // The full path also lets the SDK's own imports resolve from its folder.
-            HMODULE sdk = LoadLibraryExW(path.c_str(), nullptr, path.find(L'\\') != std::wstring::npos ? LOAD_WITH_ALTERED_SEARCH_PATH : 0);
-            create = sdk ? reinterpret_cast<DiscordCreate_t>(GetProcAddress(sdk, "DiscordCreate")) : nullptr;
-
-            if (create) {
-                break;
+                if (WriteLocked(CoA::DiscordIpc::Handshake(kClientId))) {
+                    return true;
+                }
             }
         }
 
-        if (!create) {
-            CoA::Log::Printf("Discord: discord_game_sdk.dll / DiscordCreate not loadable (error %lu)", GetLastError());
-            return CoA::Discord::kNoSdkResult;
-        }
-
-        DiscordCreateParams params{};
-        params.clientId = 0x0C7C30A11D421000ll;
-        params.flags = 1;   // NoRequireDiscord
-
-        for (auto& m : params.managers) {
-            m.version = 1;
-        }
-
-        params.managers[1].events = &s_userEvents;
-        params.managers[3].events = &s_activityEvents;
-        IDiscordCore* c = nullptr;
-        const int32_t result = create(2, &params, &c);
-
-        if (result != 0 && c) {
-            c->destroy(c);
-            c = nullptr;
-        }
-
-        s_core = c;
-        core = c != nullptr;
-        CoA::Log::Printf("Discord: DiscordCreate result %d, core %s", result, core ? "yes" : "no");
-        return result;
+        return false;
     }
 
-    void StartCallbacks() {   // FUN_10220a60 -> FUN_10220ae0
+    void OnReady(const CoA::DiscordIpc::Event& e) {
+        {
+            std::lock_guard<std::mutex> lock(s_lock);
+            s_haveUser = e.userId != 0;
+            s_userId = e.userId;
+            s_username = e.username;
+            WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN", ++s_nonce));
+            WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN_REQUEST", ++s_nonce));
+
+            if (s_haveActivity) {
+                WriteLocked(CoA::DiscordIpc::SetActivity(s_activity, GetCurrentProcessId(), ++s_nonce));
+            }
+        }
+
+        CoA::Log::Printf("Discord: connected (user %s)", s_haveUser ? "known" : "unknown");
+        CoA::Discord::OnCurrentUserUpdate();   // the SDK's OnCurrentUserUpdate (CMSG 0x52A)
+    }
+
+    void Handle(const CoA::DiscordIpc::Message& m) {
+        if (m.op == CoA::DiscordIpc::Ping) {
+            std::lock_guard<std::mutex> lock(s_lock);
+            WriteLocked(CoA::DiscordIpc::Frame(CoA::DiscordIpc::Pong, m.json));
+            return;
+        }
+
+        if (m.op == CoA::DiscordIpc::Close) {
+            CoA::Log::Printf("Discord: closed by the app: %s", m.json.substr(0, 200).c_str());
+            std::lock_guard<std::mutex> lock(s_lock);
+            DisconnectLocked();
+            return;
+        }
+
+        const CoA::DiscordIpc::Event e = CoA::DiscordIpc::Parse(m.json);
+
+        switch (e.kind) {
+            case CoA::DiscordIpc::Event::Ready: OnReady(e); break;
+            case CoA::DiscordIpc::Event::Join: CoA::Discord::OnActivityJoin(e.secret.c_str()); break;
+            case CoA::DiscordIpc::Event::JoinRequest: CoA::Discord::OnActivityJoinRequest(e.userId); break;
+            case CoA::DiscordIpc::Event::Error: CoA::Log::Printf("Discord: error %s", e.message.c_str()); break;
+            default: break;
+        }
+    }
+
+    int32_t Create(bool& core) {   // discord::Core::Create (FUN_10088d30) with NoRequireDiscord: always a core
+        core = true;
+        return 0;
+    }
+
+    void StartCallbacks() {   // FUN_10220a60 -> FUN_10220ae0: the 50 ms loop, here the pipe's pump
         std::thread([] {
-            int32_t last = -1;
+            DWORD lastAttempt = 0;
 
             while (CoA::Discord::Enabled()) {
-                const int32_t r = s_core->run_callbacks(s_core);
+                std::vector<CoA::DiscordIpc::Message> messages;
+                {
+                    std::lock_guard<std::mutex> lock(s_lock);
 
-                if (r != last) {   // CoA64 diagnostic: RunCallbacks' result whenever it changes
-                    CoA::Log::Printf("Discord: RunCallbacks result %d", r);
-                    last = r;
+                    if (s_pipe == INVALID_HANDLE_VALUE) {
+                        const DWORD now = GetTickCount();
+
+                        if (!lastAttempt || now - lastAttempt >= kReconnectMs) {
+                            lastAttempt = now;
+                            ConnectLocked();
+                        }
+                    }
+
+                    if (s_pipe != INVALID_HANDLE_VALUE) {
+                        if (!PumpLocked()) {
+                            DisconnectLocked();
+                        } else {
+                            CoA::DiscordIpc::Message m;
+
+                            while (CoA::DiscordIpc::Take(s_inbox, m)) {
+                                messages.push_back(m);
+                            }
+                        }
+                    }
+                }
+
+                for (const CoA::DiscordIpc::Message& m : messages) {
+                    Handle(m);
                 }
 
                 Sleep(0x32);
             }
+
+            std::lock_guard<std::mutex> lock(s_lock);
+            DisconnectLocked();
         }).detach();
     }
 
     bool CurrentUser(uint64_t& id, std::string& username) {
-        IDiscordUserManager* users = s_core->get_user_manager(s_core);
-
-        if (users->get_current_user(users, &s_user) != 0) {
-            return false;
-        }
-
-        id = static_cast<uint64_t>(s_user.id);
-        username = s_user.username;
-        return true;
-    }
-
-    void Copy(char* dst, const std::string& s) {
-        strncpy(dst, s.c_str(), 0x80);
-        dst[0x7F] = 0;
+        std::lock_guard<std::mutex> lock(s_lock);
+        id = s_userId;
+        username = s_username;
+        return s_haveUser;
     }
 
     void UpdateActivity(const CoA::Discord::Activity& a) {
-        DiscordActivity d{};
-        d.type = a.type;
-        Copy(d.state, a.state);
-        Copy(d.details, a.details);
-        d.timestamps.start = a.start;
-        d.timestamps.end = a.end;
-        Copy(d.assets.largeImage, a.largeImage);
-        Copy(d.assets.largeText, a.largeText);
-        Copy(d.assets.smallImage, a.smallImage);
-        Copy(d.assets.smallText, a.smallText);
-        Copy(d.party.id, a.partyId);
-        d.party.size.current = a.partySize;
-        d.party.size.max = a.partyMax;
-        Copy(d.secrets.match, a.match);
-        Copy(d.secrets.join, a.join);
-        Copy(d.secrets.spectate, a.spectate);
-        IDiscordActivityManager* m = s_core->get_activity_manager(s_core);
-        CoA::Log::Printf("Discord: UpdateActivity state \"%s\" details \"%s\" large \"%s\" small \"%s\"", d.state, d.details,
-                         d.assets.largeImage, d.assets.smallImage);
-        m->update_activity(m, &d, nullptr, LogActivityResult);
+        std::lock_guard<std::mutex> lock(s_lock);
+        s_activity = a;
+        s_haveActivity = true;
+        WriteLocked(CoA::DiscordIpc::SetActivity(a, GetCurrentProcessId(), ++s_nonce));
     }
 
     void OpenGuildInvite(const char* code) {
-        IDiscordOverlayManager* overlay = s_core->get_overlay_manager(s_core);
-        overlay->open_guild_invite(overlay, code, nullptr, IgnoreResult);
+        const std::string url = std::string("https://discord.gg/") + code;
+        OsLaunchURL(url.c_str());
     }
 
     bool OverlayEnabled() {
-        bool on = false;
-        IDiscordOverlayManager* overlay = s_core->get_overlay_manager(s_core);
-        overlay->is_enabled(overlay, &on);
-        return on;
+        return false;
+    }
+
+    // ---- the client-built status ---------------------------------------------------------------------------------
+    bool WorldInfo(CoA::Discord::WorldInfo& out) {
+        lua_State* L = CoA::ClientState::MainLuaState();
+
+        if (!L) {
+            return false;
+        }
+
+        const int top = lua_gettop(L);
+        bool ok = false;
+        static const char* kQuery =
+            "if not UnitExists or not UnitExists('player') then return end "
+            "return UnitLevel('player'), (UnitClass('player')), GetRealZoneText(), GetRealmName()";
+
+        if (luaL_loadstring(L, kQuery) == 0 && lua_pcall(L, 0, 4, 0) == 0 && lua_type(L, top + 1) == LUA_TNUMBER) {
+            out.level = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, top + 1)));
+            out.className = lua_isstring(L, top + 2) ? lua_tostring(L, top + 2) : "";
+            out.zone = lua_isstring(L, top + 3) ? lua_tostring(L, top + 3) : "";
+            out.realm = lua_isstring(L, top + 4) ? lua_tostring(L, top + 4) : "";
+            ok = true;
+        }
+
+        lua_settop(L, top);
+        return ok;
+    }
+
+    int64_t Now() {
+        return static_cast<int64_t>(time(nullptr));
+    }
+
+    int32_t OnRefreshTimer(const void*, void*) {
+        CoA::Discord::Refresh();
+        CoA::Timer::Schedule(kRefreshMs, OnRefreshTimer, nullptr);
+        return 0;
+    }
+
+    void EnterWorld() {
+        CoA::Discord::OnEnterWorld();
+
+        if (!s_refreshTimer) {   // one self-re-arming timer for the process
+            s_refreshTimer = CoA::Timer::Schedule(kRefreshMs, OnRefreshTimer, nullptr) != 0;
+        }
+    }
+
+    void ZoneChanged(int32_t) {
+        CoA::Discord::Refresh();
     }
 }
 
@@ -246,4 +276,10 @@ void CoA::DiscordClient::Init() {
     deps.updateActivity = UpdateActivity;
     deps.openGuildInvite = OpenGuildInvite;
     deps.overlayEnabled = OverlayEnabled;
+    deps.clientStatus = true;
+    deps.worldInfo = WorldInfo;
+    deps.now = Now;
+    CoA::ClientHooks::afterEnterWorld.Add(EnterWorld);
+    CoA::ClientHooks::leaveWorld.Add(CoA::Discord::OnLeaveWorld);
+    CoA::ClientHooks::afterZoneFeedback.Add(ZoneChanged);
 }

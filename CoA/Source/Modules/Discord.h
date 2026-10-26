@@ -19,8 +19,8 @@
 //               OnActivityJoinRequest (CMSG 0x529 {u64 user id}) / OnActivityJoin (CMSG 0x52B {cstring secret}) and
 //               sends the activity; later ones build it and never send it (kept).
 //   SMSG 0x90E  sized invite code -> OverlayManager::OpenGuildInvite.
-// The original links discord_game_sdk.dll statically; CoA64 loads it at run time (DiscordClient.cpp), the x64 SDK from
-// <exe dir>\x64\ first. Without a loadable SDK the "no core" path runs (CMSG 0x52E, no thread).
+// The original links the Discord Game SDK statically; CoA64 talks to the Discord app's IPC pipe instead (DiscordIpc.h,
+// DiscordClient.cpp), and builds its own status while the server sends none (Deps::clientStatus).
 namespace CoA::Discord {
     // The activity as the SDK wrapper's setters leave it: every string cut at its first NUL and at 127 bytes.
     struct Activity {
@@ -31,6 +31,12 @@ namespace CoA::Discord {
         std::string partyId;
         int32_t partySize = 0, partyMax = 0;
         std::string match, join, spectate;
+    };
+
+    // What the client-built status shows in world (Deps::worldInfo).
+    struct WorldInfo {
+        uint32_t level = 0;
+        std::string className, zone, realm;
     };
 
     // What DiscordCreate returns when the SDK cannot be loaded: DiscordResult_InternalError.
@@ -45,6 +51,11 @@ namespace CoA::Discord {
         void (*updateActivity)(const Activity& activity) = nullptr;            // ActivityManager::UpdateActivity
         void (*openGuildInvite)(const char* code) = nullptr;                   // OverlayManager::OpenGuildInvite
         bool (*overlayEnabled)() = nullptr;                                    // OverlayManager::IsEnabled
+
+        // CoA64 addition: the client's own status while the server sends none (0x90C / 0x90D). Off: the original.
+        bool clientStatus = false;
+        bool (*worldInfo)(WorldInfo& out) = nullptr;   // false outside the world
+        int64_t (*now)() = nullptr;                    // Unix seconds
     };
 
     Deps& Dependencies();
@@ -57,14 +68,17 @@ namespace CoA::Discord {
     void Initialize();
     bool Enabled();
 
+    // CoA64's client-built status (Deps::clientStatus): world entry starts its timer, Refresh re-reads Deps::worldInfo
+    // (zone changes, the periodic refresh) and sends only a changed activity, leaving the world shows the character
+    // screen again. All of it stops once the server has sent 0x90C or 0x90D.
+    void OnEnterWorld();
+    void OnLeaveWorld();
+    void Refresh();
+
     // The SDK's callbacks (the client half calls these from the callback thread, as the original does).
     void OnCurrentUserUpdate();                    // FUN_10221aa0
     void OnActivityJoinRequest(uint64_t userId);   // FUN_10221bb0
     void OnActivityJoin(const char* secret);       // FUN_10221c90
-
-    // CoA64: where discord_game_sdk.dll is loaded from, in order -- <exe dir>\x64\ (the x64 SDK beside DXVK's d3d9.dll;
-    // the install's own copy is Ascension.exe's 32-bit one), then the plain name.
-    std::vector<std::wstring> SdkPaths(const std::wstring& exeDir);
 }
 
 #endif
