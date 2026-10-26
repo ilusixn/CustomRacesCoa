@@ -59,3 +59,166 @@ COA_TEST(RenderPipeline_MotionCVarQueuedOff) {
     CHECK(v && !strcmp(v->defaultValue, "0") && v->flags == 1 && v->category == 1);
     CoA::CVars::Reset();
 }
+
+// --- Motion reference math (RenderMotion) ---------------------------------------------------------------------------
+#include "CoA/Source/Runtime/RenderMotion.h"
+
+namespace {
+    using CoA::RenderPipeline::Frame;
+
+    constexpr float kFovY = 0.6f * 1.57f;
+    constexpr float kAspect = 1.6f;
+    constexpr float kNear = 0.2f;
+    constexpr float kFar = 777.0f;
+
+    bool Near(float a, float b, float eps = 1e-5f) { return std::fabs(a - b) <= eps; }
+    float Yaw(float y) { return y; }
+
+    // Row-vector product: a is applied first.
+    Mat4 Mul(const Mat4& a, const Mat4& b) {
+        Mat4 r{};
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                for (int k = 0; k < 4; ++k) r.m[i][j] += a.m[i][k] * b.m[k][j];
+        return r;
+    }
+
+    Mat4 Translate(float x, float y, float z) {
+        Mat4 m = Identity();
+        m.m[3][0] = x; m.m[3][1] = y; m.m[3][2] = z;
+        return m;
+    }
+
+    // WoW world: z up. Camera forward for a yaw, and its screen-right axis (the view x axis = cross(forward, up), see
+    // GxuXformCreateLookAtSgCompat; for yaw 0 that is -y, not +x).
+    void Forward(float yaw, float f[3]) { f[0] = std::cos(yaw); f[1] = std::sin(yaw); f[2] = 0.0f; }
+    void Right(float yaw, float r[3]) { r[0] = std::sin(yaw); r[1] = -std::cos(yaw); r[2] = 0.0f; }
+
+    // GxuXformCreateProjection_Exact(FOV * 0.6, aspect, near, far).
+    Mat4 CamProj() {
+        const float halfH = std::tan(kFovY * 0.5f) * kNear;
+        const float halfW = halfH * kAspect;
+        Mat4 m{};
+        m.m[0][0] = kNear / halfW;
+        m.m[1][1] = kNear / halfH;
+        m.m[2][2] = (kNear + kFar) / (kFar - kNear);
+        m.m[3][2] = kNear * (kFar * -2.0f) / (kFar - kNear);
+        m.m[2][3] = 1.0f;
+        return m;
+    }
+
+    // GxuXformCreateLookAtSgCompat(eye at origin, forward, up = z).
+    Mat4 CamView(float yaw) {
+        float zv[3];
+        Forward(yaw, zv);
+        const float up[3] = { 0, 0, 1 };
+        float xv[3] = { zv[1] * up[2] - zv[2] * up[1], zv[2] * up[0] - zv[0] * up[2], zv[0] * up[1] - zv[1] * up[0] };
+        const float xl = std::sqrt(xv[0] * xv[0] + xv[1] * xv[1] + xv[2] * xv[2]);
+        for (float& c : xv) c /= xl;
+        float yv[3] = { xv[1] * zv[2] - xv[2] * zv[1], xv[2] * zv[0] - xv[0] * zv[2], xv[0] * zv[1] - xv[1] * zv[0] };
+        const float yl = std::sqrt(yv[0] * yv[0] + yv[1] * yv[1] + yv[2] * yv[2]);
+        for (float& c : yv) c /= yl;
+        Mat4 m = Identity();
+        for (int i = 0; i < 3; ++i) {
+            m.m[i][0] = xv[i];
+            m.m[i][1] = yv[i];
+            m.m[i][2] = zv[i];
+        }
+        return m;
+    }
+
+    Camera Cam(float x, float y, float z, float yaw) {
+        Camera c{};
+        c.view = CamView(yaw);
+        c.proj = CamProj();
+        c.pos[0] = x; c.pos[1] = y; c.pos[2] = z;
+        Forward(yaw, c.forward);
+        c.up[2] = 1.0f;
+        Right(yaw, c.right);
+        c.nearZ = kNear; c.farZ = kFar; c.fovY = kFovY; c.aspect = kAspect;
+        return c;
+    }
+
+    Frame FrameWith(const Camera& prev, const Camera& cur, float depthMin = 0.0f, float depthMax = 0.94f) {
+        Frame f{};
+        f.prev = prev; f.cur = cur;
+        f.depthMin = depthMin; f.depthMax = depthMax;
+        return f;
+    }
+
+    // Stored depth of a point `yards` straight ahead.
+    float DepthAt(const Frame& f, float yards) {
+        const Mat4& p = f.cur.proj;
+        const float ndc = (yards * p.m[2][2] + p.m[3][2]) / (yards * p.m[2][3]);
+        return f.depthMin + ndc * (f.depthMax - f.depthMin);
+    }
+
+    void CurClip(const Mat4& bone, const Frame& f, const float p[3], float out[4]) {
+        const Mat4 m = Mul(bone, f.cur.proj);
+        const float v[4] = { p[0], p[1], p[2], 1.0f };
+        for (int c = 0; c < 4; ++c) out[c] = v[0] * m.m[0][c] + v[1] * m.m[1][c] + v[2] * m.m[2][c] + v[3] * m.m[3][c];
+    }
+    float CurU(const Frame& f, const Mat4& bone, const float p[3]) { float c[4]; CurClip(bone, f, p, c); return (c[0] / c[3] + 1.0f) * 0.5f; }
+    float CurV(const Frame& f, const Mat4& bone, const float p[3]) { float c[4]; CurClip(bone, f, p, c); return (1.0f - c[1] / c[3]) * 0.5f; }
+    float CurDepth(const Frame& f, const Mat4& bone, const float p[3]) {
+        float c[4];
+        CurClip(bone, f, p, c);
+        return f.depthMin + (c[2] / c[3]) * (f.depthMax - f.depthMin);
+    }
+
+    // Previous camera at the origin, current camera one yard along its right axis.
+    Frame SidestepFrame(float depthMin = 0.0f, float depthMax = 0.94f) {
+        float r[3];
+        Right(0, r);
+        return FrameWith(Cam(0, 0, 0, Yaw(0)), Cam(r[0], r[1], r[2], Yaw(0)), depthMin, depthMax);
+    }
+}
+
+COA_TEST(StaticMotion_StillCameraIsZero) {
+    auto f = FrameWith(Cam(0, 0, 0, Yaw(0)), Cam(0, 0, 0, Yaw(0)));
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.3f, 0.7f, 0.9f);
+    CHECK(Near(m.x, 0, 1e-4f) && Near(m.y, 0, 1e-4f));
+}
+
+COA_TEST(StaticMotion_SidestepMovesPointsOpposite) {
+    auto f = SidestepFrame();
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, DepthAt(f, 10.0f));
+    CHECK(m.x > 0 && Near(m.y, 0, 1e-4f));   // camera moved right: the point was further right on screen last frame
+}
+
+COA_TEST(StaticMotion_DepthRangeHonoured) {
+    auto a = SidestepFrame(0.0f, 0.94f);
+    auto b = SidestepFrame(0.0f, 1.0f);
+    auto ma = CoA::RenderMotion::StaticMotion(a, 0.4f, 0.5f, DepthAt(a, 10.0f));
+    auto mb = CoA::RenderMotion::StaticMotion(b, 0.4f, 0.5f, DepthAt(b, 10.0f));
+    CHECK(Near(ma.x, mb.x, 1e-4f) && Near(ma.y, mb.y, 1e-4f) && ma.x > 0);
+}
+
+COA_TEST(ModelMotion_StaticModelUnderStillCameraIsZero) {
+    float fw[3];
+    Forward(0, fw);
+    Mat4 bone = Mul(Translate(fw[0] * 10, fw[1] * 10, fw[2] * 10), CamView(Yaw(0)));   // world * view
+    float p[3] = { 0.5f, 0.2f, 0.0f };
+    auto m = CoA::RenderMotion::ModelMotion(bone, bone, p, CamProj(), CamProj());
+    CHECK(Near(m.x, 0) && Near(m.y, 0));
+}
+
+COA_TEST(ModelMotion_CameraMotionIncludedOnce) {     // model still in the world, camera sidestepped 1 yd to its right
+    auto f = SidestepFrame();
+    float fw[3], r[3];
+    Forward(0, fw);
+    Right(0, r);
+    Mat4 world = Translate(fw[0] * 10, fw[1] * 10, fw[2] * 10);                       // camera-relative to the prev eye
+    Mat4 prevBone = Mul(world, f.prev.view);
+    Mat4 curBone = Mul(Mul(world, Translate(-r[0], -r[1], -r[2])), f.cur.view);       // same point, re-centred on new eye
+    float p[3] = { 0, 0, 0 };
+    auto mm = CoA::RenderMotion::ModelMotion(curBone, prevBone, p, f.cur.proj, f.prev.proj);
+    auto ms = CoA::RenderMotion::StaticMotion(f, CurU(f, curBone, p), CurV(f, curBone, p), CurDepth(f, curBone, p));
+    CHECK(Near(mm.x, ms.x, 1e-4f) && Near(mm.y, ms.y, 1e-4f) && mm.x > 0);
+}
+
+COA_TEST(RenderMotion_InverseRoundTrip) {
+    Mat4 m = Mul(CamView(Yaw(0.7f)), CamProj());
+    Mat4 i = Mul(m, CoA::RenderMotion::Inverse(m));
+    for (int r = 0; r < 4; ++r) for (int c = 0; c < 4; ++c) CHECK(Near(i.m[r][c], r == c ? 1.0f : 0.0f, 1e-4f));
+}
