@@ -506,5 +506,11 @@ extern uint32_t g_animationCount;
 extern void (*g_m2ReleaseHook)(CM2Model* model);
 // AscGeosets.cpp:0x101A1440 -- replaces SetGeometryVisible's loaded-model branch (CoA::GeosetsClient sets it).
 extern void (*g_m2SetGeometryVisibleHook)(CM2Model* model, uint32_t first, uint32_t last, int32_t visible);
+// CoA: AscCrashContext.cpp (installer FUN_1019dc80) -- the crash report's M2 recorders: called with the hooked
+// function's address (0x821C77 for CM2Scene::Animate's IsDrawable call, 0x81F8F0 for CM2Scene::CreateModel) and the
+// model's file name ("" without shared data).
+extern void (*g_m2CrashRecordHook)(uint32_t origHook, const char* name);
+// The model's file name for the recorders (shared +0x3C), "" without shared data.
+const char* M2CrashName(const CM2Model* model);
 
 #endif

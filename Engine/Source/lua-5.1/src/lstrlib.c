@@ -966,10 +966,18 @@ static void createmetatable (lua_State *L) {
 /*
 ** Open string library
 */
+lua_CFunction g_luaStringToBoolean;
+
 // VERIFY: 6c58c0c9 auto
 // OFFSET: 0x008540D0
 LUALIB_API int luaopen_string (lua_State *L) {
   luaL_register(L, LUA_STRLIBNAME, strlib);
+  // CoA: AscClientGuards.cpp:FUN_10296fd0 (orig hook 0x8540D0) -- the DLL registers the client's 15 functions plus
+  // toboolean (FUN_10297280) itself and NOPs this luaL_register (0x8540D7): the same table, toboolean added here.
+  if (g_luaStringToBoolean) {
+    lua_pushcfunction(L, g_luaStringToBoolean);
+    lua_setfield(L, -2, "toboolean");
+  }
 #if defined(LUA_COMPAT_GFIND)
   lua_getfield(L, -1, "gmatch");
   lua_setfield(L, -2, "gfind");

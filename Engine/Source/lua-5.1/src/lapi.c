@@ -537,6 +537,9 @@ LUA_API void lua_pushlstring (lua_State *L, const char *s, size_t len) {
 // VERIFY: a749f6bf manual
 // OFFSET: 0x0084E350
 LUA_API void lua_pushstring (lua_State *L, const char *s) {
+  // CoA: AscUnitTokens.cpp:FUN_100a0880 (orig hook 0x84E350) -- the DLL would push "" for a NULL string when its return
+  // address is 0x81AC90 / 0x81B530 / 0x615020 / 0x6143F0 / 0x81AA00, which are function entry points no return
+  // address ever equals: the detour never changes anything, so nothing is ported (Ruling).
   if (s == NULL)
     lua_pushnil(L);
   else

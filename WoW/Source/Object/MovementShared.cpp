@@ -1,4 +1,5 @@
 #include "MovementShared.h"
+#include "CoA/Source/Modules/MovementForceClient.h"
 #include <cmath>
 #include <cstdio>
 #include <malloc.h>
@@ -1435,7 +1436,9 @@ C3Vector CMovementShared::GetPosition() const {
 // VERIFY: 85c9efaf auto
 // OFFSET: 0x00987D00
 uint32_t CMovementShared::PlotUnitMovement(uint32_t time, C3Vector* move) {
-    return this->PlotUnitMovement(time, move, &this->m_facing, &this->m_pitch);
+    // CoA: AscMovementForce.cpp:FUN_102b8cb0 (orig hook 0x987D00) -- after the original: the forces' displacement added to
+    // the step (replacing it during a forced idle step).
+    return CoA::MovementForceClient::AfterPlot(this, time, move, this->PlotUnitMovement(time, move, &this->m_facing, &this->m_pitch));
 }
 
 // VERIFY: 311937c1 auto

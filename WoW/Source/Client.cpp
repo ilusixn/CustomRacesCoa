@@ -1,4 +1,6 @@
 #include <cstdint>
+#include "CoA/Source/Modules/MovementForce.h"
+#include "CoA/Source/Modules/CrashContextClient.h"
 #include "CoA/Source/Modules/AttachMisc.h"
 #include "CoA/Source/Modules/Camera.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -927,6 +929,8 @@ void StartupReport(bool firstRun) {
 // VERIFY: 2b64aabf manual
 // OFFSET: 0x00403B70
 static int32_t LoadNewWorld(const void* data, void* param) {
+    // CoA: AscMovementForce.cpp:FUN_102b9b90 (orig hook 0x403B70) -- every force, smoothing and stop state is reset first.
+    CoA::MovementForce::Reset();
     ClientServices::Connection()->CharacterSetInGame(0);
     MovementDestroy();
     EventUnregister(EVENT_ID_IDLE, MovementIdleMoveUnits);
@@ -1291,6 +1295,9 @@ int32_t STORMAPI WowLogHeader(char* buffer, uint32_t bufferchars) {
     SStrPack(buffer, "Settings: \r\n", bufferchars);
     CVar::LogAll(buffer, bufferchars, 0, 64);
     GxLogCrashInfo(buffer, bufferchars);
+    // CoA: AscCrashContext.cpp:CrashText (orig hook 0x682200) -- after GxLogCrashInfo: the "Ascension Debug" block and
+    // the Lua stack.
+    CoA::CrashContextClient::AppendReport(buffer, bufferchars);
 
     return 1;
 }
@@ -1721,6 +1728,10 @@ void ForEveryRunOnceWTF::Execute(int32_t (*callback)(const char*)) {
 // VERIFY: f4d6d325 manual
 // OFFSET: 0x004067F0
 bool InitializeGlobal() {
+    // CoA: AscMemoryBridge.cpp:StartupDetour (orig hook 0x4067F0) -- after this function the DLL starts MMgr64.exe and runs
+    // its allocate / write / read / free self-test (fatal on failure, "MemoryBridge communication test passed." in
+    // MemoryBridge.log). The x64 client has no helper process (its table server runs in-process) and no memory commands,
+    // so there is nothing to start or test (Ruling).
     SCmdRegisterArgList(s_wowArgList, sizeof(s_wowArgList) / sizeof(s_wowArgList[0]));
     CmdLineProcess();
     LoadMFIL("WoW.mfil");

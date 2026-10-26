@@ -65,6 +65,19 @@ uint32_t g_animationCount = 506;
 void (*g_m2ReleaseHook)(CM2Model* model);
 // CoA: set by CoA::GeosetsClient.
 void (*g_m2SetGeometryVisibleHook)(CM2Model* model, uint32_t first, uint32_t last, int32_t visible);
+// CoA: set by CoA::CrashContextClient.
+void (*g_m2CrashRecordHook)(uint32_t origHook, const char* name);
+
+const char* M2CrashName(const CM2Model* model) {
+    return model && model->m_shared ? model->m_shared->m_fileName : "";
+}
+
+#define COA_M2_CRASH_RECORD(addr, model)                      \
+    do {                                                      \
+        if (g_m2CrashRecordHook) {                            \
+            g_m2CrashRecordHook((addr), M2CrashName(model));  \
+        }                                                     \
+    } while (0)
 
 // VERIFY: 35d86a94 auto
 // OFFSET: 0x00823D50
@@ -134,6 +147,9 @@ int32_t CM2Model::CanUpdateNonReadyTextures() {
 // VERIFY: b2c20bd9 auto
 // OFFSET: 0x00823ED0
 void CM2Model::WaitForLoad(const char* reason) {
+    // CoA: AscCrashContext.cpp:M2WaitForLoad (orig hook 0x823ED0) -- the crash report's "Last M2 WaitForLoad Name".
+    COA_M2_CRASH_RECORD(0x823ED0, this);
+
     if (this->m_shared->m_asyncObject) {
         AsyncFileReadWait(this->m_shared->m_asyncObject);
     }
@@ -150,6 +166,11 @@ void CM2Model::WaitForLoad(const char* reason) {
 // VERIFY: 240e75c9 auto
 // OFFSET: 0x00823F10
 void CM2Model::SetAnimating(int32_t animating) {
+    // CoA: AscCrashContext.cpp:M2Guarded (orig hook 0x823F10) -- a model without shared data does nothing.
+    if (!this->m_shared) {
+        return;
+    }
+
     if (this->m_flags & 0x20) {
         if (!animating) {
             goto unlink;
@@ -642,6 +663,9 @@ uint32_t CM2Model::IsLoaded(int32_t wait, int32_t recursive) {
 // VERIFY: 1574132e auto
 // OFFSET: 0x00824FC0
 int32_t CM2Model::IsDrawable(int32_t wait, int32_t recursive) {
+    // CoA: AscCrashContext.cpp:M2IsDrawable (orig hook 0x824FC0) -- the crash report's "Last M2 Is Drawable" (the CM2Scene::Animate call also records 0x821C77).
+    COA_M2_CRASH_RECORD(0x824FC0, this);
+
     if (!(this->m_fFlags & 1) && wait) {
         this->WaitForLoad(nullptr);
     }
@@ -4303,6 +4327,9 @@ void CM2Model::OptimizeVisibleGeometry() {
 // VERIFY: aa052318 manual
 // OFFSET: 0x0082CED0
 void CM2Model::GetSequenceInfo(uint32_t id, uint32_t variation, M2SequenceInfo& info) {
+    // CoA: AscCrashContext.cpp:M2SequenceInfo (orig hook 0x82CED0) -- the crash report's "Last M2 GetSequenceInfo".
+    COA_M2_CRASH_RECORD(0x82CED0, this);
+
     if (!(this->m_fFlags & 1)) {
         this->WaitForLoad(nullptr);
     }
@@ -4941,6 +4968,9 @@ uint32_t CM2Model::ProcessSequenceCallback(uint32_t boneIndex, uint32_t frame, u
 // VERIFY: 745168f8 manual
 // OFFSET: 0x0082EC30
 void CM2Model::GetCollisionFacets(const CAaBox& box, const C44Matrix& transform, TSGrowableArray<CFacet>& facets) {
+    // CoA: AscCrashContext.cpp:M2CollisionFacets (orig hook 0x82EC30) -- the crash report's "Last M2 GetCollisionFacets".
+    COA_M2_CRASH_RECORD(0x82EC30, this);
+
     if (!(this->m_fFlags & 1)) {
         this->WaitForLoad(nullptr);
     }
@@ -5055,6 +5085,9 @@ void CM2Model::GetCollisionFacets(const CAaBox& box, const C44Matrix& transform,
 // VERIFY: d48ec2da manual
 // OFFSET: 0x0082F0F0
 void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
+    // CoA: AscCrashContext.cpp:M2AnimateMT (orig hook 0x82F0F0) -- the crash report's "Last M2 Animate MT Name".
+    COA_M2_CRASH_RECORD(0x82F0F0, this);
+
     uint32_t flags = this->m_fFlags;
 
     if (!(flags & 1) || this->m_frameStamp == this->m_scene->m_frameStamp) {
@@ -5717,6 +5750,9 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
 // VERIFY: a2d095a0 manual
 // OFFSET: 0x008309C0
 void CM2Model::AnimateParticleST(float deltaTime, uint32_t index) {
+    // CoA: AscCrashContext.cpp:M2AnimateParticle (orig hook 0x8309C0) -- the crash report's "Last M2 Animate Particle Name".
+    COA_M2_CRASH_RECORD(0x8309C0, this);
+
     if (!(this->m_fFlags & 1)) {
         return;
     }
@@ -5848,6 +5884,9 @@ C3Vector CM2Model::GetWorldPosition() {
 // VERIFY: 4377f416 manual
 // OFFSET: 0x00830DC0
 void CM2Model::Animate() {
+    // CoA: AscCrashContext.cpp:M2Animate (orig hook 0x830DC0) -- the crash report's "Last M2 Animate Name".
+    COA_M2_CRASH_RECORD(0x830DC0, this);
+
     CM2Scene* scene = this->m_scene;
 
     if (this->m_frameStamp == scene->m_frameStamp) {
@@ -6479,6 +6518,9 @@ void CM2Model::CallCallbacks() {
 // VERIFY: 7263f300 manual
 // OFFSET: 0x00832260
 int32_t CM2Model::ProcessCallbacks() {
+    // CoA: AscCrashContext.cpp:M2ProcessCallbacks (orig hook 0x832260) -- the crash report's "Last M2 ProcessCallbacks Name".
+    COA_M2_CRASH_RECORD(0x832260, this);
+
     if (this->m_lastAnimTime || !(this->m_fFlags & 0x400000)) {
         return 1;
     }

@@ -1,4 +1,6 @@
 #include "QuestTextParser.h"
+#include "CoA/Source/Modules/CrashContext.h"
+#include "CoA/Source/Modules/SpellTokens.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CMath.h"
@@ -350,6 +352,14 @@ static bool SpellParserGetCondition(const char** cursor) {
 // VERIFY: 6f1a2060 manual
 // OFFSET: 0x005797F0
 static bool SpellParserParseConditional(const char** cursor, const char* end) {
+    // CoA: AscSpellTokens.cpp:FUN_10a136c0 (orig hook 0x5797F0) -- C... is false, P<n> the player's item / set bonus spell
+    // n, both without moving the cursor; every call, the parser's own recursion included.
+    const int32_t coaCondition = CoA::SpellTokens::Condition(*cursor);
+
+    if (coaCondition >= 0) {
+        return coaCondition != 0;
+    }
+
     bool condition = false;
 
     if (!**cursor) {
@@ -362,7 +372,8 @@ static bool SpellParserParseConditional(const char** cursor, const char* end) {
                 (*cursor)++;
 
                 while (**cursor && *cursor < end) {
-                    if (SStrChr("sSaA", **cursor)) {
+                    // CoA: AscSpellTokens.cpp:Init (0x579852) -- the letters are the DLL's "sSaApP".
+                    if (SStrChr(CoA::SpellTokens::ConditionLetters(), **cursor)) {
                         condition = !SpellParserGetCondition(cursor);
                         break;
                     }
@@ -1065,6 +1076,12 @@ static int32_t SpellParserReplaceText(const SpellRec* spell, char* buffer, uint3
 // VERIFY: 93c08fa8 auto
 // OFFSET: 0x0057AAF0
 static int32_t SpellParserParseSubText(const SpellRec* spell, char* buffer, uint32_t size, int32_t parsePet, int32_t parseUnit, int32_t spellLevel, int32_t scale, int32_t noModifiers, const char* text, const char** cursor) {
+    // CoA: AscSpellTokens.cpp:FUN_10a12780 (orig hook 0x57AAF0) -- before the original: "$sc" in the output buffer becomes
+    // the spell's school name.
+    if (spell) {
+        CoA::SpellTokens::ReplaceSchool(buffer, size, static_cast<uint32_t>(spell->m_schoolMask));
+    }
+
     int32_t failed = 0;
 
     while (*cursor && **cursor) {
@@ -1097,10 +1114,15 @@ static int32_t SpellParserParseSubText(const SpellRec* spell, char* buffer, uint
 // VERIFY: 17c38493 auto
 // OFFSET: 0x0057ABC0
 int32_t SpellParserParseText(const SpellRec* spell, char* buffer, uint32_t size, int32_t parsePet, int32_t parseUnit, int32_t spellLevel, int32_t useAuraDescription, int32_t scale, int32_t noModifiers) {
+    // CoA: AscCrashContext.cpp:SpellTooltip (orig hook 0x57ABC0) -- the spell's id as the crash report's "Last Spell
+    // Tooltip ID".
+    CoA::CrashContext::RecordNumber(CoA::CrashContext::Field::SpellTooltip, static_cast<uint32_t>(spell->m_id));
     *buffer = '\0';
 
     if (!spellLevel) {
-        spellLevel = Spell_C_GetSpellLevel(spell, parsePet, parseUnit);
+        // CoA: AscInitHooks.cpp:Detour7FF070 (orig hook 0x7FF070) -- Spell_C_GetSpellLevel returns 0 to this call (return
+        // address 0x57ABE4): the parse goes on with level 0.
+        spellLevel = 0;
     }
 
     SpellDescriptionVariablesRec* variables = g_spellDescriptionVariablesDB.GetRecord(spell->m_descriptionVariablesID);

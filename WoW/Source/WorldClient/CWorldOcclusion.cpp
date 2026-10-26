@@ -299,6 +299,11 @@ static OcclusionVolume s_occlusionVolumes[62] = {
     { 631, 1, { CAaBox(C3Vector(0.0f, 0.0f, 0.0f), C3Vector(0.0f, 0.0f, 0.0f)), s_occlusionVolumeVerts61, 4 } },
 };
 
+// CoA: AscGraphics.cpp:FUN_10264d10 (Extensions.dll patch 0x7CCD30 / 0x7CCD35 / 0x7CD8A0 / 0x7CD8A5) -- the table and count
+// InitOcclusionVolumes and CreateOcclusionVolumes loop over (the operands the DLL rewrites to its own records).
+static OcclusionVolume* s_occlusionVolumeTable = s_occlusionVolumes;
+static uint32_t s_occlusionVolumeCount = 62;
+
 // STATIC: 0x00AEEF78
 static C3Vector s_worldOccluderVerts0[22] = { C3Vector(2287.72998f, 5169.47998f, 44.1699982f), C3Vector(2297.80005f, 5165.72021f, 44.1699982f), C3Vector(2296.86011f, 5166.18994f, 33.6300011f), C3Vector(2328.37988f, 5159.77002f, 33.6300011f), C3Vector(2327.02002f, 5159.72998f, 45.0f), C3Vector(2337.20996f, 5163.87988f, 45.0f), C3Vector(2335.61011f, 5162.58984f, 30.8999996f), C3Vector(2364.8999f, 5187.66992f, 30.8999996f), C3Vector(2364.08008f, 5186.95996f, 39.1500015f), C3Vector(2372.45996f, 5196.06006f, 39.1500015f), C3Vector(2372.95996f, 5192.8999f, 27.8099995f), C3Vector(2381.71997f, 5230.60986f, 27.8099995f), C3Vector(2381.62012f, 5229.2002f, 40.9000015f), C3Vector(2381.37988f, 5239.99023f, 40.9000015f), C3Vector(2370.56006f, 5272.83984f, 47.0f), C3Vector(2365.47998f, 5281.81006f, 47.0f), C3Vector(2366.57007f, 5281.31006f, 33.0999985f), C3Vector(2342.16992f, 5301.83984f, 33.0999985f), C3Vector(2341.38989f, 5302.18994f, 50.6300011f), C3Vector(2325.29004f, 5313.29004f, 50.6300011f), C3Vector(2325.29004f, 5313.29004f, 50.6300011f), C3Vector(2314.61011f, 5303.97021f, 50.6300011f) };
 
@@ -677,8 +682,8 @@ static void InitOcclusionVolumes() {
         return;
     }
 
-    for (uint32_t i = 0; i < 62; i++) {
-        OcclusionVolumeData& data = s_occlusionVolumes[i].m_data;
+    for (uint32_t i = 0; i < s_occlusionVolumeCount; i++) {
+        OcclusionVolumeData& data = s_occlusionVolumeTable[i].m_data;
         const C3Vector* pos = data.m_positions;
 
         for (int32_t j = 0; j < static_cast<int32_t>(data.m_positionCount); j++, pos++) {
@@ -711,6 +716,15 @@ static void InitOcclusionVolumes() {
     s_occlusionVolumesInit = 1;
     CWorldOcclusion::planeArray.m_chunk = 32;
     CWorldOcclusion::clipVolumeArray.m_chunk = 32;
+}
+
+// CoA: AscGraphics.cpp:FUN_10264d10 -- the DLL's records replace the table (the patched operands), then
+// s_occlusionVolumesInit (0xD2DCD4) = 0 and InitOcclusionVolumes (0x7CCD20) rebuilds their bounds.
+void CWorldOcclusion_UseVolumes(OcclusionVolume* table, uint32_t count) {
+    s_occlusionVolumeTable = table;
+    s_occlusionVolumeCount = count;
+    s_occlusionVolumesInit = 0;
+    InitOcclusionVolumes();
 }
 
 // VERIFY: 58f32a53 auto
@@ -864,8 +878,8 @@ void CWorldScene::CreateOcclusionVolumes(const C3Vector* eye, const C3Vector* co
     CFrustum frustum;
     frustum.CalcPlanesFromCorners(corners);
 
-    for (uint32_t i = 0; i < 62; i++) {
-        OcclusionVolume& volume = s_occlusionVolumes[i];
+    for (uint32_t i = 0; i < s_occlusionVolumeCount; i++) {
+        OcclusionVolume& volume = s_occlusionVolumeTable[i];
 
         if (s_mapId != volume.m_mapID || (onlyFlagged && !(volume.m_flags & 2))) {
             continue;

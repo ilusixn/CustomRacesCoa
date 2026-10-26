@@ -112,7 +112,7 @@ class ScanCoaTest(unittest.TestCase):
                         '// CoA: AscAddonTaint.cpp:Hook (orig hook 0x488540)\n'
                         '// CoA: Extensions.dll patch 0x4DA8EB (AscAttachPatches) -- removed\n')
             inv = inventory.scan_coa(root)
-            self.assertEqual({(ns, name) for ns, name, _ in inv.natives}, {('C_Chat', 'Foo'), ('', 'AbandonSkillID')})
+            self.assertEqual({(ns, name) for ns, name, _ in inv.natives}, {('C_Chat', 'Foo'), ('', 'AbandonSkillID'), ('showToolsUI', '0')})
             self.assertEqual(inv.packets, {0x563})
             self.assertEqual(inv.cvars, {'showToolsUI'})
             self.assertEqual(inv.events, {'ACTIVE_MANASTORM_UPDATED'})
@@ -130,6 +130,22 @@ class ScanCoaTest(unittest.TestCase):
                 f.write('{0x56C, "DBFilesClient\\\\MythicAffixes.dbc", 0x40, 0x0ull},   // SMSG_PATCH_MYTHIC_AFFIXES\n')
             inv = inventory.scan_coa(root)
             self.assertEqual(inv.packets, {0x676, 0x579, 0x692, 0x56C})
+
+    def test_scan_coa_counts_table_rows_and_fired_events(self):
+        # DLL_REFERENCE lists a module's CVar table ("name.default") and string-pair tables ("A.B") as Lua API rows,
+        # and events the DLL fires without registering them; these count when CoA registers / fires the same.
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, 'CoA', 'Source'))
+            with open(os.path.join(root, 'CoA', 'Source', 'A.cpp'), 'w', encoding='utf-8') as f:
+                f.write('    COA_CVAR("nameplateDistance", nullptr, 0x21, "1681", OnDistance, 4, false, &s, true);\n'
+                        '            { "DAMAGE_SCHOOL3", "RESISTANCE2_NAME", 0x84 },\n'
+                        '        CoA::Events::Signal("BOSS_KILL", "%u%s", id, name);\n'
+                        '        CoA::Events::Signal(down ? "GLOBAL_MOUSE_DOWN" : "GLOBAL_MOUSE_UP", "%u", b);\n')
+            inv = inventory.scan_coa(root)
+            self.assertEqual({(ns, name) for ns, name, _ in inv.natives},
+                             {('nameplateDistance', '1681'), ('DAMAGE_SCHOOL3', 'RESISTANCE2_NAME')})
+            self.assertEqual(inv.cvars, {'nameplateDistance'})
+            self.assertEqual(inv.events, {'BOSS_KILL', 'GLOBAL_MOUSE_DOWN', 'GLOBAL_MOUSE_UP'})
 
 
 if __name__ == '__main__':

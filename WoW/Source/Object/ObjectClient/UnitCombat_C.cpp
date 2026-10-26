@@ -616,9 +616,9 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
                 }
             }
 
-            if (target) {
-                target->PlayVictimRound(this->m_lastAttackRound);
-            }
+            // CoA: AscInitHooks.cpp:FUN_10a452f0 (orig hook 0x756240) -- the je at 0x756458 is a jmp while this function
+            // runs (the only code that reaches it): the target's victim round is never played here (PlayAttackerRound
+            // plays it, 0x755130).
 
             this->m_lastAttackRound.m_attacker = WOWGUID();
             this->m_lastAttackRound.m_target = WOWGUID();

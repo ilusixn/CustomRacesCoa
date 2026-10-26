@@ -1302,6 +1302,11 @@ int32_t M2Init<M2TextureWeight>(uint8_t* base, uint32_t size, const M2Data& data
 // VERIFY: 2f176c2e auto
 // OFFSET: 0x00838490
 int32_t CM2Shared::FinishLoadingSkinProfile(uint32_t size) {
+    // CoA: AscCrashContext.cpp:M2Skin (orig hook 0x838490) -- the crash report's "Last Loaded M2 (Skin) Name".
+    if (g_m2CrashRecordHook) {
+        g_m2CrashRecordHook(0x838490, this->m_fileName);
+    }
+
     if (this->m_flags & 2) {
         return 1;
     }
@@ -1727,6 +1732,9 @@ int32_t CM2Shared::Initialize() {
 
 // INLINED
 int32_t CM2Shared::FinishLoading() {
+    // CoA: AscLargeAlloc.cpp:Hook83CF00 (orig hook 0x83CF00) -- the DLL keeps the file name as its current M2 while this
+    // runs and reports "M2: <name> (Size: N MB)" past 2 000 000 counted bytes; nothing ever counts any, so no report is
+    // ever written and the name is never read: nothing to port (Ruling).
     if (this->m_flags & 1) {
         return 1;
     }

@@ -1,4 +1,5 @@
 #include <cfloat>
+#include "CoA/Source/Modules/Graphics.h"
 #include "CWorldSceneRender.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/World.h"
@@ -126,7 +127,9 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
 
         CWorldScene::s_viewerMapObjDef->RenderWithCallback(&CWorldScene::s_viewerMapObjGroups);
 
-        if (CWorldScene::frustumPortalView.m_maxViewDepth < 0.0f) {
+        // CoA: AscGraphics.cpp:FUN_10262e10 (Extensions.dll patch 0x79AA42) -- terrainCulling other than "1" NOPs the jnp:
+        // the sort table is always culled through the portal view, never cleared.
+        if (CWorldScene::frustumPortalView.m_maxViewDepth < 0.0f && CoA::Graphics::TerrainCulling()) {
             CWorldScene::sortTable.Clear();
         } else {
             CWorldScene::s_occlusionNearDepth = CWorldScene::frustumPortalView.m_maxViewDepth + 33.333332f;

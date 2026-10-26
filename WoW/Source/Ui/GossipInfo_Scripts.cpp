@@ -1,4 +1,5 @@
 #include "GossipInfo.h"
+#include "CoA/Source/Modules/GossipQuest.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
@@ -72,8 +73,11 @@ static int32_t Script_GetGossipOptions(lua_State* L) {
     for (GossipOption* option = CGGossipInfo::m_options; option < reinterpret_cast<GossipOption*>(CGGossipInfo::m_gossipText); option++) {
         if (option && option->m_index >= 0) {
             lua_checkstack(L, 2);
-            lua_pushstring(L, option->m_text);
-            lua_pushstring(L, s_gossipTypes[option->m_type]);
+            // CoA: AscGossipQuest.cpp:FUN_100d9b40 (orig hook 0x58A9E0) -- REPLACED: the text (nullptr as ""), and the
+            // client's name for icon types below 0x15 ("" for its null ones), Ascension's for 0x15..0x28, else "".
+            lua_pushstring(L, option->m_text ? option->m_text : "");
+            const uint32_t coaType = static_cast<uint32_t>(option->m_type);
+            lua_pushstring(L, CoA::GossipQuest::IconName(coaType, coaType < 0x15 ? s_gossipTypes[coaType] : nullptr));
             count++;
         }
     }

@@ -1,4 +1,5 @@
 #include "MapObj.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <malloc.h>
@@ -1749,7 +1750,9 @@ void CMapObj::RenderInterior(C44Matrix& mat, C44Matrix& invMat, C3Vector& worldP
     for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_groupInfoCount); i++) {
         SMOGroupInfo& info = this->m_groupInfo[i];
 
-        if (!(info.m_flags & 0x10000)) {
+        // CoA: AscGraphics.cpp:FUN_102628b0 (Extensions.dll patch 0x7AD2EE) -- portalCulling other than "1" NOPs the je:
+        // every group, not only the exterior-portal ones, is tested against the frustum and rendered.
+        if (!(info.m_flags & 0x10000) && CoA::Graphics::PortalCulling()) {
             continue;
         }
 
@@ -2616,7 +2619,9 @@ void CMapObjDef::CullMapObjDefGroupFromExterior(CMapObjDefGroup* mapObjDefGroup,
     uint32_t groupFlags = this->m_owner->GetGroupFlags(mapObjDefGroup->m_groupNum);
 
     if (!CWorldScene::FrustumCull(&mapObjDefGroup->m_bbox) && (skipOcclusion || !CWorldOcclusion::QueryBuffer(&mapObjDefGroup->m_bbox, 1))) {
-        if (groupFlags & 0x10000) {
+        // CoA: AscGraphics.cpp:FUN_10263380 (Extensions.dll patch 0x7B3A8E / 0x7B3AAF) -- wmoCulling other than "1" NOPs
+        // both je: every visible group takes the render-callback path (the second test is then never reached).
+        if ((groupFlags & 0x10000) || !CoA::Graphics::WmoCulling()) {
             this->m_owner->InvokeRenderCallback(mapObjDefGroup->m_groupNum);
             CWorldScene::FrustumPop();
             return;

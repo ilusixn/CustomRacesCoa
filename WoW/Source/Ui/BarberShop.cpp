@@ -76,6 +76,11 @@ const BarberShopStyleRec* CGBarberShop::GetCurrentStyle(int32_t type) {
 void CGBarberShop::AppearanceApplied() {
     Script_SendUniqueSignal(SCRIPT_EVENT_BARBER_SHOP_APPEARANCE_APPLIED);
     CGBarberShop::m_resetPortrait = 1;
+
+    // CoA: AscInitHooks.cpp:Detour52E4D0 (orig hook 0x52E4D0) -- after the body: the active player stands up.
+    if (CGPlayer_C* player = ClntObjMgrGetActivePlayerObj()) {
+        player->ChangeStandState(UNIT_STANDING);
+    }
 }
 
 // VERIFY: 1f780087 auto

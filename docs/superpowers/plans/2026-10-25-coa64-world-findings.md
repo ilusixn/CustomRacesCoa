@@ -286,3 +286,21 @@ Live 2026-10-26, x64 DXVK v2.5.3 (MSVC build) installed at D:\WoW\Coa\x64\d3d9.d
   (out/baseline/dxvk_world.png). HD content visible; some colour banding on dark terrain to compare with Ascension.exe.
 - -nodxvk: "DXVK disabled (-nodxvk)", 57 archives, HDPatch line back, no DXVK log written.
 - x64 folder missing: "DXVK not loaded (error 126), using system d3d9", 57 archives, no crash.
+
+## Plan 15 result
+
+Live run (2026-10-26, plan15 at 4ee3bfd incl. main's security fixes, DXVK on): login, character select and world entry
+clean; **0 Lua errors** in Extensions.log (Plan 14: 2 -- the SpellQueueWindow CVar error is gone, the
+NewCharacterSetupUtil assert did not recur). Remaining log lines: Discord SDK not loadable (32-bit DLL, error 193) and
+one missing file (Interface\Buttons\ErrorHandler_NoError.blp). Action bars, minimap, chat and the tracker are shown.
+In-game `/run`: SpellQueueWindow 401 (saved value), fogDensity 1, CreatePacket -> userdata, string.toboolean works.
+LootCollector still reports "WR mode". Screenshot: out/baseline/plan15_world.png.
+
+Inventory: total / total in every category (natives 1346, packets 533, hooks 346, byte patches 126, CVars 93,
+events 259; glue natives 167). Task 0 fixed the inventory's accounting (CVar-default / string-pair table rows, events
+fired through CoA::Events::Signal).
+
+Final review (opus): 1 Critical (Lua RegisterPacket handler Put* wrote past a received packet's buffer -- refused now),
+2 Important (any userdata taken as a packet; crash report re-locking a held recorder lock) -- all fixed test-first.
+Deferred minors: Graphics SetVar vs EventPackets assert inconsistency, per-frame recorder mutex cost, weak MovementForce
+tests, RegisterPacket refs across UI reloads.

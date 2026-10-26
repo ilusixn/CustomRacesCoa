@@ -163,6 +163,9 @@ namespace CoA::ClientHooks {
         bool (*removeMacro)(uint32_t spell) = nullptr;                             // 0x5AAB90: false skips it
     };
     inline SpellPacketHooks spellPackets;
+    // CNetClient.cpp FUN_102c3a90 (0x632A40 NetClient::NetClient, after): the constructed object, kept (DAT_10be3564)
+    // for the DLL registrar FUN_102c4590, which hands it to SetMessageHandler (0x631FA0). Not cleared by Reset.
+    inline void* keptNetClient = nullptr;
     // 0x542030 CGSpellBook::AddKnownSpell: AscRuntime.cpp's detour 0x10275ED0 (C_Wildcard's mode manager,
     // WildcardRolls.cpp): true when it took the add over (deferred it, or made it itself); unset, the client adds alone.
     inline bool (*addKnownSpell)(int32_t spell, int32_t notify, int32_t replace) = nullptr;

@@ -84,3 +84,14 @@ COA_TEST(ClientHooks_InitialSpellsEverySecond) {
     CHECK(s_calls.size() == 2);
     CoA::ClientHooks::Reset();
 }
+
+// CNetClient.cpp FUN_102c3a90 (orig hook 0x632A40): the NetClient constructor keeps its object (DAT_10be3564) for the
+// registrar FUN_102c4590; until a NetClient is built (never in the tests) there is none, and Reset leaves it alone.
+COA_TEST(ClientHooks_KeptNetClient) {
+    CHECK(CoA::ClientHooks::keptNetClient == nullptr);
+    void* const kept = reinterpret_cast<void*>(0x1000);
+    CoA::ClientHooks::keptNetClient = kept;
+    CoA::ClientHooks::Reset();
+    CHECK(CoA::ClientHooks::keptNetClient == kept);
+    CoA::ClientHooks::keptNetClient = nullptr;
+}

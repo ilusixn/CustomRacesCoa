@@ -10,6 +10,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "WoW/Source/WowServices/HMAC.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "CoA/Source/Modules/Profiler.h"
 #include "CoA/Source/Runtime/Packets.h"
@@ -328,9 +329,9 @@ int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_
     msg->Get(msgId);
     this->ValidateMessageId(msgId);
 
-    // CoA: the DLL widens this bound (patch 0x63200D, 0x51F -> 0x9D4) so opcodes 0x51F..0x55E index past the
-    // 32-bit handler table into its neighbour. That is reading out of bounds; no server sends those opcodes, and here
-    // they are treated as unhandled.
+    // CoA: CNetClient.cpp:ApplyPatches (orig hook 0x63200D) -- the DLL widens this bound (0x51F -> 0x9D4) so
+    // opcodes 0x51F..0x55E index past the 32-bit handler table into m_handlerParams. That is reading out of bounds; no
+    // server sends those opcodes, and here they are treated as unhandled (CoA/DIFFERENCES.md, Plan 15 Task 5 ruling).
     if (msgId < NUM_MSG_TYPES && this->m_handlers[msgId]) {
         int32_t result = this->m_handlers[msgId](this->m_handlerParams[msgId], static_cast<NETMESSAGE>(msgId), timeReceived, msg);
         CoA::Profiler::Handled(opcode, start);
@@ -628,6 +629,10 @@ NetClient::NetClient() {
 
     NETCLIENTNODE* node = s_clientList.NewNode(2, 0, 0);
     node->m_client = this;
+
+    // CoA: CNetClient.cpp:NetClientCtorDetour (orig hook 0x632A40) -- the object is kept for the registrar
+    // FUN_102c4590 (RegisterPacket's stock-table route, PacketApiClient.cpp).
+    CoA::ClientHooks::keptNetClient = this;
 }
 
 // VERIFY: 3e4c9045 manual

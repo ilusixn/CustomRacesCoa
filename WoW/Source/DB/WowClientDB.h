@@ -10,6 +10,11 @@
 
 extern int32_t g_clientDbPerformCompress;
 
+// CoA: AscCrashContext.cpp:ClientDbGetRow (orig hook 0x65C290) -- the last GetRecord's table and id (0x10BDED2C /
+// 0x10BDED30), read by CoA::CrashContextClient when the crash report is written.
+inline const void* g_coaLastGetRowDb = nullptr;
+inline int32_t g_coaLastGetRowId = 0;
+
 uint8_t* DecompressRow(const uint8_t* src, uint32_t size, uint8_t* dst);
 uint32_t CompressRow(const uint8_t* src, uint32_t size, uint8_t* dst);
 
@@ -280,6 +285,11 @@ void* WowClientDB<T>::GetRecordIndex() {
 // OFFSET: [0x0065C290<LiquidTypeRec>]
 template <class T>
 T* WowClientDB<T>::GetRecord(int32_t id) const {
+    // CoA: AscCrashContext.cpp:ClientDbGetRow (orig hook 0x65C290) -- the table and the id for the crash report's "Last
+    // ClientDB::GetRow" (the 32-bit client folds this body for most tables into 0x65C290).
+    g_coaLastGetRowId = id;
+    g_coaLastGetRowDb = this;
+
     if (id < this->m_minID || id > this->m_maxID) {
         return nullptr;
     }

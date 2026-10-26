@@ -1,9 +1,11 @@
 #include "WoW/Source/Magic/Types.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/GlobalsG.h"
 #include "CoA/Source/Modules/AnimationCount.h"
 #include "CoA/Source/Modules/Geosets.h"
 #include "CoA/Source/Modules/SpellShadowClient.h"
 #include "CoA/Source/Modules/SpellVisualsClient.h"
+#include "CoA/Source/Modules/SpellMods.h"
 #include <algorithm>
 #include <vector>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
@@ -167,6 +169,7 @@
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
 static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
@@ -444,6 +447,14 @@ int32_t NPCFlagsHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, 
 // VERIFY: 1cda89af manual
 // OFFSET: 0x007234D0
 int32_t UnitPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
+    // CoA: AscInitHooks.cpp:Detour7234D0 (orig hook 0x7234D0) -- after the body, whichever way it returns: the active
+    // player's power change refreshes the spell book's usable state.
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([guid]() {
+        if (guid == ClntObjMgrGetActivePlayer()) {
+            CGSpellBook::UpdateUsable();
+        }
+    });
+
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
     POWER_TYPE powerType = static_cast<POWER_TYPE>((fieldOffset - offsetof(CGUnitData, m_unitFieldPower)) / sizeof(uint32_t));
 
@@ -5937,6 +5948,14 @@ void CGUnit_C::RemoveMountModel() {
 // VERIFY: 472acfa3 auto
 // OFFSET: 0x00717910
 void CGUnit_C::SetMountModel(CM2Model* model) {
+    // CoA: AscInitHooks.cpp:Detour717910 (orig hook 0x717910) -- after the body, whichever way it returns: a null model
+    // leaves m_mountAnimBehaviorId at 0x5B.
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([this, model]() {
+        if (!model) {
+            this->m_mountAnimBehaviorId = CoA::InitHooks::kNoMountAnimBehavior;
+        }
+    });
+
     if (model == this->m_mountModel) {
         return;
     }
@@ -6709,6 +6728,12 @@ uint32_t CGUnit_C::GetShapeshiftForm() const {
 // VERIFY: ae4e25f4 auto
 // OFFSET: 0x0071AF90
 int32_t CGUnit_C::IsInMelee() const {
+    // CoA: AscSpellMods.cpp:0x10324390 (orig hook 0x71AF90) -- with Auto Shot pending: in a Manastorm, under the aura
+    // flag / aura type 0x138, or the player without a main-hand weapon counts as in melee.
+    if (CoA::SpellMods::InMeleeOverride(const_cast<CGUnit_C*>(this))) {
+        return 1;
+    }
+
     return static_cast<bool>(this->m_combat.m_attacking);
 }
 
@@ -6816,6 +6841,12 @@ uint32_t CGUnit_C::GetCanFly() const {
 // VERIFY: 54d048fe manual
 // OFFSET: 0x0071B820
 int32_t CGUnit_C::IsInMeleeRange(CGUnit_C* target) const {
+    // CoA: AscSpellMods.cpp:FUN_10324300 (orig hook 0x71B820) -- the player with a ranged weapon and no main hand, or
+    // the Auto Shot gates, is never in melee range.
+    if (CoA::SpellMods::MeleeRangeVeto(const_cast<CGUnit_C*>(this))) {
+        return 0;
+    }
+
     CGUnit* targetUnit = target ? static_cast<CGUnit*>(target) : nullptr;
     float range = this->m_unit->m_unitFieldCombatreach + targetUnit->m_unit->m_unitFieldCombatreach + 1.3333334f;
 
@@ -7084,6 +7115,10 @@ int32_t CGUnit_C::FindDefaultAnimForTier(int32_t tier, uint32_t* anim) const {
 // VERIFY: 272cc5b1 manual
 // OFFSET: 0x00717A20
 CreatureModelDataRec* CGUnit_C::GetModelData() const {
+    // CoA: AscCrashContext.cpp:UnitModelData (orig hook 0x717A20) -- the unit's entry as the crash report's "Last
+    // Unit::GetModelData ID".
+    CoA::CrashContext::RecordModelDataEntry(this->m_obj->m_entryID);
+
     int32_t displayId = this->m_displayId;
 
     if (!displayId || this->m_unit->m_unitFieldNativedisplayid != this->m_unit->m_unitFieldDisplayid) {
@@ -13495,6 +13530,12 @@ ATTACKROUNDINFO& ATTACKROUNDINFO::operator=(const ATTACKROUNDINFO& other) {
 // VERIFY: f7a53fa2 auto
 // OFFSET: 0x00755130
 void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
+    // CoA: AscInitHooks.cpp:Detour755130 (orig hook 0x755130) -- before the body: the round's target, when it is a unit,
+    // plays its victim round now (HandleCombatAnimEvent no longer does, 0x756458).
+    if (CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPE_UNIT, __FILE__, __LINE__))) {
+        victim->PlayVictimRound(info);
+    }
+
     if (this->m_unit->m_unitFieldHealth <= 0 || (info.m_hitInfo & 0x40000)) {
         return;
     }
@@ -13871,7 +13912,8 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
         this->ShowHandItemSpellEffects(0, 0);
     }
 
-    if (instant) {
+    // CoA: AscSpellMods.cpp:FUN_103273F0 (orig hook 0x80CCE0) -- 0x7370AF's je a jmp while a mounted-aura spell casts.
+    if (instant && !CoA::SpellMods::SheatheAnimates()) {
         this->SetSheatheStateInstant();
     } else {
         this->SetSheatheStateAnimate();
@@ -16265,8 +16307,12 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     }
 
     if ((channeled && (spell->m_channelInterruptFlags & 0x18) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60)) || ((spell->m_interruptFlags & 0x1) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60) && !(spell->m_attributesExB & 0x20) && (SpellRec::GetCastTime(spell, this->m_unit->m_unitFieldPetnumber != 0, 0, 0) || (spell->m_auraInterruptFlags & 0x18)))) {
-        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_MOVING, -1, -1, false);
-        return false;
+        // CoA: AscSpellMods.cpp:FUN_10323d50 (orig hook 0x80CCE0) -- 0x73A0D0..0x73A0EF NOPed during the cast: the
+        // failure falls through (cast while moving).
+        if (!CoA::SpellMods::CastWhileMoving()) {
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_MOVING, -1, -1, false);
+            return false;
+        }
     }
 
     if (!this->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !this->CanAutoUnshift())) {
@@ -21885,6 +21931,21 @@ void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool su
 // VERIFY: 8ffb4576 manual
 // OFFSET: 0x00720BF0
 int32_t CGUnit_C::OverrideMissileFirePos(C3Vector* position, const SpellRec* spell) {
+    // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- before the body: a spell with a class set whose visual
+    // has a missile, an impact kit and follow-ground flags drops the 0x100 bit of ComputeMissileTrajectory's three
+    // intersections (the DLL writes the immediates 0x6FD335 / 0x6FD4C7 / 0x6FD59E) until the next targeting update.
+    if (spell) {
+        const int32_t visualId = spell->m_spellVisualID[0];
+        const SpellVisualRec* row = nullptr;
+
+        if (visualId && g_spellVisualDB.m_recordsById && visualId >= g_spellVisualDB.m_minID && visualId <= g_spellVisualDB.m_maxID) {
+            row = g_spellVisualDB.m_recordsById[visualId - g_spellVisualDB.m_minID];
+        }
+
+        CoA::InitHooks::BeforeMissileFirePos(spell->m_spellClassSet, row != nullptr, row ? row->m_hasMissile : 0, row ? row->m_impactKit : 0,
+            row ? row->m_missileFollowGroundFlags : 0);
+    }
+
     if (!this->m_worldModel || !this->m_worldModel->IsLoaded(0, 0)) {
         return 0;
     }
@@ -22411,6 +22472,10 @@ void CGUnit_C::NPCFlagChanged(uint32_t oldFlags) {
 // VERIFY: dacfedb2 manual
 // OFFSET: 0x00740450
 void CGUnit_C::OnMountDisplayChanged(int32_t displayId) {
+    // CoA: AscInitHooks.cpp:Detour740450 (orig hook 0x740450) -- after the body, whichever way it returns: the selection
+    // radius is recomputed.
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([this]() { this->UpdateSelectionRadius(); });
+
     int32_t current = this->m_mountDisplayId;
 
     if (displayId == current) {

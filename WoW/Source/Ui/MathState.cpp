@@ -1,4 +1,6 @@
 #include "MathState.h"
+#include "CoA/Source/Modules/SpellTokens.h"
+#include "CoA/Source/Modules/SpellTokensClient.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -72,8 +74,12 @@ static uint8_t LookupMathVariable(const char* name) {
         return 0;
     }
 
-    for (uint32_t i = 0; i < 140; i++) {
-        if (!SStrCmp(name, s_mathVariables[i], STORM_MAX_STR)) {
+    // CoA: AscSpellTokens.cpp:Init (0x576B63 / 0x576B7C) -- the DLL's table 0x10D3C2B0: these 140 names, then its 0x24
+    // (count 0xB0).
+    for (uint32_t i = 0; i < CoA::SpellTokens::kVariableCount; i++) {
+        const char* variable = i < 140 ? s_mathVariables[i] : CoA::SpellTokens::ExtraVariable(i - 140);
+
+        if (!SStrCmp(name, variable, STORM_MAX_STR)) {
             return i + MATHOP_STAT_STRENGTH;
         }
     }
@@ -473,6 +479,16 @@ void MathState::ExecuteOperator(uint32_t op, MathStack* stack) {
 // VERIFY: ef1f3713 manual
 // OFFSET: 0x005782D0
 void MathState::GetVariableValue(uint32_t op, MathStack* stack, const SpellRec* spell, int32_t spellLevel, int32_t scale, int32_t parseUnit, int32_t parsePet, int32_t noModifiers) {
+    // CoA: AscSpellTokens.cpp:FUN_10a10c30 (orig hook 0x5782D0) -- Ascension's ops (0x52 / 0x53, 0xA2..0xC2) push their
+    // value here; every other op goes on to the client.
+    float coaValue;
+
+    if (CoA::SpellTokensClient::Value(op, spell, coaValue)) {
+        stack->m_top--;
+        stack->m_values[stack->m_top] = coaValue;
+        return;
+    }
+
     float value = 0.0f;
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 

@@ -674,7 +674,7 @@ void CGGameUI::RegisterGameCVars() {
 // VERIFY: d0dc1b08 auto
 // OFFSET: 0x005238A0
 void CGGameUI::Initialize() {
-    // CoA: AscAttachPatches.cpp:Init (Extensions.dll patch 0x5238AE) -- default "0.85".
+    // CoA: AscAttachPatches.cpp:Init (orig hook 0x5238AE) -- the pushed default is the DLL's "0.85" (0x10B610DC).
     g_uiScaleCVar = CVar::Register("uiScale", "The current UI scale", 0, CoA::AttachPatches::kUiScaleDefault, CVarHandler_uiScale, 4, false, nullptr, false);
     // CoA: AscAttachPatches.cpp (Extensions.dll patch 0x5238D1) -- default "1".
     g_useUiScaleCVar = CVar::Register("useUiScale", "Whether or not the UI scale should be used", 0, "1", CVarHandler_useUiScale, 4, false, nullptr, false);

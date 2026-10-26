@@ -1,4 +1,5 @@
 #include "MapRenderChunk.h"
+#include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/TerrainScaleClient.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cmath>
@@ -2057,7 +2058,9 @@ void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t laye
     C3Vector position(0.0f, 0.0f, 0.0f);
     int32_t pointLights = 0;
 
-    for (uint32_t i = 0; i < 3; i++) {
+    // CoA: AscGraphics.cpp:FUN_102617e0 (Extensions.dll patch 0x7D00BF) -- lightLimitFix "1" jumps over the loop: no point
+    // light is selected or written (the constants keep the previous chunk's), and the shader has none.
+    for (uint32_t i = 0; i < 3 && !CoA::Graphics::LightLimitFix(); i++) {
         SVertexShaderConstants::SPointLight& light = consts.m_pointLights[i];
 
         if (lighting.GetPointLight(i, position, light.m_color, light.m_attenuation)) {

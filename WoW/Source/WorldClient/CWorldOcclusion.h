@@ -55,4 +55,10 @@ class CWorldOcclusion {
     static void AddVolume(const C3Vector* eye, const C3Vector* verts, int32_t count, int32_t clipToView);
 };
 
+struct OcclusionVolume;
+
+// CoA: AscGraphics.cpp:FUN_10264d10 (Extensions.dll patch 0x7CCD30 / 0x7CD8A0) -- the antiportal table the client loops
+// over, replaced by the DLL's records, and rebuilt.
+void CWorldOcclusion_UseVolumes(OcclusionVolume* table, uint32_t count);
+
 #endif
