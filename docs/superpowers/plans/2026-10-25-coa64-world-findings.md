@@ -338,3 +338,15 @@ cvtsd2si like the 32-bit client's "fld; fistp dword" (round to nearest even). Li
 The install's discord_game_sdk.dll is Ascension.exe's 32-bit SDK (error 193 in x64). The user placed the x64 SDK in
 D:\WoW\Coa\x64\ beside DXVK's d3d9.dll; DiscordClient now tries <exe dir>\x64\ first (Discord::SdkPaths). Live: the
 x64 SDK is loaded from x64\, a core is created (no "not loadable" / "no core" lines), 0 Lua errors.
+
+### Discord status (resolved 2026-10-26)
+
+The 2019 Discord Game SDK (Ascension's x86 DLL is byte-identical to the official 2.5.6 build; its x64 twin too) still
+creates a core with current Discord apps but never completes its session: no current user, no visible activity.
+CoA64 now speaks the app's local IPC protocol itself (DiscordIpc.{h,cpp}, DiscordClient.cpp; no discord_game_sdk.dll),
+reports the Discord user (CMSG 0x52A, which the SDK never managed) and, since this server sends no 0x90C / 0x90D, builds
+its own status (user decision): "Selecting World" on the character screen, "Level N Class" / zone / realm / elapsed
+time in world; server packets take over when they arrive. Updates are spaced 4 s apart -- a burst of test updates left
+the Discord app showing a stale status until it was restarted. Live: status shows and follows world entry. The
+application is still Ascension's (title "Ascension.gg"); its art was saved to out/discord_assets/ for the user's own
+application, whose id replaces kClientId once created.
