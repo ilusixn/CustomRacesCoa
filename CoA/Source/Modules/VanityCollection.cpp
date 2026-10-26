@@ -109,6 +109,27 @@ namespace {
         return m;
     }
 
+    // The record's own fields of an item (FUN_1032c140's loop body); the search text still lacks the item text.
+    void Fill(Item& e, const VanityRecord* row) {
+        e.id = Rec(row, 0);
+        e.itemId = Rec(row, 1);
+        e.category = Rec(row, 2);
+        e.mask = CategoryMask(row);
+        e.dp = Rec(row, 4);
+        e.sp = Rec(row, 5);
+        e.bt = Rec(row, 6);
+        e.flags = Rec(row, 0xC);
+        e.classMask = static_cast<uint64_t>(Rec(row, 0xD)) | (static_cast<uint64_t>(Rec(row, 0xE)) << 32);
+        e.raceMask = Rec(row, 0xF);
+
+        for (uint32_t c = 0; c < 24; ++c) {
+            e.contents[c] = Rec(row, 0x12 + c);
+        }
+
+        e.learnedSpell = Rec(row, 0x2C);
+        e.search = RecStr(row, 0x2A) + " " + RecStr(row, 0x2B) + " " + std::to_string(e.itemId);   // FUN_1032d3e0
+    }
+
     // FUN_1032c140: every record index, fetched 1,000 at a time (FUN_1032dc10). A failed batch abandons the build
     // with an empty list; records not found or not offered are skipped.
     void Build() {
@@ -137,26 +158,9 @@ namespace {
                     continue;
                 }
 
-                const VanityRecord* row = &v.record;
                 Item e;
                 e.row = v.index;
-                e.id = Rec(row, 0);
-                e.itemId = Rec(row, 1);
-                e.category = Rec(row, 2);
-                e.mask = CategoryMask(row);
-                e.dp = Rec(row, 4);
-                e.sp = Rec(row, 5);
-                e.bt = Rec(row, 6);
-                e.flags = Rec(row, 0xC);
-                e.classMask = static_cast<uint64_t>(Rec(row, 0xD)) | (static_cast<uint64_t>(Rec(row, 0xE)) << 32);
-                e.raceMask = Rec(row, 0xF);
-
-                for (uint32_t c = 0; c < 24; ++c) {
-                    e.contents[c] = Rec(row, 0x12 + c);
-                }
-
-                e.learnedSpell = Rec(row, 0x2C);
-                e.search = RecStr(row, 0x2A) + " " + RecStr(row, 0x2B) + " " + std::to_string(e.itemId);   // FUN_1032d3e0
+                Fill(e, &v.record);
                 s_items.push_back(std::move(e));
             }
         }
@@ -193,6 +197,31 @@ namespace {
         }
 
         s_built = true;
+    }
+
+    // Not in the original: a patched record applied to the built browser in place, keeping the item text. A record
+    // that joins the browser, leaves it or names another item leaves it to be built again on its next use.
+    void Refresh(const VanityRecord* row) {
+        const bool offered = Offered(row);
+
+        for (Item& e : s_items) {
+            if (e.id != Rec(row, 0)) {
+                continue;
+            }
+
+            if (e.itemId != Rec(row, 1) || !offered) {
+                s_built = false;
+            } else {
+                Fill(e, row);
+                e.search = Lower(e.name + " " + e.itemDescription + " " + e.search);
+            }
+
+            return;
+        }
+
+        if (offered) {
+            s_built = false;
+        }
     }
 
     std::vector<Item*>& Items() {
@@ -747,7 +776,10 @@ int32_t CoA::VanityCollection::OnCustomizationUnlocks(void* param, uint32_t opco
 
 // SMSG 0x573 (FUN_101e55d0): the record's fields in order with its three strings as C strings in place, then three
 // more C strings (read and dropped). FUN_1032ec60 patches the store; only on success does it rebuild the browser and
-// signal HOT_PATCH_VANITY_COLLECTION("%u", item). The bridge refuses the patch, so neither happens.
+// signal HOT_PATCH_VANITY_COLLECTION("%u", item). MMgr64.exe refused the patch, so the original never did either; the
+// in-process bridge applies it (MemoryBridge.h). Rebuilding the 10k-item browser per row would freeze a login stream
+// that prices every row, so (as the reconstruction does) a built browser takes the record in place (Refresh) and an
+// unbuilt one picks it up when it is first built.
 int32_t CoA::VanityCollection::OnPatchVanity(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {
     VanityRecord r = {};
     std::string strings[3];
@@ -775,7 +807,10 @@ int32_t CoA::VanityCollection::OnPatchVanity(void* param, uint32_t opcode, uint3
     }
 
     if (CoA::BridgeStore::PatchVanity(r)) {
-        Build();
+        if (s_built) {
+            Refresh(&r);
+        }
+
         CoA::Events::Signal("HOT_PATCH_VANITY_COLLECTION", "%u", r.f[1]);
     }
 

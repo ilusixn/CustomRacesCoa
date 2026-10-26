@@ -114,17 +114,35 @@ COA_TEST(MemoryBridge_OffsetZeroStringIsOneNul) {
     CHECK(pos == out.size());
 }
 
-COA_TEST(MemoryBridge_PatchRecordIsUnknownCommand) {
+// PatchRecord (not in MMgr64.exe): overwrites a row or appends at row `count`, keeping built indexes current; a row
+// past the end or a record of the wrong size is refused.
+COA_TEST(MemoryBridge_PatchRecord) {
     CoA::MemoryBridge::Reset();
     uint32_t table = MakeTable();
-    const uint32_t row[] = { 99, 1, 0 };
-    CHECK(!CoA::MemoryBridge::Command73(table, 3, row, sizeof(row)));
-    CHECK(!CoA::MemoryBridge::Command73(table, 0, row, sizeof(row)));
+    CHECK(CoA::MemoryBridge::Command6A(table, 0));
+    CHECK(CoA::MemoryBridge::Command6A(table, 4));
+    const uint32_t row[] = { 99, 9, 0 };
+    CHECK(!CoA::MemoryBridge::Command73(table, 4, row, sizeof(row)));
+    CHECK(!CoA::MemoryBridge::Command73(table, 0, row, 8));
+    CHECK(CoA::MemoryBridge::Command73(table, 0, row, sizeof(row)));
     std::vector<uint8_t> out;
     CoA::MemoryBridge::Command6F(table, { 0 }, out, {});
     uint32_t id;
     memcpy(&id, out.data() + 9, 4);
-    CHECK(id == 10);
+    CHECK(id == 99);
+    std::vector<uint32_t> hits;
+    CHECK(CoA::MemoryBridge::Command6B(table, 0, 10, hits) && hits.empty());
+    CHECK(CoA::MemoryBridge::Command6B(table, 0, 99, hits) && (hits == std::vector<uint32_t>{ 0 }));
+    CHECK(CoA::MemoryBridge::Command6B(table, 4, 7, hits) && (hits == std::vector<uint32_t>{ 2 }));
+    CHECK(CoA::MemoryBridge::Command6B(table, 4, 9, hits) && (hits == std::vector<uint32_t>{ 0, 1 }));
+
+    const uint32_t added[] = { 13, 7, 0 };
+    CHECK(CoA::MemoryBridge::Command73(table, 3, added, sizeof(added)));
+    CHECK(CoA::MemoryBridge::Command6B(table, 0, 13, hits) && (hits == std::vector<uint32_t>{ 3 }));
+    CHECK(CoA::MemoryBridge::Command6B(table, 4, 7, hits) && (hits == std::vector<uint32_t>{ 2, 3 }));
+    CHECK(CoA::MemoryBridge::Command6F(table, { 3 }, out, {}));
+    memcpy(&id, out.data() + 9, 4);
+    CHECK(id == 13);
 }
 
 COA_TEST(MemoryBridge_OversizedRepliesAreSplit) {
@@ -149,10 +167,13 @@ COA_TEST(MemoryBridge_ResultCodes) {
     uint32_t table = MakeTable();
     CoA::MemoryBridge::Command6A(table, 4);
     CoA::MemoryBridge::Message request;
-    request.cmd = 0x73;
+    request.cmd = 0x70;
     request.a = table;
     CoA::MemoryBridge::Message reply = CoA::MemoryBridge::Exchange(request);
     CHECK(reply.cmd == 0xFFFFFFFF && reply.result == CoA::MemoryBridge::UnknownCommand);
+    request.cmd = 0x73;   // no record
+    reply = CoA::MemoryBridge::Exchange(request);
+    CHECK(reply.cmd == 0xFFFFFFFF && reply.result == CoA::MemoryBridge::Failed);
 
     // Keys {7}, then a header that is not MSTR.
     request.cmd = 0x6D;

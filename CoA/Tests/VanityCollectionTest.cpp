@@ -179,3 +179,41 @@ COA_TEST(Vanity_PurchaseSendsRecon) {
     CHECK(CoATest::SentPackets() == expected);
     lua_close(L);
 }
+
+namespace {
+    // SMSG 0x573: fields 0..2, the C string for field 3, fields 4..0x29, two C strings, field 0x2C, three dropped strings.
+    CoATest::Bytes VanityPatch(uint32_t id, uint32_t item, uint32_t category, uint32_t dp, uint32_t live) {
+        CoATest::Bytes b;
+        b.U32(id).U32(item).U32(category).Str("");
+
+        for (uint32_t i = 4; i <= 0x29; ++i) {
+            b.U32(i == 4 ? dp : i == 7 ? live : i == 0x12 ? item + 100 : 0);
+        }
+
+        b.Str("patched").Str("").U32(0).Str("").Str("").Str("");
+        return b;
+    }
+}
+
+// SMSG 0x573 takes effect (the in-process bridge serves PatchRecord): a built browser takes a changed price in place;
+// a record that joins the browser has it built again on its next use; HOT_PATCH_VANITY_COLLECTION follows each patch.
+COA_TEST(Vanity_PatchApplies) {
+    lua_State* L = Setup();
+    CHECK(Run(L, "local r = C_VanityCollection.QueryItems(nil, nil, 4) return r.total, r.items[1].dpCost") == (std::vector<std::string>{ "1", "10" }));
+    CoATest::RecordSignals();
+    CoATest::Deliver(CoA::VanityCollection::OnPatchVanity, 0x573, VanityPatch(1, 5001, 0x100001, 25, 1));
+    CHECK(Run(L, "local r = C_VanityCollection.QueryItems(nil, nil, 4) return r.total, r.items[1].dpCost, r.items[1].name") ==
+        (std::vector<std::string>{ "1", "25", "Alpha Pet" }));
+    CHECK(Run(L, "return C_VanityCollection.GetItem(5001).description") == std::vector<std::string>{ "patched" });
+
+    // Item 5003 becomes offered on live.
+    CoATest::Deliver(CoA::VanityCollection::OnPatchVanity, 0x573, VanityPatch(3, 5003, 0x100001, 5, 1));
+    CHECK(Run(L, "local r = C_VanityCollection.QueryItems() return r.total") == std::vector<std::string>{ "3" });
+    // A new row is appended.
+    CoATest::Deliver(CoA::VanityCollection::OnPatchVanity, 0x573, VanityPatch(4, 5004, 0x100001, 1, 1));
+    CHECK(Run(L, "local r = C_VanityCollection.QueryItems() return r.total") == std::vector<std::string>{ "4" });
+    CoATest::StopRecordingSignals();
+    CHECK((CoATest::Signals() == std::vector<std::string>{ "HOT_PATCH_VANITY_COLLECTION:5001", "HOT_PATCH_VANITY_COLLECTION:5003",
+        "HOT_PATCH_VANITY_COLLECTION:5004" }));
+    lua_close(L);
+}

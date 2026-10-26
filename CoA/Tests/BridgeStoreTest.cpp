@@ -140,17 +140,17 @@ COA_TEST(BridgeStore_VanityStrings) {
     CHECK(other && other->f[0] == 10);
 }
 
-COA_TEST(BridgeStore_KeystonePatchTouchesTheCacheOnly) {
+COA_TEST(BridgeStore_KeystonePatch) {
     Load();
     uint32_t out[3] = {};
     CHECK(CoA::BridgeStore::KeystoneById(61, out) && out[1] == 3 && out[2] == 4);
     const uint32_t changed[3] = { 61, 9, 9 };
     CoA::BridgeStore::PatchKeystone(changed);
     CHECK(CoA::BridgeStore::KeystoneById(61, out) && out[1] == 9);
-    // A new keystone needs PatchRecord, which the server refuses.
+    // A new keystone is appended through PatchRecord.
     const uint32_t added[3] = { 62, 1, 1 };
     CoA::BridgeStore::PatchKeystone(added);
-    CHECK(!CoA::BridgeStore::KeystoneById(62, out));
+    CHECK(CoA::BridgeStore::KeystoneById(62, out) && out[1] == 1 && out[2] == 1);
 }
 
 COA_TEST(BridgeStore_SpellAffects) {
@@ -178,14 +178,16 @@ COA_TEST(BridgeStore_CreaturePatchOverwritesTheCachedRecord) {
     const CoA::BridgeStore::CreatureRecord* wolf = CoA::BridgeStore::CreatureByEntry(100);
     CHECK(wolf && wolf->displayId == 777 && wolf->id == 0 && wolf->f18 == 3 && std::string(wolf->name) == "Dire Wolf");
 
-    // An unknown entry would be appended through PatchRecord: refused.
+    // An unknown entry is appended through PatchRecord.
     CoATest::Bytes unknown;
     unknown.U32(300).U32(0).U32(1).U32(1).U32(1).U32(1).Name("Cat");
     CoATest::Deliver(CoA::BridgeStore::OnPatchCreature, 0x567, unknown);
-    CHECK(CoA::BridgeStore::CreatureByEntry(300) == nullptr);
+    const CoA::BridgeStore::CreatureRecord* cat = CoA::BridgeStore::CreatureByEntry(300);
+    CHECK(cat && cat->displayId == 1 && std::string(cat->name) == "Cat");
 }
 
-COA_TEST(BridgeStore_QuestPatchIsRefused) {
+// A patched quest row moves into group 5: the table's +8 index follows the patch.
+COA_TEST(BridgeStore_QuestPatchApplies) {
     Load();
     CoATest::Bytes row;
 
@@ -194,5 +196,5 @@ COA_TEST(BridgeStore_QuestPatchIsRefused) {
     }
 
     CoATest::Deliver(CoA::BridgeStore::OnPatchQuest, 0x56F, row);
-    CHECK(CoA::BridgeStore::QuestsInGroup(5).size() == 2);
+    CHECK(CoA::BridgeStore::QuestsInGroup(5).size() == 3);
 }
