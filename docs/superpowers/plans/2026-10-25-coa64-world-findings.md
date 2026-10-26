@@ -346,7 +346,9 @@ creates a core with current Discord apps but never completes its session: no cur
 CoA64 now speaks the app's local IPC protocol itself (DiscordIpc.{h,cpp}, DiscordClient.cpp; no discord_game_sdk.dll),
 reports the Discord user (CMSG 0x52A, which the SDK never managed) and, since this server sends no 0x90C / 0x90D, builds
 its own status (user decision): "Selecting World" on the character screen, "Level N Class" / zone / realm / elapsed
-time in world; server packets take over when they arrive. Updates are spaced 4 s apart -- a burst of test updates left
-the Discord app showing a stale status until it was restarted. Live: status shows and follows world entry. The
+time in world; server packets take over when they arrive. Delivery (DiscordIpc::Outbox): only the newest status is sent,
+after the handshake's READY, at most every 4 s (a burst of test updates left the Discord app showing a stale status
+until it was restarted), and resent until Discord's answer echoes its nonce (an error or 5 s without an answer resends
+it; a reconnect resends it after READY). Live: status shows and follows world entry. The
 application is still Ascension's (title "Ascension.gg"); its art was saved to out/discord_assets/ for the user's own
 application, whose id replaces kClientId once created.
