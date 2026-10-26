@@ -425,6 +425,11 @@ COA_TEST(GMTicket_Filters) {
     CHECK(Ids(L, "", "FILTER_OPEN = true, FILTER_CLOSED = true", "") == "A C B D ");
     CHECK(Ids(L, "", "FILTER_ONLINE = true", "") == "A C D ");
     CHECK(Ids(L, "", "FILTER_OFFLINE = true", "") == "B ");
+    // FUN_100bed80 (FrameScript::lua_totable): a bad value or key type empties the whole map -- no filter applies.
+    CHECK(Ids(L, "", "FILTER_OPEN = 'yes'", "") == "A C B D ");
+    CHECK(Ids(L, "", "FILTER_OPEN = true, FILTER_CLOSED = 'yes'", "") == "A C B D ");
+    CHECK(Ids(L, "", "FILTER_OPEN = true, [true] = true", "") == "A C B D ");
+    CHECK(Ids(L, "", "FILTER_OPEN = 1", "") == "A C ");
     CHECK(Ids(L, "", "FILTER_OPEN = true, FILTER_ONLINE = true", "") == "A C ");
     CHECK(Ids(L, "", "FILTER_CLOSED = true, FILTER_OFFLINE = true", "") == "B ");
     CHECK(Ids(L, "", "FILTER_ASSIGNED_TO_ME = true", "") == "A D ");

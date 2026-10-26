@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <map>
 #include <string>
 
 struct lua_State;
@@ -38,6 +39,11 @@ namespace CoA::Script {
     void PushBool(lua_State* L, bool v);
     int PushNils(lua_State* L, int n);
     void SetField(lua_State* L, const char* key, int32_t value);   // t[key] = value, t at -1
+
+    // FUN_100bed80 (FrameScript::lua_totable into a string -> bool map): string or number keys (lua_tolstring converts
+    // a number key in place, which breaks the walk as in the original), nil / boolean / number values, the last write
+    // winning. A non-table, a bad key or a bad value logs and leaves the map empty.
+    void ToBoolMap(lua_State* L, int idx, std::map<std::string, bool>& out);
 
     // The value after "-name", "/name" or "--name" on the command line, or nullptr (ScriptClient.cpp).
     const char* CommandLineArg(const char* name);
