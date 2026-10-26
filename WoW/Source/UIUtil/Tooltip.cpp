@@ -1,4 +1,8 @@
 #include "Tooltip.h"
+#include "CoA/Source/Modules/TooltipScaling.h"
+#include "CoA/Source/Modules/TooltipScalingClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
@@ -1544,6 +1548,26 @@ void CGTooltip::AddFontStrings(CSimpleFontString* left, CSimpleFontString* right
 // VERIFY: c9a37f57 manual
 // OFFSET: 0x0061FEC0
 void CGTooltip::AddLine(const char* left, const char* right, const CImVector& leftColor, const CImVector& rightColor, int32_t wrap) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027b110 (orig hook 0x61FEC0) -- the scaled rewrite of the line (or its drop), else the
+    // tooltip's OnTextChanged; then the client's AddLine with the result.
+    static bool s_coaInside = false;
+
+    if (!s_coaInside) {
+        std::string coaLeft;
+        std::string coaRight;
+        CImVector coaLeftColor = leftColor;
+        CImVector coaRightColor = rightColor;
+
+        if (CoA::TooltipScalingClient::BeforeAddLine(this, left, right, coaLeftColor, coaRightColor, coaLeft, coaRight)) {
+            return;
+        }
+
+        s_coaInside = true;
+        this->AddLine(left, right, coaLeftColor, coaRightColor, wrap);
+        s_coaInside = false;
+        return;
+    }
+
     if ((!left || !*left) && (!right || !*right)) {
         return;
     }
@@ -3356,6 +3380,9 @@ CGItemStatsSummary::CGItemStatsSummary() {
 // VERIFY: 16a2d627 auto
 // OFFSET: 0x0061A0D0
 void CGTooltip::AddMoney(int32_t money, int32_t maxMoney) {
+    // CoA: AscTooltipScaling.cpp:sub_10287600 (orig hook 0x61A0D0) -- the scaled record's sell price.
+    money = static_cast<int32_t>(CoA::TooltipScaling::Money(static_cast<uint32_t>(money)));
+
     if (!this->m_onTooltipAddMoney.m_luaRef) {
         return;
     }
@@ -3552,6 +3579,14 @@ void GetScalingStatDamage(const ScalingStatValuesRec* values, uint32_t flags, fl
 // VERIFY: 64b947f2 manual
 // OFFSET: 0x0061A8F0
 int32_t GetFeralAttackPower(const ItemStats_C* stats, float damage) {
+    // CoA: AscTooltipScaling.cpp:sub_10287640 (orig hook 0x61A8F0) -- the scaled average damage; a one-hand / two-hand /
+    // main-hand / off-hand weapon gets the DLL's own formula.
+    int32_t coaPower = 0;
+
+    if (CoA::TooltipScalingClient::FeralAttackPower(stats, damage, coaPower)) {
+        return coaPower;
+    }
+
     if (stats->m_class == 2 && (s_inventoryTypeSlots[stats->m_inventoryType] & 0x8000)) {
         double dps = damage / (stats->m_delay * 0.001f);
 
@@ -6412,6 +6447,11 @@ static void AddItemSellPrice(CGTooltip* tooltip, const ItemStats_C* stats, CGIte
 // VERIFY: 3c6e8093 manual
 // OFFSET: 0x006277F0
 int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGUID* itemGuid, int32_t nameOnly, int32_t compare, int32_t useLinkInfo, int32_t append, WOWGUID owner, int32_t socketPreview, FILE* stream, int32_t hideCharges, const ItemLinkInfo* link, int32_t minimumLevel, int32_t skipLock, int32_t skipSellPrice) {
+    // CoA: AscTooltipScaling.cpp:sub_1027c870 (orig hook 0x6277F0) -- the item and its GUIDs recorded for the call (a guild
+    // bank level clears skipLock), the item-set / comparison branches maybe forced; everything cleared after.
+    CoA::TooltipScaling::BeforeSetItem(static_cast<uint32_t>(itemId), requester ? &requester->m_guid : nullptr,
+        itemGuid ? &itemGuid->m_guid : nullptr, skipLock);
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::AfterSetItem(); });
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
     const CImVector& titleColor = *reinterpret_cast<const CImVector*>(&s_tooltipTitleColor);
     const CImVector& redColor = *reinterpret_cast<const CImVector*>(&s_tooltipRedColor);
@@ -6597,7 +6637,9 @@ int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGU
     int32_t equipped[17];
     memset(equipped, 0, sizeof(equipped));
 
-    if (stats->m_itemSet) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027da50 (callback patch 0x62B98F) -- the je is a jmp while the DLL forces it: no
+    // item set.
+    if (CoA::ClientHooks::options.tooltipItemSet && stats->m_itemSet) {
         set = g_itemSetDB.GetRecord(stats->m_itemSet);
 
         if (set && !socketPreview) {
@@ -6914,6 +6956,10 @@ void CGTooltip::AddLine(const char* left, const char* right, int32_t wrap) {
 // VERIFY: 1678db84 auto
 // OFFSET: 0x0062D930
 int32_t CGTooltip::SetItemDelta(const CGItemStatsSummary* summary, int32_t append) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027cb00 (orig hook 0x62D930) -- the comparison deltas from scaled records, written
+    // into the caller's summary first.
+    CoA::TooltipScaling::CompareDeltas(reinterpret_cast<int32_t*>(const_cast<CGItemStatsSummary*>(summary)));
+
     if (!append) {
         this->ClearTooltip();
     }
@@ -7145,7 +7191,8 @@ int32_t CGItemStatsSummary::GetItemComparison(CGTooltip* first, CGTooltip* secon
     CGItemStatsSummary secondSummary;
     secondSummary.Create();
 
-    if (!firstSummary.CreateFromTooltip(first) || !secondSummary.CreateFromTooltip(second)) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027cf90 (callback patch 0x631760) -- the je is a jmp while a hyperlink compare runs.
+    if (!CoA::ClientHooks::options.itemComparison || !firstSummary.CreateFromTooltip(first) || !secondSummary.CreateFromTooltip(second)) {
         return 0;
     }
 

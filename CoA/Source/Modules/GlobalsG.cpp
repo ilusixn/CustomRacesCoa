@@ -79,6 +79,10 @@ float CoA::GlobalsG::NamePlateRangeSq() {
     return s_namePlateRangeSq;
 }
 
+void CoA::GlobalsG::SetNamePlateRangeSq(float rangeSq) {
+    s_namePlateRangeSq = rangeSq;
+}
+
 float CoA::GlobalsG::NamePlateWidth() {
     return s_namePlateWidth;
 }

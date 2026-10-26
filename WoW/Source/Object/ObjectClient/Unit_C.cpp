@@ -9,6 +9,10 @@
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "CoA/Source/Modules/ClientOptions.h"
 #include "CoA/Source/Modules/ClientOptionsClient.h"
+#include "CoA/Source/Modules/NamePlates.h"
+#include "CoA/Source/Modules/NamePlatesClient.h"
+#include "CoA/Source/Modules/UnitSelect.h"
+#include "CoA/Source/Modules/UnitSelectClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
@@ -819,6 +823,12 @@ int32_t DynamicFlagsChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // VERIFY: 74767534 manual
 // OFFSET: 0x00725840
 void CGUnit_C::DestroyNamePlate() {
+    // CoA: AscNamePlates.cpp:FUN_102beb40 (orig hook 0x725840) -- after the original: once the plate pointer's low byte is
+    // 0 the unit leaves the nameplate registry (NAME_PLATE_UNIT_REMOVED).
+    auto released = CoA::ClientHooks::OnScopeExit([this]() {
+        CoA::NamePlates::AfterPlateRelease(this, reinterpret_cast<uintptr_t>(this->m_namePlateFrame));
+    });
+
     if (!this->m_namePlateFrame) {
         return;
     }
@@ -2283,6 +2293,12 @@ void CGUnit_C::RenderAutoTrackCursor() {
 // VERIFY: dc8d76e1 auto
 // OFFSET: 0x0072B7E0
 void CGUnit_C::Render() {
+    // CoA: AscUnitSelect.cpp:FUN_102da6c0 (orig hook 0x72B7E0) -- replaced: skipped once AutoInteractCursorTime has passed
+    // since the last click-to-move, else drawn with the tracking texture.
+    if (CoA::UnitSelectClient::RenderUnit(this)) {
+        return;
+    }
+
     this->RenderAutoTrackCursor();
 }
 
@@ -3263,7 +3279,9 @@ void CGUnit_C::ObjectNameVisibilityChanged() {
         return;
     }
 
-    if (PlayerNameShowing(this->m_nameDesc) || this->m_namePlateFrame) {
+    // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x71557D, 0x715586) -- both jne are jmp: the raised
+    // sequence always.
+    if (CoA::ClientHooks::options.interactIconRaised || PlayerNameShowing(this->m_nameDesc) || this->m_namePlateFrame) {
         this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 190, 0xFFFFFFFF, 0, 1.0f, 1, 1);
     } else {
         this->m_interactIcon->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
@@ -20186,7 +20204,9 @@ const char* GetObjectNameFromGuid(const WOWGUID& guid) {
 // OFFSET: 0x00715720
 static bool GetNamePlateScreenPos(CGUnit_C* unit, CGWorldFrame* worldFrame, C3Vector* screen) {
     C3Vector position = unit->GetNamePosition();
-    position.z = position.z + 0.6666667f;
+    // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x715739) -- the fadd reads the DLL's float (0.6666667 until
+    // nameplateVerticalOffset's callback writes it).
+    position.z = position.z + CoA::NamePlates::VerticalOffset();
     return worldFrame->GetScreenCoordinates(position, screen, nullptr);
 }
 
@@ -20265,6 +20285,11 @@ static void NamePlateSort(CGNamePlateFrame* frame) {
 // VERIFY: 20cca2b5 manual
 // OFFSET: 0x007256C0
 void CGUnit_C::NamePlateAddOrUpdate(const C3Vector& position, CGWorldFrame* worldFrame) {
+    // CoA: AscNamePlates.cpp:sub_102beb70 (orig hook 0x7256C0) -- after the original: a unit whose plate pointer's low byte
+    // was 0 before joins the nameplate registry (NAME_PLATE_UNIT_ADDED on the next tick).
+    const uintptr_t plateBefore = reinterpret_cast<uintptr_t>(this->m_namePlateFrame);
+    auto added = CoA::ClientHooks::OnScopeExit([this, plateBefore]() { CoA::NamePlates::AfterPlateCreate(this, plateBefore); });
+
     if (!this->m_namePlateFrame) {
         this->m_namePlateFrame = CGNamePlateFrame::GetNewNameplateFrame(worldFrame);
         this->m_namePlateFrame->Initialize(this);
@@ -20312,7 +20337,9 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
     while (frame) {
         CGNamePlateFrame* next = s_namePlates.Next(frame);
 
-        if (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue) {
+        // CoA: AscNamePlates.cpp:FUN_102bf920 (Extensions.dll patch 0x7258CE, 0x72594B) -- the two tests are NOPed: always the
+        // anchored path.
+        if (CoA::ClientHooks::options.namePlatesAnchored || (s_cvNameplateAllowOverlap && s_cvNameplateAllowOverlap->m_intValue)) {
             C3Vector position = frame->m_position;
             // CoA: AscAttachLate.cpp (Extensions.dll patch 0x725915) -- point 1 (TOP) became 7 (BOTTOM).
             frame->SetPoint(FRAMEPOINT_BOTTOM, worldFrame, FRAMEPOINT_BOTTOMLEFT, position.x, position.y, 1);
@@ -20326,6 +20353,17 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
     }
 
     CLayoutFrame::ResizePending();
+
+    // CoA: AscNamePlates.cpp:FUN_102be880 (orig hook 0x725890) -- after the original: nameplateAngle's distance and
+    // facing-angle culling.
+    CoA::NamePlates::AfterPlatePass();
+}
+
+// CoA: AscNamePlates.cpp -- the plate list for the DLL's culling pass.
+void UnitForEachNamePlate(void (*cb)(CGNamePlateFrame* frame, void* param), void* param) {
+    for (CGNamePlateFrame* frame = s_namePlates.Head(); frame; frame = s_namePlates.Next(frame)) {
+        cb(frame, param);
+    }
 }
 
 // VERIFY: fb0e4f71 manual
@@ -20467,7 +20505,16 @@ void CGUnit_C::SetNamePlateFocus(const C2Vector& position) {
 // VERIFY: 5739ef94 manual
 // OFFSET: 0x0072B060
 int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* position) {
-    if (this->m_unit->m_unitFieldHealth <= 0) {
+    // CoA: AscNamePlates.cpp:FUN_102c2630 (orig hook 0x72B060) -- the personal plate, the neutral / in-combat filters and
+    // the fixed vertical offset decide first.
+    int32_t coaResult = 0;
+
+    if (CoA::NamePlatesClient::BeforeShouldShow(this, worldFrame, position, coaResult)) {
+        return coaResult;
+    }
+
+    // CoA: AscNamePlates.cpp:FUN_102bee60 (callback patch 0x72B07A) -- nameplateShowDead 1 NOPs the jle.
+    if (!CoA::ClientHooks::options.namePlatesShowDead && this->m_unit->m_unitFieldHealth <= 0) {
         return 0;
     }
 
@@ -22672,6 +22719,11 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 // VERIFY: 1484b729 manual
 // OFFSET: 0x00727400
 bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
+    // CoA: AscUnitSelect.cpp:FUN_102da340 (orig hook 0x727400) -- a call from past the exe image reports a bot first
+    // (CMSG 0x51F); after the original the tracking turn rate is AutoInteractTurnSpeed and the time is kept.
+    CoA::UnitSelectClient::BeforeClickToMove(_ReturnAddress());
+    auto afterClick = CoA::ClientHooks::OnScopeExit([]() { CoA::UnitSelect::AfterClickToMove(); });
+
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
         // CoA: AscAttachLate.cpp (Extensions.dll patch 0x727431) -- jne became jmp: AUTOFOLLOW_END is not signalled here.
         if (false && CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {

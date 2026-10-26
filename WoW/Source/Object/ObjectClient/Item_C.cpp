@@ -1,4 +1,5 @@
 #include "Item_C.h"
+#include "CoA/Source/Modules/TooltipScalingClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/Ui/ItemSocketInfo.h"
@@ -1241,6 +1242,9 @@ int32_t CGItem_C::GetEnchantmentSpell(int32_t effect) {
 // VERIFY: 24e20657 manual
 // OFFSET: 0x00708540
 int32_t CGItem_C::GetRepairCost() {
+    // CoA: AscTooltipScaling.cpp:sub_1027ae80 (orig hook 0x708540) -- replaced: the cost from the item's own level.
+    return CoA::TooltipScalingClient::RepairCost(this);
+
     ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, WOWGUID{ 0 }, nullptr, nullptr, false);
 
     if (!stats) {

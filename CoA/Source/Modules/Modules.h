@@ -91,6 +91,10 @@ namespace CoA::AlphaAmbience { void Init(); }
 namespace CoA::TerrainScale { void Init(); }
 namespace CoA::SceneTransform { void Init(); }
 namespace CoA::LoadingScreen { void Init(); }
+namespace CoA::NamePlates { void Init(); }
+namespace CoA::UnitSelect { void Init(); }
+namespace CoA::TooltipScaling { void Init(); }
+namespace CoA::ModelNames { void Init(); }
 
 // Client-only halves (in *Client.cpp): natives and hooks that are thin passthroughs to client code. Only CoA.cpp
 // runs them; the tests never link them.
@@ -168,5 +172,9 @@ namespace CoA::AlphaAmbienceClient { void Init(); }
 namespace CoA::TerrainScaleClient { void Init(); }
 namespace CoA::SceneTransformClient { void Init(); }
 namespace CoA::LoadingScreenClient { void Init(); }
+namespace CoA::NamePlatesClient { void Init(); }
+namespace CoA::UnitSelectClient { void Init(); }
+namespace CoA::TooltipScalingClient { void Init(); }
+namespace CoA::ModelNamesClient { void Init(); }
 
 #endif

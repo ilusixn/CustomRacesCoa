@@ -22,6 +22,8 @@ void Trade_C_UnacceptTrade();
 
 void Trade_C_Initialize();
 int32_t Trade_C_GetEnchantSpell(int32_t player);
+// CoA: AscTooltipScaling.cpp -- the item level the DLL reads from the trade target's slot (0xCA0DE0 + slot * 0x50).
+uint32_t Trade_C_GetTargetSlotDword30(uint32_t slot);
 WOWGUID Trade_C_GetTradeTarget();
 int32_t Trade_C_IsTradeRequested();
 int32_t Trade_C_UseCursorItem();

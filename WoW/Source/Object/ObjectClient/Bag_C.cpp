@@ -1,4 +1,5 @@
 #include "Bag_C.h"
+#include "CoA/Source/Modules/TooltipScalingClient.h"
 #include "WoW/Source/Object/ObjectClient/AuraData.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
@@ -88,6 +89,17 @@ const CGItem_C* CGBag_C::GetItemPointer(int32_t slot) const {
 // VERIFY: 6a3b7079 manual
 // OFFSET: 0x00754400
 CGItem_C* CGBag_C::GetItemPointer(int32_t slot) {
+    // CoA: AscTooltipScaling.cpp:sub_1027ade0 (orig hook 0x754400) -- after the original: the item object it returns is kept.
+    static bool s_coaInside = false;
+
+    if (!s_coaInside) {
+        s_coaInside = true;
+        CGItem_C* coaItem = this->GetItemPointer(slot);
+        s_coaInside = false;
+        CoA::TooltipScalingClient::KeepItemObject(coaItem);
+        return coaItem;
+    }
+
     if ((this->m_hasBank && ((slot >= BANKGENERIC_FIRST && slot <= BANKGENERIC_LAST) || static_cast<uint32_t>(slot - BANKBAG_FIRST) <= BANKBAG_LAST - BANKBAG_FIRST) && !CGBankInfo::m_banker) || slot >= this->m_numSlots) {
         return nullptr;
     }

@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
 #include "CoA/Source/Modules/ClientOptionsClient.h"
+#include "CoA/Source/Modules/UnitSelect.h"
 #include "WoW/Source/Object/ObjectClient/DynamicObject_C.h"
 #include "WoW/Source/UIUtil/Types.h"
 #include "Engine/Source/Gx/Gx.h"
@@ -1377,6 +1378,9 @@ void CGObject_C::Initialize() {
     CGObject_C::s_selectionTexture = TextureCreate(CoA::ClientHooks::options.selectionTexture, CGxTexFlags(), &status, 1);
     LoadInteractIcons(1);
     ClntObjMgrSetTypeMirrorHandler(ID_OBJECT, OBJECT_FIELD_SCALE_X * sizeof(uint32_t), sizeof(float), &ScaleUpdateHandler, nullptr, HANDLER_PRIORITY_NORMAL, 0);
+    // CoA: AscUnitSelect.cpp:FUN_102da2b0 (orig hook 0x7460C0) -- after the original: the unit-select, tracking and quest
+    // textures.
+    CoA::UnitSelect::AfterObjectInitialize();
 }
 
 // VERIFY: 64b6f506 auto
@@ -1990,7 +1994,12 @@ void CGObject_C::BuildSelectionRotMatrix(C44Matrix* matrix, const C3Vector* posi
 // VERIFY: ab1865e5 manual
 // OFFSET: 0x00744EB0
 int32_t CGObject_C::SetCircleRenderStates() {
-    CGxTex* texture = TextureGetGxTex(CGObject_C::s_selectionTexture, 0, nullptr);
+    // CoA: AscUnitSelect.cpp (Extensions.dll patch 0x744EB1) -- the handle is read through the operand the DLL's drawers
+    // point at their own texture slot for one draw.
+    CGxTex* texture = TextureGetGxTex(CoA::ClientHooks::options.circleTexture
+            ? reinterpret_cast<decltype(CGObject_C::s_selectionTexture)>(*CoA::ClientHooks::options.circleTexture)
+            : CGObject_C::s_selectionTexture,
+        0, nullptr);
 
     if (!texture) {
         return 0;

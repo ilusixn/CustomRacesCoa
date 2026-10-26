@@ -1,4 +1,5 @@
 #include "PaperDollInfoFrame.h"
+#include "CoA/Source/Modules/TooltipScalingClient.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
@@ -582,6 +583,17 @@ void CGCharacterInfo::RequestInspectHonorData() {
 // VERIFY: 957733e3 manual
 // OFFSET: 0x005E9250
 bool CGCharacterInfo::CanEquipItemInSlot(const ItemStats_C* stats, uint32_t slot) {
+    // CoA: AscTooltipScaling.cpp:sub_1027ae00 (orig hook 0x5E9250) -- after a false: a scaled item 5 levels under its
+    // required level is usable.
+    static bool s_coaInside = false;
+
+    if (!s_coaInside) {
+        s_coaInside = true;
+        const bool coaResult = CGCharacterInfo::CanEquipItemInSlot(stats, slot);
+        s_coaInside = false;
+        return CoA::TooltipScalingClient::AfterCanEquip(stats, coaResult);
+    }
+
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
     if (!player) {
