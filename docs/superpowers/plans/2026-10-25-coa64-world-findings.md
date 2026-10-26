@@ -321,3 +321,13 @@ tests, RegisterPacket refs across UI reloads.
   Ruling: the original keeps the stale registry refs and calls whatever the new registry holds there
   (PacketApi_HandlersDroppedOnANewLuaState) -- cost if wrong: an addon must re-register after a reload, which addons do
   anyway because their code runs again.
+
+### LootCollector "WR mode" (resolved 2026-10-26)
+
+Cause: an x64 number conversion, not a missing native. LootCollector falls back to C_Player:IsCustomClass(), which is
+Ascension's SharedConstants.lua `bit.contains(Enum.ClassMask.COA, UnitClassMask(unit))` with COA = 0xFFFFF800. The
+32-bit client converts Lua numbers through __ftol2 / fistp qword and keeps the low dword (numbers past 2^31 wrap); the
+x64 build's direct (int) cast gave 0x80000000, so the mask test failed. lbitlib.c and string.format's integer cases
+now convert through 64 bits (LuaNumberConversionTest). Live: "Realm capabilities mapped: COA mode".
+Open: 461 other `static_cast<int32_t/int>(lua_tonumber/...)` sites in the WoW natives have the same difference for
+values past 2^31 (e.g. MailInfo SetSendMoney).
