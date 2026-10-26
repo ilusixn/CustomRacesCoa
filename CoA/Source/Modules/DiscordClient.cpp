@@ -23,7 +23,9 @@
 #include <vector>
 
 namespace {
-    constexpr uint64_t kClientId = 0x0C7C30A11D421000ull;   // FUN_10220b10's application id
+    // CoA64's own Discord application ("Conquest of Azerothcore"); the original (FUN_10220b10) uses Ascension's,
+    // 0x0C7C30A11D421000 ("Ascension.gg"), whose name Discord shows as the title.
+    constexpr uint64_t kClientId = 1564313674519154708ull;
     constexpr DWORD kReconnectMs = 5000;
     constexpr uint32_t kRefreshMs = 15000;                  // Discord accepts 5 activity updates per 20 s
 
