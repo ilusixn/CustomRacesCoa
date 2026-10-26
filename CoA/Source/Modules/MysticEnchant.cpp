@@ -3524,6 +3524,14 @@ bool CoA::MysticEnchant::Worldforged(uint32_t spell) {
     return r && U32(r, 0x1C) != 0;
 }
 
+const uint8_t* CoA::MysticEnchant::RowOfSpell(uint32_t spell) {
+    return BySpell(spell);
+}
+
+uint32_t CoA::MysticEnchant::QualityOfRow(const uint8_t* row) {
+    return QualityOf(row);
+}
+
 void CoA::MysticEnchant::OnGameObjectUse(uint32_t entry) {   // FUN_102EA1A0 / FUN_102EA2C0
     if (!IsAltarEntry(entry)) {
         return;

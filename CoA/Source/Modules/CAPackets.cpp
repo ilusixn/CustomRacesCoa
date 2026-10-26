@@ -625,13 +625,13 @@ void CoA::CA::OnRemovedSpells(const std::vector<uint32_t>& spells) {
 bool CoA::CA::RemovedSpellLeavesKnownSet(uint32_t spell) {
     const bool flag = CustomAttrB(spell, 0x40000);
     const bool entry = RowBySpell(FirstRank(spell)) != nullptr;
-    return !Wildcard() && !flag && !entry;
+    return !detail::Wildcard() && !flag && !entry;   // detail::, not the CoA::Wildcard module
 }
 
 // FUN_10172b50 on 0x6E7E00: a rank replaced -- quietly when either rank is a CA entry or on a wildcard realm.
 bool CoA::CA::SupersedeIsQuiet(uint32_t oldSpell, uint32_t newSpell) {
     const bool entry = RowBySpell(FirstRank(oldSpell)) != nullptr || RowBySpell(FirstRank(newSpell)) != nullptr;
-    return Wildcard() || entry;
+    return detail::Wildcard() || entry;
 }
 
 void CoA::CA::OnSupersededSpell(uint32_t oldSpell, uint32_t newSpell) {

@@ -249,6 +249,25 @@ namespace CoA::CA {
     void OnEntryUnlearned(void (*cb)(uint32_t, uint32_t));
     void OnSpecChanged(void (*cb)(uint32_t, uint32_t));
 
+    // FUN_10a315d0 +0x198: the wildcard mode manager's reveal records (0x2C each; the CA natives read them through
+    // FUN_10a31720 / FUN_10a31bb0 / FUN_10a31bf0). C_Wildcard owns them (WildcardRolls.cpp: SMSG 0x621 adds one, its
+    // 1.5 s reveal timer, the world entry and the glue reset remove them); its own fields (the stop code, the timer)
+    // stay there.
+    struct Request {
+        uint32_t id = 0;     // +0x00 the entry
+        uint32_t u4 = 0;     // +0x04 its first-rank spell
+        uint32_t u8 = 0;     // +0x08 the ranks gained
+        uint32_t rank = 0;   // +0x0C the rank before the roll
+    };
+
+    std::vector<Request>& WildcardReveals();
+
+    // 0x10333950, the suggestion manager's mark registered into the wildcard manager's lists 0x10be2cac (an undesired
+    // entry added) and 0x10be2ccc (one removed) by 0x10333880 (FUN_102786c0 / FUN_102786e0).
+    void SuggestionsDirty(uint32_t id);
+    // FUN_10333770: up to `max` suggested entries whose row is (or is not) an ability, optionally skipping known ones.
+    std::vector<uint32_t> SuggestedList(bool abilities, uint32_t max, bool skipKnown);
+
     const std::vector<Row>& IndexedRows();   // 0x10bdd514: the entry index's visible rows
     const char* RowText(Row r, uint32_t off);   // a string field of the row ("" when none)
     uint32_t SpellAtRankOf(Row r, uint32_t rank);   // FUN_101c62e0
@@ -299,26 +318,28 @@ namespace CoA::CA {
         uint32_t (*spellMaxId)() = nullptr;                    // 0xAD49DC
         uint32_t (*firstRank)(uint32_t spell) = nullptr;       // AscSpellRank::FirstRank
         const std::vector<uint32_t>& (*rankChain)(uint32_t firstRank) = nullptr;   // AscSpellRank::Chain
-        bool (*wildcardUndesired)(uint32_t id, uint8_t context) = nullptr;   // AscWildcardSets::IsUndesired
+        bool (*wildcardUndesired)(uint32_t id, uint8_t context) = nullptr;   // WildcardSets::IsUndesired (CoA::Wildcard::Init)
         bool (*unitTokenGuid)(const char* token, uint64_t& guid) = nullptr;   // a valid unit token's GUID
         uint32_t (*rankNumber)(uint32_t spell) = nullptr;                      // AscSpellRank::RankNumber
         // The spellbook slot holding the spell picked up (0xBE8D98 / 0xBE6D88, 0x53BAF0(slot, 0)); false if none.
         bool (*pickupFromSpellbook)(uint32_t spell) = nullptr;
         bool (*tokenAtLeast)(uint32_t token, uint32_t count) = nullptr;     // AscToken::AtLeast(token, count, 0)
-        // Modules not ported yet; unset answers as the original does with no data (false / nothing).
-        bool (*specHasCreatorBuild)(int32_t spec) = nullptr;                // AscBuildCreator::SpecHasActiveBuild
-        bool (*wildcardRollActive)() = nullptr;                             // AscWildcardRapid::Active
-        bool (*wildcardRollInFlight)() = nullptr;                           // AscWildcardRapid::InFlight
-        void (*wildcardMarkRerollPending)() = nullptr;                      // AscWildcardRapid::MarkRerollPending
-        void (*wildcardArmPoll)() = nullptr;                                // AscWildcardRolls::ArmPoll
-        std::string (*exportBuild)(const Build& b, bool includeREs) = nullptr;   // AscBuildCreator::ExportBuildOf
-        std::string (*decodeLink)(const std::string& url) = nullptr;             // AscBuildCreator::DecodeLink
-        BuildSeed (*seedFromLink)(const std::string& url) = nullptr;             // AscBuildCreator::SeedFromLink
-        bool (*seedOfBuild)(const std::string& id, BuildSeed& seed) = nullptr;   // AscBuildCreator::SeedOfBuild
+        // C_BuildCreator (CoA::BuildCreator::Init installs them; unset answers as the original does with no data).
+        bool (*specHasCreatorBuild)(int32_t spec) = nullptr;                     // BuildCreator::SpecHasActiveBuild
+        std::string (*exportBuild)(const Build& b, bool includeREs) = nullptr;   // BuildCreator::ExportBuildOf
+        std::string (*decodeLink)(const std::string& url) = nullptr;             // BuildCreator::DecodeLink
+        BuildSeed (*seedFromLink)(const std::string& url) = nullptr;             // BuildCreator::SeedFromLink
+        // BuildCreator::SeedOfBuild; also the BUILD_CREATOR learn / unlearn slots' template (CARules.cpp).
+        bool (*seedOfBuild)(const std::string& id, BuildSeed& seed) = nullptr;
         // The Build Creator's pending entry, asked per spell (FUN_100faa20 / FUN_100fb960 / FUN_10100180).
-        bool (*creatorCanAddSpell)(uint32_t spell) = nullptr;
-        bool (*creatorCanRemoveSpell)(uint32_t spell) = nullptr;
-        bool (*creatorHasSpell)(uint32_t spell) = nullptr;
+        bool (*creatorCanAddSpell)(uint32_t spell) = nullptr;                    // BuildCreator::PendingCanAddSpell
+        bool (*creatorCanRemoveSpell)(uint32_t spell) = nullptr;                 // BuildCreator::PendingCanRemoveSpell
+        bool (*creatorHasSpell)(uint32_t spell) = nullptr;                       // BuildCreator::PendingHasSpell
+        // C_Wildcard (CoA::Wildcard::Init installs them; unset answers as the original does with no data).
+        bool (*wildcardRollActive)() = nullptr;                             // WildcardRapid::Active
+        bool (*wildcardRollInFlight)() = nullptr;                           // WildcardRapid::InFlight
+        void (*wildcardMarkRerollPending)() = nullptr;                      // WildcardRapid::MarkRerollPending
+        void (*wildcardArmPoll)() = nullptr;                                // WildcardRolls::ArmPoll
         // AscSpellText (client): a spell's name, the forms it requires, its described text (Description(s, 1, 1, 0)).
         const std::string& (*spellName)(uint32_t spell) = nullptr;
         const std::string& (*spellForms)(uint32_t spell) = nullptr;

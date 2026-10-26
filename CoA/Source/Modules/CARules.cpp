@@ -10,8 +10,8 @@
 // Which slots a build gets depends on FUN_10157450's flags: 1 normal, 2 draft, 4 wildcard (1 only when neither), | 8
 // when qualities are on. A named build then loses slots 8, 16 and 19 (FUN_10150a80).
 //
+// The BUILD_CREATOR slots (learn 18, unlearn 16) find their template through Deps::seedOfBuild (C_BuildCreator).
 // Dependencies not ported yet, and what the original does without their data:
-//   slot 18 BUILD_CREATOR  FUN_10101370 / FUN_100fd750 (C_BuildCreator templates): no template -> fail.
 //   slot 20 NO_TALENTS_CHALLENGE  FUN_1013b8b0 / FUN_1013b350 (C_Challenge rules): no challenge -> ok.
 #include "CoA/Source/Modules/CA.h"
 #include "CoA/Source/Modules/CAInternal.h"
@@ -175,6 +175,22 @@ namespace {
         return std::min(level, b.level);
     }
 
+    // FUN_10160df0 / FUN_101649b0 past their guard: the Build Creator build named like this build (FUN_100fd750 on the
+    // +0x4C name; none -> fail), built at this build's level (FUN_1014f0f0(entry, +0x30, 1)), must hold more ranks of the
+    // row than this build would after learning one (learn), or fewer than it holds (unlearn).
+    bool TemplateAllows(const Build& b, Row r, bool learn) {
+        const CoA::CA::Deps& d = CoA::CA::Dependencies();
+        CoA::CA::BuildSeed seed;
+
+        if (!d.seedOfBuild || !d.seedOfBuild(b.name, seed)) {
+            return false;
+        }
+
+        const Build tmpl(seed, b.level, true);
+        const uint32_t id = RowU32(r, 0);
+        return learn ? tmpl.RankOf(id) >= b.RankOf(id) + 1 : tmpl.RankOf(id) < b.RankOf(id);
+    }
+
     // ---- build rules (ctx = the build) ---------------------------------------------------------------------------
     // Slot 3 (BAD_ABILITY) runs without a row; the others are only reached with one. The row's fields are read only when
     // there is a row (the reconstruction read them up front and faulted on an unknown id).
@@ -260,7 +276,7 @@ namespace {
             case 17: return !(flags & 1);                                       // FUN_10160ee0 DEPRECATED
             case 18:                                                            // FUN_10160df0 BUILD_CREATOR
                 if ((b.specDraft || b.u64 || b.u65) && (b.u65 || RowU32(r, 0x74) != 1)) {
-                    return false;   // the template (C_BuildCreator) is not ported: none is found
+                    return TemplateAllows(b, r, true);
                 }
 
                 return true;
@@ -696,7 +712,7 @@ namespace {
             }
             case 16:                                                            // FUN_101649b0 BUILD_CREATOR
                 if ((b.specDraft || b.u64 || b.u65) && (b.u65 || RowU32(r, 0x74) != 1)) {
-                    return false;   // no C_BuildCreator template exists yet (see the header)
+                    return TemplateAllows(b, r, false);
                 }
 
                 return true;

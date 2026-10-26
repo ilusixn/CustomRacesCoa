@@ -156,6 +156,11 @@ namespace CoA::ClientHooks {
         bool (*removeMacro)(uint32_t spell) = nullptr;                             // 0x5AAB90: false skips it
     };
     inline SpellPacketHooks spellPackets;
+    // 0x542030 CGSpellBook::AddKnownSpell: AscRuntime.cpp's detour 0x10275ED0 (C_Wildcard's mode manager,
+    // WildcardRolls.cpp): true when it took the add over (deferred it, or made it itself); unset, the client adds alone.
+    inline bool (*addKnownSpell)(int32_t spell, int32_t notify, int32_t replace) = nullptr;
+    // List 0x10BE2AEC (FUN_10278450): run with the spell after the detour's add (FUN_102781e0).
+    inline Hooks<uint32_t> afterAddKnownSpell;
     // FUN_10308830 / FUN_10308e40: while above zero, the client's learn messages (the three 0x5216F0 calls at
     // 0x542679 / 0x5427BE / 0x54284E) and unlearn messages (0x6E7346 / 0x6E7356) are NOPed.
     inline int suppressLearnMessages = 0;
