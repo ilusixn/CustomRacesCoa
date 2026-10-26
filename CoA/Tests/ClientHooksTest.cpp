@@ -55,7 +55,7 @@ COA_TEST(ClientHooks_SignalGuard) {
     CoA::ClientHooks::Reset();
 }
 
-// Predicate lists run in call-site order and stop at the first false.
+// Sites outside a list's measured order run in call-site order; AllPass stops at the first false.
 COA_TEST(ClientHooks_PredicatesInSiteOrder) {
     CoA::ClientHooks::Reset();
     s_calls.clear();
@@ -65,6 +65,28 @@ COA_TEST(ClientHooks_PredicatesInSiteOrder) {
 
     CHECK(!CoA::ClientHooks::addAuraEffect.AllPass(nullptr, 0, nullptr));
     CHECK((s_calls == std::vector<std::string>{ "a", "b" }));
+    CoA::ClientHooks::Reset();
+}
+
+// The aura-application list runs in the original's measured order whatever the registration order (SpellMods'
+// 0x10324D9A before SpellVisuals' 0x10323151 here, SpawnVisibility before Appearance); a site outside it runs last and
+// a callback registered twice runs once.
+COA_TEST(ClientHooks_PredicatesInMeasuredOrder) {
+    CoA::ClientHooks::Reset();
+    s_calls.clear();
+    using P = bool (*)(void*, uint32_t, const void*);
+    const P spawn = [](void*, uint32_t, const void*) { s_calls.push_back("spawn"); return true; };
+    const P mods = [](void*, uint32_t, const void*) { s_calls.push_back("mods"); return true; };
+    CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_calls.push_back("other"); return true; }, 0x10000000);
+    CoA::ClientHooks::addAuraEffect.Add(spawn, 0x101A2025);
+    CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_calls.push_back("appearance"); return true; }, 0x100C5B88);
+    CoA::ClientHooks::addAuraEffect.Add(mods, 0x10324D9A);
+    CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_calls.push_back("visuals"); return true; }, 0x10323151);
+    CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_calls.push_back("aura137"); return true; }, 0x10A683D0);
+    CoA::ClientHooks::addAuraEffect.Add(spawn, 0x101A2025);
+
+    CHECK(CoA::ClientHooks::addAuraEffect.AllPass(nullptr, 0, nullptr));
+    CHECK((s_calls == std::vector<std::string>{ "aura137", "visuals", "mods", "appearance", "spawn", "other" }));
     CoA::ClientHooks::Reset();
 }
 

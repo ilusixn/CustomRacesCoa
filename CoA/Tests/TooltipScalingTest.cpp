@@ -7,7 +7,6 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/LuaReg.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
@@ -104,7 +103,6 @@ namespace {
     void Start() {
         CoA::Dbc::SetFileReader(ReadTables);
         CoA::Dbc::Get("DBFilesClient\\QuestTemplateScaling.dbc").Unload();
-        CoA::MemoryBridge::Reset();
         CoA::BridgeStore::Reset();
         CoA::BridgeStore::LoadTables();
         CoA::BridgeStore::BuildIndexes();

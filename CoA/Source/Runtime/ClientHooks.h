@@ -1,7 +1,9 @@
 #ifndef COA_SOURCE_RUNTIME_CLIENTHOOKS_H
 #define COA_SOURCE_RUNTIME_CLIENTHOOKS_H
 
+#include <algorithm>
 #include <cstdint>
+#include <initializer_list>
 #include <utility>
 #include <vector>
 
@@ -40,20 +42,45 @@ namespace CoA::ClientHooks {
     };
 
     // A predicate list kept in call-site order (the original's InsertBySite: after every entry with a site <= this
-    // one). AllPass stops at the first false; AnyTrue at the first true.
+    // one), or, for a list given the original's measured order (its live unordered_set traversal, captured by the
+    // reconstruction: docs/CALLBACK-ORDER-MEASURED.md there), ranked by that order; a site outside it runs after the
+    // measured ones, by site. A callback already in the list is not added again. AllPass stops at the first false;
+    // AnyTrue at the first true.
     template <class... Args>
     class Predicates {
     public:
         using Fn = bool (*)(Args...);
 
-        void Add(Fn fn, uint32_t site) {
-            auto at = this->m_fns.begin();
+        Predicates() = default;
 
-            while (at != this->m_fns.end() && at->first <= site) {
-                ++at;
+        explicit Predicates(std::initializer_list<uint32_t> order)
+            : m_order(order) {
+        }
+
+        void Add(Fn fn, uint32_t site) {
+            if (this->m_order.empty()) {
+                auto at = this->m_fns.begin();
+
+                while (at != this->m_fns.end() && at->first <= site) {
+                    ++at;
+                }
+
+                this->m_fns.insert(at, { site, fn });
+                return;
             }
 
-            this->m_fns.insert(at, { site, fn });
+            for (const auto& entry : this->m_fns) {
+                if (entry.second == fn) {
+                    return;
+                }
+            }
+
+            this->m_fns.emplace_back(site, fn);
+            std::stable_sort(this->m_fns.begin(), this->m_fns.end(), [this](const auto& a, const auto& b) {
+                const size_t ra = this->Rank(a.first);
+                const size_t rb = this->Rank(b.first);
+                return ra != rb ? ra < rb : a.first < b.first;
+            });
         }
 
         bool AllPass(Args... args) const {
@@ -85,6 +112,11 @@ namespace CoA::ClientHooks {
         }
 
     private:
+        size_t Rank(uint32_t site) const {
+            return static_cast<size_t>(std::find(this->m_order.begin(), this->m_order.end(), site) - this->m_order.begin());
+        }
+
+        std::vector<uint32_t> m_order;
         std::vector<std::pair<uint32_t, Fn>> m_fns;
     };
 
@@ -130,15 +162,21 @@ namespace CoA::ClientHooks {
     inline Hooks<const void*> beforeKeyDown;         // 0x4943C0 CSimpleTop::OnKeyDown, in world (list 0x10BE2B0C)
     inline Hooks<const void*> beforeKeyUp;           // 0x494490 CSimpleTop::OnKeyUp, in world (list 0x10BE2B4C)
     inline Hooks<const void*> beforeKeyRepeat;       // 0x494530 CSimpleTop::OnKeyDownRepeat, in world (list 0x10BE2B2C)
-    inline Predicates<void*, uint32_t, const void*> addAuraEffect;      // 0x724820 CGUnit_C::AddAuraEffect: false skips it
-    inline Predicates<void*, uint32_t, const void*> removeAuraEffect;   // 0x71E930 CGUnit_C::RemoveAuraEffect: false skips it
-    // 0x80B5D0 Spell_C_IsUsableAction: after a true result, false makes it unusable (list 0x10BE2DD8).
-    inline Predicates<void*, const void*, const void*, const void*, bool> usableAction;
-    // 0x744AC0 CGObject_C::ClearEffectList (replaced): true removes the effect (list 0x10BE2D78).
-    inline Predicates<void*, void*> removeEffect;
+    // 0x724820 CGUnit_C::AddAuraEffect: false skips it. Measured order (list 0x10BE2B6C): Aura137, SpellVisuals, SpellMods,
+    // Appearance, SpawnVisibility; the original's runtime-registered sixth callback is not reconstructed.
+    inline Predicates<void*, uint32_t, const void*> addAuraEffect{ 0x10A683D0, 0x10323151, 0x10324D9A, 0x100C5B88, 0x101A2025 };
+    // 0x71E930 CGUnit_C::RemoveAuraEffect: false skips it. Measured order (list 0x10BE2B8C): Aura137, SpellMods.
+    inline Predicates<void*, uint32_t, const void*> removeAuraEffect{ 0x10A683DA, 0x10324DA4 };
+    // 0x80B5D0 Spell_C_IsUsableAction: after a true result, false makes it unusable (list 0x10BE2DD8). Measured order:
+    // AuraRequirement, StackRequirement, CastRequirements.
+    inline Predicates<void*, const void*, const void*, const void*, bool> usableAction{ 0x10324DB8, 0x10324DAE, 0x10171F65 };
+    // 0x744AC0 CGObject_C::ClearEffectList (replaced): true removes the effect (list 0x10BE2D78). Measured order:
+    // SpellVisuals, QuestSpellHide.
+    inline Predicates<void*, void*> removeEffect{ 0x1032313D, 0x10112625 };
     // FUN_10278820 -> list 0x10BE2D98, asked by FUN_10277870 (AscSpellVisuals' resolve): true hides the spell's visual for
     // (guid kind, guid lo, guid hi, spell).
-    inline Predicates<uint32_t, uint32_t, uint32_t, uint32_t> visualHide;
+    // Measured order: SpellVisuals, QuestSpellHide.
+    inline Predicates<uint32_t, uint32_t, uint32_t, uint32_t> visualHide{ 0x10323147, 0x1011262F };
     // FUN_102766c0 (0x81AA00 FrameScript_SignalEvent): callbacks for one stock event id, before its listeners.
     inline std::vector<std::pair<int32_t, void (*)(lua_State*)>> stockEvents;
 

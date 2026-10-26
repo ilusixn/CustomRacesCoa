@@ -9,11 +9,11 @@
 
 class CDataStore;
 
-// AscBridgeStore.cpp: the DLL's DBC manager (FUN_101d3d20) moves six large DBCs into MemoryBridge tables --
-// Creature, Quest, ItemAddon, VanityCollection, MythicKeystones, SpellAffect -- and answers lookups from the
-// tables through a size-bounded LRU cache (0x400 records / 2 MB, as the original). The tables keep the original's
-// 32-bit records, string fields as string-block offsets; the records handed out here are the x64 shapes, strings
-// as pointers owned by the cache. Returned pointers stay valid until the cache evicts them.
+// AscBridgeStore.cpp: the DLL's DBC manager (FUN_101d3d20) moves six large DBCs -- Creature, Quest, ItemAddon,
+// VanityCollection, MythicKeystones, SpellAffect -- out of the client's tables. The 32-bit DLL kept them in its
+// MMgr64.exe helper and read them back through a record cache; here they live in this process as the x64 records
+// handed out (strings pointing into the file's string block, or a patch's own copy). A returned pointer stays valid
+// until that row is patched or the tables are reloaded.
 namespace CoA::BridgeStore {
     // FUN_101fd240's Creature.dbc record (table row 0x1C bytes).
     struct CreatureRecord {
@@ -101,8 +101,8 @@ namespace CoA::ItemAddon {
         std::string name, description;
         uint32_t quality = 0, flags = 0;   // row +0x10 / +0x14
     };
-    // FUN_1020ef10: a batch read past the record cache -- one 0x6D over the unique items, one 0x6E over the unique
-    // name / description offsets. `out` holds only the items found; false (and `out` empty) when a query fails.
+    // FUN_1020ef10: the unique items' text by item. `out` holds only the items found; false (and `out` empty) when the
+    // table has no item index.
     bool FetchInfo(const uint32_t* items, uint32_t n, std::unordered_map<uint32_t, Info>& out);
     // FUN_1020e9c0: FetchInfo for one item, else the cached record, else empty strings and zeros.
     Info GetInfo(uint32_t itemId);

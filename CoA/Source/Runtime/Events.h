@@ -9,7 +9,7 @@
 namespace CoA::Events {
     // DataContainer::RegisterCustomEvent: a name for the world event table; called from module Init.
     void Queue(const char* name);
-    // AscRuntime::RegisterEventNames: queues the original DLL's 303 names (Events.generated.inc).
+    // AscRuntime::RegisterEventNames: queues the original DLL's 315 names (Events.generated.inc).
     void RegisterNames();
     // Tests only.
     void ResetQueue();

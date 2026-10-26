@@ -318,14 +318,6 @@ namespace {
     std::string SpellTextDescription(uint32_t spell) {
         return CoA::SpellText::Description(spell, true, true, 0);
     }
-
-    void OnGameObjectUsed(void* object) {
-        CoA::MysticEnchant::OnGameObjectUse(static_cast<CGObject_C*>(object)->m_obj->m_entryID);
-    }
-
-    void OnItemUsed(void* object) {
-        CoA::MysticEnchant::OnItemUse(static_cast<CGObject_C*>(object)->m_obj->m_entryID);
-    }
 }
 
 void CoA::MysticEnchantClient::Init() {
@@ -357,6 +349,4 @@ void CoA::MysticEnchantClient::Init() {
     text.mysticCollected = CoA::MysticEnchant::Collected;
 
     CoA::ClientHooks::enterWorld.Add(CoA::MysticEnchant::EnterWorld);
-    CoA::ClientHooks::gameObjectUsed.Add(OnGameObjectUsed);
-    CoA::ClientHooks::itemUsed.Add(OnItemUsed);
 }
