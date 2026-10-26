@@ -251,3 +251,16 @@ Live run 2026-10-26: 11 Lua errors (15 before); the four "C stack overflow" are 
 server-listed secure addon, ending C_Hook's SetAttribute loop). The Sound Kit Player frame stays open because
 UIParent's PLAYER_ENTERING_WORLD handler errors on its first line (`C_LootLockout.QueryInstanceBinds()`, UIParent.lua:1150)
 before `CloseAllWindows(1)` (line 1163) closes UISpecialFrames; LootLockout (Plan 13 Task 2) fixes it.
+
+## Plan 13 result
+
+Live run 2026-10-26 (test account, 90 s in world): 5 Lua errors (11 before).
+- Gone: C_Manastorm, C_LootLockout, C_SkillCardCollection. The Sound Kit Player no longer opens at world entry
+  (UIParent's PLAYER_ENTERING_WORLD now reaches CloseAllWindows). Lua errors are logged again after /reload.
+- Left: missing CVars useUiScale / ObjectSelectionCircleTexture / autoAcceptTrades (Plan 14),
+  InterfaceOptionsSocialPanelProfanityFilterText nil (InterfaceOptionsPanels.lua:1105), NewCharacterSetupUtil.lua:49
+  assertion under Prat-3.0 taint, plus a "Prat-3.0 has been blocked" popup.
+- Action bars, minimap and chat were not drawn (MainMenuBarArtFrame alpha 0, Minimap "visible" mid-screen). The same
+  happens with the pre-Plan-13 build 63f5fe1, which drew them at 06:16, so it is account saved state changed since
+  (WTF / SavedVariables), not Plan 13 code. Left for the user.
+- Inventory: natives 1248/1346, packets 522/533, events 242/259, hooks 153/346, patches 125/126, CVars 23/93.
