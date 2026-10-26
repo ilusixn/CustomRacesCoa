@@ -335,6 +335,7 @@ COA_TEST(TrialCreator_Filter) {
     lua_State* L = Fixture();
     CHECK(Eq(Filter(L, "", ""), "t1,t2,t3"));
     CHECK(Eq(Filter(L, "", "FILTER_PRESTIGE = true"), "t1,t3"));
+    CHECK(Eq(Filter(L, "", "FILTER_PRESTIGE = 'x'"), "t1,t2,t3"));   // FUN_1011fc10: a bad value empties the map
     CHECK(Eq(Filter(L, "", "FILTER_NOT_PRESTIGE = true"), "t1,t2"));
     CHECK(Eq(Filter(L, "", "FILTER_PRESTIGE = true, FILTER_NOT_PRESTIGE = true"), "t1,t2,t3"));
     CHECK(Eq(Filter(L, "", "FILTER_PVE = true"), "t1,t3"));

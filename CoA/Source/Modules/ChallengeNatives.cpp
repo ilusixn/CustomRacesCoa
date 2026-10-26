@@ -1050,15 +1050,7 @@ namespace {
         const std::string text = CheckString(L, 1);
         std::vector<uint32_t> filters;
         std::map<std::string, bool> names;   // FUN_10131480
-        lua_pushnil(L);
-
-        while (lua_next(L, 2)) {
-            if (lua_isstring(L, -2)) {
-                names[lua_tolstring(L, -2, nullptr)] = lua_toboolean(L, -1) != 0;
-            }
-
-            lua_settop(L, -2);
-        }
+        CoA::Script::ToBoolMap(L, 2, names);   // FUN_10131480 (FrameScript::lua_totable)
 
         for (auto& n : names) {
             if (n.second) {
