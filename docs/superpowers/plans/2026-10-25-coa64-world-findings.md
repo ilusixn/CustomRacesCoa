@@ -213,3 +213,11 @@ session total is 32. Remaining: `C_Tutorial` 11, C stack overflow 4, `C_Manastor
 one each for `C_SkillCardCollection`, `C_PlayerTicket`, `C_AssetQueryService`, `C_CustomStore`, `C_BuildCreator`, the
 profanity widget, the three CVars, and a new `NewCharacterSetupUtil.lua:49` assertion (a level-1 character's first
 login; expected to follow from the missing `C_Tutorial`, to recheck after Plan 10).
+
+## Plan 10 result (tutorial, challenge, trial creator)
+
+Capture 2026-10-26, `-extlog 1`, test account, about 2 minutes in world, no crash. The `C_Tutorial` (11) and
+`C_Challenge` (2) errors are gone; the session total fell from 32 to 19. Remaining: C stack overflow 4, `C_Manastorm` 3,
+`C_LootLockout` 2, one each for `C_BuildCreator`, `C_CustomStore`, `C_AssetQueryService`, `C_PlayerTicket`,
+`C_SkillCardCollection`, the profanity widget, the three CVars, and the `NewCharacterSetupUtil.lua:49` assertion (still
+there with `C_Tutorial` present, so it has another cause; to look at when the remaining modules land).
