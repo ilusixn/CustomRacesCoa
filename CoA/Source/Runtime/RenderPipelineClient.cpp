@@ -144,6 +144,13 @@ namespace {
         device->SetVertexShader(s_debugVS);
         device->SetPixelShader(s_debugPS);
         device->SetVertexShaderConstantF(0, offset, 1);
+        // Explicitly not fetch4 (D3DSAMP_MIPMAPLODBIAS == 'GET4' enables it in DXVK), whatever the engine left on sampler 0.
+        device->SetSamplerState(0, D3DSAMP_MIPMAPLODBIAS, 0);
+        device->SetSamplerState(0, D3DSAMP_MAXMIPLEVEL, 0);
+        device->SetSamplerState(0, D3DSAMP_ADDRESSW, D3DTADDRESS_CLAMP);
+        // c0.x: 1 = depth view, 2 = diagnostic (uv gradient, blue where the depth is still at the clear value).
+        const float mode[4] = { (*CoA::RenderPipelineClient::DebugSlot())->m_intValue >= 2 ? 2.0f : 1.0f, 0.0f, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(0, mode, 1);
         device->SetTexture(0, depth);
         device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
 
