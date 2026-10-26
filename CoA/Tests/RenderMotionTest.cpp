@@ -1,4 +1,5 @@
 #include "CoA/Source/Runtime/CVars.h"
+#include "CoA/Source/Runtime/MotionCache.h"
 #include "CoA/Source/Runtime/RenderMotion.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Tests/TestMain.h"
@@ -248,4 +249,84 @@ COA_TEST(StaticMotion_EmptyDepthRangeIsZero) {
     auto f = SidestepFrame(0.5f, 0.5f);
     auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, 0.5f);
     CHECK(m.x == 0 && m.y == 0);
+}
+
+namespace {
+    Mat4 Mat(float k) {
+        Mat4 m{};
+        m.m[0][0] = k;
+        return m;
+    }
+    int s_m1, s_m2;
+}
+
+COA_TEST(MotionCache_PreviousIsLastFrame) {
+    CoA::MotionCache::Clear();
+    Mat4 a[2] = { Mat(1), Mat(2) }, b[2] = { Mat(3), Mat(4) };
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), a, 2));
+    uint32_t n = 0;
+    CHECK(CoA::MotionCache::Previous({ &s_m1, 7 }, 10, n) == nullptr);
+    CoA::MotionCache::EndFrame(10);
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 11, Mat(0), b, 2));
+    const Mat4* p = CoA::MotionCache::Previous({ &s_m1, 7 }, 11, n);
+    CHECK(p && n == 2 && p[0].m[0][0] == 1.0f && p[1].m[0][0] == 2.0f);
+    // Rolls on across further frames.
+    CoA::MotionCache::EndFrame(11);
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 12, Mat(0), a, 2));
+    p = CoA::MotionCache::Previous({ &s_m1, 7 }, 12, n);
+    CHECK(p && p[0].m[0][0] == 3.0f);
+}
+
+COA_TEST(MotionCache_GapDropsHistory) {
+    CoA::MotionCache::Clear();
+    Mat4 a[1] = { Mat(1) };
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), a, 1));
+    uint32_t n = 0;
+    CHECK(CoA::MotionCache::Previous({ &s_m1, 7 }, 12, n) == nullptr);
+}
+
+COA_TEST(MotionCache_HandleChangeDropsHistory) {
+    CoA::MotionCache::Clear();
+    Mat4 a[1] = { Mat(1) };
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), a, 1));
+    uint32_t n = 0;
+    CHECK(CoA::MotionCache::Previous({ &s_m1, 8 }, 11, n) == nullptr);
+    // Storing under the new handle discards the old history for good.
+    CHECK(CoA::MotionCache::Store({ &s_m1, 8 }, 11, Mat(0), a, 1));
+    CHECK(CoA::MotionCache::Previous({ &s_m1, 8 }, 11, n) == nullptr);
+}
+
+COA_TEST(MotionCache_RejectsOversizedPalette) {
+    CoA::MotionCache::Clear();
+    static Mat4 big[CoA::MotionCache::kMaxBones + 1];
+    CHECK(!CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxBones + 1));
+    CHECK(!CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, 0));
+    CHECK(CoA::MotionCache::Size() == 0);
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxBones));
+    CHECK(CoA::MotionCache::Size() == 1);
+}
+
+COA_TEST(MotionCache_EndFrameEvictsUnseen) {
+    CoA::MotionCache::Clear();
+    Mat4 a[1] = { Mat(1) };
+    CHECK(CoA::MotionCache::Store({ &s_m1, 1 }, 10, Mat(0), a, 1));
+    CHECK(CoA::MotionCache::Store({ &s_m2, 1 }, 10, Mat(0), a, 1));
+    CoA::MotionCache::EndFrame(10);
+    CHECK(CoA::MotionCache::Size() == 2);
+    CHECK(CoA::MotionCache::Store({ &s_m1, 1 }, 11, Mat(0), a, 1));
+    CoA::MotionCache::EndFrame(11);
+    CHECK(CoA::MotionCache::Size() == 1);
+    uint32_t n = 0;
+    CHECK(CoA::MotionCache::Previous({ &s_m1, 1 }, 12, n) != nullptr);
+}
+
+COA_TEST(MotionCache_PreviousWorldFollowsSameRules) {
+    CoA::MotionCache::Clear();
+    Mat4 a[1] = { Mat(1) };
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(42), a, 1));
+    const Mat4* w = CoA::MotionCache::PreviousWorld({ &s_m1, 7 }, 11);
+    CHECK(w && w->m[0][0] == 42.0f);
+    CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 7 }, 12) == nullptr);
+    CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 8 }, 11) == nullptr);
+    CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 7 }, 10) == nullptr);
 }
