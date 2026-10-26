@@ -746,6 +746,27 @@ void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     if (CoA::Log::Enabled()) {
         const char* message = lua_tostring(L, -1);
         CoA::Log::Printf("Lua error: %s", message ? message : "(no message)");
+
+        CoA::Log::Printf("  taint: %s", lua_tainted ? lua_tainted : "(secure)");
+
+        // The innermost frames (and, past a deep stack, the outermost ones), so a recursion shows its loop.
+        lua_Debug f;
+        int depth = 0;
+
+        while (lua_getstack(L, depth, &f)) {
+            ++depth;
+        }
+
+        for (int i = 0; i < depth; ++i) {
+            if (i == 8 && depth > 16) {
+                CoA::Log::Printf("  ... %d frames ...", depth - 16);
+                i = depth - 9;
+            }
+
+            if (lua_getstack(L, i, &f) && lua_getinfo(L, "Sln", &f)) {
+                CoA::Log::Printf("  #%d %s:%d %s", i, f.short_src, f.currentline, f.name ? f.name : "?");
+            }
+        }
     }
 
     lua_Debug ar;
