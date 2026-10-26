@@ -264,3 +264,13 @@ Live run 2026-10-26 (test account, 90 s in world): 5 Lua errors (11 before).
   happens with the pre-Plan-13 build 63f5fe1, which drew them at 06:16, so it is account saved state changed since
   (WTF / SavedVariables), not Plan 13 code. Left for the user.
 - Inventory: natives 1248/1346, packets 522/533, events 242/259, hooks 153/346, patches 125/126, CVars 23/93.
+
+## Plan 14 result
+
+Live run 2026-10-26 (test account, ~60 s in world, screenshot out/baseline/plan14_world.png): 2 Lua errors (5 before).
+- Gone: the missing-CVar errors useUiScale / ObjectSelectionCircleTexture / autoAcceptTrades, and
+  ProfanityFilterText nil (InterfaceOptionsPanels.lua:1105, a follow-on of the missing CVars).
+- Left: OptionsPanelTemplates.lua:258 "Couldn't find CVar named 'SpellQueueWindow'" (AscSmallHooks, Plan 15) and the
+  NewCharacterSetupUtil.lua:49 assertion under Prat-3.0 taint (+ the "Prat-3.0 has been blocked" popup).
+- World renders with the SDF font path (FontRender) at defaults; no crash, client responsive.
+- Inventory: natives 1251/1346, packets 525/533, events 245/259, hooks 240/346, patches 126/126, CVars 77/93.
