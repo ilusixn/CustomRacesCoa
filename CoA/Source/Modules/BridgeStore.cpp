@@ -152,21 +152,18 @@ namespace {
     };
 
     // ---- stores ------------------------------------------------------------------------------------------------
-    // A row: the record, and the strings a patch gave it (a loaded row's strings point into the store's block).
-    template <class Record> struct Row {
-        Record record;
-        std::string own[Traits<Record>::kStrings ? Traits<Record>::kStrings : 1];
-    };
+    // One (key, row) pair per row, sorted: the original's server index (0x6A), the first row of a key first.
+    using Index = std::vector<std::pair<uint32_t, uint32_t>>;
 
     template <class Record> struct Store {
         bool loaded = false;
         uint32_t maxId = 0xFFFFFFFF;
         uint32_t minId = 0xFFFFFFF;
-        std::vector<char> block;   // the file's string block
-        size_t terminated = 0;     // offsets below this reach a NUL inside the block
-        std::deque<Row<Record>> rows;   // stable addresses: rows are only appended
-        // field offset -> key -> row indexes in row order (the original's server indexes, 0x6A)
-        std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<uint32_t>>> indexes;
+        std::vector<char> block;           // the file's string block
+        size_t terminated = 0;             // offsets below this reach a NUL inside the block
+        std::deque<Record> rows;           // stable addresses: rows are only appended
+        std::deque<std::string> patched;   // the strings patches brought, kept until the tables are reset
+        std::unordered_map<uint32_t, Index> indexes;   // field offset -> index
 
         uint32_t Count() const {
             return static_cast<uint32_t>(this->rows.size());
@@ -205,37 +202,46 @@ namespace {
             return;
         }
 
-        auto& index = s.indexes[field];
-        index.clear();
+        Index& index = s.indexes[field];
+        index.resize(s.Count());
 
         for (uint32_t i = 0; i < s.Count(); ++i) {
-            index[Key(s.rows[i].record, field)].push_back(i);
+            index[i] = { Key(s.rows[i], field), i };
         }
+
+        std::sort(index.begin(), index.end());
     }
 
-    // 0x6B: every row whose indexed field holds key, in row order; false when the field has no index.
-    template <class Record> bool RowsWith(const Store<Record>& s, uint32_t field, uint32_t key, const std::vector<uint32_t>*& out) {
-        static const std::vector<uint32_t> none;
+    // 0x6B: the rows whose indexed field holds key, in row order (a range of (key, row) pairs); false when the field
+    // has no index.
+    template <class Record> bool RowsWith(const Store<Record>& s, uint32_t field, uint32_t key, Index::const_iterator& first,
+        Index::const_iterator& last) {
         auto index = s.indexes.find(field);
 
         if (index == s.indexes.end()) {
             return false;
         }
 
-        auto it = index->second.find(key);
-        out = it == index->second.end() ? &none : &it->second;
+        const Index& rows = index->second;
+        first = std::lower_bound(rows.begin(), rows.end(), std::make_pair(key, 0u));
+        last = first;
+
+        while (last != rows.end() && last->first == key) {
+            ++last;
+        }
+
         return true;
     }
 
     // FUN_101cf4c0 and siblings: the first row whose field holds key.
     template <class Record> bool FirstRow(const Store<Record>& s, uint32_t field, uint32_t key, uint32_t& index) {
-        const std::vector<uint32_t>* rows = nullptr;
+        Index::const_iterator first, last;
 
-        if (!RowsWith(s, field, key, rows) || rows->empty()) {
+        if (!RowsWith(s, field, key, first, last) || first == last) {
             return false;
         }
 
-        index = rows->front();
+        index = first->second;
         return true;
     }
 
@@ -243,7 +249,7 @@ namespace {
     // field 0): the record whose `field` is `key`.
     template <class Record> const Record* Lookup(Store<Record>& s, uint32_t field, uint32_t key) {
         uint32_t index = 0;
-        return FirstRow(s, field, key, index) ? &s.rows[index].record : nullptr;
+        return FirstRow(s, field, key, index) ? &s.rows[index] : nullptr;
     }
 
     template <class Record> const Record* LookupByKey(Store<Record>& s, uint32_t key) {
@@ -255,46 +261,42 @@ namespace {
     }
 
     // Row `index` takes `r` (a null string reads as "", as the original's offset 0 does), and the indexes follow it.
-    template <class Record> void SetRow(Store<Record>& s, uint32_t index, const Record& r) {
-        Row<Record>& row = s.rows[index];
+    // `fresh`: a row just appended, in no index yet.
+    template <class Record> void SetRow(Store<Record>& s, uint32_t index, const Record& r, bool fresh = false) {
+        Record& row = s.rows[index];
 
-        for (auto& kv : s.indexes) {
-            auto it = kv.second.find(Key(row.record, kv.first));
+        if (!fresh) {
+            for (auto& kv : s.indexes) {
+                Index& rows = kv.second;
+                auto it = std::lower_bound(rows.begin(), rows.end(), std::make_pair(Key(row, kv.first), index));
 
-            if (it != kv.second.end()) {
-                it->second.erase(std::remove(it->second.begin(), it->second.end(), index), it->second.end());
-
-                if (it->second.empty()) {
-                    kv.second.erase(it);
+                if (it != rows.end() && it->second == index) {
+                    rows.erase(it);
                 }
             }
         }
 
-        std::string text[Traits<Record>::kStrings ? Traits<Record>::kStrings : 1];
         Record copy = r;
 
         for (size_t k = 0; k < Traits<Record>::kStrings; ++k) {
-            const char* src = Traits<Record>::Slot(copy, k);
-            text[k] = src ? src : "";
+            const char*& slot = Traits<Record>::Slot(copy, k);
+            s.patched.emplace_back(slot ? slot : "");
+            slot = s.patched.back().c_str();
         }
 
-        row.record = copy;
-
-        for (size_t k = 0; k < Traits<Record>::kStrings; ++k) {
-            row.own[k] = std::move(text[k]);
-            Traits<Record>::Slot(row.record, k) = row.own[k].c_str();
-        }
+        row = copy;
 
         for (auto& kv : s.indexes) {
-            std::vector<uint32_t>& rows = kv.second[Key(row.record, kv.first)];
-            rows.insert(std::lower_bound(rows.begin(), rows.end(), index), index);
+            Index& rows = kv.second;
+            const std::pair<uint32_t, uint32_t> entry = { Key(row, kv.first), index };
+            rows.insert(std::lower_bound(rows.begin(), rows.end(), entry), entry);
         }
     }
 
-    // A new last row holding `r` (not yet in any index, so SetRow's removal finds nothing for it).
+    // A new last row holding `r`.
     template <class Record> void AppendRow(Store<Record>& s, const Record& r) {
         s.rows.emplace_back();
-        SetRow(s, s.Count() - 1, r);
+        SetRow(s, s.Count() - 1, r, true);
     }
 
     // FUN_101fd240 / FUN_101fded0
@@ -351,11 +353,11 @@ namespace {
                 }
             }
 
-            Row<Record>& r = s.rows.emplace_back();
-            T::FromRow(row, r.record);
+            Record& r = s.rows.emplace_back();
+            T::FromRow(row, r);
 
             for (size_t k = 0; k < T::kStrings; ++k) {
-                T::Slot(r.record, k) = BlockString(s, U32(row, T::StringFields()[k]));
+                T::Slot(r, k) = BlockString(s, U32(row, T::StringFields()[k]));
             }
 
             uint32_t id = U32(row, 0);
@@ -416,20 +418,22 @@ std::vector<const uint8_t*> CoA::BridgeStore::QuestsInGroup(uint32_t group) {
     std::vector<uint32_t> indexes;
 
     for (uint32_t field : kQuestGroupFields) {
-        const std::vector<uint32_t>* rows = nullptr;
+        Index::const_iterator first, last;
 
-        if (!RowsWith(s_quest, field, group, rows)) {
+        if (!RowsWith(s_quest, field, group, first, last)) {
             return out;
         }
 
-        indexes.insert(indexes.end(), rows->begin(), rows->end());
+        for (auto it = first; it != last; ++it) {
+            indexes.push_back(it->second);
+        }
     }
 
     std::sort(indexes.begin(), indexes.end());
     indexes.erase(std::unique(indexes.begin(), indexes.end()), indexes.end());
 
     for (uint32_t index : indexes) {
-        out.push_back(reinterpret_cast<const uint8_t*>(s_quest.rows[index].record.f));
+        out.push_back(reinterpret_cast<const uint8_t*>(s_quest.rows[index].f));
     }
 
     return out;
@@ -474,7 +478,7 @@ bool CoA::BridgeStore::VanityRecords(const uint32_t* indexes, uint32_t n, std::v
         v.index = indexes[i];
 
         if (v.index < s_vanity.Count()) {
-            v.record = s_vanity.rows[v.index].record;
+            v.record = s_vanity.rows[v.index];
             v.found = true;
         }
 
@@ -486,8 +490,8 @@ bool CoA::BridgeStore::VanityRecords(const uint32_t* indexes, uint32_t n, std::v
 
 // FUN_1032e090: the record at `index` while it still holds `itemId`, else the record for `itemId`.
 const CoA::BridgeStore::VanityRecord* CoA::BridgeStore::VanityAt(uint32_t index, uint32_t itemId) {
-    if (index < s_vanity.Count() && s_vanity.rows[index].record.f[1] == itemId) {
-        return &s_vanity.rows[index].record;
+    if (index < s_vanity.Count() && s_vanity.rows[index].f[1] == itemId) {
+        return &s_vanity.rows[index];
     }
 
     return LookupByKey(s_vanity, itemId);
@@ -528,14 +532,14 @@ void CoA::BridgeStore::PatchKeystone(const uint32_t rec[3]) {
 // FUN_103234d0: the rows whose modifier field (+4) is `spell`, in row order.
 std::vector<std::array<uint32_t, 3>> CoA::BridgeStore::SpellAffectsFor(uint32_t spell) {
     std::vector<std::array<uint32_t, 3>> out;
-    const std::vector<uint32_t>* rows = nullptr;
+    Index::const_iterator first, last;
 
-    if (!RowsWith(s_spellAffect, 4, spell, rows)) {
+    if (!RowsWith(s_spellAffect, 4, spell, first, last)) {
         return out;
     }
 
-    for (uint32_t index : *rows) {
-        const SmallRecord& r = s_spellAffect.rows[index].record;
+    for (auto it = first; it != last; ++it) {
+        const SmallRecord& r = s_spellAffect.rows[it->second];
         out.push_back({ r.f[0], r.f[1], r.f[2] });
     }
 
