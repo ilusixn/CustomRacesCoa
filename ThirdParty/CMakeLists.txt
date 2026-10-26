@@ -223,3 +223,7 @@ if (WIN32)
             ${CMAKE_SOURCE_DIR}
     )
 endif ()
+
+if (WOWDECOMP_BUILD_DXVK AND WOWDECOMP_ARCH_64)
+    add_subdirectory(dxvk)
+endif ()
