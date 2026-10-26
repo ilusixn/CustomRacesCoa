@@ -44,6 +44,8 @@ static TSFixedArray<FrameScript_EventObject*> s_scriptEvents;
 // CoA: set by CoA::Attach (CoA::Events::ExtendList); the engine does not link the CoA code itself
 const char** (*g_createEventsHook)(const char** names, uint32_t& count);
 // CoA: set by CoA::AttachMiscClient (CoA::AttachMisc::AllowFormattedSignal).
+// CoA: set by CoA::CrashContextClient.
+void (*g_frameScriptExecuteHook)(const char* source);
 bool (*g_formattedSignalHook)(int32_t eventId, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const void* format, const void* va);
 // CoA: set by CoA::ClientHooks::InstallClient (CoA::ClientHooks::AllowSignalEvent).
 bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const char* name);
@@ -971,6 +973,12 @@ void FrameScript_ReleaseFunction(int32_t function) {
 // VERIFY: c2fefd61 auto
 // OFFSET: 0x00819210
 void FrameScript_Execute(const char* source, const char* filename, const char* taint) {
+    // CoA: AscCrashContext.cpp:FrameScriptExecute (orig hook 0x819210) -- the source as the crash report's "Last
+    // FrameScript_Execute".
+    if (g_frameScriptExecuteHook) {
+        g_frameScriptExecuteHook(source);
+    }
+
     const char* savedTaint = lua_tainted;
 
     if (++lua_taintexpected && !lua_taintedclosure) {

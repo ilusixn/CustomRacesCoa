@@ -93,6 +93,8 @@ static int32_t s_isIdent;
 
 // CoA: set by CoA::AttachFixesClient (the gxMonitor centring).
 void (*g_gxDeviceSetFormatHook)();
+// CoA: set by CoA::ClientGuardsClient.
+bool g_gxD3dSkipBaseMipStore;
 
 // VERIFY: 271a03c4 manual
 // OFFSET: 0x0068FA60
@@ -3435,7 +3437,12 @@ void CGxDeviceD3d::SceneClear(uint32_t mask, CImVector color) {
 // OFFSET: 0x0068E4A0
 void CGxDeviceD3d::DeviceSetBaseMipLevel(uint32_t level) {
     this->ITexForceRecreation(1);
-    CGxDevice::DeviceSetBaseMipLevel(level);
+
+    // CoA: AscClientGuards.cpp:SkipCall68E4AD (orig hook 0x68E4AD) -- after a UI reload the DLL NOPs this call (11 bytes):
+    // the textures are recreated, the level is not stored.
+    if (!g_gxD3dSkipBaseMipStore) {
+        CGxDevice::DeviceSetBaseMipLevel(level);
+    }
 }
 
 // VERIFY: bc1bdcba manual

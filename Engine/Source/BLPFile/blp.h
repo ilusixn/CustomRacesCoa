@@ -51,4 +51,7 @@ class CBLPFile {
     void DecompPalFastPath(uint8_t* out, const void* in, uint32_t count);
 };
 
+// CoA: AscCrashContext.cpp:LoadBlp (orig hook 0x6AFFD0) -- with the file name, before CBLPFile::LockChain2.
+extern void (*g_blpLockChainHook)(const char* fileName);
+
 #endif

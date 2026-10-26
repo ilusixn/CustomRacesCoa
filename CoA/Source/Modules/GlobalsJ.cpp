@@ -790,6 +790,10 @@ void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     }
 }
 
+bool CoA::GlobalsJ::CombatLogAllDisabled() {
+    return s_combatLogDisableAll;
+}
+
 bool CoA::GlobalsJ::CombatLogAllowed(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60) {
     if (s_combatLogDisableAll) {
         return false;

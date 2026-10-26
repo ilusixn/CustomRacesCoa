@@ -166,6 +166,12 @@ void CM2SceneRender::EndFixed() {
 // VERIFY: fc4925ef auto
 // OFFSET: 0x0081F700
 void CM2SceneRender::SetBatchVertices(int32_t sharedVertices) {
+    // CoA: AscCrashContext.cpp:M2SceneRender (orig hook 0x81F700) -- the current model as the crash report's "Last M2
+    // Scene Render Name".
+    if (g_m2CrashRecordHook) {
+        g_m2CrashRecordHook(0x81F700, M2CrashName(this->m_curModel));
+    }
+
     if (CShaderEffect::s_enableShaders) {
         if (this->m_curType != this->m_prevType || this->m_curShared != this->m_prevShared) {
             this->m_curShared->SetVertices(0);

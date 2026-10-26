@@ -156,6 +156,7 @@
 #include "WoW/Source/Ui/Tutorial.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/PortraitButton.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -4667,6 +4668,17 @@ void CGPlayer_C::PlayerInitializeMessageHandlers() {
 // VERIFY: ea8acbe5 manual
 // OFFSET: 0x006E4950
 void CGPlayer_C::CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int32_t silent) {
+    // CoA: AscInitHooks.cpp:Detour6E4950 (orig hook 0x6E4950) -- before the body: autoRangedCombat "1" -> its int is
+    // whether the active player's ranged slot holds an item.
+    if (CVar* coaRanged = CVar::Lookup("autoRangedCombat")) {
+        CGPlayer_C* coaPlayer = ClntObjMgrGetActivePlayerObj();
+        int32_t coaValue = 0;
+
+        if (coaPlayer && CoA::InitHooks::AutoRangedCombatValue(coaRanged->m_stringValue.m_str, static_cast<bool>(coaPlayer->m_player->m_playerFieldInvSlotHead[17]), coaValue)) {
+            coaRanged->m_intValue = coaValue;
+        }
+    }
+
     if (!CGGameUI::CanPerformAction(1)) {
         return;
     }

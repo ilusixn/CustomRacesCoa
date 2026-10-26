@@ -35,6 +35,7 @@
 #include "WoW/Source/UIUtil/InputControl.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WoW/Source/Ui/GameUI.h"
 
 // CoA: AscAccount.cpp:OnGMStatus (runtime patch 0xA32904) -- the original's constant becomes FLT_MAX for a GM.
 // STATIC: 0x00A32904
@@ -4490,6 +4491,8 @@ int32_t CMovement_C::UpdatePitch(uint32_t time, CPlayerMoveEvent* event) {
 void CMovement_C::SetCollisionHeight(float height) {
     this->m_collisionHeight = height;
     this->ValidateWorldPosition(CPassenger::GetPosition(this->m_position));
+    // CoA: AscInitHooks.cpp:Detour6E9600 (orig hook 0x6E9600) -- after the body: CGGameUI::ResetCamera(0).
+    CGGameUI::ResetCamera(WOWGUID());
 }
 
 // VERIFY: 520b8fb1 manual

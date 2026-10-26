@@ -1,4 +1,5 @@
 #include "QuestTextParser.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/SpellTokens.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -1113,10 +1114,15 @@ static int32_t SpellParserParseSubText(const SpellRec* spell, char* buffer, uint
 // VERIFY: 17c38493 auto
 // OFFSET: 0x0057ABC0
 int32_t SpellParserParseText(const SpellRec* spell, char* buffer, uint32_t size, int32_t parsePet, int32_t parseUnit, int32_t spellLevel, int32_t useAuraDescription, int32_t scale, int32_t noModifiers) {
+    // CoA: AscCrashContext.cpp:SpellTooltip (orig hook 0x57ABC0) -- the spell's id as the crash report's "Last Spell
+    // Tooltip ID".
+    CoA::CrashContext::RecordNumber(CoA::CrashContext::Field::SpellTooltip, static_cast<uint32_t>(spell->m_id));
     *buffer = '\0';
 
     if (!spellLevel) {
-        spellLevel = Spell_C_GetSpellLevel(spell, parsePet, parseUnit);
+        // CoA: AscInitHooks.cpp:Detour7FF070 (orig hook 0x7FF070) -- Spell_C_GetSpellLevel returns 0 to this call (return
+        // address 0x57ABE4): the parse goes on with level 0.
+        spellLevel = 0;
     }
 
     SpellDescriptionVariablesRec* variables = g_spellDescriptionVariablesDB.GetRecord(spell->m_descriptionVariablesID);

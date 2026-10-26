@@ -40,6 +40,7 @@
 #include "Engine/Source/Base/ConvertUTF.h"
 #include "WoW/Source/Object/CreatureStats.h"
 #include "WoW/Source/DB/Rec/SummonPropertiesRec.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 // STATIC: 0x00ADB758
 static const char* s_combatLogEventNames[50] = {
@@ -951,6 +952,11 @@ bool ShouldShowFeedback(const ATTACKROUNDINFO& info) {
 // VERIFY: 9b0ab217 manual
 // OFFSET: 0x007512B0
 void UnitCombatLog(const ATTACKROUNDINFO& info) {
+    // CoA: AscInitHooks.cpp:Detour7512B0 (orig hook 0x7512B0) -- skipped while CombatLogDisableAll is on.
+    if (CoA::InitHooks::UnitCombatLogSkipped()) {
+        return;
+    }
+
     if (info.m_hitInfo & 0x800000) {
         CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
 

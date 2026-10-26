@@ -386,5 +386,8 @@ CGxDevice* CreateCGxDeviceD3d();
 
 // CoA: AscAttachFixes.cpp:FUN_10a46400 (orig hook 0x6904D0) -- called after each DeviceSetFormat.
 extern void (*g_gxDeviceSetFormatHook)();
+// CoA: AscClientGuards.cpp:SkipCall68E4AD (orig hook 0x68E4AD) -- set after the first UI reload: DeviceSetBaseMipLevel no
+// longer stores the level.
+extern bool g_gxD3dSkipBaseMipStore;
 
 #endif

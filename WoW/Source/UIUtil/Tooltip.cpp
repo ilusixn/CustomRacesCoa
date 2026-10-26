@@ -120,6 +120,7 @@
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/UIMacros.h"
 #include "WoW/Source/UIUtil/Cursor.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 static const float LINE_SPACING = 2.0f;
 static const float COLUMN_SPACING = 38.400002f;
@@ -5700,9 +5701,21 @@ static int32_t CollectItemSetData(CGTooltip* tooltip, const ItemSetRec* set, CGP
         if (ownerPlayer) {
             for (int32_t slot = 0; slot < 19; slot++) {
                 const VisibleItem_C* visible = ownerPlayer->GetVisibleItem(slot);
+                bool coaHave = visible != nullptr;
+                int32_t coaItemId = visible ? visible->m_itemId : 0;
 
-                if (visible) {
-                    int32_t itemId = abs(visible->m_itemId);
+                // CoA: AscInitHooks.cpp:Detour6DE330 (orig hook 0x6DE330) -- this call (return address 0x62BAC8) on the active
+                // player reads the entry of the item in the inventory slot, not the visible (displayed) one; without an
+                // item there, the visible one as before.
+                if (ownerPlayer == ClntObjMgrGetActivePlayerObj()) {
+                    if (const CGObject_C* item = ClntObjMgrObjectPtr(ownerPlayer->m_player->m_playerFieldInvSlotHead[slot], TYPE_ITEM, __FILE__, __LINE__)) {
+                        coaHave = true;
+                        coaItemId = static_cast<int32_t>(item->m_obj->m_entryID);
+                    }
+                }
+
+                if (coaHave) {
+                    int32_t itemId = abs(coaItemId);
 
                     if (itemId && ResolveItemSetItem(&data, pass, itemId, slot)) {
                         (*numEquipped)++;
@@ -6738,6 +6751,10 @@ const char* CGTooltip::GetItemHyperlinkString(int32_t itemId, uint32_t quality, 
 // VERIFY: 2118de6f auto
 // OFFSET: 0x0061E5C0
 const char* CGTooltip::GetQuestLink(int32_t questId, int32_t level) {
+    // CoA: AscInitHooks.cpp:Detour61E5C0 (orig hook 0x61E5C0) -- a quest in the player's log links with the level of the
+    // player's addon field 0x3D + slot (the last matching slot).
+    level = CoA::InitHooks::QuestLinkLevel(static_cast<uint32_t>(questId), level);
+
     WOWGUID none = { 0 };
     QuestCache* quest = g_questDBCache.GetRecord(questId, none, nullptr, nullptr, false);
 

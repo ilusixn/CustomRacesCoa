@@ -56,6 +56,7 @@
 #include "WoW/Source/DB/Rec/SpellVisualKitModelAttachRec.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "Engine/Source/ShaderEffect/Types.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 // STATIC: 0x00ADAC98
 CGObject_C::InteractIcon CGObject_C::s_interactIcons[12] = {
@@ -920,6 +921,9 @@ void CGObject_C::ClearSpellEffect(uint32_t spellId, int32_t all) {
 // VERIFY: d4b02396 auto
 // OFFSET: 0x00744030
 void CGObject_C::DoFade(float alpha, uint32_t time) {
+    // CoA: AscInitHooks.cpp:Detour744030 (orig hook 0x744030) -- a time over 100000 ms becomes 1000.
+    time = CoA::InitHooks::FadeTime(time);
+
     uint8_t target = static_cast<int32_t>(alpha * 255.0f);
     uint8_t current = this->m_alpha;
 
@@ -1321,6 +1325,11 @@ void CGObject_C::HandleScaleUpdate(float scale) {
 
     if (guid == (camera->m_targetGUID)) {
         CGGameUI::ResetCamera(this->m_obj->m_guid);
+    }
+
+    // CoA: AscInitHooks.cpp:Detour7441D0 (orig hook 0x7441D0) -- after the body: a game object updates its world object.
+    if (this->m_typeId == ID_GAMEOBJECT) {
+        this->UpdateWorldObject(1);
     }
 }
 

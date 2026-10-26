@@ -1,4 +1,5 @@
 #include "Map.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Misc.h"
 #include "CoA/Source/Modules/CameraClient.h"
 #include "WoW/Source/WorldClient/WorldLightingConstants.h"
@@ -2459,6 +2460,9 @@ void CMap::PrepareUpdate(bool addToScene) {
 // VERIFY: 6cf7464a auto
 // OFFSET: 0x007BD480
 int32_t CMap::SafeOpen(const char* fileName, SFileImpl** file) {
+    // CoA: AscCrashContext.cpp:LoadMapObject (orig hook 0x7BD480) -- the crash report's "Last Loaded Map Object Name".
+    CoA::CrashContext::Record(CoA::CrashContext::Field::MapObjectName, fileName);
+
     int32_t tries = 10;
 
     while (!SFileOpenFile(fileName, file)) {

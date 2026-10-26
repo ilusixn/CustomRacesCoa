@@ -37,6 +37,8 @@ namespace CoA::GlobalsJ {
     // CombatLogDisableAll; periodic events (0x0A / 0x23 when v58 == v5C, 0x09 / 0x22 when v5C == v60) of a spell with
     // SpellCustomAttr +0x14 bit 4; any event CombatLogDisable named.
     bool CombatLogAllowed(uint32_t eventType, uint32_t spell, uint32_t v58, uint32_t v5C, uint32_t v60);
+    // 0x10D3D749, set by CombatLogDisableAll (AscInitHooks' UnitCombatLog detour reads it too).
+    bool CombatLogAllDisabled();
     // SetAttackAnimation (0x10D3D810) for the player's attack swing (the detour on 0x7385C0); 0 = the client's.
     int32_t AttackAnimation();
     // SetAttackDistance (0x10D3D7EC) for the attack-range check (the detour on 0x4F5F40); 0 = the client's.

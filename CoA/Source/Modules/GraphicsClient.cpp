@@ -2,6 +2,7 @@
 // callbacks and lifecycle write (CWorld::enables, DNInfo's fog, the shadow mode, the far clip), the antiportal table and
 // the occlusion overlay's draws.
 #include "CoA/Source/Modules/Graphics.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
@@ -109,7 +110,7 @@ namespace {
         CGCamera* camera = CGWorldFrame::GetActiveCamera();
 
         if (!camera) {
-            SErrDisplayAppFatal("%s", "WorldRender::ToDrawPosition requires an active camera");
+            CoA::CrashContext::Assert("WorldRender::ToDrawPosition requires an active camera", nullptr, 0);
             return C3Vector(0.0f, 0.0f, 0.0f);
         }
 

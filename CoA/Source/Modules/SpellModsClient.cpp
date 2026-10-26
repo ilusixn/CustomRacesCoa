@@ -1,6 +1,7 @@
 // AscSpellMods.cpp's client half: the records and unit questions SpellMods.cpp asks, the aura-flag and usable-action
 // list entries (they take the client's records) and the decomp sites' record conversions.
 #include "CoA/Source/Modules/SpellModsClient.h"
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/AuraAmounts.h"
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Modules/CA.h"
@@ -181,8 +182,8 @@ namespace {
         CoA::ClientHooks::manastormSkipsModalSpell = on;
     }
 
-    void Fatal(const char* message) {   // AscCrashContext::Assert (Task 4's route)
-        SErrDisplayAppFatal("%s", message);
+    void Fatal(const char* message) {   // AscCrashContext::Assert
+        CoA::CrashContext::Assert(message, nullptr, 0);
     }
 
     bool AuraFlagOn(void*, uint32_t, const void* rec) {   // 0x10325AA0

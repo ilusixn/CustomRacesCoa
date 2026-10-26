@@ -30,6 +30,7 @@
 #include "WoW/Source/Ui/BarberShop.h"
 #include "WoW/Source/Ui/Tutorial.h"
 #include "WoW/Source/Ui/UILCD/LCD.h"
+#include "CoA/Source/Modules/InitHooks.h"
 
 // STATIC: 0x00BEA4A8
 WorldPvPQueueStatus CGBattlefieldInfo::m_worldPvPQueues[1];
@@ -1572,6 +1573,10 @@ static const char* s_flagTokens[2] = { "AllianceFlag", "HordeFlag" };
 // VERIFY: 3c841256 manual
 // OFFSET: 0x0054D010
 const char* CGBattlefieldInfo::GetFlagToken(uint32_t index) {
+    // CoA: AscInitHooks.cpp:FlagModel (orig hook 0x54D010) -- REPLACED (sub_10a79080): "AllianceFlag" for a non-zero
+    // index, else "HordeFlag".
+    return CoA::InitHooks::FlagToken(index);
+
     uint32_t count;
 
     if (CGBattlefieldInfo::m_flagCarriers[1]) {
