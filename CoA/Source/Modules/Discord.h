@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 // AscDiscord.cpp: DiscordMgr (FUN_10220d50 -> static 0x10BE21F0: +0x04 enabled, +0x05 activity callbacks registered,
 // +0x08 the create result, +0x10 the current DiscordUser, +0x1A8 the discord::Core*) and the three global natives.
@@ -18,8 +19,8 @@
 //               OnActivityJoinRequest (CMSG 0x529 {u64 user id}) / OnActivityJoin (CMSG 0x52B {cstring secret}) and
 //               sends the activity; later ones build it and never send it (kept).
 //   SMSG 0x90E  sized invite code -> OverlayManager::OpenGuildInvite.
-// The original links discord_game_sdk.dll statically; CoA64 loads it at run time (DiscordClient.cpp). The install ships
-// the 32-bit SDK, which an x64 process cannot load, so the "no core" path runs there (CMSG 0x52E, no thread).
+// The original links discord_game_sdk.dll statically; CoA64 loads it at run time (DiscordClient.cpp), the x64 SDK from
+// <exe dir>\x64\ first. Without a loadable SDK the "no core" path runs (CMSG 0x52E, no thread).
 namespace CoA::Discord {
     // The activity as the SDK wrapper's setters leave it: every string cut at its first NUL and at 127 bytes.
     struct Activity {
@@ -60,6 +61,10 @@ namespace CoA::Discord {
     void OnCurrentUserUpdate();                    // FUN_10221aa0
     void OnActivityJoinRequest(uint64_t userId);   // FUN_10221bb0
     void OnActivityJoin(const char* secret);       // FUN_10221c90
+
+    // CoA64: where discord_game_sdk.dll is loaded from, in order -- <exe dir>\x64\ (the x64 SDK beside DXVK's d3d9.dll;
+    // the install's own copy is Ascension.exe's 32-bit one), then the plain name.
+    std::vector<std::wstring> SdkPaths(const std::wstring& exeDir);
 }
 
 #endif

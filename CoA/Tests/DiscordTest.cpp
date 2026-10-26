@@ -277,3 +277,12 @@ COA_TEST(Discord_GuildInvite) {
     CHECK(Run(L, "DiscordOpenGuildInvite({})")[0].compare(0, 7, "<error>") == 0);   // luaL_checklstring raises
     Stop(L);
 }
+
+// CoA64: the install's discord_game_sdk.dll is Ascension.exe's 32-bit one (LoadLibrary error 193 here); the x64 SDK
+// sits next to DXVK's d3d9.dll in <exe dir>\x64\ and is tried first, then the plain name.
+COA_TEST(Discord_SdkPathsPreferTheX64Folder) {
+    const std::vector<std::wstring> paths = CoA::Discord::SdkPaths(L"D:\\WoW\\Coa");
+    CHECK(paths.size() == 2);
+    CHECK(paths.size() == 2 && paths[0] == L"D:\\WoW\\Coa\\x64\\discord_game_sdk.dll");
+    CHECK(paths.size() == 2 && paths[1] == L"discord_game_sdk.dll");
+}
