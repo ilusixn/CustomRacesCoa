@@ -168,6 +168,12 @@ namespace CoA::ClientHooks {
     inline int suppressUnlearnMessages = 0;
     // FUN_10193a60: while RemoveMacro runs under the hook, GetSpell's macro test (0x5A8C70) is a jmp.
     inline int getSpellSkipsMacros = 0;
+    // AscManastorm.cpp FUN_102a1e90: inside a Manastorm the jne at 0x80DB37 (Spell_C_ClickSpell's modal-next-spell
+    // test) is a jmp, so a click on the modal spell goes on to cast it.
+    inline bool manastormSkipsModalSpell = false;
+    // AscAura137.cpp FUN_10a73ea0: while on, the falling tests of CMovementShared::StartTurn / StopTurn (0x988E48 /
+    // 0x989053) are NOPed and SetRawFacing (0x989B97 / 0x989B9A) always re-anchors with force 1 (turning while falling).
+    inline bool aura137TurnWhileFalling = false;
 
     // 0x102776A0: the alternate list runs on every second SMSG_INITIAL_SPELLS (flag 0x10BE2E38, starting clear).
     void InitialSpellsReceived();

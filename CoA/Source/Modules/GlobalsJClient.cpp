@@ -25,6 +25,7 @@
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "CoA/Source/Modules/BridgeStore.h"
+#include "CoA/Source/Modules/LootLockout.h"
 #include "CoA/Source/Modules/MythicPlus.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include <Windows.h>
@@ -369,10 +370,8 @@ namespace {
         }
 
         const uint32_t encounter = static_cast<uint32_t>(static_cast<int64_t>(CheckNumber(L, 1)));
-
-        if (hasUnit) {
-            static_cast<void>(CheckString(L, 2));
-        }
+        const std::string unit = hasUnit ? CheckString(L, 2) : std::string();
+        const uint64_t guid = GetGuidByKeyword(unit.c_str()).m_guid;   // 0x60C1C0, "" without a unit
 
         const DungeonEncounterRec* row = g_dungeonEncounterDB.GetRecord(static_cast<int32_t>(encounter));
 
@@ -388,8 +387,7 @@ namespace {
         PushInt(L, row->m_difficulty + 1);
         PushStr(L, iconPath.c_str());
         PushInt(L, row->m_orderIndex);
-        // AscLootLockout::SecondsRemaining waits for the loot-lockout module.
-        PushInt(L, 0);
+        PushInt(L, static_cast<int32_t>(CoA::LootLockout::SecondsRemaining(guid, encounter)));
         CoA::Script::PushBool(L, CoA::MythicPlus::EncounterKilled(encounter));
         return 7;
     }

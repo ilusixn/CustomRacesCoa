@@ -319,15 +319,6 @@ namespace {
         return CoA::SpellText::Description(spell, true, true, 0);
     }
 
-    // AscAssetQuery::TryCacheItem: queue an item-cache request unless it is cached. The asset-query manager is not
-    // ported yet; the request goes to the item cache directly (no ITEM_CACHE_REQUEST_* events).
-    void QueryDone(int32_t, const WOWGUID&, void*, bool) {
-    }
-
-    void CacheItem(uint32_t entry) {
-        g_itemDBCache.GetRecord(static_cast<int32_t>(entry), WOWGUID(), QueryDone, nullptr, true);
-    }
-
     void OnGameObjectUsed(void* object) {
         CoA::MysticEnchant::OnGameObjectUse(static_cast<CGObject_C*>(object)->m_obj->m_entryID);
     }
@@ -359,7 +350,6 @@ void CoA::MysticEnchantClient::Init() {
     d.altarNearby = AltarNearby;
     d.spellTextName = SpellTextName;
     d.spellTextDescription = SpellTextDescription;
-    d.cacheItem = CacheItem;
 
     CoA::SpellText::Deps& text = CoA::SpellText::Dependencies();
     text.mysticSlotted = CoA::MysticEnchant::Slotted;

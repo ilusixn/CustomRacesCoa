@@ -8915,7 +8915,9 @@ void Spell_C_ClickSpell(int32_t spellId, const CGItem_C* item, WOWGUID target) {
         return;
     }
 
-    if (spellId == GetModalNextSpell()) {
+    // CoA: AscManastorm.cpp:FUN_102a1e90 (Extensions.dll patch 0x80DB37) -- inside a Manastorm the jne is a jmp: the
+    // modal-next-spell branch is never taken.
+    if (spellId == GetModalNextSpell() && !CoA::ClientHooks::manastormSkipsModalSpell) {
         WOWGUID none = { 0 };
         player->OnAttackIconPressed(none, 0);
         return;
