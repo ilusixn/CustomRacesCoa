@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <malloc.h>
+#include <string>
+#include <vector>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/Base/Status.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -1838,4 +1840,121 @@ void AddOnsSaveOne(const char* name) {
     if (UIADDON* addon = s_addons.Ptr(name)) {
         addon->m_loading = true;
     }
+}
+
+// CoA: AddOnWatchClient.cpp -- the live addon list (not in the original). The archive and disk scans' addon names,
+// collected instead of loaded.
+static int32_t CollectAddOnsArchive(const char* fileName, void* param) {
+    const char* extension = SStrChrR(const_cast<char*>(fileName), '.');
+
+    if (!extension || SStrCmpI(extension, ".toc", STORM_MAX_STR)) {
+        return 1;
+    }
+
+    char name[260];
+    SStrCopy(name, fileName + SStrLen("Interface\\AddOns\\"), sizeof(name));
+
+    for (char* p = name; *p; p++) {
+        if (*p == '\\' || *p == '/') {
+            *p = '\0';
+            break;
+        }
+    }
+
+    static_cast<std::vector<std::string>*>(param)->push_back(name);
+
+    return 1;
+}
+
+static int32_t CollectAddOnsDisk(OS_FILE_DATA& data, void* param) {
+    if ((data.flags & 0x10) && data.fileName[0] != '.') {
+        static_cast<std::vector<std::string>*>(param)->push_back(data.fileName);
+    }
+
+    return 0;
+}
+
+// CoA: AddOnWatchClient.cpp -- the live addon list (not in the original). Re-reads the named addons' .toc (all: every
+// addon on disk, in the archives and already known) and rebuilds the load-with links and the sorted list. An addon
+// that is loaded or loading keeps its entry until the next reload, and a secure or Blizzard one keeps the server's
+// verdict until the next login; a newly found secure addon stays hidden until then. Secure entries are never added or
+// removed here, so SetAddOnInfoRequest still reads the reply in the order GetAddOnInfoRequest sent. Returns whether
+// the addons were initialized (and the list rebuilt).
+bool RescanAddOns(const char* const* names, uint32_t count, bool all) {
+    if (!s_addOnsInitialized) {
+        return false;
+    }
+
+    std::vector<std::string> rescan(names, names + count);
+
+    if (all) {
+        for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+            rescan.push_back(addon->m_key.m_str);
+        }
+
+        ListInterfaceArchive("Interface\\AddOns\\", CollectAddOnsArchive, &rescan);
+        OsFileList("Interface\\AddOns\\", "*", CollectAddOnsDisk, &rescan, 0);
+        CoA::RealmDataClient::AfterInitializeAddOns(CollectAddOnsArchive, CollectAddOnsDisk, &rescan);
+    }
+
+    LoadBannedAddOns();
+
+    for (const std::string& rescanName : rescan) {
+        const char* name = rescanName.c_str();
+        UIADDON* addon = s_addons.Ptr(name);
+
+        if (addon) {
+            if (addon->m_loading || addon->m_loaded || addon->m_secure || addon->m_blizzard) {
+                continue;
+            }
+
+            s_addons.Delete(addon);
+        }
+
+        LoadAddOnInfo(name);
+        addon = s_addons.Ptr(name);
+
+        if (!addon) {
+            continue;
+        }
+
+        if (addon->m_secure) {
+            s_addons.Delete(addon);
+            continue;
+        }
+
+        UIADDON::METADATA* version = addon->m_metadata.Ptr("Version");
+
+        if (IsBannedAddOn(addon->m_key.m_str, version ? version->m_value : nullptr)) {
+            addon->m_status = 2;
+        }
+    }
+
+    DestroyBannedAddOns();
+
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+        addon->m_loadWithMe.Clear();
+    }
+
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+        for (uint32_t i = 0; i < addon->m_loadWith.Count(); i++) {
+            UIADDON* target = s_addons.Ptr(addon->m_loadWith[i]);
+
+            if (target) {
+                *target->m_loadWithMe.New() = addon;
+            }
+        }
+    }
+
+    s_addOnInfo.SetCount(0);
+
+    for (UIADDON* addon = s_addons.m_fulllist.Head(); addon; addon = s_addons.m_fulllist.Next(addon)) {
+        if (!addon->m_blizzard) {
+            *s_addOnInfo.New() = addon->m_key.m_str;
+        }
+    }
+
+    qsort(s_addOnInfo.m_data, s_addOnInfo.Count(), sizeof(const char*), QSortAddOns);
+
+    return true;
 }

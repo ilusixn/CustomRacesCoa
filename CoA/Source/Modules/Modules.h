@@ -159,6 +159,7 @@ namespace CoA::GlobalsJClient { void Init(); }
 namespace CoA::AddonTaintClient { void Init(); }
 namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
+namespace CoA::AddOnWatchClient { void Init(); }
 namespace CoA::CharacterCreateClient { void Init(); }
 namespace CoA::AttachLateClient { void Init(); }
 namespace CoA::AttachFixesClient { void Init(); }
