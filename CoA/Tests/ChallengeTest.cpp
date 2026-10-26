@@ -999,6 +999,7 @@ COA_TEST(Challenge_Container) {
 
     CHECK(Eq(filter("", ""), "8,3,7,2,1,9"));
     CHECK(Eq(filter("", "FILTER_TRIAL = true"), "8,3,7,2,9"));
+    CHECK(Eq(filter("", "FILTER_TRIAL = 'x'"), "8,3,7,2,1,9"));   // FUN_10131480: a bad value empties the map
     CHECK(Eq(filter("", "FILTER_CHALLENGE = true"), "8,3,1"));
     CHECK(Eq(filter("", "FILTER_TRIAL = true, FILTER_CHALLENGE = true"), "8,3,7,2,1,9"));
     CHECK(Eq(filter("", "FILTER_TRIAL = true, FILTER_PRESTIGE = true"), "8,3,2"));

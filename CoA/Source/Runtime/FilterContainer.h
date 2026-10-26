@@ -108,6 +108,8 @@ namespace CoA::Filter {
         const std::vector<T>& Filtered() const { return m_filtered; }
         size_t Size() const { return m_filtered.size(); }
         T At(size_t i) const { return i < m_filtered.size() ? m_filtered[i] : T(); }
+        // +0x1C: the last filter's text after token extraction (what the original's refilters pass).
+        const std::string& LastText() const { return m_lastText; }
 
         // FUN_101016d0
         void Reset()

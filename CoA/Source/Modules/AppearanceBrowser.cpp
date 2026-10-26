@@ -423,18 +423,7 @@ namespace {
 
     std::vector<std::string> ReadFlagNames(lua_State* L, int idx) {   // FUN_100bed80: {name = true}
         std::map<std::string, bool> map;
-
-        if (lua_type(L, idx) == LUA_TTABLE) {
-            lua_pushnil(L);
-
-            while (lua_next(L, idx)) {
-                if (lua_isstring(L, -2)) {
-                    map[lua_tolstring(L, -2, nullptr)] = lua_toboolean(L, -1) != 0;
-                }
-
-                lua_settop(L, -2);
-            }
-        }
+        CoA::Script::ToBoolMap(L, idx, map);
 
         std::vector<std::string> out;
 

@@ -126,6 +126,16 @@ COA_TEST(WildcardSets_DesiredBrowser) {
     CHECK((R(L, "return C_Wildcard.GetNumFilteredDesiredEntries()") == V{ "0" }));
     Run(L, "C_Wildcard.SetFilteredDesiredEntries('', { FILTER_TYPE_TALENT = true })");
     CHECK((Ids(L, "Desired") == V{ "Talent:102" }));
+    {   // FUN_100bed80: a bad value or key empties the map -- the same view as no filters
+        Run(L, "C_Wildcard.SetFilteredDesiredEntries('', {})");
+        const V none = Ids(L, "Desired");
+        CHECK(none != V{ "Talent:102" });
+        Run(L, "C_Wildcard.SetFilteredDesiredEntries('', { FILTER_TYPE_TALENT = 'x' })");
+        CHECK(Ids(L, "Desired") == none);
+        Run(L, "C_Wildcard.SetFilteredDesiredEntries('', { FILTER_TYPE_TALENT = true, [true] = true })");
+        CHECK(Ids(L, "Desired") == none);
+        Run(L, "C_Wildcard.SetFilteredDesiredEntries('', { FILTER_TYPE_TALENT = true })");
+    }
     CHECK((At(L, "Desired", 1) == V{ "102", "Talent", "Warrior", "Protection", "", "0", "", "1", "5100" }));
     CHECK((At(L, "Desired", 2) == V{ "none" }));
     CHECK((At(L, "Desired", 0) == V{ "none" }));
