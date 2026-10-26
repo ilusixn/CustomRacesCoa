@@ -30,7 +30,7 @@ Stage 1 plan for context: `docs/superpowers/plans/2026-10-26-render-pipeline-sta
 - `coaRenderDebug` gains values 3 (motion view) and 4 (translucency mask view); 1 and 2 keep their meaning.
 - Motion convention: RG16F, `(prevUV - curUV)` in UV units of the world target (u right, v down), computed with the
   UNJITTERED current and previous projections (jitter never appears in motion). (0,0) = no motion.
-- Depth: the INTZ value is `depthMin + ndc * (depthMax - depthMin)` (`Frame::depthMin/depthMax`, world MaxZ 0.94).
+- Depth: the INTZ value is `depthMin + ndcD3D * (depthMax - depthMin)` where ndcD3D = (ndcGL + 1) / 2 for the recorded GL-style `Frame.proj` (the devices convert m_projection to the native D3D [0,1] form); far/clear depth (sky) reprojects as a direction at infinity (`Frame::depthMin/depthMax`, world MaxZ 0.94).
 - A model seen for the first time (no cached previous bones) or after a reset gets no model-pass draw (its pixels
   keep the static pass's camera motion). On `Frame::reset` the whole motion texture is cleared to (0,0).
 - Both D3D9 device classes (`CGxDeviceD3d`, `CGxDeviceD3d9Ex`) get identical device changes; engine edits carry
