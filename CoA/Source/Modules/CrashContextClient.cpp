@@ -102,8 +102,7 @@ namespace {
 }
 
 void CoA::CrashContextClient::AppendReport(char* buffer, uint32_t size) {
-    CoA::CrashContext::RecordClientDbRow(g_coaLastGetRowDb, g_coaLastGetRowId);
-    SStrPack(buffer, CoA::CrashContext::Report().c_str(), size);
+    SStrPack(buffer, CoA::CrashContext::ReportWithClientDbRow(g_coaLastGetRowDb, g_coaLastGetRowId).c_str(), size);
 }
 
 void CoA::CrashContextClient::Init() {

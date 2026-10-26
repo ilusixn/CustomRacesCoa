@@ -34,11 +34,27 @@ namespace {
         }
     }
 
-    // The original dereferences the first argument's userdata unchecked; nil (no metatable) or an emptied packet is
-    // nothing here.
+    // The original dereferences the first argument's userdata unchecked; here only a packet userdata (the registry
+    // "CDataStore" metatable) is one (Ruling) -- nil, an emptied packet, a light or any other userdata is nothing.
     CDataStore* Arg(lua_State* L) {
-        CDataStore** ud = static_cast<CDataStore**>(lua_touserdata(L, 1));
+        if (lua_type(L, 1) != LUA_TUSERDATA || !lua_getmetatable(L, 1)) {
+            return nullptr;
+        }
+
+        lua_pushstring(L, "CDataStore");
+        lua_rawget(L, LUA_REGISTRYINDEX);
+        const bool packet = lua_rawequal(L, -1, -2) != 0;
+        lua_pop(L, 2);
+
+        CDataStore** ud = packet ? static_cast<CDataStore**>(lua_touserdata(L, 1)) : nullptr;
         return ud ? *ud : nullptr;
+    }
+
+    // Security (Ruling): a received packet wraps the client's receive buffer (CDataStore(data, size), m_alloc -1),
+    // which FetchWrite never grows, so the original's Put* writes past its end. Only CreatePacket's stores are written.
+    CDataStore* WritableArg(lua_State* L) {
+        CDataStore* s = Arg(L);
+        return s && s->m_alloc != 0xFFFFFFFF ? s : nullptr;
     }
 
     // FUN_1030f620.
@@ -66,7 +82,7 @@ namespace {
     // PutData (0x47B1C0) of the value's bytes.
     template <class T>
     void Put(lua_State* L, T v) {
-        if (CDataStore* s = Arg(L)) {
+        if (CDataStore* s = WritableArg(L)) {
             s->PutData(&v, sizeof(T));
         }
     }
@@ -103,7 +119,7 @@ namespace {
 
     // FUN_1030fbd0: CDataStore::PutString (0x47B300), NUL included. The string is checked before the packet.
     int PutString(lua_State* L) {
-        CDataStore* s = Arg(L);
+        CDataStore* s = WritableArg(L);
         const char* v = luaL_checkstring(L, 2);
 
         if (s) {

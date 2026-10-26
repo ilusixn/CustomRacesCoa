@@ -2,6 +2,7 @@
 #define COA_SOURCE_MODULES_CRASHCONTEXT_H
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 
 // AscCrashContext.cpp (installer FUN_1019dc80): the "Ascension Debug" block of the client's crash report. Hooks across
@@ -83,9 +84,12 @@ namespace CoA::CrashContext {
 
     // FUN_1019e5f0: the text appended after the client's crash text.
     std::string Report();
+    // The crash handler's entry: records the last client DB row, then Report(), without ever blocking on the lock.
+    std::string ReportWithClientDbRow(const void* db, int32_t id);
 
     // Tests only.
     void Reset();
+    std::mutex& LockForTests();
 }
 
 #endif
