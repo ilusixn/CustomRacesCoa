@@ -48,3 +48,13 @@ COA_TEST(LuaFormat_PercentDWrapsLikeThe32BitClient) {
     CHECK(Eval("string.format('%x', 4294965248)") == "fffff800");
     CHECK(Eval("string.format('%u', -1)") == "4294967295");
 }
+
+// lua_number2int (lua_tointeger / luaL_checkint): the 32-bit client's MSVC build is "fld; fistp dword" (0x84E0A4) --
+// round to nearest even, 0x80000000 when out of range. The x64 fallback (int)d truncated instead.
+COA_TEST(LuaToInteger_RoundsLikeTheX87Fistp) {
+    CHECK(Eval("('abcdef'):sub(2.7)") == "cdef");
+    CHECK(Eval("('abcdef'):sub(2.5)") == "bcdef");   // 2.5 -> 2 (even)
+    CHECK(Eval("('abcdef'):sub(3.5)") == "def");     // 3.5 -> 4 (even)
+    CHECK(Eval("string.rep('a', 2.6)") == "aaa");
+    CHECK(Eval("('abcdef'):sub(-1.6)") == "ef");     // -1.6 -> -2
+}

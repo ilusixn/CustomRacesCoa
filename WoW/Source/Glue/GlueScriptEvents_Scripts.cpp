@@ -1049,7 +1049,7 @@ static int32_t Script_GetCreditsText(lua_State* L) {
         return 0;
     }
 
-    int32_t version = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t version = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     const char* filename;
 
     if (version == 1) {
@@ -1261,7 +1261,7 @@ static int32_t Script_DeclineName(lua_State* L) {
 
     char declensions[5][1024];
 
-    if (GetNameDeclensions(s_locale, declensions[0], name, sex, static_cast<int32_t>(lua_tonumber(L, 3)) - 1)) {
+    if (GetNameDeclensions(s_locale, declensions[0], name, sex, static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 3))) - 1)) {
         for (uint32_t i = 0; i < 5; i++) {
             lua_pushstring(L, declensions[i]);
         }
@@ -1303,7 +1303,7 @@ static int32_t Script_GetGameAccountInfo(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     Login* login = ClientServices::LoginConnection();
 
     if (!login) {
@@ -1336,7 +1336,7 @@ static int32_t Script_SetGameAccount(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     Login* login = ClientServices::LoginConnection();
 
     if (!login) {
@@ -1373,7 +1373,7 @@ static int32_t Script_GetAddOnDependencies(lua_State* L) {
         return 0;
     }
 
-    const char* name = GetAddOnByIndex(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    const char* name = GetAddOnByIndex(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
 
     if (!name) {
         luaL_error(L, "AddOn index must be in the range of 1 to %d", GetNumAddOns());
@@ -1417,7 +1417,7 @@ static int32_t Script_PINEntered(lua_State* L) {
             luaL_error(L, "Usage: PINEntered(4-10 key positions) - non-numeric arg #%d", count + 1);
         }
 
-        digits[i - 1] = static_cast<uint8_t>(lua_tonumber(L, i));
+        digits[i - 1] = static_cast<uint8_t>(static_cast<int64_t>(lua_tonumber(L, i)));
         count++;
     }
 

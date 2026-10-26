@@ -156,7 +156,7 @@ static int32_t Script_GetNumGuildBankTransactions(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     lua_pushnumber(L, tab >= 7 ? 0 : CGGuildBankInfo::m_numLogEntries[tab]);
     return 1;
 }
@@ -169,7 +169,7 @@ static int32_t Script_GetGuildBankText(lua_State* L) {
         return 0;
     }
 
-    int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t value = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     uint8_t tab = value - 1;
 
     if (static_cast<uint8_t>(value - 1) < 6 && tab < CGGuildBankInfo::m_numTabs) {
@@ -191,7 +191,7 @@ static int32_t Script_GetGuildBankItemLink(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     uint32_t slot = static_cast<uint32_t>(lua_tonumber(L, 2)) - 1;
 
     if (tab >= 6 || slot >= CGGuildBankInfo::m_tabSlots[tab].m_count) {
@@ -223,7 +223,7 @@ static int32_t Script_GetGuildBankMoneyTransaction(lua_State* L) {
         return 0;
     }
 
-    uint32_t index = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint32_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     GuildBankLogEntry* entry = index >= 25 ? nullptr : &CGGuildBankInfo::m_log[6][index];
 
     if (entry->m_type == 4) {
@@ -339,10 +339,10 @@ static int32_t Script_GetGuildBankItemInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t value = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     uint8_t tabByte = value - 1;
     uint32_t tab = static_cast<uint8_t>(value - 1);
-    uint32_t slot = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    uint32_t slot = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
     GuildBankSlotInfo* info;
     ItemRec* rec;
 
@@ -380,8 +380,8 @@ static int32_t Script_PickupGuildBankItem(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    uint8_t slot = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    uint8_t slot = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
 
     if (tab >= 6 || slot >= 98) {
         return 0;
@@ -452,8 +452,8 @@ static int32_t Script_AutoStoreGuildBankItem(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    int32_t value = static_cast<int32_t>(lua_tonumber(L, 2));
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    int32_t value = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2)));
     uint8_t slot = value - 1;
 
     if (tab >= 6 || static_cast<uint8_t>(value - 1) >= 98) {
@@ -510,8 +510,8 @@ static int32_t Script_SplitGuildBankItem(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    uint8_t slot = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    uint8_t slot = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
 
     if (tab >= 6 || slot >= 98) {
         return 0;
@@ -538,7 +538,7 @@ static int32_t Script_SplitGuildBankItem(lua_State* L) {
         return 0;
     }
 
-    int32_t amount = static_cast<int32_t>(lua_tonumber(L, 3));
+    int32_t amount = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 3)));
 
     if (amount < 1 || amount > stats->m_stackable) {
         return 0;
@@ -571,7 +571,7 @@ static int32_t Script_GetGuildBankTabInfo(lua_State* L) {
         return 0;
     }
 
-    int32_t value = static_cast<int32_t>(lua_tonumber(L, 1));
+    int32_t value = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1)));
     uint8_t tab = value - 1;
 
     if (static_cast<uint8_t>(value - 1) >= 6 || tab >= CGGuildBankInfo::m_numTabs) {
@@ -637,7 +637,7 @@ static int32_t Script_SetGuildBankTabInfo(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     const char* name = lua_tolstring(L, 2, nullptr);
     double index = lua_tonumber(L, 3);
 
@@ -706,7 +706,7 @@ static int32_t Script_QueryGuildBankLog(lua_State* L) {
         return 0;
     }
 
-    CGGuildBankInfo::QueryGuildBankLog(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    CGGuildBankInfo::QueryGuildBankLog(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     return 0;
 }
 
@@ -718,8 +718,8 @@ static int32_t Script_GetGuildBankTransaction(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
-    uint8_t index = static_cast<int32_t>(lua_tonumber(L, 2)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
+    uint8_t index = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 2))) - 1;
     GuildBankLogEntry* entry = tab >= 7 || index >= 25 ? nullptr : &CGGuildBankInfo::m_log[tab][index];
 
     if (!ClntObjMgrGetActivePlayerObj()) {
@@ -796,7 +796,7 @@ static int32_t Script_QueryGuildBankText(lua_State* L) {
         return 0;
     }
 
-    CGGuildBankInfo::QueryGuildBankText(static_cast<int32_t>(lua_tonumber(L, 1)) - 1);
+    CGGuildBankInfo::QueryGuildBankText(static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1);
     return 0;
 }
 
@@ -808,7 +808,7 @@ static int32_t Script_SetGuildBankText(lua_State* L) {
         return 0;
     }
 
-    uint8_t tab = static_cast<int32_t>(lua_tonumber(L, 1)) - 1;
+    uint8_t tab = static_cast<int32_t>(static_cast<int64_t>(lua_tonumber(L, 1))) - 1;
     const char* text = lua_tolstring(L, 2, nullptr);
     char scrubbed[8194];
     scrubbed[0] = '\0';
