@@ -34,8 +34,12 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 - **Logon protocol.** Ascension's logon hooks (`0x8CCE00`, `0x9A83E0`, `0x9A88C0`) are not built: stock SRP6, as the
   CoA server expects. The reconstruction's native logon (`AscNativeLogon`, its `ASCENSION_NATIVE_LOGON` build option,
   default off) is not ported.
-- **Interface hot patches.** The reconstruction's `AscHotPatch` (SMSG `0x8F0`, the `0x5BC` formatter check; not in the
-  original, `ASCENSION_HOT_PATCH` default off) is not ported.
+- **Interface hot patches.** The reconstruction's `AscHotPatch` (its `ASCENSION_HOT_PATCH` build; not in the original)
+  is ported, always on (`HotPatch.cpp`): SMSG `0x8F0` server-sent interface Lua (source only, guarded, run once per Lua
+  session, replayed after a `/reload`, the player's choice in `WTF\HotPatch.txt` and `/hotpatch on|ask|off`), CMSG
+  `0x8F1` capability and `0x8F2` results, and the `0x5BC` formatter check (`DbcPatch::SetValidator`): a
+  ChallengeRequirementTypes formatter that is not one `return <expression>` over `value` and the seven shipped
+  functions drops the row.
 - **Bridged table patches.** Server patches of the six bridged tables (SMSG `0x567`, `0x569`, `0x56D`, `0x56F`,
   `0x573`, `0x574`) take effect: `MMgr64.exe` refused the row write (PatchRecord `0x73`), so the 32-bit client dropped
   every such patch. The reconstruction applies them too (its `3c8f196`, by pinning). The creature (`0x567`) and

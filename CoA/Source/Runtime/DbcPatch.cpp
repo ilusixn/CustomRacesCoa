@@ -33,6 +33,11 @@ namespace {
         return specs;
     }
 
+    std::map<uint32_t, CoA::DbcPatch::Validator>& Validators() {
+        static std::map<uint32_t, CoA::DbcPatch::Validator> validators;
+        return validators;
+    }
+
     int32_t OnPatch(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {
         auto it = Specs().find(opcode);
 
@@ -49,13 +54,22 @@ namespace {
         std::vector<uint8_t> row(spec.structSize);
         CoA::Read::Data(msg, row.data(), spec.structSize);
         CoA::Dbc::Table& table = CoA::Dbc::Get(spec.table);
+        std::map<uint32_t, std::string> strings;
 
         for (uint32_t f = 0; f < spec.structSize / 4 && f < 64; ++f) {
-            if (!(spec.stringMask & (1ull << f))) {
-                continue;
+            if (spec.stringMask & (1ull << f)) {
+                strings[f] = spec.sizedStrings ? CoA::Read::Name(msg) : CoA::Read::Str(msg);
             }
+        }
 
-            std::string value = spec.sizedStrings ? CoA::Read::Name(msg) : CoA::Read::Str(msg);
+        // CoA: the reconstruction's AscDbcPatch validator (hot-patch build) -- a refused row is not stored.
+        auto validator = Validators().find(opcode);
+
+        if (validator != Validators().end() && !validator->second(opcode, strings)) {
+            return 1;
+        }
+
+        for (const auto& [f, value] : strings) {
             uint32_t offset = table.AddString(value.c_str());
             memcpy(&row[f * 4], &offset, 4);
         }
@@ -86,6 +100,14 @@ void CoA::DbcPatch::RegisterInsertHook(uint32_t opcode, const char* table, uint3
 void CoA::DbcPatch::RegisterSized(uint32_t opcode, const char* table, uint32_t structSize, uint64_t stringMask, CoA::DbcPatch::AfterPatch after) {
     Specs()[opcode] = Spec { table, structSize, stringMask, after, true };
     COA_PACKET(opcode, OnPatch);
+}
+
+void CoA::DbcPatch::SetValidator(uint32_t opcode, CoA::DbcPatch::Validator validate) {
+    if (validate) {
+        Validators()[opcode] = validate;
+    } else {
+        Validators().erase(opcode);
+    }
 }
 
 void CoA::DbcPatch::Init() {

@@ -136,6 +136,8 @@ static const CoA::Module s_modules[] = {
     // (gossip and quest events) and FUN_10a11840 (spell-description tokens).
     { "PacketApi", CoA::PacketApi::Init },
     { "SmallHooks", CoA::SmallHooks::Init },
+    // The reconstruction's AscHotPatch (ASCENSION_HOT_PATCH build; not in the original).
+    { "HotPatch", CoA::HotPatch::Init },
     { "GossipQuest", CoA::GossipQuest::Init },
     { "SpellTokens", CoA::SpellTokens::Init },
     // FUN_10a60cd0 / FUN_10296fd0 (client guards); AscCrashContext (FUN_1019dc80), AscInitHooks (FUN_10a60d20) and
@@ -156,6 +158,7 @@ static const CoA::Module s_modules[] = {
     { "AddOnWatchClient", CoA::AddOnWatchClient::Init },
     // The reconstruction's AscTooltipInsertFix (not in the original; until patch-B's Tooltip.lua is fixed).
     { "TooltipInsertFixClient", CoA::TooltipInsertFixClient::Init },
+    { "HotPatchClient", CoA::HotPatchClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
     { "AttachFixesClient", CoA::AttachFixesClient::Init },
