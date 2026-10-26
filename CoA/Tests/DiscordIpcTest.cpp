@@ -137,7 +137,7 @@ COA_TEST(DiscordIpc_ParseDispatches) {
     CHECK(e.message == "bad");
 
     CHECK(CoA::DiscordIpc::Parse("not json").kind == CoA::DiscordIpc::Event::Other);
-    CHECK(CoA::DiscordIpc::Parse("{\"cmd\":\"SET_ACTIVITY\",\"evt\":null}").kind == CoA::DiscordIpc::Event::Other);
+    CHECK(CoA::DiscordIpc::Parse("{\"cmd\":\"SET_ACTIVITY\",\"evt\":null}").kind == CoA::DiscordIpc::Event::Answer);
 }
 
 // Discord accepts about 5 activity updates per 20 s; the client sends the newest one at most every 4 s (a burst left
@@ -148,4 +148,51 @@ COA_TEST(DiscordIpc_UpdatesAreSpacedFourSecondsApart) {
     CHECK(!CoA::DiscordIpc::SendNow(true, true, 1000, 4999));          // 3999 ms after the last
     CHECK(CoA::DiscordIpc::SendNow(true, true, 1000, 5000));           // 4000 ms
     CHECK(CoA::DiscordIpc::SendNow(true, true, 0xFFFFF000u, 0x00000FA0u));   // tick wrap: 8000 ms later
+}
+
+// The outbox: only the newest status matters; it is sent once the handshake is answered, spaced, and resent until
+// Discord confirms it (its answer echoes the nonce) -- an error or no answer within kConfirmMs sends it again.
+COA_TEST(DiscordIpc_OutboxDeliversTheNewestUntilConfirmed) {
+    CoA::DiscordIpc::Outbox o;
+    o.Queue();
+    CHECK(!o.Due(1000));                   // not before READY
+    o.Ready(1000);
+    CHECK(o.Due(1000));
+    o.Sent(5, 1000);
+    CHECK(!o.Due(1100));                   // waiting for the answer
+    o.Answered(5, true, 1200);
+    CHECK(!o.Due(9000));                   // confirmed, nothing new
+
+    o.Queue();                             // a change at 1300: spaced to 5000
+    CHECK(!o.Due(4999));
+    CHECK(o.Due(5000));
+    o.Sent(6, 5000);
+    o.Queue();                             // changed again while 6 is in flight
+    o.Answered(6, true, 5100);
+    CHECK(!o.Due(8999));
+    CHECK(o.Due(9000));                    // the newer one, after the spacing
+    o.Sent(7, 9000);
+
+    o.Answered(99, true, 9100);            // someone else's answer
+    CHECK(!o.Due(9200));
+    o.Answered(7, false, 9300);            // an error: sent again after the spacing
+    CHECK(!o.Due(12999));
+    CHECK(o.Due(13000));
+    o.Sent(8, 13000);
+    CHECK(!o.Due(17999));                  // no answer yet
+    CHECK(o.Due(18000));                   // kConfirmMs without an answer: again
+
+    o.Lost();                              // the pipe broke: nothing until the next READY
+    CHECK(!o.Due(30000));
+    o.Ready(30000);
+    CHECK(o.Due(30000));                   // the newest status goes out on the new connection
+}
+
+COA_TEST(DiscordIpc_ParseCarriesTheNonce) {
+    CoA::DiscordIpc::Event e = CoA::DiscordIpc::Parse("{\"cmd\":\"SET_ACTIVITY\",\"data\":{},\"evt\":null,\"nonce\":\"12\"}");
+    CHECK(e.kind == CoA::DiscordIpc::Event::Answer);
+    CHECK(e.nonce == 12);
+    e = CoA::DiscordIpc::Parse("{\"cmd\":\"SET_ACTIVITY\",\"evt\":\"ERROR\",\"data\":{\"code\":4000,\"message\":\"x\"},\"nonce\":\"13\"}");
+    CHECK(e.kind == CoA::DiscordIpc::Event::Error);
+    CHECK(e.nonce == 13);
 }

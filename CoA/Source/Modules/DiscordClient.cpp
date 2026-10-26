@@ -34,11 +34,8 @@ namespace {
     bool s_haveUser = false;
     uint64_t s_userId = 0;
     std::string s_username;
-    bool s_haveActivity = false;
     CoA::Discord::Activity s_activity;    // re-sent after every (re)connect
-    bool s_pending = false;               // s_activity not yet sent on this connection
-    bool s_sentBefore = false;
-    DWORD s_lastSent = 0;
+    CoA::DiscordIpc::Outbox s_outbox;     // delivery of s_activity: after READY, spaced, resent until confirmed
     bool s_refreshTimer = false;
 
     bool WriteLocked(const std::vector<uint8_t>& frame) {
@@ -57,22 +54,25 @@ namespace {
         return true;
     }
 
-    // Sends the pending activity when the spacing allows (DiscordIpc::SendNow).
+    // Sends the newest activity when the outbox says so (after READY, spaced, until Discord confirms it).
     void FlushLocked() {
         const DWORD now = GetTickCount();
 
-        if (s_pipe == INVALID_HANDLE_VALUE || !CoA::DiscordIpc::SendNow(s_pending, s_sentBefore, s_lastSent, now)) {
+        if (s_pipe == INVALID_HANDLE_VALUE || !s_outbox.Due(now)) {
             return;
         }
 
-        if (WriteLocked(CoA::DiscordIpc::SetActivity(s_activity, GetCurrentProcessId(), ++s_nonce))) {
-            s_pending = false;
-            s_sentBefore = true;
-            s_lastSent = now;
+        const uint32_t nonce = ++s_nonce;
+
+        if (WriteLocked(CoA::DiscordIpc::SetActivity(s_activity, GetCurrentProcessId(), nonce))) {
+            CoA::Log::Printf("Discord: sent \"%s\" / \"%s\"", s_activity.details.c_str(), s_activity.state.c_str());
+            s_outbox.Sent(nonce, now);
         }
     }
 
     void DisconnectLocked() {
+        s_outbox.Lost();
+
         if (s_pipe != INVALID_HANDLE_VALUE) {
             CloseHandle(s_pipe);
             s_pipe = INVALID_HANDLE_VALUE;
@@ -132,7 +132,7 @@ namespace {
             WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN", ++s_nonce));
             WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN_REQUEST", ++s_nonce));
 
-            s_pending = s_haveActivity;
+            s_outbox.Ready(GetTickCount());
             FlushLocked();
         }
 
@@ -160,7 +160,17 @@ namespace {
             case CoA::DiscordIpc::Event::Ready: OnReady(e); break;
             case CoA::DiscordIpc::Event::Join: CoA::Discord::OnActivityJoin(e.secret.c_str()); break;
             case CoA::DiscordIpc::Event::JoinRequest: CoA::Discord::OnActivityJoinRequest(e.userId); break;
-            case CoA::DiscordIpc::Event::Error: CoA::Log::Printf("Discord: error %s", e.message.c_str()); break;
+            case CoA::DiscordIpc::Event::Answer: {
+                std::lock_guard<std::mutex> lock(s_lock);
+                s_outbox.Answered(e.nonce, true, GetTickCount());
+                break;
+            }
+            case CoA::DiscordIpc::Event::Error: {
+                CoA::Log::Printf("Discord: error %s", e.message.c_str());
+                std::lock_guard<std::mutex> lock(s_lock);
+                s_outbox.Answered(e.nonce, false, GetTickCount());
+                break;
+            }
             default: break;
         }
     }
@@ -225,8 +235,7 @@ namespace {
     void UpdateActivity(const CoA::Discord::Activity& a) {
         std::lock_guard<std::mutex> lock(s_lock);
         s_activity = a;
-        s_haveActivity = true;
-        s_pending = true;
+        s_outbox.Queue();
         CoA::Log::Printf("Discord: status \"%s\" / \"%s\"", a.details.c_str(), a.state.c_str());
         FlushLocked();   // at once, or from the callback loop once the spacing allows
     }

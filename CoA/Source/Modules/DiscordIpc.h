@@ -33,8 +33,10 @@ namespace CoA::DiscordIpc {
     bool Broken(const std::vector<uint8_t>& buffer);
 
     struct Event {
-        enum Kind { Other, Ready, Join, JoinRequest, Error } kind = Other;
+        // Answer: a command's success reply (evt null); Error replies carry the command's nonce too.
+        enum Kind { Other, Ready, Join, JoinRequest, Error, Answer } kind = Other;
         uint64_t userId = 0;
+        uint32_t nonce = 0;
         std::string username, secret, message;
     };
 
@@ -44,6 +46,31 @@ namespace CoA::DiscordIpc {
     // The newest pending activity goes out at most every kMinSpacingMs (GetTickCount values, wrap-safe).
     constexpr uint32_t kMinSpacingMs = 4000;
     bool SendNow(bool pending, bool sentBefore, uint32_t lastSentMs, uint32_t nowMs);
+
+    // How long a sent status waits for Discord's answer before it is sent again.
+    constexpr uint32_t kConfirmMs = 5000;
+
+    // Delivery of the status: only the newest one matters (Queue marks it changed). It goes out once the handshake is
+    // answered (Ready), at most every kMinSpacingMs, and is resent until Discord confirms it -- an error answer or no
+    // answer within kConfirmMs queues it again; a lost connection resends it after the next Ready.
+    class Outbox {
+    public:
+        void Queue();
+        void Ready(uint32_t nowMs);
+        void Lost();
+        bool Due(uint32_t nowMs);
+        void Sent(uint32_t nonce, uint32_t nowMs);
+        void Answered(uint32_t nonce, bool ok, uint32_t nowMs);
+
+    private:
+        bool m_has = false;        // a status was ever queued
+        bool m_ready = false;
+        bool m_pending = false;
+        bool m_inflight = false;
+        uint32_t m_nonce = 0;
+        bool m_sentBefore = false;
+        uint32_t m_lastSent = 0;
+    };
 }
 
 #endif
