@@ -11,7 +11,9 @@ namespace CoA::RenderMotion {
     };
 
     // Static pass: motion of a static world point seen at pixel (u, v) (0..1, v down) with the stored depth, as prevUV - curUV.
-    // The stored depth is minZ + ndc * (maxZ - minZ) of the frame's depth range. Camera-relative: the unprojected point is
+    // The stored depth is what the device writes: minZ + ndcD3D * (maxZ - minZ) with ndcD3D = (ndcGL + 1) / 2, where ndcGL
+    // is the clip z / w of Frame.proj (GL-style, -1..1). A stored depth >= depthMax (sky / clear) is a direction at
+    // infinity: only the rotation applies. An empty depth range returns (0, 0). Camera-relative: the unprojected point is
     // relative to the current eye and is moved into the previous eye's frame with cur.pos - prev.pos.
     Vec2 StaticMotion(const RenderPipeline::Frame& f, float u, float v, float storedDepth);
 
@@ -20,7 +22,7 @@ namespace CoA::RenderMotion {
     Vec2 ModelMotion(const RenderPipeline::Mat4& curBoneView, const RenderPipeline::Mat4& prevBoneView, const float pos[3],
                      const RenderPipeline::Mat4& curProj, const RenderPipeline::Mat4& prevProj);
 
-    // General 4x4 inverse (identity if singular).
+    // General 4x4 inverse. A singular matrix returns the identity.
     RenderPipeline::Mat4 Inverse(const RenderPipeline::Mat4& m);
 }
 

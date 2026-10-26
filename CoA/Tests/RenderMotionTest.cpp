@@ -1,4 +1,5 @@
 #include "CoA/Source/Runtime/CVars.h"
+#include "CoA/Source/Runtime/RenderMotion.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Tests/TestMain.h"
 #include <cmath>
@@ -61,7 +62,6 @@ COA_TEST(RenderPipeline_MotionCVarQueuedOff) {
 }
 
 // --- Motion reference math (RenderMotion) ---------------------------------------------------------------------------
-#include "CoA/Source/Runtime/RenderMotion.h"
 
 namespace {
     using CoA::RenderPipeline::Frame;
@@ -149,8 +149,8 @@ namespace {
     // Stored depth of a point `yards` straight ahead.
     float DepthAt(const Frame& f, float yards) {
         const Mat4& p = f.cur.proj;
-        const float ndc = (yards * p.m[2][2] + p.m[3][2]) / (yards * p.m[2][3]);
-        return f.depthMin + ndc * (f.depthMax - f.depthMin);
+        const float ndcGl = (yards * p.m[2][2] + p.m[3][2]) / (yards * p.m[2][3]);
+        return f.depthMin + (ndcGl + 1.0f) * 0.5f * (f.depthMax - f.depthMin);   // the device's D3D depth through the viewport
     }
 
     void CurClip(const Mat4& bone, const Frame& f, const float p[3], float out[4]) {
@@ -163,7 +163,7 @@ namespace {
     float CurDepth(const Frame& f, const Mat4& bone, const float p[3]) {
         float c[4];
         CurClip(bone, f, p, c);
-        return f.depthMin + (c[2] / c[3]) * (f.depthMax - f.depthMin);
+        return f.depthMin + (c[2] / c[3] + 1.0f) * 0.5f * (f.depthMax - f.depthMin);
     }
 
     // Previous camera at the origin, current camera one yard along its right axis.
@@ -187,7 +187,7 @@ COA_TEST(StaticMotion_SidestepMovesPointsOpposite) {
 }
 
 COA_TEST(StaticMotion_DepthRangeHonoured) {
-    auto a = SidestepFrame(0.0f, 0.94f);
+    auto a = SidestepFrame(0.1f, 0.94f);
     auto b = SidestepFrame(0.0f, 1.0f);
     auto ma = CoA::RenderMotion::StaticMotion(a, 0.4f, 0.5f, DepthAt(a, 10.0f));
     auto mb = CoA::RenderMotion::StaticMotion(b, 0.4f, 0.5f, DepthAt(b, 10.0f));
@@ -221,4 +221,31 @@ COA_TEST(RenderMotion_InverseRoundTrip) {
     Mat4 m = Mul(CamView(Yaw(0.7f)), CamProj());
     Mat4 i = Mul(m, CoA::RenderMotion::Inverse(m));
     for (int r = 0; r < 4; ++r) for (int c = 0; c < 4; ++c) CHECK(Near(i.m[r][c], r == c ? 1.0f : 0.0f, 1e-4f));
+}
+
+COA_TEST(StaticMotion_SkyIgnoresTranslation) {
+    auto f = SidestepFrame();
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.3f, 0.6f, f.depthMax);
+    CHECK(Near(m.x, 0, 1e-4f) && Near(m.y, 0, 1e-4f));
+    auto g = FrameWith(Cam(0, 0, 0, Yaw(0)), Cam(0, 0, 0, Yaw(0.1f)));
+    auto n = CoA::RenderMotion::StaticMotion(g, 0.5f, 0.5f, g.depthMax);
+    CHECK(std::fabs(n.x) > 1e-3f);
+}
+
+COA_TEST(StaticMotion_MagnitudeMatchesHandComputation) {
+    auto f = SidestepFrame();
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, DepthAt(f, 10.0f));
+    CHECK(Near(m.x, 0.5f * CamProj().m[0][0] * 0.1f, 1e-4f));
+}
+
+COA_TEST(StaticMotion_CameraUpMovesPointsDown) {
+    auto f = FrameWith(Cam(0, 0, 0, Yaw(0)), Cam(0, 0, 1, Yaw(0)));
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, DepthAt(f, 10.0f));
+    CHECK(m.y < 0 && Near(m.x, 0, 1e-4f));
+}
+
+COA_TEST(StaticMotion_EmptyDepthRangeIsZero) {
+    auto f = SidestepFrame(0.5f, 0.5f);
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, 0.5f);
+    CHECK(m.x == 0 && m.y == 0);
 }

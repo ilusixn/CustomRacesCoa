@@ -83,7 +83,14 @@ namespace CoA::RenderMotion {
 
     Vec2 StaticMotion(const RenderPipeline::Frame& f, float u, float v, float storedDepth) {
         const float range = f.depthMax - f.depthMin;
-        const float ndc[4] = { u * 2.0f - 1.0f, 1.0f - v * 2.0f, (storedDepth - f.depthMin) / range, 1.0f };
+        if (range == 0.0f) {
+            return { 0.0f, 0.0f };
+        }
+        // The device writes the D3D depth (ndcGL + 1) / 2 through the viewport range; Frame.proj is the GL-style projection.
+        const float ndcD3d = (storedDepth - f.depthMin) / range;
+        const float ndc[4] = { u * 2.0f - 1.0f, 1.0f - v * 2.0f, ndcD3d * 2.0f - 1.0f, 1.0f };
+        // Far plane / clear value (sky): a direction at infinity, so the eye translation does not apply (w = 0).
+        const bool atInfinity = storedDepth >= f.depthMax - 1e-6f;
 
         // Camera-relative point: the view has no translation (eye at the origin).
         const Mat4 inv = Inverse(Mul(f.cur.view, f.cur.proj));
@@ -91,10 +98,10 @@ namespace CoA::RenderMotion {
         Transform(ndc, inv, p);
         const float invW = 1.0f / p[3];
         const float world[4] = {
-            p[0] * invW + (f.cur.pos[0] - f.prev.pos[0]),
-            p[1] * invW + (f.cur.pos[1] - f.prev.pos[1]),
-            p[2] * invW + (f.cur.pos[2] - f.prev.pos[2]),
-            1.0f
+            p[0] * invW + (atInfinity ? 0.0f : f.cur.pos[0] - f.prev.pos[0]),
+            p[1] * invW + (atInfinity ? 0.0f : f.cur.pos[1] - f.prev.pos[1]),
+            p[2] * invW + (atInfinity ? 0.0f : f.cur.pos[2] - f.prev.pos[2]),
+            atInfinity ? 0.0f : 1.0f
         };
 
         float prevClip[4];
