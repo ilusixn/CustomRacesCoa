@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/Geosets.h"
 #include "CoA/Source/Modules/SpellShadowClient.h"
 #include "CoA/Source/Modules/SpellVisualsClient.h"
+#include "CoA/Source/Modules/SpellMods.h"
 #include <algorithm>
 #include <vector>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
@@ -6709,6 +6710,12 @@ uint32_t CGUnit_C::GetShapeshiftForm() const {
 // VERIFY: ae4e25f4 auto
 // OFFSET: 0x0071AF90
 int32_t CGUnit_C::IsInMelee() const {
+    // CoA: AscSpellMods.cpp:0x10324390 (orig hook 0x71AF90) -- with Auto Shot pending: in a Manastorm, under the aura
+    // flag / aura type 0x138, or the player without a main-hand weapon counts as in melee.
+    if (CoA::SpellMods::InMeleeOverride(const_cast<CGUnit_C*>(this))) {
+        return 1;
+    }
+
     return static_cast<bool>(this->m_combat.m_attacking);
 }
 
@@ -6816,6 +6823,12 @@ uint32_t CGUnit_C::GetCanFly() const {
 // VERIFY: 54d048fe manual
 // OFFSET: 0x0071B820
 int32_t CGUnit_C::IsInMeleeRange(CGUnit_C* target) const {
+    // CoA: AscSpellMods.cpp:FUN_10324300 (orig hook 0x71B820) -- the player with a ranged weapon and no main hand, or
+    // the Auto Shot gates, is never in melee range.
+    if (CoA::SpellMods::MeleeRangeVeto(const_cast<CGUnit_C*>(this))) {
+        return 0;
+    }
+
     CGUnit* targetUnit = target ? static_cast<CGUnit*>(target) : nullptr;
     float range = this->m_unit->m_unitFieldCombatreach + targetUnit->m_unit->m_unitFieldCombatreach + 1.3333334f;
 
@@ -13871,7 +13884,8 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
         this->ShowHandItemSpellEffects(0, 0);
     }
 
-    if (instant) {
+    // CoA: AscSpellMods.cpp:FUN_103273F0 (orig hook 0x80CCE0) -- 0x7370AF's je a jmp while a mounted-aura spell casts.
+    if (instant && !CoA::SpellMods::SheatheAnimates()) {
         this->SetSheatheStateInstant();
     } else {
         this->SetSheatheStateAnimate();
@@ -16265,8 +16279,12 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     }
 
     if ((channeled && (spell->m_channelInterruptFlags & 0x18) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60)) || ((spell->m_interruptFlags & 0x1) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60) && !(spell->m_attributesExB & 0x20) && (SpellRec::GetCastTime(spell, this->m_unit->m_unitFieldPetnumber != 0, 0, 0) || (spell->m_auraInterruptFlags & 0x18)))) {
-        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_MOVING, -1, -1, false);
-        return false;
+        // CoA: AscSpellMods.cpp:FUN_10323d50 (orig hook 0x80CCE0) -- 0x73A0D0..0x73A0EF NOPed during the cast: the
+        // failure falls through (cast while moving).
+        if (!CoA::SpellMods::CastWhileMoving()) {
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_MOVING, -1, -1, false);
+            return false;
+        }
     }
 
     if (!this->CheckShapeshiftRules(spell, &reason) && (reason == 94 || !this->CanAutoUnshift())) {

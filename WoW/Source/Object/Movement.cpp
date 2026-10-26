@@ -1,4 +1,5 @@
 #include "Movement.h"
+#include "CoA/Source/Modules/MovementForceClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <cmath>
 #include <cstddef>
@@ -4229,6 +4230,11 @@ transport:
 // VERIFY: 9ba90a88 manual
 // OFFSET: 0x00762E00
 uint32_t CMovement_C::CollideRequestMove(uint32_t time, uint32_t elapsed, C3Vector move) {
+    // CoA: AscMovementForce.cpp:FUN_102b8c30 (orig hook 0x762E00) -- a forced unit standing still runs it flagged as
+    // moving (flags | 1), restored after.
+    uint32_t forceSavedFlags = 0;
+    const bool forceFlagged = CoA::MovementForce::BeforeCollide(this, forceSavedFlags);
+    auto forceAfter = CoA::ClientHooks::OnScopeExit([this, forceFlagged, forceSavedFlags] { CoA::MovementForce::AfterCollide(this, forceFlagged, forceSavedFlags); });
     if (!elapsed) {
         return 0;
     }
@@ -5267,6 +5273,9 @@ void CMovement_C::ApplyMovement(uint32_t time, uint32_t elapsed) {
 // VERIFY: d4ff9c2f manual
 // OFFSET: 0x006F09F0
 void CMovement_C::ExecuteMovement(uint32_t time, uint32_t lastTime) {
+    // CoA: AscMovementForce.cpp:FUN_102b8be0 (orig hook 0x6F09F0) -- after the original: the time of the last player move
+    // while a force pushes it.
+    auto forceAfter = CoA::ClientHooks::OnScopeExit([this, time] { CoA::MovementForce::AfterExecuteMovement(this, time); });
     uint32_t cursor = lastTime;
     uint32_t delta = time - lastTime;
     uint32_t total = delta;
@@ -5568,6 +5577,10 @@ void CMovement_C::Teleport(WOWGUID transport, const C3Vector& position, float fa
 // VERIFY: 930c3840 manual
 // OFFSET: 0x006EB730
 int32_t CMovement_C::UpdateStatusInternal(uint32_t time, const CMovementStatus& status, int32_t& timeOffset, int32_t local, int32_t force) {
+    // CoA: AscMovementForce.cpp:FUN_102b8da0 (orig hook 0x6EB730) -- another unit's idle update while a force acts on it
+    // is kept and spread over the next frames (the old position back after the original).
+    const CoA::MovementForce::StatusUpdate forceUpdate = CoA::MovementForceClient::BeforeStatus(this, status);
+    auto forceAfter = CoA::ClientHooks::OnScopeExit([this, &forceUpdate, &status] { CoA::MovementForceClient::AfterStatus(forceUpdate, this, status); });
     if ((!this->m_spline || (this->m_spline->m_flags & 0x400)) && this->m_unit->m_vehiclePassenger && (this->m_unit->m_vehiclePassenger->m_flags & 0x200)) {
         return 0;
     }

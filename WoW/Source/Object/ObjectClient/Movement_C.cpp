@@ -1,4 +1,5 @@
 #include "Movement_C.h"
+#include "CoA/Source/Modules/MovementForce.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
@@ -212,6 +213,9 @@ int32_t MovementIdleMoveUnits(const void* data, void* param) {
         globals->m_lastUpdateTime = now;
     }
 
+    // CoA: AscMovementForce.cpp:FUN_102b9c00 (orig hook 0x6F1490), replacing it with the original then the forces: the
+    // player's forces, then every other forced unit, once per frame.
+    CoA::MovementForce::Tick();
     return 1;
 }
 
