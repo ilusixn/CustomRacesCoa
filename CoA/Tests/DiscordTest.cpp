@@ -372,3 +372,28 @@ COA_TEST(Discord_ClientStatusNeedsACore) {
     CHECK(s_activities.size() == 1);   // only "Selecting World"
     Stop(L);
 }
+
+// The small image (user decision 2026-10-26): the character's faction in world ("si_horde" / "si_alliance", its name as
+// the hover text), the application icon ("app_icon") on the character screen or for any other faction.
+COA_TEST(Discord_ClientStatusSmallImageIsTheFaction) {
+    lua_State* L = Start();
+    Sdk();
+    ClientStatus();
+    s_world.faction = "Horde";
+    s_core = true;
+    Initialize();
+    CHECK(s_activities.size() == 1 && s_activities[0].smallImage == "app_icon" && s_activities[0].smallText.empty());
+
+    CoA::Discord::OnEnterWorld();
+    CHECK(s_activities.size() == 2 && s_activities.back().smallImage == "si_horde" && s_activities.back().smallText == "Horde");
+    s_world.faction = "Alliance";
+    CoA::Discord::Refresh();
+    CHECK(s_activities.size() == 3 && s_activities.back().smallImage == "si_alliance" && s_activities.back().smallText == "Alliance");
+    s_world.faction = "Neutral";
+    CoA::Discord::Refresh();
+    CHECK(s_activities.size() == 4 && s_activities.back().smallImage == "app_icon" && s_activities.back().smallText.empty());
+
+    CoA::Discord::OnLeaveWorld();
+    CHECK(s_activities.size() == 5 && s_activities.back().smallImage == "app_icon");
+    Stop(L);
+}
