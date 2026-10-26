@@ -220,3 +220,47 @@ COA_TEST(PacketApi_NilWithoutTheMetatable) {
     CHECK(Run("P = CreatePacket(3)"));
     CHECK(Global("P") == "nil");
 }
+
+// Review C1: a received packet is the client's receive buffer (CDataStore(data, size), m_alloc -1, FetchWrite never
+// grows it); a handler's Put* would write past its end. Writes to a received packet are refused (Ruling).
+COA_TEST(PacketApi_ReceivedPacketRefusesWrites) {
+    Start();
+    CHECK(Run("RegisterPacket(0x604, function(op, p)\n"
+              "  p:PutString('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA') p:PutUInt32(1) p:PutUInt8(1) p:PutBool(true) p:PutFloat(1)\n"
+              "  p:PutInt16(1) p:PutInt32(1) V = p:GetUInt32()\n"
+              "end)"));
+    CoATest::Bytes b;
+    b.U32(77);
+    b.data.reserve(256);
+    const size_t size = b.data.size();
+    b.data.insert(b.data.end(), 128, 0xCC);   // the bytes past the packet end
+    b.data.resize(size);
+    CDataStore* store = nullptr;
+    CoATest::Deliver(CoA::PacketApi::OnRegisteredPacket, 0x604, b, &store);
+    CHECK(store->m_size == size);
+    CHECK(Global("V") == "77");
+
+    for (size_t i = size; i < size + 128; ++i) {
+        CHECK(b.data.data()[i] == 0xCC);
+    }
+}
+
+// Review I2: the methods take only a packet userdata (the registry "CDataStore" metatable); a light userdata or any
+// other userdata is not dereferenced as a CDataStore** (Ruling: the original dereferences any userdata).
+COA_TEST(PacketApi_MethodsTakeOnlyPacketUserdata) {
+    Start();
+    CDataStore target;
+    CDataStore* pointer = &target;
+    lua_pushstring(s_L, "CDataStore");
+    lua_rawget(s_L, LUA_REGISTRYINDEX);
+    lua_getfield(s_L, -1, "PutUInt32");
+    CHECK(lua_isfunction(s_L, -1));
+    lua_pushlightuserdata(s_L, &pointer);
+    lua_pushnumber(s_L, 5);
+    lua_pcall(s_L, 2, 0, 0);
+    lua_settop(s_L, 0);
+    CHECK(target.m_size == 0);
+
+    CHECK(Run("local put = CreatePacket(1).PutUInt32 put(newproxy(), 5) OK = true"));
+    CHECK(Global("OK") == "true");
+}

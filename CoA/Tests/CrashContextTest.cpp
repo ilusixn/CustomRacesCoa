@@ -2,6 +2,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Tests/TestMain.h"
 #include <cstring>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -267,4 +268,15 @@ COA_TEST(CrashContext_TraceLine) {
     CHECK(CoA::CrashContext::TraceLine(0, nullptr, "[string \"x\"]", 1) == "[0] <anonymous> ([string \"x\"]:1)\n");
     CHECK(CoA::CrashContext::TraceLine(2, "", "a.lua", -1) == "[2] <anonymous> (a.lua:-1)\n");
     CHECK(CoA::CrashContext::TraceLine(3, "OnClick", "b.lua", 20) == "[3] OnClick (b.lua:20)\n");
+}
+
+// Review I1: a crash inside a recorder leaves the recorders' lock held on the crashing thread; the report (with the
+// last client DB row, read at crash time) is still built on that thread -- nothing re-locks it.
+COA_TEST(CrashContext_ReportWhileTheLockIsHeld) {
+    CoA::CrashContext::Reset();
+    std::unique_lock<std::mutex> held(CoA::CrashContext::LockForTests());
+    int table = 0;
+    const std::string r = CoA::CrashContext::ReportWithClientDbRow(&table, 42);
+    CHECK(Has(r, "Ascension Debug"));
+    CHECK(Has(r, "Last ClientDB::GetRow: DB = " + Pointer(&table) + " ID = 42"));
 }

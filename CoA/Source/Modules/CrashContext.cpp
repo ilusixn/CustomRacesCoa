@@ -110,9 +110,29 @@ std::string CoA::CrashContext::TraceLine(int32_t level, const char* name, const 
     return out.str();
 }
 
+static std::string BuildReport();
+
 std::string CoA::CrashContext::Report() {
     // A crash inside a recorder leaves the lock held on this thread: the report is built without it then.
     std::unique_lock<std::mutex> lock(s_mutex, std::try_to_lock);
+    return BuildReport();
+}
+
+// The crash path: the last client DB row (0x65C290's globals) is stored under the same try_lock as the report, so a
+// lock left held by a crash inside a recorder is never taken again on this thread (review I1).
+std::string CoA::CrashContext::ReportWithClientDbRow(const void* db, int32_t id) {
+    std::unique_lock<std::mutex> lock(s_mutex, std::try_to_lock);
+    s_clientDbId = id;
+    s_clientDb = db;
+    return BuildReport();
+}
+
+std::mutex& CoA::CrashContext::LockForTests() {
+    return s_mutex;
+}
+
+static std::string BuildReport() {
+    using namespace CoA::CrashContext;
     std::string text;
     auto line = [&text](const std::string& s) {
         text += s;
