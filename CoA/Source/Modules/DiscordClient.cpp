@@ -36,6 +36,9 @@ namespace {
     std::string s_username;
     bool s_haveActivity = false;
     CoA::Discord::Activity s_activity;    // re-sent after every (re)connect
+    bool s_pending = false;               // s_activity not yet sent on this connection
+    bool s_sentBefore = false;
+    DWORD s_lastSent = 0;
     bool s_refreshTimer = false;
 
     bool WriteLocked(const std::vector<uint8_t>& frame) {
@@ -52,6 +55,21 @@ namespace {
         }
 
         return true;
+    }
+
+    // Sends the pending activity when the spacing allows (DiscordIpc::SendNow).
+    void FlushLocked() {
+        const DWORD now = GetTickCount();
+
+        if (s_pipe == INVALID_HANDLE_VALUE || !CoA::DiscordIpc::SendNow(s_pending, s_sentBefore, s_lastSent, now)) {
+            return;
+        }
+
+        if (WriteLocked(CoA::DiscordIpc::SetActivity(s_activity, GetCurrentProcessId(), ++s_nonce))) {
+            s_pending = false;
+            s_sentBefore = true;
+            s_lastSent = now;
+        }
     }
 
     void DisconnectLocked() {
@@ -114,9 +132,8 @@ namespace {
             WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN", ++s_nonce));
             WriteLocked(CoA::DiscordIpc::Subscribe("ACTIVITY_JOIN_REQUEST", ++s_nonce));
 
-            if (s_haveActivity) {
-                WriteLocked(CoA::DiscordIpc::SetActivity(s_activity, GetCurrentProcessId(), ++s_nonce));
-            }
+            s_pending = s_haveActivity;
+            FlushLocked();
         }
 
         CoA::Log::Printf("Discord: connected (user %s)", s_haveUser ? "known" : "unknown");
@@ -171,6 +188,8 @@ namespace {
                         }
                     }
 
+                    FlushLocked();
+
                     if (s_pipe != INVALID_HANDLE_VALUE) {
                         if (!PumpLocked()) {
                             DisconnectLocked();
@@ -207,7 +226,9 @@ namespace {
         std::lock_guard<std::mutex> lock(s_lock);
         s_activity = a;
         s_haveActivity = true;
-        WriteLocked(CoA::DiscordIpc::SetActivity(a, GetCurrentProcessId(), ++s_nonce));
+        s_pending = true;
+        CoA::Log::Printf("Discord: status \"%s\" / \"%s\"", a.details.c_str(), a.state.c_str());
+        FlushLocked();   // at once, or from the callback loop once the spacing allows
     }
 
     void OpenGuildInvite(const char* code) {
