@@ -1,4 +1,5 @@
 #include "CGlueMgr.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include <cmath>
 #include <cstdarg>
@@ -1012,6 +1013,9 @@ void ProcessAgreement(SFileImpl* file, const char* name, CVar* cvar, bool locali
 // VERIFY: 42fb8ddc manual
 // OFFSET: 0x004DB9F0
 void CGlueMgr::Initialize() {
+    // CoA: AscDiscord.cpp:Detour4DB9F0 (orig hook 0x4DB9F0) -- DiscordMgr::Initialize after the body.
+    auto afterInitialize = CoA::ClientHooks::OnScopeExit([]() { CoA::ClientHooks::afterGlueInitialize.Run(); });
+
     CGlueMgr::m_initialized = 1;
 
     int32_t readTOS = g_readTOSVar->m_intValue;

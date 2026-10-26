@@ -39,6 +39,11 @@ namespace CoA::BugTracker { void Init(); }
 namespace CoA::PlayerPoll { void Init(); }
 namespace CoA::ChatCheck { void Init(); }
 namespace CoA::FriendsMetadata { void Init(); }
+namespace CoA::RecoveryService { void Init(); }
+namespace CoA::CustomStore { void Init(); }
+namespace CoA::Callboard { void Init(); }
+namespace CoA::CallboardCache { void Init(); }
+namespace CoA::Discord { void Init(); }
 namespace CoA::ScrollOfFortune { void Init(); void Reset(); }
 namespace CoA::DraftMode { void Init(); }
 namespace CoA::BuildDraft { void Init(); void Reset(); }
@@ -81,6 +86,10 @@ namespace CoA::WildcardClient { void Init(); }
 namespace CoA::TemporalContractsClient { void Init(); }
 namespace CoA::GMTicketClient { void Init(); }
 namespace CoA::BugTrackerClient { void Init(); }
+namespace CoA::RecoveryServiceClient { void Init(); }
+namespace CoA::CustomStoreClient { void Init(); }
+namespace CoA::CallboardClient { void Init(); }
+namespace CoA::DiscordClient { void Init(); }
 namespace CoA::DraftModeClient { void Init(); }
 namespace CoA::CanToggleClient { void Init(); }
 namespace CoA::HighRiskClient { void Init(); }
