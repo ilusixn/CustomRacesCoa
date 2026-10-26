@@ -13,7 +13,6 @@
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/LuaReg.h"
-#include "CoA/Source/Runtime/MemoryBridge.h"
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
@@ -761,7 +760,6 @@ COA_TEST(SkillCard_SlotCommands) {
 // leveling flag (a group in 0xC9.. / 0x1F5..).
 COA_TEST(SkillCard_QuestGroups) {
     CoA::Dbc::SetFileReader(ReadTables);
-    CoA::MemoryBridge::Reset();
     CoA::BridgeStore::Reset();
     CoA::BridgeStore::LoadTables();
     CoA::BridgeStore::BuildIndexes();
@@ -776,5 +774,4 @@ COA_TEST(SkillCard_QuestGroups) {
         (V{ "1", "42", "0", "false" }));
     Stop(L);
     CoA::BridgeStore::Reset();
-    CoA::MemoryBridge::Reset();
 }

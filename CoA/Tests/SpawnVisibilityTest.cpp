@@ -95,7 +95,8 @@ COA_TEST(SpawnVisibility_TypeIdByName) {
     CHECK(CoA::SpawnVisibility::TypeIdByName("", 7) == 7);
 }
 
-// Only spell 0x16E59 is asked about; the hook sits at 0x101A2025 in the list (before SpellVisuals' 0x10323151).
+// Only spell 0x16E59 is asked about; the hook (0x101A2025) runs last in the list's measured order, after SpellVisuals'
+// 0x10323151 and Appearance's 0x100C5B88.
 COA_TEST(SpawnVisibility_HookOnlyForTheSpell) {
     Start({ Row(1, 1, UNIT, 500, 0) });
     CHECK(!CoA::ClientHooks::addAuraEffect.Empty());
@@ -107,7 +108,7 @@ COA_TEST(SpawnVisibility_HookOnlyForTheSpell) {
     CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_order.push_back(2); return true; }, 0x10323151);
     CoA::ClientHooks::addAuraEffect.Add([](void*, uint32_t, const void*) { s_order.push_back(1); return true; }, 0x100C5B88);
     CHECK(!Apply({ 3, kCreature, 500 }, 0x16E59));
-    CHECK((s_order == std::vector<uint32_t>{ 1 }));   // stops at the refusal before 0x10323151
+    CHECK((s_order == std::vector<uint32_t>{ 2, 1 }));   // both run before the refusal
     Stop();
 }
 

@@ -163,7 +163,8 @@ namespace {
 
             for (uint32_t slot = 0; slot < 25; ++slot) {
                 const PlayerQuestLogEntry& logged = player->m_player->m_playerQuestLog[slot];
-                const uint32_t id = static_cast<uint16_t>(logged.m_questId);
+                // 32 bits, as in QuestRelevant (AttachFixesClient.cpp). The original reads the low word here too.
+                const uint32_t id = logged.m_questId;
 
                 if (!id) {
                     break;

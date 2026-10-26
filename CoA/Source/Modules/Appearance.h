@@ -55,6 +55,9 @@ namespace CoA::Appearance {
     void ItemAppearancesPatched();
     void ItemSetAppearancesPatched();
     void RebuildOutfits();
+    // The item-use detour 0x10A42F30's last branch (ObjectUse.cpp): the item's ItemAppearances row names a collected
+    // appearance; the first of its categories with a row fires UNLOCKED_APPEARANCE_ITEM_USED when its type is 2..6.
+    void ItemUsed(uint32_t entry, const char* itemName);
 
     void Init();
     void Reset();   // tests: the manager, indexes, browsers and Deps back to their start

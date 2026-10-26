@@ -1491,6 +1491,41 @@ void CoA::Appearance::ItemAppearancesPatched() {
     s_setsForItemAppearanceBuilt = false;
 }
 
+// FUN_1020fae0 -> FUN_100c57a0 -> FUN_100c6450: the appearance's categories +0x14..+0x1C, the first with an
+// AppearanceCategories row ends the search; UNLOCKED_APPEARANCE_ITEM_USED("%u%s%u%s": category, its APPEARANCE_TYPE_*
+// name, appearance, item name).
+void CoA::Appearance::ItemUsed(uint32_t entry, const char* itemName) {
+    const uint8_t* itemAppearance = ItemAppearanceOf(entry);
+
+    if (!itemAppearance) {
+        return;
+    }
+
+    const uint8_t* appearance = Appearances().Row(U32(itemAppearance, 8));
+
+    if (!appearance || !IsCollected(U32(appearance, 0))) {
+        return;
+    }
+
+    for (uint32_t off = 0x14; off < 0x20; off += 4) {
+        const uint32_t category = U32(appearance, off);
+        const uint8_t* row = Categories().Row(category);
+
+        if (!row) {
+            continue;
+        }
+
+        const int type = CategoryType(row);
+
+        if (type >= 2 && type <= 6) {
+            CoA::Events::Signal("UNLOCKED_APPEARANCE_ITEM_USED", "%u%s%u%s", category, Categories().Str(row, 4),
+                U32(appearance, 0), itemName);
+        }
+
+        return;
+    }
+}
+
 void CoA::Appearance::ItemSetAppearancesPatched() {
     BuildItemSetAppearanceIndex();
     s_setsForItemAppearanceBuilt = false;

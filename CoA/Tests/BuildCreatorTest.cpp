@@ -694,7 +694,7 @@ COA_TEST(BuildCreator_RoundTrips) {
 }
 
 // UpdateFilter (FUN_100fca40): text in name / description / author (case-insensitive), argument groups (OR within, AND
-// across) and sort selections in the map's order.
+// across) and sort selections in the map's order. Filters and sorts are name-keyed (0x10B1F780 / 0x10B1E854).
 COA_TEST(BuildCreator_UpdateFilter) {
     lua_State* L = Start();
     E a = Build("a");
@@ -726,26 +726,26 @@ COA_TEST(BuildCreator_UpdateFilter) {
     CHECK((Filtered(L) == V{ "a", "b", "c" }));
     CHECK((Filtered(L, "{}", "{}", "FIRE") == V{ "a", "b" }));
     CHECK((Filtered(L, "{}", "{}", "ascen") == V{ "c" }));
-    CHECK((Filtered(L, "{ [1] = true }") == V{ "b" }));                       // flag 1
-    CHECK((Filtered(L, "{ [2] = true, [6] = true }") == V{ "a", "c" }));      // difficulty easy or impossible
-    CHECK((Filtered(L, "{ [2] = true, [6] = false }") == V{ "a" }));
-    CHECK((Filtered(L, "{ [7] = true }") == V{ "c" }));                       // owned
-    CHECK((Filtered(L, "{ [9] = true, [0xA] = true }") == V{ "a", "c" }));    // agility, intellect
-    CHECK((Filtered(L, "{ [8] = true }") == V{ "b" }));                       // strength
-    CHECK((Filtered(L, "{ [0xC] = true }") == V{ "b" }));                     // tank
-    CHECK((Filtered(L, "{ [0xD] = true, [0xE] = true }") == V{ "a", "c" }));  // healer, damage
-    CHECK((Filtered(L, "{ [0x10] = true }") == V{ "b", "c" }));               // class 1
-    CHECK((Filtered(L, "{ [0x17] = true, [0x10] = true }") == V{ "a", "b", "c" }));
-    CHECK((Filtered(L, "{ [0x10] = true, [0xC] = true }") == V{ "b" }));      // AND across groups
-    CHECK((Filtered(L, "{ [0xF] = true }") == V{ "b", "c" }));                // Ascension's, or updated in the last 30 days
-    CHECK((Filtered(L, "{ [0x30] = true }") == V{}));                         // group 0 fails on a non-match
-    CHECK((Filtered(L, "{}", "{ [1] = true }") == V{ "b", "a", "c" }));       // upvotes ascending
-    CHECK((Filtered(L, "{}", "{ [2] = true }") == V{ "c", "a", "b" }));       // descending
-    CHECK((Filtered(L, "{}", "{ [3] = true }") == V{ "c", "a", "b" }));       // updated ascending
-    CHECK((Filtered(L, "{}", "{ [4] = true }") == V{ "b", "a", "c" }));       // descending
-    CHECK((Filtered(L, "{}", "{ [9] = true }") == V{ "a", "b", "c" }));       // no key
-    CHECK((Filtered(L, "{ x = true }") == V{ "a", "b", "c" }));               // a string key: an empty map
-    CHECK((Filtered(L, "{ [1] = 1 }") == V{ "a", "b", "c" }));                // a non-boolean value: an empty map
+    CHECK((Filtered(L, "{ FILTER_FEATURED = true }") == V{ "b" }));                                  // flag 1
+    CHECK((Filtered(L, "{ FILTER_DIFFICULTY_RATING_EASY = true, FILTER_DIFFICULTY_RATING_IMPOSSIBLE = true }") == V{ "a", "c" }));
+    CHECK((Filtered(L, "{ FILTER_DIFFICULTY_RATING_EASY = true, FILTER_DIFFICULTY_RATING_IMPOSSIBLE = false }") == V{ "a" }));
+    CHECK((Filtered(L, "{ FILTER_OWNED_BUILDS = true }") == V{ "c" }));
+    CHECK((Filtered(L, "{ FILTER_PRIMARY_STAT_AGILITY = true, FILTER_PRIMARY_STAT_INTELLECT = true }") == V{ "a", "c" }));
+    CHECK((Filtered(L, "{ FILTER_PRIMARY_STAT_STRENGTH = true }") == V{ "b" }));
+    CHECK((Filtered(L, "{ FILTER_ROLE_TANK = true }") == V{ "b" }));
+    CHECK((Filtered(L, "{ FILTER_ROLE_HEALER = true, FILTER_ROLE_DAMAGE = true }") == V{ "a", "c" }));
+    CHECK((Filtered(L, "{ FILTER_CLASS_WARRIOR = true }") == V{ "b", "c" }));                       // class 1
+    CHECK((Filtered(L, "{ FILTER_CLASS_MAGE = true, FILTER_CLASS_WARRIOR = true }") == V{ "a", "b", "c" }));
+    CHECK((Filtered(L, "{ FILTER_CLASS_WARRIOR = true, FILTER_ROLE_TANK = true }") == V{ "b" }));   // AND across groups
+    CHECK((Filtered(L, "{ FILTER_LAST_30_DAYS = true }") == V{ "b", "c" }));    // Ascension's, or updated in the last 30 days
+    CHECK((Filtered(L, "{ FILTER_FEATURED = 1 }") == V{ "b" }));                // a number value is a boolean
+    CHECK((Filtered(L, "{ FILTER_FEATURED = true, FILTER_ROLE_TANK = nil }") == V{ "b" }));
+    CHECK((Filtered(L, "{ NOT_A_FILTER = true }") == Filtered(L, "{ FILTER_NONE = true }")));  // unknown: logged, FILTER_NONE
+    CHECK((Filtered(L, "{ FILTER_FEATURED = {} }") == V{ "a", "b", "c" }));     // a table value: an empty map
+    CHECK((Filtered(L, "{}", "{ SORT_RATING_ASCENDING = true }") == V{ "b", "a", "c" }));   // upvotes ascending
+    CHECK((Filtered(L, "{}", "{ SORT_RATING_DESCENDING = true }") == V{ "c", "a", "b" }));  // descending
+    CHECK((Filtered(L, "{}", "{ SORT_DATE_ASCENDING = true }") == V{ "c", "a", "b" }));     // updated ascending
+    CHECK((Filtered(L, "{}", "{ SORT_DATE_DESCENDING = true }") == V{ "b", "a", "c" }));    // descending
     R(L, "C_BuildCreator.UpdateFilter('x', {}, {})");
     CHECK((R(L, "return C_BuildCreator.UpdateFilter('a', {})") == V{}));      // not applied
     CHECK((R(L, "return C_BuildCreator.GetNumBuilds(), C_BuildCreator.GetBuildAtIndex(1), C_BuildCreator.GetBuildAtIndex(0)") == V{ "0", "nil" }));

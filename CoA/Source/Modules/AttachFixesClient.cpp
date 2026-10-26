@@ -260,7 +260,9 @@ bool CoA::AttachFixesClient::QuestRelevant(CGPlayer_C* player, uint32_t entry, b
 
         for (uint32_t slot = 0; slot < 25; ++slot) {
             const PlayerQuestLogEntry& logSlot = player->m_player->m_playerQuestLog[slot];
-            const uint32_t id = static_cast<uint16_t>(logSlot.m_questId);   // the original reads 16 bits
+            // PLAYER_QUEST_LOG_x_1 is 32 bits. The original reads its low word (1008dea0 movzx word), so no quest above
+            // 65535 ever matched and custom quests drew no circle (applied early, as the reconstruction).
+            const uint32_t id = logSlot.m_questId;
 
             if (id == 0) {
                 break;
