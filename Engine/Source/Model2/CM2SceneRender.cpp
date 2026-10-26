@@ -491,6 +491,10 @@ void CM2SceneRender::DrawBatch() {
     }
 }
 
+// CoA: AscUnitSelect.cpp:FUN_102dad10 (callback patch 0x82080B) -- the float the z pad reads: 2.0 (0xA4040C), or the
+// DLL's 10.0 outside dungeons and raids. CoA sets it (the Engine does not link CoA).
+float g_m2ProjectedBatchZPad = 2.0f;
+
 // VERIFY: eebe62d2 manual
 // OFFSET: 0x00820720
 void CM2SceneRender::DrawBatchProj() {
@@ -515,8 +519,8 @@ void CM2SceneRender::DrawBatchProj() {
         return;
     }
 
-    box.b.z = box.b.z - 2.0f;
-    box.t.z = box.t.z + 2.0f;
+    box.b.z = box.b.z - g_m2ProjectedBatchZPad;
+    box.t.z = box.t.z + g_m2ProjectedBatchZPad;
 
     C44Matrix depthMatrix;
     depthMatrix.a0 = 0.0f;

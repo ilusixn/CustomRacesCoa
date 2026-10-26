@@ -1,4 +1,11 @@
 #include "Tooltip.h"
+#include "CoA/Source/Modules/TooltipScaling.h"
+#include "CoA/Source/Modules/TooltipScalingClient.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
+#include "Engine/Source/Frame/CSimpleFrame.h"
+#include "WoW/Source/Ui/GuildBankFrame.h"
+#include "WoW/Source/Ui/QuestFrame.h"
+#include "WoW/Source/Ui/QuestLog.h"
 #include <cstdint>
 #include "Engine/Source/Base/Coordinate.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -1169,6 +1176,13 @@ static int32_t Script_SetUnitAura(lua_State* L) {
 // VERIFY: 51f1907f manual
 // OFFSET: 0x00631B60
 static int32_t Script_SetHyperlinkCompareItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:sub_1027af70 (orig hook 0x631B60) -- nothing (0) while a guild banker is open; else the
+    // compare context for the call.
+    if (!CoA::TooltipScaling::BeginHyperlinkCompare(CGGuildBankInfo::m_banker != WOWGUID())) {
+        return 0;
+    }
+
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::EndHyperlinkCompare(); });
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isstring(L, 2)) {
@@ -1250,6 +1264,9 @@ static int32_t Script_SetLootItem(lua_State* L) {
 // VERIFY: 4a9b0c14 manual
 // OFFSET: 0x006300A0
 static int32_t Script_SetLootRollItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_10283f90 (orig hook 0x6300A0) -- the loot-roll context for the call.
+    CoA::TooltipScaling::BeginLootRoll(L);
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::EndLootRoll(); });
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isnumber(L, 2)) {
@@ -1795,6 +1812,8 @@ static int32_t Script_SetQuestLogRewardSpell(lua_State* L) {
 // VERIFY: d655aaef manual
 // OFFSET: 0x0062E670
 static int32_t Script_SetQuestItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:sub_10283fe0 (orig hook 0x62E670) -- the current quest's QuestTemplateScaling level.
+    CoA::TooltipScaling::SetQuestContext(static_cast<uint32_t>(CGQuestInfo::m_currentQuest));
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
     const char* type;
     uint32_t index;
@@ -1821,6 +1840,8 @@ static int32_t Script_SetQuestItem(lua_State* L) {
 // VERIFY: 40524ae9 manual
 // OFFSET: 0x0062E790
 static int32_t Script_SetQuestLogItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:sub_10284040 (orig hook 0x62E790) -- the selected quest's QuestTemplateScaling level.
+    CoA::TooltipScaling::SetQuestContext(static_cast<uint32_t>(CGQuestLog::m_selectedQuest));
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
     const char* type;
     int32_t index;
@@ -1895,6 +1916,9 @@ static int32_t Script_SetTrainerService(lua_State* L) {
 // VERIFY: 0c5a503b manual
 // OFFSET: 0x0062EAE0
 static int32_t Script_SetTradeSkillItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:sub_102840a0 (orig hook 0x62EAE0) -- the trade-skill flag for the call.
+    CoA::TooltipScaling::SetTradeSkill(true);
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::SetTradeSkill(false); });
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
     uint32_t index;
     TradeSkillInfo* skill;
@@ -2022,6 +2046,10 @@ static int32_t Script_SetMerchantCostItem(lua_State* L) {
 // VERIFY: 6906e91a manual
 // OFFSET: 0x0062EFF0
 static int32_t Script_SetTradePlayerItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027b070 (orig hook 0x62EFF0) -- the trade context (slot = argument 2 - 1); the trade
+    // flag stays set afterwards.
+    CoA::TooltipScaling::BeginTrade(L);
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::EndTrade(false); });
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isnumber(L, 2)) {
@@ -2070,6 +2098,9 @@ static int32_t Script_SetTradePlayerItem(lua_State* L) {
 // VERIFY: 75ef8454 manual
 // OFFSET: 0x0062F1E0
 static int32_t Script_SetTradeTargetItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_1027b0c0 (orig hook 0x62F1E0) -- the trade context for the call.
+    CoA::TooltipScaling::BeginTrade(L);
+    auto coaAfter = CoA::ClientHooks::OnScopeExit([]() { CoA::TooltipScaling::EndTrade(true); });
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isnumber(L, 2)) {
@@ -2158,6 +2189,8 @@ static int32_t Script_SetSendMailItem(lua_State* L) {
 // VERIFY: 117fc8ce manual
 // OFFSET: 0x0062F9E0
 static int32_t Script_SetInboxItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:sub_1027afc0 (orig hook 0x62F9E0) -- the attachment's item GUID.
+    CoA::TooltipScalingClient::BeforeInboxItem(L);
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isnumber(L, 2)) {
@@ -2246,6 +2279,8 @@ static int32_t Script_SetAuctionSellItem(lua_State* L) {
 // VERIFY: e54be545 manual
 // OFFSET: 0x0062FCF0
 static int32_t Script_SetAuctionItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_10283e00 (orig hook 0x62FCF0) -- the auction entry's level.
+    CoA::TooltipScaling::BeforeAuctionItem(L);
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isstring(L, 2) || !lua_isnumber(L, 3)) {
@@ -2382,6 +2417,8 @@ static int32_t Script_SetExistingSocketGem(lua_State* L) {
 // VERIFY: e89f31ca auto
 // OFFSET: 0x006304A0
 static int32_t Script_SetGuildBankItem(lua_State* L) {
+    // CoA: AscTooltipScaling.cpp:FUN_10283f20 (orig hook 0x6304A0) -- the guild bank slot's level.
+    CoA::TooltipScalingClient::BeforeGuildBankItem(L);
     CGTooltip* tooltip = static_cast<CGTooltip*>(FrameScript_GetObjectThis(L, CGTooltip::GetObjectType()));
 
     if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
@@ -2714,4 +2751,10 @@ static FrameScript_Method s_ScriptMethods[] = {
 void CGTooltip::RegisterScriptMethods(lua_State* L) {
     CSimpleFrame::RegisterScriptMethods(L);
     FrameScript_Object::FillScriptMethodTable(L, s_ScriptMethods, sizeof(s_ScriptMethods) / sizeof(s_ScriptMethods[0]));
+
+    // CoA: AscTooltipScaling.cpp:sub_1027c7f0 (orig hook 0x61B4A0) -- after the original: the "#GameTooltip" methods
+    // (GetItemGUID, ClearLine).
+    if (g_widgetMethodsHook) {
+        g_widgetMethodsHook("GameTooltip", L);
+    }
 }

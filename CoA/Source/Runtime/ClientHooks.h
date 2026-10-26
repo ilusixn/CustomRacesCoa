@@ -215,6 +215,26 @@ namespace CoA::ClientHooks {
         uint32_t cameraCollisionFlags = 0x100171;
         // FUN_10199650 (autoTarget): not "1" makes 0x75697C / 0x806AA2 jmp (an attacker is never auto-targeted).
         bool autoTargetAttacker = true;
+
+        // AscNamePlates.cpp FUN_102bf920 (applied by NamePlates::Init): 0x98E9F9 (12 bytes NOPed) / 0x98EA07 (jne rel8
+        // 0x14 -> 0x1F) make CGNamePlateFrame::OnLayerUpdate skip its target / non-target frame level (the DLL's tick
+        // sets the levels by distance). False once applied.
+        bool namePlateTargetLevel = true;
+        // 0x7258CE (8 bytes NOPed): UnitNameplatesReposition always takes the nameplateAllowOverlap anchor path; the
+        // 0x72594B push 0 -> 1 is in the now unreachable smart-rect call.
+        bool namePlatesAnchored = false;
+        // 0x71557D / 0x715586 jne -> jmp: ObjectNameVisibilityChanged always picks the raised interact-icon sequence.
+        bool interactIconRaised = false;
+        // FUN_102bee60 (nameplateShowDead "1"): the jle at 0x72B07A NOPed, a dead unit keeps its plate.
+        bool namePlatesShowDead = false;
+        // AscUnitSelect.cpp: the texture-handle operand at 0x744EB1 (CGObject_C::SetCircleRenderStates reads the handle
+        // there); nullptr is the stock CGObject_C::s_selectionTexture (0xCA12C4). The drawers point it at their own
+        // texture for one draw.
+        void* const* circleTexture = nullptr;
+        // AscTooltipScaling.cpp FUN_1027da50: 0x62B98F's je a jmp while false (CGTooltip::SetItem skips the item set).
+        bool tooltipItemSet = true;
+        // FUN_1027cf90: 0x631760's je a jmp while false (GetItemComparison fails at the first summary).
+        bool itemComparison = true;
     };
     inline OptionPatches options;
 

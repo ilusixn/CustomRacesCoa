@@ -15,6 +15,8 @@ namespace CoA::GlobalsG {
     int32_t AfkLogoutTime();
     // SetNamePlateRange: 5..60 yards, squared (0xADAA7C, stock 1681 = 41^2).
     float NamePlateRangeSq();
+    // AscNamePlates.cpp FUN_102bebc0 (nameplateDistance) writes the same float.
+    void SetNamePlateRangeSq(float rangeSq);
     // SetNamePlateScaleX / Y: 0..1 (0xB2DA74 width, stock 0.1; 0xB2DA70 height, stock 0.025).
     float NamePlateWidth();
     float NamePlateHeight();
