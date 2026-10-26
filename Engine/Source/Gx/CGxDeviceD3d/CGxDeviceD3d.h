@@ -319,7 +319,7 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void DeviceUnk83(uint32_t a, uint32_t b);
     virtual bool WorldTargetSupported();
     virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
-    virtual void WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual bool WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
@@ -403,7 +403,7 @@ class CGxDeviceD3d : public CGxDevice {
     void IXformSetWorld();
     void IWorldTargetApply();
     void IWorldTargetFree();
-    void IWorldTargetRestore();
+    void IWorldTargetRestore(bool rebind = true);
 };
 
 CGxDevice* CreateCGxDeviceD3d();

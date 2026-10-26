@@ -2140,7 +2140,8 @@ bool CGxDevice::WorldTargetBegin(uint32_t /* width */, uint32_t /* height */) {
 }
 
 // CoA64: see WorldTargetSupported.
-void CGxDevice::WorldTargetEnd(int32_t /* left */, int32_t /* top */, int32_t /* right */, int32_t /* bottom */) {
+bool CGxDevice::WorldTargetEnd(int32_t /* left */, int32_t /* top */, int32_t /* right */, int32_t /* bottom */) {
+    return true;
 }
 
 // CoA64: see WorldTargetSupported.

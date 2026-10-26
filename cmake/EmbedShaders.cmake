@@ -21,7 +21,7 @@ function(coa_embed_shader)
         COMMAND ${CMAKE_COMMAND} -E make_directory "${COA_SHADER_OUTPUT_DIR}"
         COMMAND "${COA_FXC}" /nologo /O3 /T ${ARG_PROFILE} /E main /Vn ${ARG_NAME} /Fh "${OUT}" "${ARG_FILE}"
         COMMAND ${CMAKE_COMMAND} -DHEADER=${OUT} -P "${CMAKE_SOURCE_DIR}/cmake/PatchShaderHeader.cmake"
-        DEPENDS "${ARG_FILE}"
+        DEPENDS "${ARG_FILE}" "${CMAKE_SOURCE_DIR}/cmake/PatchShaderHeader.cmake"
         COMMENT "fxc ${ARG_PROFILE}: ${ARG_FILE}"
         VERBATIM)
     target_sources(${ARG_TARGET} PRIVATE "${OUT}")

@@ -987,16 +987,18 @@ bool CGxDeviceD3d::WorldTargetBegin(uint32_t width, uint32_t height) {
 }
 
 // CoA64: restores the original default surfaces and copies the world colour (rect in back-buffer pixels, clamped to
-// the world texture and the back buffer) to the back buffer 1:1. Not begun: no-op.
-void CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom) {
+// the world texture and the back buffer) to the back buffer 1:1. Not begun: no-op. False when the copy-back failed
+// (GetDesc / StretchRect; the originals are restored either way), so the caller can log it. An empty clamped rect or a
+// lost device is not a failure.
+bool CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom) {
     if (!this->m_worldTargetBegun) {
-        return;
+        return true;
     }
 
     this->IWorldTargetRestore();
 
     if (!this->m_context || !this->m_defColorSurface) {
-        return;
+        return true;
     }
 
     int32_t width = static_cast<int32_t>(this->m_worldTargetWidth);
@@ -1004,7 +1006,7 @@ void CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int3
     D3DSURFACE_DESC backBufferDesc;
 
     if (FAILED(this->m_defColorSurface->GetDesc(&backBufferDesc))) {
-        return;
+        return false;
     }
 
     if (static_cast<int32_t>(backBufferDesc.Width) < width) {
@@ -1022,13 +1024,11 @@ void CGxDeviceD3d::WorldTargetEnd(int32_t left, int32_t top, int32_t right, int3
     rect.bottom = bottom < height ? bottom : height;
 
     if (rect.left >= rect.right || rect.top >= rect.bottom) {
-        return;
+        return true;
     }
 
     // The originals are already restored and bound, so a failed copy only loses this frame's world image.
-    if (FAILED(this->m_d3dDevice->StretchRect(this->m_worldColorSurface, &rect, this->m_defColorSurface, &rect, D3DTEXF_NONE))) {
-        return;
-    }
+    return SUCCEEDED(this->m_d3dDevice->StretchRect(this->m_worldColorSurface, &rect, this->m_defColorSurface, &rect, D3DTEXF_NONE));
 }
 
 // CoA64: the world depth texture (IDirect3DTexture9*, INTZ) or nullptr.
@@ -1049,8 +1049,10 @@ void CGxDeviceD3d::WorldTargetRelease() {
         g_worldTargetReleaseHook();
     }
 
+    // CoA64: no rebind here -- IWorldTargetApply reads m_textureTarget[].m_apiSpecific, which a reset-time release may
+    // already have recreated; the reset drops every binding anyway.
     if (this->m_worldTargetBegun) {
-        this->IWorldTargetRestore();
+        this->IWorldTargetRestore(false);
     }
 
     this->IWorldTargetFree();
@@ -1115,15 +1117,16 @@ void CGxDeviceD3d::IWorldTargetFree() {
     this->m_worldTargetHeight = 0;
 }
 
-// CoA64: moves the parked original default surfaces back (their references return with them) and rebinds.
-void CGxDeviceD3d::IWorldTargetRestore() {
+// CoA64: moves the parked original default surfaces back (their references return with them) and, unless told not
+// to (the release path), rebinds.
+void CGxDeviceD3d::IWorldTargetRestore(bool rebind) {
     this->m_defColorSurface = this->m_worldSavedColorSurface;
     this->m_defDepthSurface = this->m_worldSavedDepthSurface;
     this->m_worldSavedColorSurface = nullptr;
     this->m_worldSavedDepthSurface = nullptr;
     this->m_worldTargetBegun = 0;
 
-    if (this->m_d3dDevice) {
+    if (rebind && this->m_d3dDevice) {
         this->IWorldTargetApply();
     }
 }

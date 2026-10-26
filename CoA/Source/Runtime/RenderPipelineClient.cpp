@@ -25,11 +25,18 @@ namespace {
 
     // Not an Inactive value: the device refused WorldTargetBegin.
     constexpr int kBeginFailed = 100;
+    // Not an Inactive value: the device is lost (no device context), so no world target is attempted.
+    constexpr int kDeviceLost = 101;
 
     // The last logged state (an Inactive value or kBeginFailed); -1 until the first world frame.
     int s_logged = -1;
     // The world target is begun for the current world render (between beginWorld and endWorld).
     bool s_begun;
+    // WorldTargetBegin failed for s_width x s_height: not retried until the size changes or the device is reset (the
+    // world target release hook runs before every reset).
+    bool s_beginFailed;
+    // The failed copy-back was logged (cleared by the next good one).
+    bool s_copyFailLogged;
     // The world target was begun at the last world render (a temporal-history reset follows when it was not).
     bool s_wasActive;
     // The device may hold world textures (released when the pipeline turns off).
@@ -185,6 +192,9 @@ namespace {
             case static_cast<int>(Inactive::NoShaders):
                 CoA::Log::Printf("RenderPipeline: inactive: shaders disabled");
                 break;
+            case kDeviceLost:
+                CoA::Log::Printf("RenderPipeline: inactive: device lost");
+                break;
             default:
                 CoA::Log::Printf("RenderPipeline: inactive: world target creation failed (%ux%u)", s_width, s_height);
                 break;
@@ -208,9 +218,17 @@ namespace {
         }
 
         ReleaseDebug();
+        s_beginFailed = false;
         g_worldTargetReleaseHook = nullptr;
         g_renderPipelineHook = nullptr;
         LogState(static_cast<int>(Inactive::CVarOff));
+    }
+
+    // The device is releasing its D3DPOOL_DEFAULT resources (reset / destroy): the debug objects go, and a failed world
+    // target creation may be tried again on the new device.
+    void OnWorldTargetRelease() {
+        ReleaseDebug();
+        s_beginFailed = false;
     }
 
     void BeginWorld() {
@@ -233,6 +251,14 @@ namespace {
             return;
         }
 
+        // CoA64: no device context means the device is lost (between a failed Present / Reset and recovery): nothing to
+        // create, and not a creation failure either.
+        if (!device->m_context) {
+            LogState(kDeviceLost);
+            s_wasActive = false;
+            return;
+        }
+
         // A texture render target bound around the world render: the world target only replaces the default
         // surfaces, so leave this frame alone.
         CGxTex* renderTarget = nullptr;
@@ -251,16 +277,26 @@ namespace {
         // Temporal history restarts on the first world frame after a gap in presented frames (a loading screen,
         // entering the world, the pipeline turning on) and when the target size changes.
         const int32_t frame = device->m_frameCount;
-        const bool forceReset = !s_wasActive || frame != s_lastFrame + 1 || width != s_width || height != s_height;
+        const bool sizeChanged = width != s_width || height != s_height;
+        const bool forceReset = !s_wasActive || frame != s_lastFrame + 1 || sizeChanged;
         s_width = width;
         s_height = height;
         s_lastFrame = frame;
 
+        // A creation that failed at this size is not retried every frame (the size changing or a device reset retries).
+        if (s_beginFailed && !sizeChanged) {
+            Deactivate(device);
+            return;
+        }
+
         if (!device->WorldTargetBegin(width, height)) {
+            s_beginFailed = true;
             LogState(kBeginFailed);
             Deactivate(device);
             return;
         }
+
+        s_beginFailed = false;
 
         LogState(static_cast<int>(Inactive::None));
         s_begun = true;
@@ -298,7 +334,14 @@ namespace {
             // The whole target, not only the viewport: it started as a copy of the back buffer and the partial-viewport
             // GxSceneClear cleared all of it, so a full copy reproduces the original back buffer exactly.
             CGxDevice* device = g_theGxDevicePtr;
-            device->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height));
+            if (!device->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height))) {
+                if (!s_copyFailLogged) {
+                    s_copyFailLogged = true;
+                    CoA::Log::Printf("RenderPipeline: copy of the world image to the back buffer failed (this frame's world is lost)");
+                }
+            } else {
+                s_copyFailLogged = false;
+            }
 
             // coaRenderDebug 1: the depth view is drawn over the copied world (the same full rect), so a failure
             // leaves the normal image. The UI draws on top afterwards as usual.
@@ -351,7 +394,7 @@ namespace {
     bool OnPipeline(CVar* /* var */, const char* /* oldValue */, const char* value, void* /* arg */) {
         if (value && atoi(value) != 0) {
             g_renderPipelineHook = &s_hook;
-            g_worldTargetReleaseHook = ReleaseDebug;
+            g_worldTargetReleaseHook = OnWorldTargetRelease;
         } else if (g_renderPipelineHook && !s_begun) {
             Uninstall();
         }

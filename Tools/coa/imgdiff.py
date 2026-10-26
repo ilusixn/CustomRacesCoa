@@ -1,7 +1,8 @@
 """Compare two TGA screenshots pixel by pixel.
 
 Usage: python Tools/coa/imgdiff.py A.tga B.tga [--out diff.tga]
-Prints `identical` (exit 0) or `N pixels differ (max channel delta D)` (exit 1); different sizes exit 2.
+Prints `identical` (exit 0) or `N pixels differ (max channel delta D)` (exit 1); different sizes, unreadable or
+unsupported / corrupt files and bad arguments print a message and exit 2.
 Reads uncompressed and RLE TGA, 24/32-bit, either origin (top-left or bottom-left); alpha is ignored.
 --out writes an uncompressed 24-bit TGA: differing pixels red, identical ones the darkened source.
 Used for the render pipeline's pixel-identical proof (see CoA/DIFFERENCES.md).
@@ -12,7 +13,8 @@ import sys
 
 def read_tga(path):
     """Return (width, height, rows) with rows top-to-bottom, each row a bytes of width*3 BGR."""
-    data = open(path, 'rb').read()
+    with open(path, 'rb') as f:
+        data = f.read()
     idlen, cmap, itype, _, _, _, _, _, width, height, bpp, desc = struct.unpack_from('<BBBHHBHHHHBB', data, 0)
     if cmap or itype not in (2, 10) or bpp not in (24, 32):
         raise ValueError(f'{path}: unsupported TGA (colour-map {cmap}, type {itype}, {bpp} bpp)')
@@ -80,19 +82,30 @@ def main(argv):
     out_path = None
     if '--out' in args:
         i = args.index('--out')
+        if i + 1 >= len(args):
+            print('--out needs a file name')
+            return 2
         out_path = args[i + 1]
         del args[i:i + 2]
     if len(args) != 2:
         print(__doc__)
         return 2
-    wa, ha, rows_a = read_tga(args[0])
-    wb, hb, rows_b = read_tga(args[1])
+    try:
+        wa, ha, rows_a = read_tga(args[0])
+        wb, hb, rows_b = read_tga(args[1])
+    except (OSError, ValueError, IndexError, struct.error) as e:
+        print(f'cannot read input: {e}')
+        return 2
     if (wa, ha) != (wb, hb):
         print(f'size differs: {wa}x{ha} vs {wb}x{hb}')
         return 2
     count, maxdelta, out = diff(rows_a, rows_b, wa)
     if out_path:
-        write_tga(out_path, wa, ha, out)
+        try:
+            write_tga(out_path, wa, ha, out)
+        except OSError as e:
+            print(f'cannot write {out_path}: {e}')
+            return 2
     if count == 0:
         print('identical')
         return 0

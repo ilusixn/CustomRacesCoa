@@ -247,7 +247,7 @@ class CGxDevice {
     // (Supported/Begin return false, the rest do nothing).
     virtual bool WorldTargetSupported();
     virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
-    virtual void WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual bool WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
