@@ -1,4 +1,6 @@
 #include "DressUpModelFrame.h"
+#include "CoA/Source/Modules/ItemCollections.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include <new>
 #include <typeinfo>
 #include "Engine/Source/Frame/CScriptObject.h"
@@ -211,6 +213,9 @@ CM2Model* CGDressUpModelFrame::GetDuplicateUnitCharacterModel(CGUnit_C* unit) {
 // VERIFY: d215162c manual
 // OFFSET: 0x00597FC0
 void CGDressUpModelFrame::TryOn(int32_t itemId, const uint32_t* enchants, int32_t hand) {
+    // CoA: AscItemCollections.cpp:sub_102cab40 (orig hook 0x597FC0) -- DAT_10be35e1 is set while it runs.
+    CoA::ItemCollections::SetInDressUpTryOn(true);
+    auto leave = CoA::ClientHooks::OnScopeExit([]() { CoA::ItemCollections::SetInDressUpTryOn(false); });
     ItemVisualsRec* visuals = nullptr;
     WOWGUID none = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(itemId, none, nullptr, nullptr, false);
@@ -503,6 +508,9 @@ void CGDressUpModelFrame::TryOnItem(CGItem_C* item, int32_t hand) {
 // VERIFY: 8eaa7ea4 auto
 // OFFSET: 0x005989E0
 void CGDressUpModelFrame::SetModel(CM2Model* model) {
+    // CoA: AscItemCollections.cpp:sub_102cab10 (orig hook 0x5989E0) -- DAT_10be35e0 is set while it runs.
+    CoA::ItemCollections::SetInDressUpSetModel(true);
+    auto leave = CoA::ClientHooks::OnScopeExit([]() { CoA::ItemCollections::SetInDressUpSetModel(false); });
     CSimpleModel::SetModel(model);
 
     if (this->m_component) {

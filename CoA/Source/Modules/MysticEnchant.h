@@ -50,7 +50,7 @@ namespace CoA::MysticEnchant {
         bool (*altarNearby)() = nullptr;                       // FUN_102E96E0
         std::string (*spellTextName)(uint32_t spell) = nullptr;
         std::string (*spellTextDescription)(uint32_t spell) = nullptr;
-        void (*cacheItem)(uint32_t entry) = nullptr;           // AscAssetQuery::TryCacheItem
+        void (*cacheItem)(uint32_t entry) = nullptr;           // AscAssetQuery::TryCacheItem (AssetQuery.cpp fills it)
     };
 
     Deps& Dependencies();

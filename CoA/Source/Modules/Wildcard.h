@@ -40,7 +40,7 @@ namespace CoA::Wildcard {
         uint32_t (*firstRank)(uint32_t spell) = nullptr;                 // AscSpellRank::FirstRank (FUN_102163f0)
         // The spellbook add itself (0x542030 through the detour's trampoline).
         void (*addKnownSpell)(uint32_t spell, uint32_t notify, uint32_t replace) = nullptr;
-        // AscSkillCard::AnyUnblocked (FUN_102f4f70): a slotted, unblocked skill card in the spec. Not ported yet; unset
+        // AscSkillCard::AnyUnblocked (FUN_102f4f70): a slotted, unblocked skill card in the spec, installed by CoA::SkillCard::Init; unset
         // answers as the original does with no cards (false).
         bool (*skillCardUnblocked)(uint32_t spec) = nullptr;
     };

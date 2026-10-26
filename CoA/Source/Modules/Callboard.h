@@ -39,7 +39,7 @@ namespace CoA::CallboardCache {
     struct Deps {
         // FUN_100b11b0(0x13901) then 0x5B2350: the progress node's value (+0x10); unset reads 0 (no node).
         uint32_t (*cacheLevel)() = nullptr;
-        // AscQuestAddon::Get (not ported yet): the quest's points; unset answers as the original does while the record
+        // AscQuestAddon::Get, installed by CoA::QuestAddon::Init: the quest's points; unset answers as the original does while the record
         // is still being fetched (nil).
         bool (*questAddonPoints)(uint32_t quest, uint32_t& points) = nullptr;
     };

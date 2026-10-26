@@ -1,4 +1,5 @@
 #include "CoA/Source/Modules/GlobalsJ.h"
+#include "CoA/Source/Modules/QuestAddon.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Modules/Modules.h"
@@ -602,15 +603,21 @@ namespace {
         return 1;
     }
 
-    // FUN_1021eb20(quest): the quest addon store's record +8 & 1, or nil while it is not loaded. The store comes with the
-    // QuestAddon module; until then nil.
+    // FUN_1021eb20(quest): the quest addon store's record (FUN_10115fc0, which requests an unknown quest) -> its +8 & 1,
+    // or nil while it is not loaded.
     int IsQuestSequenced(lua_State* L) {
         if (!CoA::Script::ValidateInput(L, { LUA_TNUMBER })) {
             return 0;
         }
 
-        static_cast<void>(CoA::Script::CheckNumber(L, 1));
-        lua_pushnil(L);
+        const uint32_t quest = static_cast<uint32_t>(CoA::Script::ToInt(CoA::Script::CheckNumber(L, 1)));
+
+        if (const CoA::QuestAddon::Record* r = CoA::QuestAddon::Get(quest)) {
+            CoA::Script::PushBool(L, (r->unk & 1) != 0);
+        } else {
+            lua_pushnil(L);
+        }
+
         return 1;
     }
 
@@ -736,6 +743,10 @@ void CoA::GlobalsJ::SetInsideRunScript(bool inside) {
     s_insideProtectedCall = inside ? 1 : 0;
 }
 
+bool CoA::GlobalsJ::InsideRunScript() {
+    return s_insideProtectedCall != 0;
+}
+
 void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     if (!entering) {
         s_errorCallstackHeight = 0;
@@ -746,6 +757,27 @@ void CoA::GlobalsJ::OnErrorHandler(lua_State* L, int32_t entering) {
     if (CoA::Log::Enabled()) {
         const char* message = lua_tostring(L, -1);
         CoA::Log::Printf("Lua error: %s", message ? message : "(no message)");
+
+        CoA::Log::Printf("  taint: %s", lua_tainted ? lua_tainted : "(secure)");
+
+        // The innermost frames (and, past a deep stack, the outermost ones), so a recursion shows its loop.
+        lua_Debug f;
+        int depth = 0;
+
+        while (lua_getstack(L, depth, &f)) {
+            ++depth;
+        }
+
+        for (int i = 0; i < depth; ++i) {
+            if (i == 8 && depth > 16) {
+                CoA::Log::Printf("  ... %d frames ...", depth - 16);
+                i = depth - 9;
+            }
+
+            if (lua_getstack(L, i, &f) && lua_getinfo(L, "Sln", &f)) {
+                CoA::Log::Printf("  #%d %s:%d %s", i, f.short_src, f.currentline, f.name ? f.name : "?");
+            }
+        }
     }
 
     lua_Debug ar;

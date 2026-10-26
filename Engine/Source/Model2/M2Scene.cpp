@@ -39,6 +39,8 @@ static uint32_t s_doodadHash[251];
 
 // CoA: set by CoA::AttachFixesClient (the SMSG 0x65C marker path).
 const char* (*g_m2DuplicateModelHook)();
+// CoA: set by CoA::ItemCollectionsClient (model ids, the pending collection scale, the attach capture).
+void (*g_m2CreateModelHook)(const char* fileName, CM2Model* model);
 
 // VERIFY: abe62346 auto
 // OFFSET: 0x0081C990
@@ -1514,7 +1516,12 @@ void CM2ModelHeap::Delete(CM2Model* model) {
 // VERIFY: 6625d3c0 auto
 // OFFSET: 0x0081F8F0
 CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
+    // CoA: AscItemCollections.cpp:FUN_102cb000 (orig hook 0x81F8F0) -- the DLL's detour runs after each return.
     if (!fileName) {
+        if (g_m2CreateModelHook) {
+            g_m2CreateModelHook(fileName, nullptr);
+        }
+
         return nullptr;
     }
 
@@ -1535,6 +1542,10 @@ CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
         }
 
         shared->Release();
+    }
+
+    if (g_m2CreateModelHook) {
+        g_m2CreateModelHook(fileName, model);
     }
 
     return model;

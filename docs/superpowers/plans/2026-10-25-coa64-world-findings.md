@@ -231,3 +231,36 @@ Live run 2026-10-26 (test account, Pale Reach, 120 s in world after "registered 
   (Plan 12); CVars useUiScale / autoAcceptTrades / ObjectSelectionCircleTexture and the profanity-filter widget
   (Plan 14); NewCharacterSetupUtil.lua:49 assertion (open).
 - Inventory: natives 1051/1346, packets 433/533, events 186/259, hooks 126/346, patches 125/126, CVars 22/93.
+
+## Plan 12 result
+
+Live run 2026-10-26 (test account, 120 s in world): 15 Lua errors (22 before).
+- Gone: C_PlayerTicket x2, C_PlayerPoll x2, C_CustomStore, RecoverCategoryItemAtIndex, C_AssetQueryService (not seen
+  this run). Discord logs "discord_game_sdk.dll / DiscordCreate not loadable (error 193)" (the x86 SDK) and takes the
+  no-core path.
+- C stack overflow x4 root-caused with the new -extlog traceback: SharedXML C_Hook.lua recurses SendEvent ->
+  SecureSetValues -> SetAttribute -> OnAttributeChanged -> SendEvent because issecure() is nil while
+  Ascension_WildCard (a server-listed secure addon) runs; genuine's AddonTaint module (FUN_10312150) hooks issecure
+  (0x816DA0) to answer 1 for it. Ported in Plan 13 Task 0.
+- NewCharacterSetupUtil.lua:49 assertion runs under Prat-3.0's taint (open).
+- Inventory: natives 1144/1346, packets 478/533, events 210/259, hooks 127/346, patches 125/126, CVars 22/93.
+
+## Plan 13 Task 0 result (AddonTaint)
+
+Live run 2026-10-26: 11 Lua errors (15 before); the four "C stack overflow" are gone (issecure() now answers 1 under a
+server-listed secure addon, ending C_Hook's SetAttribute loop). The Sound Kit Player frame stays open because
+UIParent's PLAYER_ENTERING_WORLD handler errors on its first line (`C_LootLockout.QueryInstanceBinds()`, UIParent.lua:1150)
+before `CloseAllWindows(1)` (line 1163) closes UISpecialFrames; LootLockout (Plan 13 Task 2) fixes it.
+
+## Plan 13 result
+
+Live run 2026-10-26 (test account, 90 s in world): 5 Lua errors (11 before).
+- Gone: C_Manastorm, C_LootLockout, C_SkillCardCollection. The Sound Kit Player no longer opens at world entry
+  (UIParent's PLAYER_ENTERING_WORLD now reaches CloseAllWindows). Lua errors are logged again after /reload.
+- Left: missing CVars useUiScale / ObjectSelectionCircleTexture / autoAcceptTrades (Plan 14),
+  InterfaceOptionsSocialPanelProfanityFilterText nil (InterfaceOptionsPanels.lua:1105), NewCharacterSetupUtil.lua:49
+  assertion under Prat-3.0 taint, plus a "Prat-3.0 has been blocked" popup.
+- Action bars, minimap and chat were not drawn (MainMenuBarArtFrame alpha 0, Minimap "visible" mid-screen). The same
+  happens with the pre-Plan-13 build 63f5fe1, which drew them at 06:16, so it is account saved state changed since
+  (WTF / SavedVariables), not Plan 13 code. Left for the user.
+- Inventory: natives 1248/1346, packets 522/533, events 242/259, hooks 153/346, patches 125/126, CVars 23/93.

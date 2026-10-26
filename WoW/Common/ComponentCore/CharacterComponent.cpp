@@ -11,6 +11,8 @@
 #include <alloca.h>
 #endif
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "CoA/Source/Modules/ItemCollections.h"
+#include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Base/Prop.h"
@@ -3775,11 +3777,16 @@ void CCharacterComponent::RemoveItem(ITEM_SLOT itemSlot) {
 // VERIFY: 9f6bde71 manual
 // OFFSET: 0x004EE6D0
 void CCharacterComponent::RemoveItemBySlot(INVENTORY_SLOTS invSlot) {
+    // CoA: AscItemCollections.cpp:FUN_102caaa0 (orig hook 0x4EE6D0) -- unless the slot was re-added meanwhile, its
+    // collection models go after.
+    CoA::ItemCollections::BeforeRemoveItemBySlot();
     ITEM_SLOT itemSlot = CCharacterComponent::GetItemSlotForInvSlot(invSlot);
 
     if (itemSlot != NUM_ITEM_SLOTS) {
         this->RemoveItem(itemSlot);
     }
+
+    CoA::ItemCollections::AfterRemoveItemBySlot(this, static_cast<uint32_t>(invSlot));
 }
 
 // VERIFY: c379cf14 manual
@@ -4047,6 +4054,8 @@ int32_t CCharacterComponent::AreShoulderModelsCorrect() {
 // VERIFY: fb7d3f74 auto
 // OFFSET: 0x004EF840
 void CCharacterComponent::AddShoulders(int32_t itemVisual) {
+    // CoA: AscItemCollections.cpp:sub_102caa60 (orig hook 0x4EF840) -- in world the DLL first calls 0x4D3790
+    // (ClntObjMgrGetActivePlayer) and drops the result; nothing observable, so nothing is called here.
     ItemDisplayInfoRec rec;
     const ItemDisplayInfoRec* displayRec;
     char leftModel[260];
@@ -5554,6 +5563,12 @@ bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
 // VERIFY: 474cb696 manual
 // OFFSET: 0x004F2640
 void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* displayRec, int32_t itemVisual) {
+    // CoA: AscItemCollections.cpp:sub_102caa20 (orig hook 0x4F2640) -- the slot counts as re-added; after the body the
+    // display's item collections are attached (FUN_102cbfe0).
+    CoA::ItemCollections::BeforeAddItem();
+    auto attach = CoA::ClientHooks::OnScopeExit([this, itemSlot, displayRec]() {
+        CoA::ItemCollections::Attach(this, static_cast<uint32_t>(itemSlot), displayRec, displayRec ? static_cast<uint32_t>(displayRec->m_id) : 0);
+    });
     this->m_flags |= 0x4;
     this->m_itemDisplayID[itemSlot] = displayRec->m_id;
 

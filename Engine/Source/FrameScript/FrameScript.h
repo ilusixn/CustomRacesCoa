@@ -49,6 +49,13 @@ extern bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registe
 extern bool (*g_formattedSignalHook)(int32_t eventId, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const void* format, const void* va);
 // CoA: AscRuntime.cpp:DispatchDetour (orig hook 0x81AA00) -- false refuses the signal.
 extern bool (*g_signalEventHook)(int32_t eventId, lua_State* L, uint32_t registeredCount, bool hasEventData, bool hasEventObject, const char* name);
+// CoA: AscAddonTaint.cpp:FUN_10313a50 (orig hook 0x816DA0) -- true when it answered issecure() (pushed 1).
+extern bool (*g_issecureHook)(lua_State* L);
+// CoA: AscAddonTaint.cpp:FUN_103119c0 (orig hook 0x488540) -- true: the running addon is listed secure.
+extern bool (*g_addonTaintSecureHook)();
+// CoA: AscAddonTaint.cpp:FUN_10311ac0 (orig hook 0x49F210) -- the running taint, cleared when secure / stored back.
+extern const char* (*g_addonTaintBeginClearedHook)();
+extern void (*g_addonTaintEndClearedHook)(const char* saved);
 uint32_t FrameScript_GetEventCount();
 FrameScript_EventObject* FrameScript_GetEvent(uint32_t index);
 void FrameScript_Destroy();

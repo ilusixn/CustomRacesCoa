@@ -53,6 +53,8 @@ void PlayerNameDeleteText(PLAYERNAMEDESC* desc, uint32_t type);
 void PlayerNameTriggerColorUpdate(PLAYERNAMEDESC* desc);
 void PlayerNameTriggerNameRegenerate(PLAYERNAMEDESC* desc);
 void PlayerNameUpdateDrawCallback(PLAYERNAMEDESC* desc);
+// CoA: AscManastorm.cpp:FUN_102a6c10 -- the DLL rewrites the raid-icon quad in .rdata (0xAF46AC..0xAF46D0).
+void PlayerNameSetIconScale(float scale);
 bool PlayerNameShowing(PLAYERNAMEDESC* desc);
 float PlayerNameComputeScale(CGObject_C* object);
 
