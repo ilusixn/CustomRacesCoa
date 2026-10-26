@@ -196,3 +196,21 @@ COA_TEST(DiscordIpc_ParseCarriesTheNonce) {
     CHECK(e.kind == CoA::DiscordIpc::Event::Error);
     CHECK(e.nonce == 13);
 }
+
+// Buttons (CoA64): label + URL, at most two; Discord refuses them together with secrets, so secrets win.
+COA_TEST(DiscordIpc_Buttons) {
+    CoA::Discord::Activity a;
+    a.state = "s";
+    a.buttons = { { "Website", "https://coa-development.org" } };
+    nlohmann::json act = Body(CoA::DiscordIpc::SetActivity(a, 1, 1))["args"]["activity"];
+    CHECK(act["buttons"] == nlohmann::json::array({ { { "label", "Website" }, { "url", "https://coa-development.org" } } }));
+
+    a.buttons = { { "1", "https://a" }, { "2", "https://b" }, { "3", "https://c" } };
+    act = Body(CoA::DiscordIpc::SetActivity(a, 1, 1))["args"]["activity"];
+    CHECK(act["buttons"].size() == 2);
+
+    a.join = "secret";
+    act = Body(CoA::DiscordIpc::SetActivity(a, 1, 1))["args"]["activity"];
+    CHECK(!act.contains("buttons"));
+    CHECK(act["secrets"]["join"] == "secret");
+}

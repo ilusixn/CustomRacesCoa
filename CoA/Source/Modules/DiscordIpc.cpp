@@ -102,6 +102,14 @@ std::vector<uint8_t> CoA::DiscordIpc::SetActivity(const CoA::Discord::Activity& 
 
     if (!secrets.empty()) {
         act["secrets"] = secrets;
+    } else if (!a.buttons.empty()) {
+        json buttons = json::array();
+
+        for (size_t i = 0; i < a.buttons.size() && i < 2; ++i) {
+            buttons.push_back({ { "label", a.buttons[i].first }, { "url", a.buttons[i].second } });
+        }
+
+        act["buttons"] = buttons;
     }
 
     json args = { { "pid", pid } };
