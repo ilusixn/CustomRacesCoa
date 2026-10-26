@@ -108,6 +108,7 @@ namespace CoA::ClientHooks {
     inline Hooks<> leaveWorld;                       // 0x528C30 CGGameUI::LeaveWorld, before (list 0x10BE28AC)
     inline Hooks<> beforeShutdown;                   // 0x528F00 CGGameUI::Shutdown, before (list 0x10BE28CC)
     inline Hooks<> afterClientDestroy;               // 0x402910 WowClientDestroy, after (list 0x10BE2A8C)
+    inline Hooks<> afterGlueInitialize;              // 0x4DB9F0 CGlueMgr::Initialize, after (AscDiscord's detour 0x10A46350)
     inline Hooks<> afterSetPaths;                    // 0x402B20 SetPaths, after (list 0x10BE2ACC)
     inline Hooks<> afterUiReload;                    // 0x52A980 InitializeFrameXML, after, when it was a reload (0x10BE29EC)
     inline Hooks<> afterClearTrackedObjects;         // 0x4F6F90 CGWorldFrame::ClearTrackedObjects, after (0x10BE2AAC)

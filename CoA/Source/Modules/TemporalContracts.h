@@ -41,8 +41,8 @@ namespace CoA::TemporalContracts {
         // without a record (no points).
         bool (*questAddonPoints)(uint32_t quest, uint32_t& points) = nullptr;
         // AscCallboard::ForEachCompletion (FUN_10337270): each sub-category with completions left handed to fn once per
-        // completion (all categories, or those whose content type or name is contentType); true when fn ran. Not ported
-        // yet; unset answers as the original does before the Callboard view is loaded (false, nothing run).
+        // completion (all categories, or those whose content type or name is contentType); true when fn ran. Installed by
+        // CoA::Callboard::Init; unset answers as the original does before the Callboard view is loaded (false, nothing run).
         bool (*forEachCompletion)(const std::string* contentType, void (*fn)(const std::string& type, void* ctx), void* ctx) = nullptr;
     };
 
