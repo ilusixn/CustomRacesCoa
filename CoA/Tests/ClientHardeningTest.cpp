@@ -37,3 +37,22 @@ COA_TEST(Hardening_PatchExtractRefusesRunnableFiles) {
     CHECK(!PatchExtractAllowed("a.dll "));
     CHECK(!PatchExtractAllowed("..\\a.mpq"));
 }
+
+// User decision 2026-10-26: a server's prepatch may not write or delete anything under Interface\ or WTF\ (addon code,
+// settings); Data / MPQ updates and top-level files still work. Spellings Windows folds onto those folders count too.
+COA_TEST(Hardening_PatchLeavesInterfaceAndWtfAlone) {
+    CHECK(PatchPathConfined("Data\\enUS\\patch-enUS-5.MPQ"));
+    CHECK(PatchPathConfined("realmlist.wtf"));
+    CHECK(PatchPathConfined("Interfaces.txt"));
+    CHECK(!PatchPathConfined("Interface\\AddOns\\X\\x.lua"));
+    CHECK(!PatchPathConfined("interface/addons/x/x.toc"));
+    CHECK(!PatchPathConfined("Interface"));
+    CHECK(!PatchPathConfined("WTF\\Config.wtf"));
+    CHECK(!PatchPathConfined("wtf/Account/X/SavedVariables/x.lua"));
+    CHECK(!PatchPathConfined(".\\Interface\\AddOns\\x.lua"));
+    CHECK(!PatchPathConfined("Interface.\\AddOns\\x.lua"));
+    CHECK(!PatchPathConfined("WTF \\Config.wtf"));
+    CHECK(!PatchPathConfined("INTERF~1\\AddOns\\x.lua"));
+    CHECK(!PatchExtractAllowed("Interface\\AddOns\\X\\x.lua"));
+    CHECK(PatchExtractAllowed("Data\\enUS\\patch-enUS-5.MPQ"));
+}
