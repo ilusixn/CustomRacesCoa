@@ -365,26 +365,56 @@ namespace {
         return true;
     }
 
-    // FUN_100f36c0 / FUN_100f3d70 (FrameScript::lua_totable): {[number] = boolean} in lua_next order; anything else
-    // logs and yields an empty map. The true keys in the map's (the original's unordered_map) order.
-    std::vector<uint32_t> TrueKeys(lua_State* L, int idx) {
+    const char* const kBuildFilters[48] = {"FILTER_NONE", "FILTER_FEATURED", "FILTER_DIFFICULTY_RATING_EASY",
+        "FILTER_DIFFICULTY_RATING_NORMAL", "FILTER_DIFFICULTY_RATING_HARD", "FILTER_DIFFICULTY_RATING_VERY_HARD",
+        "FILTER_DIFFICULTY_RATING_IMPOSSIBLE", "FILTER_OWNED_BUILDS", "FILTER_PRIMARY_STAT_STRENGTH",
+        "FILTER_PRIMARY_STAT_AGILITY", "FILTER_PRIMARY_STAT_INTELLECT", "FILTER_PRIMARY_STAT_SPIRIT",
+        "FILTER_ROLE_TANK", "FILTER_ROLE_HEALER", "FILTER_ROLE_DAMAGE", "FILTER_LAST_30_DAYS",
+        "FILTER_CLASS_WARRIOR", "FILTER_CLASS_PALADIN", "FILTER_CLASS_HUNTER", "FILTER_CLASS_ROGUE",
+        "FILTER_CLASS_PRIEST", "FILTER_CLASS_DEATH_KNIGHT", "FILTER_CLASS_SHAMAN", "FILTER_CLASS_MAGE",
+        "FILTER_CLASS_WARLOCK", "FILTER_CLASS_HERO", "FILTER_CLASS_DRUID", "FILTER_CLASS_BARBARIAN",
+        "FILTER_CLASS_WITCH_DOCTOR", "FILTER_CLASS_DEMON_HUNTER", "FILTER_CLASS_WITCH_HUNTER",
+        "FILTER_CLASS_STORMBRINGER", "FILTER_CLASS_KNIGHT_OF_XOROTH", "FILTER_CLASS_GUARDIAN", "FILTER_CLASS_MONK",
+        "FILTER_CLASS_SON_OF_ARUGAL", "FILTER_CLASS_RANGER", "FILTER_CLASS_CHRONOMANCER",
+        "FILTER_CLASS_NECROMANCER", "FILTER_CLASS_PYROMANCER", "FILTER_CLASS_CULTIST", "FILTER_CLASS_STARCALLER",
+        "FILTER_CLASS_SUN_CLERIC", "FILTER_CLASS_TINKER", "FILTER_CLASS_VENOMANCER", "FILTER_CLASS_REAPER",
+        "FILTER_CLASS_PRIMALIST", "FILTER_CLASS_RUNEMASTER"};  // 0x10B1F780
+    const char* const kBuildSorts[5] = {"SORT_NONE", "SORT_RATING_ASCENDING", "SORT_RATING_DESCENDING",
+        "SORT_DATE_ASCENDING", "SORT_DATE_DESCENDING"};  // 0x10B1E854
+
+    // FUN_100f36c0 / FUN_100f3d70 (FrameScript::lua_totable into an enum -> bool map): string keys through
+    // FUN_100f5470 / FUN_100f56a0 (an unknown one logs and becomes 0), nil / boolean / number values, the last write
+    // winning. A bad key or value logs and yields an empty map. The true keys in the map's (the original's
+    // unordered_map) order.
+    template <size_t N>
+    std::vector<uint32_t> TrueKeys(lua_State* L, int idx, const char* const (&names)[N]) {
         U32Map<bool> map;
         lua_pushnil(L);
 
         while (lua_next(L, idx)) {
-            if (lua_type(L, -2) != LUA_TNUMBER) {
+            if (!lua_isstring(L, -2)) {
                 CoA::Log::Printf("FrameScript::lua_totable Invalid lua key type");
                 lua_settop(L, -3);
                 return {};
             }
 
-            if (lua_type(L, -1) != LUA_TBOOLEAN) {
-                CoA::Log::Printf("FrameScript::lua_totable type");
+            const int vt = lua_type(L, -1);
+
+            if (vt != LUA_TNIL && vt != LUA_TBOOLEAN && vt != LUA_TNUMBER) {
+                CoA::Log::Printf("FrameScript::lua_totable Invalid lua value type");
                 lua_settop(L, -3);
                 return {};
             }
 
-            map.emplace(static_cast<uint32_t>(ToInt(lua_tonumber(L, -2))), lua_toboolean(L, -1) != 0);
+            const bool value = lua_toboolean(L, -1) != 0;
+            const std::string key = lua_tolstring(L, -2, nullptr);
+            uint32_t id = 0;
+
+            if (!EnumIndex(names, key, id)) {
+                CoA::Log::Printf("lua_tovalue<enum>: Unknown string '%s'", key.c_str());
+            }
+
+            map[id] = value;
             lua_settop(L, -2);
         }
 
@@ -1448,8 +1478,8 @@ namespace {
         }
 
         const std::string text = CheckString(L, 1);
-        const std::vector<uint32_t> args = TrueKeys(L, 2);
-        const std::vector<uint32_t> sorts = TrueKeys(L, 3);
+        const std::vector<uint32_t> args = TrueKeys(L, 2, kBuildFilters);
+        const std::vector<uint32_t> sorts = TrueKeys(L, 3, kBuildSorts);
         Builds().ApplyFilter(text, args, sorts);
         return 0;
     }
