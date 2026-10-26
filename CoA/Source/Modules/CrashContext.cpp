@@ -2,6 +2,8 @@
 #include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <cstdio>
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include <cstring>
 #include <mutex>
 #include <sstream>
 
@@ -74,6 +76,20 @@ void CoA::CrashContext::Assert(const char* message, const char* file, int32_t li
     if (s_deps.fatal) {
         s_deps.fatal(message, file, line);
     }
+}
+
+void CoA::CrashContext::SetCVar(CVar* cvar, const char* value, bool setNeedsSave) {
+    if (!cvar || !value) {
+        return;
+    }
+
+    if (strlen(value) + strlen(cvar->m_key.m_str) > 0xF9) {
+        const std::string message = std::string("CVar::Set (m_key.str + value) > 249, m_key = ") + cvar->m_key.m_str;
+        CoA::CrashContext::Assert(message.c_str(), nullptr, 0);
+        return;
+    }
+
+    cvar->Set(value, true, false, false, setNeedsSave);
 }
 
 void CoA::CrashContext::BeforeLoadMap(uint32_t map) {

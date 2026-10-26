@@ -1,5 +1,6 @@
 // AscSuperTrack.cpp's client questions (positions, the quest log, the world frame), the VisitedSuperTracks int list over
 // the client's CVarIntListWrapper, PositionFrame's patch and the world-entry timers.
+#include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Modules/SuperTrack.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -123,12 +124,8 @@ namespace {
         list.m_buffer[1] = 0x01;
         list.m_buffer[list.m_pos] = 0;
 
-        // FUN_10114c40: refused when name and value together exceed 0xF9 characters.
-        if (strlen(list.m_buffer) + strlen(cvar->m_key.m_str) > 0xF9) {
-            return;
-        }
-
-        cvar->Set(list.m_buffer, true, false, false, true);
+        // FUN_10114c40, with its length assert (CrashContext::SetCVar).
+        CoA::CrashContext::SetCVar(cvar, list.m_buffer, true);
     }
 
     // FUN_10335400: on -> client flag 0, SetPoint's offsets unscaled; off -> flag 1, scaled.
