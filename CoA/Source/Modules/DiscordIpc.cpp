@@ -168,11 +168,60 @@ CoA::DiscordIpc::Event CoA::DiscordIpc::Parse(const std::string& text) {
     } else if (evt == "ERROR") {
         e.kind = Event::Error;
         e.message = Str(data, "message");
+    } else if (j.contains("evt") && j["evt"].is_null() && j.contains("cmd")) {
+        e.kind = Event::Answer;
     }
 
+    e.nonce = static_cast<uint32_t>(std::strtoul(Str(j, "nonce").c_str(), nullptr, 10));
     return e;
 }
 
 bool CoA::DiscordIpc::SendNow(bool pending, bool sentBefore, uint32_t lastSentMs, uint32_t nowMs) {
     return pending && (!sentBefore || nowMs - lastSentMs >= kMinSpacingMs);
+}
+
+void CoA::DiscordIpc::Outbox::Queue() {
+    m_has = true;
+    m_pending = true;
+}
+
+void CoA::DiscordIpc::Outbox::Ready(uint32_t) {
+    m_ready = true;
+    m_inflight = false;
+    m_pending = m_has;
+    m_sentBefore = false;
+}
+
+void CoA::DiscordIpc::Outbox::Lost() {
+    m_ready = false;
+    m_inflight = false;
+}
+
+bool CoA::DiscordIpc::Outbox::Due(uint32_t nowMs) {
+    if (m_inflight && nowMs - m_lastSent >= kConfirmMs) {   // no answer: send the newest again
+        m_inflight = false;
+        m_pending = true;
+    }
+
+    return m_ready && !m_inflight && SendNow(m_pending, m_sentBefore, m_lastSent, nowMs);
+}
+
+void CoA::DiscordIpc::Outbox::Sent(uint32_t nonce, uint32_t nowMs) {
+    m_inflight = true;
+    m_nonce = nonce;
+    m_pending = false;
+    m_sentBefore = true;
+    m_lastSent = nowMs;
+}
+
+void CoA::DiscordIpc::Outbox::Answered(uint32_t nonce, bool ok, uint32_t) {
+    if (!m_inflight || nonce != m_nonce) {
+        return;
+    }
+
+    m_inflight = false;
+
+    if (!ok) {
+        m_pending = true;
+    }
 }
