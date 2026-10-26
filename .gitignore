@@ -410,3 +410,5 @@ FodyWeavers.xsd
 
 # Local Visual Studio CMake settings (absolute paths to re/tools)
 CMakeSettings.json
+
+.superpowers/
