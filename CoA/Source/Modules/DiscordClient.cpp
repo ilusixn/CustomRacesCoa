@@ -93,6 +93,11 @@ namespace {
 
     void IgnoreResult(void*, int32_t) {}   // the wrapper's empty lambdas (0x10221A90)
 
+    // CoA64 diagnostic: the original ignores UpdateActivity's result; it is logged here (Discord status reports).
+    void LogActivityResult(void*, int32_t result) {
+        CoA::Log::Printf("Discord: UpdateActivity result %d", result);
+    }
+
     void UserUpdated(void*) {
         CoA::Discord::OnCurrentUserUpdate();
     }
@@ -159,13 +164,22 @@ namespace {
 
         s_core = c;
         core = c != nullptr;
+        CoA::Log::Printf("Discord: DiscordCreate result %d, core %s", result, core ? "yes" : "no");
         return result;
     }
 
     void StartCallbacks() {   // FUN_10220a60 -> FUN_10220ae0
         std::thread([] {
+            int32_t last = -1;
+
             while (CoA::Discord::Enabled()) {
-                s_core->run_callbacks(s_core);
+                const int32_t r = s_core->run_callbacks(s_core);
+
+                if (r != last) {   // CoA64 diagnostic: RunCallbacks' result whenever it changes
+                    CoA::Log::Printf("Discord: RunCallbacks result %d", r);
+                    last = r;
+                }
+
                 Sleep(0x32);
             }
         }).detach();
@@ -206,7 +220,9 @@ namespace {
         Copy(d.secrets.join, a.join);
         Copy(d.secrets.spectate, a.spectate);
         IDiscordActivityManager* m = s_core->get_activity_manager(s_core);
-        m->update_activity(m, &d, nullptr, IgnoreResult);
+        CoA::Log::Printf("Discord: UpdateActivity state \"%s\" details \"%s\" large \"%s\" small \"%s\"", d.state, d.details,
+                         d.assets.largeImage, d.assets.smallImage);
+        m->update_activity(m, &d, nullptr, LogActivityResult);
     }
 
     void OpenGuildInvite(const char* code) {
