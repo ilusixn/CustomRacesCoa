@@ -54,6 +54,10 @@ if (WOWDECOMP_DISABLE_SIGNATURE_CHECKS)
     add_compile_definitions(DISABLE_SIGNATURE_CHECKS=1)
 endif ()
 
+# x64 only: builds DXVK v2.5.3's d3d9.dll (Vulkan) into bin/Win/x64 (ThirdParty/dxvk). Needs meson, ninja and the
+# Vulkan SDK's glslangValidator; without them configure warns and the client falls back to the system d3d9.
+option(WOWDECOMP_BUILD_DXVK "Build DXVK's d3d9.dll (bin/Win/x64) for the x64 client" ON)
+
 # Game identity (build 12340, version 3.3.5, client name) lives in GameVersion.h at the repository root.
 # WaystoneVersion.h is regenerated from git on every build; the login screen shows its build number.
 set(WAYSTONE_VERSION_HEADER ${CMAKE_BINARY_DIR}/generated/WaystoneVersion.h)
