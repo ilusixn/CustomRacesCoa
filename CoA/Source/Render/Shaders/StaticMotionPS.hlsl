@@ -6,7 +6,7 @@
 //   c0..c3  rows of inverse(cur.view * cur.proj)
 //   c4..c7  rows of prev.view * prev.proj
 //   c8.xyz  cur.pos - prev.pos
-//   c9.xy   (depthMin, 1 / (depthMax - depthMin)); depthMax is derived as depthMin + 1 / c9.y
+//   c9.xyz  (depthMin, 1 / (depthMax - depthMin), depthMax); the caller skips the pass when depthMax == depthMin
 // Output float4(prevUV - curUV, 0, 1) with UV u right, v down.
 sampler2D s0 : register(s0);
 float4 invCur[4] : register(c0);
@@ -28,7 +28,7 @@ float4 main(float2 uv : TEXCOORD0) : COLOR0 {
     float ndcD3d = (stored - depthRange.x) * depthRange.y;
     float4 ndc = float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, ndcD3d * 2.0 - 1.0, 1.0);
     // Far plane / clear value (sky): a direction at infinity, so the eye translation does not apply (w = 0).
-    bool atInfinity = stored >= depthRange.x + 1.0 / depthRange.y - 1e-6;
+    bool atInfinity = stored >= depthRange.z - 1e-6;
 
     float4 p = Mul(ndc, invCur[0], invCur[1], invCur[2], invCur[3]);
     float invW = SafeInvW(p.w);

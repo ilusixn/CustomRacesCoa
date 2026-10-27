@@ -119,4 +119,8 @@ namespace CoA::RenderMotion {
         const Vec2 q = ToUV(prevClip);
         return { q.x - c.x, q.y - c.y };
     }
+
+    bool ModelNeedsPass(bool animatedThisFrame, bool culled, bool staticSimple, bool worldChanged, bool havePrevious) {
+        return animatedThisFrame && !culled && havePrevious && (!staticSimple || worldChanged);
+    }
 }

@@ -387,6 +387,8 @@ struct RenderPipelineHook {
     void (*beginWorld)();
     void (*endWorld)(const CRect& viewportNDC);
     void (*setupWorldProjection)(C44Matrix& projection, const C44Matrix& view, const C3Vector& position, float fovY, float aspect, float nearZ, float farZ, const C3Vector& forward, const C3Vector& up);
+    // CoA64: the opaque world is drawn (CGWorldFrame::OnWorldRender, after the detail doodads).
+    void (*opaqueDone)();
 };
 
 extern RenderPipelineHook* g_renderPipelineHook;

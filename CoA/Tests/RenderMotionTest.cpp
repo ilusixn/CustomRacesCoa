@@ -344,3 +344,12 @@ COA_TEST(RenderMotion_EmbeddedShadersAreSm3Bytecode) {
     CHECK(token(kBiasMaskPS) == 0xFFFF0300u);
     CHECK(token(kMotionViewPS) == 0xFFFF0300u);
 }
+
+COA_TEST(RenderMotion_ModelEligibility) {
+    // Drawn only when animated && !culled && havePrevious && (!staticSimple || worldChanged).
+    for (int bits = 0; bits < 32; ++bits) {
+        const bool animated = bits & 1, culled = bits & 2, staticSimple = bits & 4, worldChanged = bits & 8, havePrevious = bits & 16;
+        const bool want = animated && !culled && havePrevious && (!staticSimple || worldChanged);
+        CHECK(CoA::RenderMotion::ModelNeedsPass(animated, culled, staticSimple, worldChanged, havePrevious) == want);
+    }
+}

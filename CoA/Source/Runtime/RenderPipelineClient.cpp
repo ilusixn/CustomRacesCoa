@@ -4,6 +4,7 @@
 // addition).
 #include "CoA/Shaders/DepthViewPS.h"
 #include "CoA/Shaders/FullscreenVS.h"
+#include "CoA/Source/Runtime/RenderMotion.h"
 #include "CoA/Source/Runtime/RenderPipeline.h"
 #include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/Log.h"
@@ -175,7 +176,7 @@ namespace {
         const float nearZ = frame.cur.nearZ;
         const float farZ = frame.cur.farZ;
         const float depthConstants[8] = { frame.depthMin, range > 1e-6f ? 1.0f / range : 1.0f, 0.0f, 0.0f, nearZ * farZ, farZ, farZ - nearZ, 1.0f / 16.0f };
-        const float mode[4] = { (*CoA::RenderPipelineClient::DebugSlot())->m_intValue >= 2 ? 2.0f : 1.0f, 0.0f, 0.0f, 0.0f };
+        const float mode[4] = { (*CoA::RenderPipelineClient::DebugSlot())->m_intValue == 2 ? 2.0f : 1.0f, 0.0f, 0.0f, 0.0f };
         device->SetPixelShaderConstantF(0, mode, 1);
         device->SetPixelShaderConstantF(1, depthConstants, 2);
         device->SetTexture(0, depth);
@@ -252,6 +253,7 @@ namespace {
         }
 
         ReleaseDebug();
+        CoA::RenderMotionClient::Release();
         s_beginFailed = false;
         g_worldTargetReleaseHook = nullptr;
         g_renderPipelineHook = nullptr;
@@ -262,6 +264,7 @@ namespace {
     // target creation may be tried again on the new device.
     void OnWorldTargetRelease() {
         ReleaseDebug();
+        CoA::RenderMotionClient::Release();
         s_beginFailed = false;
     }
 
@@ -368,6 +371,9 @@ namespace {
         if (s_begun) {
             s_begun = false;
 
+            // coaRenderMotion 1: the motion and mask passes, while the world's colour and depth are still bound.
+            CoA::RenderMotionClient::BeforeCopyBack();
+
             // The whole target, not only the viewport: it started as a copy of the back buffer and the partial-viewport
             // GxSceneClear cleared all of it, so a full copy reproduces the original back buffer exactly.
             CGxDevice* device = g_theGxDevicePtr;
@@ -380,9 +386,14 @@ namespace {
                 s_copyFailLogged = false;
             }
 
-            // coaRenderDebug 1: the depth view is drawn over the copied world (the same full rect), so a failure
-            // leaves the normal image. The UI draws on top afterwards as usual.
-            if (CVarOn(CoA::RenderPipelineClient::DebugSlot())) {
+            // coaRenderDebug 1 / 2: the depth view is drawn over the copied world (the same full rect), so a failure
+            // leaves the normal image; 3 / 4: the motion / translucency mask view (nothing without coaRenderMotion 1).
+            // The UI draws on top afterwards as usual.
+            const int debug = CVarOn(CoA::RenderPipelineClient::DebugSlot()) ? (*CoA::RenderPipelineClient::DebugSlot())->m_intValue : 0;
+
+            if (debug == 3 || debug == 4) {
+                CoA::RenderMotionClient::DrawDebugView(debug);
+            } else if (debug != 0) {
                 DrawDepthView(device);
             }
         }
@@ -423,7 +434,14 @@ namespace {
         // The projection is left as is; BeginWorld jitters the world camera's once the world target has begun.
     }
 
-    RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection };
+    // The opaque world is drawn (WorldFrame, after the detail doodads): only meaningful inside a begun world render.
+    void OpaqueDone() {
+        if (s_begun) {
+            CoA::RenderMotionClient::OpaqueDone();
+        }
+    }
+
+    RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection, OpaqueDone };
 
     // coaRenderPipeline's callback; also runs at registration with the value loaded from Config.wtf, so a 1 there
     // installs the hook at startup. 1 installs; 0 releases the world target and uninstalls at once outside a world
