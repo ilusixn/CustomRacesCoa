@@ -260,9 +260,10 @@ class CGxDevice {
     virtual void* WorldMaskTexture();
     virtual void* WorldSnapshotTexture();
     virtual bool WorldSnapshotOpaque();
-    // CoA64: re-sends, from the device's own state caches, the D3D9 states the render pipeline's raw D3D9 motion passes
-    // change (render targets excepted), plus the first vsConstants / psConstants shader constants. The base device has
-    // nothing to restore.
+    // CoA64: puts the D3D9 states the render pipeline's raw D3D9 motion passes change (render targets excepted) back in
+    // step with the device's own state caches: plain values and the first vsConstants / psConstants shader constants are
+    // re-sent, cached bindings (textures, shaders, geometry) are marked dirty for the next engine draw. The base device
+    // has nothing to restore.
     virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
     // CoA64: the underlying IDirect3DDevice9* of the D3D9 devices (nullptr for others), for the render pipeline's debug draw.
     virtual void* D3dDevice();

@@ -1116,16 +1116,21 @@ bool CGxDeviceD3d9Ex::WorldSnapshotOpaque() {
     return SUCCEEDED(result);
 }
 
-// CoA64: the render pipeline's motion passes (CoA::RenderMotionClient) drew with raw D3D9 calls. Re-sends, from this
-// device's own caches, every D3D9 state those passes may change, so D3D9 again holds exactly what the caches say and
-// later draws (which skip anything they believe is already set) render as before. The D3D9 device is a pure device,
-// so nothing is read back with Get*. Covered: ZENABLE (the engine keeps it TRUE, IStateSetD3DDefaults), DEPTHBIAS
+// CoA64: the render pipeline's motion passes (CoA::RenderMotionClient) drew with raw D3D9 calls. Puts D3D9 back in step
+// with this device's own caches for every state those passes may change, so later draws (which skip anything they
+// believe is already set) render as before. The D3D9 device is a pure device, so nothing is read back with Get*. Plain
+// values are re-sent from the caches: ZENABLE (the engine keeps it TRUE, IStateSetD3DDefaults), DEPTHBIAS
 // (GxRs_PolygonOffset as IRsSendToHw sends it), SLOPESCALEDEPTHBIAS (never set by the engine: 0), SCISSORTESTENABLE
 // (GxRs_ScissorTest), the DsSet-cached alpha blend / alpha test / Z write / Z func / colour write / cull / clip planes
-// and samplers 0-1 filter / wrap states, the textures of stages 0-1 (GxRs_Texture0/1) and of the first vertex sampler
-// (never used by the engine: none), the vertex / pixel shader (GxRs_VertexShader / GxRs_PixelShader), the first
-// vsConstants / psConstants shader constants (from CGxDevice::s_shadowConstants), the vertex declaration, stream 0 and
-// index buffer (the m_d3dCurrent* / m_d3dVertexStream* caches) and the viewport. Render targets are the caller's.
+// and samplers 0-1 filter / wrap states, the first vertex sampler's texture (never used by the engine: none) and the
+// first vsConstants / psConstants shader constants (from CGxDevice::s_shadowConstants). Cached pointers are never
+// dereferenced here, because the engine itself only compares them: a hw slot holds the inverted app value after
+// IRsForceUpdate (TexSetFlags / TexSetWrap) or a texture TexDestroy has deleted, and a D3D9 buffer whose pool was
+// released lived on only while it was bound. The textures of stages 0-1, the vertex / pixel shader, the vertex
+// declaration, stream 0 and the index buffer are instead marked dirty, so the next engine draw re-binds them through
+// its own path (IRsSync -> ISetTexture / IBindVertexShader / IBindPixelShader; IStateSync -> IStateSyncVertexPtrs and
+// the index buffer). Likewise the viewport and scissor rect, which the caller's SetRenderTarget reset. Render targets
+// are the caller's.
 void CGxDeviceD3d9Ex::ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants) {
     if (!this->m_d3dDevice) {
         return;
@@ -1192,16 +1197,14 @@ void CGxDeviceD3d9Ex::ExternalStateRestore(uint32_t vsConstants, uint32_t psCons
             }
         }
 
-        CGxTex* texture = static_cast<CGxTex*>(this->m_hwRenderStates[GxRs_Texture0 + tmu].m_data.p);
-        device->SetTexture(tmu, texture ? static_cast<IDirect3DBaseTexture9*>(texture->m_apiSpecificData) : nullptr);
+        // The hw slot's CGxTex* is not safe to dereference (see above): the next IRsSync re-binds the app texture.
+        this->IRsForceUpdate(static_cast<EGxRenderState>(GxRs_Texture0 + tmu));
     }
 
     device->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
 
-    CGxShader* vertexShader = static_cast<CGxShader*>(this->m_hwRenderStates[GxRs_VertexShader].m_data.p);
-    CGxShader* pixelShader = static_cast<CGxShader*>(this->m_hwRenderStates[GxRs_PixelShader].m_data.p);
-    device->SetVertexShader(vertexShader ? static_cast<LPDIRECT3DVERTEXSHADER9>(vertexShader->m_apiSpecific) : nullptr);
-    device->SetPixelShader(pixelShader ? static_cast<LPDIRECT3DPIXELSHADER9>(pixelShader->m_apiSpecific) : nullptr);
+    this->IRsForceUpdate(GxRs_VertexShader);
+    this->IRsForceUpdate(GxRs_PixelShader);
 
     if (vsConstants) {
         device->SetVertexShaderConstantF(0, CGxDevice::s_shadowConstants[1].constants, vsConstants < 256 ? vsConstants : 256);
@@ -1211,20 +1214,23 @@ void CGxDeviceD3d9Ex::ExternalStateRestore(uint32_t vsConstants, uint32_t psCons
         device->SetPixelShaderConstantF(0, CGxDevice::s_shadowConstants[0].constants, psConstants < 256 ? psConstants : 256);
     }
 
-    if (this->m_d3dCurrentVertexDecl) {
-        device->SetVertexDeclaration(this->m_d3dCurrentVertexDecl);
+    // Empty the geometry caches so IStateSync re-binds the current prim pointers at the next draw: IStateSyncVertexPtrs
+    // always re-sends a declaration and a stream 0 that differ from the cache (DrawPrimitiveUP also leaves D3D9 with no
+    // stream 0); the index buffer is only re-sent while m_primIndexDirty is set (PrimIndexPtr sets it on a change of
+    // buffer alone), so set it when there is a prim index buffer to re-send.
+    this->m_d3dCurrentVertexDecl = nullptr;
+    this->m_d3dVertexStreamBuf[0] = nullptr;
+    this->m_d3dVertexStreamOfs[0] = 0xFFFFFFFF;
+    this->m_d3dVertexStreamStride[0] = 0xFFFFFFFF;
+    this->m_d3dCurrentIndexBuf = nullptr;
+
+    if (this->m_primIndexBuf) {
+        this->m_primIndexDirty = 1;
     }
 
-    if (this->m_d3dVertexStreamBuf[0]) {
-        device->SetStreamSource(0, this->m_d3dVertexStreamBuf[0], this->m_d3dVertexStreamOfs[0], this->m_d3dVertexStreamStride[0]);
-    } else {
-        // Unbound in the cache: D3D9 holds none either (DrawPrimitiveUP clears stream 0); force the next bind.
-        this->m_d3dVertexStreamOfs[0] = 0xFFFFFFFF;
-        this->m_d3dVertexStreamStride[0] = 0xFFFFFFFF;
-    }
-
-    device->SetIndices(this->m_d3dCurrentIndexBuf);
-    this->IXformSetViewport();
+    // The caller's SetRenderTarget reset the D3D9 viewport and scissor rect (as IWorldTargetApply).
+    this->m_viewportDirty = 1;
+    this->m_scissorRectDirty = 1;
 }
 
 // CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before

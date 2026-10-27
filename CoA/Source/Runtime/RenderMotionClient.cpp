@@ -1,9 +1,10 @@
 // RenderMotion's engine half: the motion passes of CoA64's render pipeline (stage 2), run by RenderPipelineClient while
 // the world target is begun. OpaqueDone snapshots the opaque world; BeforeCopyBack draws the static (camera) motion,
 // the skinned-model motion and the translucency mask into the device's motion targets, then records this frame's bone
-// palettes for the next frame. Raw D3D9; afterwards CGxDevice::ExternalStateRestore re-sends every state the passes
-// touch from the device's own caches (the D3D9 device is a pure device: no Get* of state), so the engine's state and
-// its caches agree again. Nothing here runs unless coaRenderMotion is 1. Not part of the original (CoA64 addition).
+// palettes for the next frame. Raw D3D9; afterwards CGxDevice::ExternalStateRestore re-sends every plain state the
+// passes touch from the device's own caches and marks the cached bindings dirty for the next engine draw (the D3D9
+// device is a pure device: no Get* of state), so the engine's state and its caches agree again. Nothing here runs
+// unless coaRenderMotion is 1. Not part of the original (CoA64 addition).
 #include "CoA/Shaders/BiasMaskPS.h"
 #include "CoA/Shaders/FullscreenVS.h"
 #include "CoA/Shaders/MotionPS.h"
