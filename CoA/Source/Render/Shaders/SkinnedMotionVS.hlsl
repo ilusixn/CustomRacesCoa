@@ -1,18 +1,20 @@
 // Skinned / rigid model motion vertex shader (vs_3_0), reproducing RenderMotion::ModelMotion. Input is the M2Vertex
 // layout (POSITION float3, BLENDWEIGHT ubyte4n, BLENDINDICES ubyte4; normal / texcoords unused).
-// Bone palette = vertex texture sampler 0, A32B32G32R32F 256x2, point: row 0 = this frame's bones, row 1 = last
-// frame's. Bone i occupies texels 3i .. 3i+2, texel k = the k-th register the engine puts in c31+ (the transposed
-// column k of the bone matrix: x = a_k, y = b_k, z = c_k, w = d_k), so bone-space output component k is
+// Bone palette = vertex texture sampler 0, A32B32G32R32F 256x1024, point: one palette upload per frame, batch b uses
+// rows c12.x = 2b (this frame's bones) and 2b + 1 (last frame's). Bone i occupies texels 3i .. 3i+2, texel k = the
+// k-th register the engine puts in c31+ (the transposed column k of the bone matrix: x = a_k, y = b_k, z = c_k, w = d_k), so bone-space output component k is
 // dot(float4(pos, 1), texel k). Matrices below are uploaded as 4 rows (clip = v.x*row0 + v.y*row1 + v.z*row2 + v.w*row3).
 //   c0..c3   rows of the render projection (device's current, possibly jittered, m_projNative) -> POSITION
 //   c4..c7   rows of cur.proj, unjittered
 //   c8..c11  rows of prev.proj
+//   c12.x    the batch's palette row base (2b); rows are fetched at v = (rowBase + row + 0.5) / 1024
 // TEXCOORD0 = current clip .xyw (cur.proj, this frame's bones), TEXCOORD1 = previous clip .xyw (prev.proj, last
 // frame's bones); MotionPS divides and subtracts.
 sampler2D bones : register(s0);
 float4 renderProj[4] : register(c0);
 float4 curProj[4] : register(c4);
 float4 prevProj[4] : register(c8);
+float4 rowBase : register(c12);
 
 struct VSOut {
     float4 pos : POSITION;
@@ -25,7 +27,7 @@ float4 Mul(float4 v, float4 r0, float4 r1, float4 r2, float4 r3) {
 }
 
 float4 Fetch(float index, float k, float row) {
-    return tex2Dlod(bones, float4((3.0 * index + k + 0.5) / 256.0, (row + 0.5) / 2.0, 0.0, 0.0));
+    return tex2Dlod(bones, float4((3.0 * index + k + 0.5) / 256.0, (rowBase.x + row + 0.5) / 1024.0, 0.0, 0.0));
 }
 
 // Weighted bone-space position (w = 1) for one palette row.

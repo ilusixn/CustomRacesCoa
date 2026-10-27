@@ -25,10 +25,11 @@
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "WoW/Source/WorldClient/World.h"
 #include <d3d9.h>
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
-#include <unordered_map>
+#include <vector>
 
 namespace {
     using namespace CoA::RenderPipeline;
@@ -46,8 +47,12 @@ namespace {
     constexpr uint32_t kModelCulled = 0x2000;
     constexpr uint32_t kElementOptimized = 4;
 
-    // The palette texture: A32B32G32R32F, 256 x 2 (row 0 this frame, row 1 last frame), 3 texels per bone slot.
+    // The palette texture: A32B32G32R32F, 256 x (2 * kMaxBatches), 3 texels per bone slot; batch b of a frame uses
+    // rows 2b (this frame's bones) and 2b + 1 (last frame's). Batches beyond kMaxBatches in one frame are skipped.
     constexpr uint32_t kPaletteWidth = 256;
+    constexpr uint32_t kMaxBatches = 512;
+    // SkinnedMotionVS divides the row by this height.
+    static_assert(2 * kMaxBatches == 1024, "SkinnedMotionVS assumes a 1024-row palette");
 
     static_assert(sizeof(C44Matrix) == sizeof(Mat4), "C44Matrix and Mat4 must share a layout");
 
@@ -229,7 +234,7 @@ namespace {
             }
         }
 
-        if (FAILED(device->CreateTexture(kPaletteWidth, 2, 1, D3DUSAGE_DYNAMIC, D3DFMT_A32B32G32R32F, D3DPOOL_DEFAULT, &s_palette, nullptr))) {
+        if (FAILED(device->CreateTexture(kPaletteWidth, 2 * kMaxBatches, 1, D3DUSAGE_DYNAMIC, D3DFMT_A32B32G32R32F, D3DPOOL_DEFAULT, &s_palette, nullptr))) {
             s_palette = nullptr;
             s_vertexTextures = 0;
             LogOnce(s_loggedVertexTextures, "RenderMotion: palette texture creation failed, the model pass stays off (camera motion only)");
@@ -365,39 +370,99 @@ namespace {
         device->SetTexture(0, nullptr);
     }
 
-    struct ModelPrevious {
-        const Mat4* bones;      // nullptr: not drawn in the model pass
-        uint32_t count;
+    // Per-frame diagnostics of the model pass (logged every kStatsIntervalMs while coaRenderMotion is on).
+    struct Stats {
+        uint32_t walked, animated, culled, staticUnchanged, noHistory, eligible, drawn;
+        uint32_t batchesDrawn, skippedAlpha, skippedOptimized, skippedSlots, skippedBuffers, skippedRange, skippedOverflow;
     };
 
-    // Last frame's bones of a model the model pass draws (ModelNeedsPass), else bones = nullptr.
-    ModelPrevious PreviousFor(const CM2Model* model, const CM2Scene* scene, const Frame& frame) {
-        ModelPrevious result = { nullptr, 0 };
+    constexpr uint64_t kStatsIntervalMs = 5000;
+    Stats s_stats;
+    uint64_t s_statsLogged;
 
-        if (!model->m_boneMatrices || !model->m_shared || !model->m_shared->m_data) {
-            return result;
+    // A model the model pass draws: last frame's bones; `drawn` set once one of its batches is drawn.
+    struct Eligible {
+        const CM2Model* model;
+        const Mat4* bones;
+        uint32_t count;
+        bool drawn;
+    };
+
+    // This frame's eligible models, sorted by pointer (reused: no allocation per frame after warm-up).
+    std::vector<Eligible> s_eligible;
+
+    // One batch gathered for drawing (its two palette rows already packed).
+    struct BatchDraw {
+        IDirect3DVertexBuffer9* vertices;
+        IDirect3DIndexBuffer9* indices;
+        UINT offset;
+        UINT stride;
+        INT baseVertex;
+        UINT minIndex;
+        UINT vertexCount;
+        UINT startIndex;
+        UINT primCount;
+        float rowBase;
+    };
+
+    std::vector<BatchDraw> s_batches;
+
+    // Walks the scene's models: the eligible ones (ModelNeedsPass) into s_eligible, the rest counted by reason.
+    void ClassifyModels(const CM2Scene* scene, const Frame& frame) {
+        s_eligible.clear();
+
+        for (const CM2Model* model = scene->m_modelList; model; model = model->m_sceneNext) {
+            ++s_stats.walked;
+
+            const bool animated = model->m_frameStamp == scene->m_frameStamp;
+            const bool culled = (model->m_fFlags & kModelCulled) != 0;
+            const bool staticSimple = (model->m_fFlags & kModelStaticSimple) != 0;
+
+            if (!animated) {
+                continue;
+            }
+
+            ++s_stats.animated;
+
+            if (culled) {
+                ++s_stats.culled;
+                continue;
+            }
+
+            const MotionCache::Key key = { model, model->m_handle };
+            uint32_t count = 0;
+            const Mat4* bones = MotionCache::Previous(key, frame.index, count);
+            const Mat4* world = MotionCache::PreviousWorld(key, frame.index);
+            const bool worldChanged = world && memcmp(world, &model->m_worldTransform, sizeof(Mat4)) != 0;
+            // A model whose bone count changed (reloaded under the same pointer and handle) has no usable history.
+            const bool havePrevious = bones && model->m_boneMatrices && model->m_shared && model->m_shared->m_data
+                && count == model->m_shared->m_data->m_bones.m_count;
+
+            if (!havePrevious) {
+                ++s_stats.noHistory;
+                continue;
+            }
+
+            if (!CoA::RenderMotion::ModelNeedsPass(animated, culled, staticSimple, worldChanged, havePrevious)) {
+                ++s_stats.staticUnchanged;
+                continue;
+            }
+
+            ++s_stats.eligible;
+            s_eligible.push_back({ model, bones, count, false });
         }
 
-        const MotionCache::Key key = { model, model->m_handle };
-        uint32_t count = 0;
-        const Mat4* bones = MotionCache::Previous(key, frame.index, count);
-        const Mat4* world = MotionCache::PreviousWorld(key, frame.index);
-        const bool worldChanged = world && memcmp(world, &model->m_worldTransform, sizeof(Mat4)) != 0;
-        // A model whose bone count changed (reloaded under the same pointer and handle) has no usable history.
-        const bool havePrevious = bones && count == model->m_shared->m_data->m_bones.m_count;
-
-        if (CoA::RenderMotion::ModelNeedsPass(model->m_frameStamp == scene->m_frameStamp, (model->m_fFlags & kModelCulled) != 0,
-                                              (model->m_fFlags & kModelStaticSimple) != 0, worldChanged, havePrevious)) {
-            result.bones = bones;
-            result.count = count;
-        }
-
-        return result;
+        std::sort(s_eligible.begin(), s_eligible.end(), [](const Eligible& a, const Eligible& b) { return a.model < b.model; });
     }
 
-    // Packs one row of the palette: slot i = model bone m_boneCombos[boneComboIndex + i], 3 texels holding the
-    // engine's c31+ registers for it (texel k = column k of the matrix: a_k, b_k, c_k, d_k; CM2SceneRender::DrawBatch).
-    // False when a slot names a bone outside the array.
+    Eligible* FindEligible(const CM2Model* model) {
+        auto it = std::lower_bound(s_eligible.begin(), s_eligible.end(), model, [](const Eligible& e, const CM2Model* m) { return e.model < m; });
+        return (it != s_eligible.end() && it->model == model) ? &*it : nullptr;
+    }
+
+    // Packs one palette row: slot i = model bone m_boneCombos[boneComboIndex + i], 3 texels holding the engine's c31+
+    // registers for it (texel k = column k of the matrix: a_k, b_k, c_k, d_k; CM2SceneRender::DrawBatch). False when a
+    // slot names a bone outside the array.
     bool PackRow(float* row, const M2Data* data, const M2SkinSection* section, const Mat4* bones, uint32_t boneCount) {
         for (uint32_t i = 0; i < section->m_boneCount; ++i) {
             const uint32_t bone = data->m_boneCombos[section->m_boneComboIndex + i];
@@ -420,23 +485,155 @@ namespace {
         return true;
     }
 
-    // 2. Model pass: the opaque batches of every model that moved on its own (skinned, or a static model whose world
-    // transform changed) re-drawn with SkinnedMotionVS / MotionPS, depth-tested against the world's INTZ.
-    void ModelPass(CGxDevice* gx, IDirect3DDevice9* device, IDirect3DTexture9* palette, IDirect3DSurface9* depthSurface, const Frame& frame, uint32_t width, uint32_t height) {
-        CM2Scene* scene = World::s_m2Scene;
+    // Gathers the drawable opaque batches of the eligible models into s_batches, packing both palette rows of each into
+    // the locked palette (rows 2b / 2b + 1 for batch b). The palette is locked on the first drawable batch.
+    void GatherBatches(CGxDevice* gx, IDirect3DTexture9* palette, const CM2Scene* scene, D3DLOCKED_RECT& locked, bool& isLocked) {
+        s_batches.clear();
+        const TSGrowableArray<uint32_t>& list = scene->m_passElements[0];
 
-        if (!scene) {
+        for (uint32_t i = 0; i < list.m_count; ++i) {
+            const M2Element* element = &scene->m_elements.m_data[list.m_data[i]];
+
+            if (element->m_type != 0 || !element->m_model || !element->m_batch || !element->m_skinSection) {
+                continue;
+            }
+
+            Eligible* eligible = FindEligible(element->m_model);
+
+            if (!eligible) {
+                continue;
+            }
+
+            if (element->m_flags & kElementOptimized) {
+                ++s_stats.skippedOptimized;
+                LogOnce(s_loggedOptimized, "RenderMotion: optimized-geometry M2 batches are not in the model pass (camera motion only)");
+                continue;
+            }
+
+            const CM2Model* model = element->m_model;
+            const CM2Shared* shared = model->m_shared;
+            const M2Data* data = shared->m_data;
+            const M2SkinSection* section = element->m_skinSection;
+
+            // Opaque materials only: alpha-keyed batches would write model motion over their cut-out texels (the pass
+            // has no alpha test), so those keep the camera motion.
+            if (data->m_materials[element->m_batch->m_materialIndex].m_blendMode != M2BLEND_OPAQUE) {
+                ++s_stats.skippedAlpha;
+                continue;
+            }
+
+            if (section->m_boneCount == 0 || section->m_indexCount < 3) {
+                continue;
+            }
+
+            if (section->m_boneCount > MotionCache::kMaxBones) {
+                ++s_stats.skippedSlots;
+                LogOnce(s_loggedBones, "RenderMotion: an M2 batch uses more bone slots than the palette holds; it keeps the camera motion");
+                continue;
+            }
+
+            // The geometry the world drew for this batch: CM2Shared's index and vertex buffers (SetIndices /
+            // SetVertices(0), both already uploaded for this frame's draw), the range of CM2SceneRender::DrawBatch.
+            const CGxBuf* vertexBuf = shared->m_vertexBuf;
+            const CGxBuf* indexBuf = shared->m_indexBuf;
+
+            if (!vertexBuf || !indexBuf || !vertexBuf->m_pool || !indexBuf->m_pool || !vertexBuf->m_pool->m_apiSpecific || !indexBuf->m_pool->m_apiSpecific
+                || !vertexBuf->m_hasData || !vertexBuf->m_valid || !indexBuf->m_hasData || !indexBuf->m_valid || vertexBuf->m_itemSize != sizeof(M2Vertex)) {
+                ++s_stats.skippedBuffers;
+                continue;
+            }
+
+            const uint32_t batch = static_cast<uint32_t>(s_batches.size());
+
+            if (batch >= kMaxBatches) {
+                ++s_stats.skippedOverflow;
+                continue;
+            }
+
+            if (!isLocked) {
+                if (FAILED(palette->LockRect(0, &locked, nullptr, D3DLOCK_DISCARD))) {
+                    return;
+                }
+
+                isLocked = true;
+            }
+
+            float* row0 = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits) + static_cast<size_t>(locked.Pitch) * (2 * batch));
+            float* row1 = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits) + static_cast<size_t>(locked.Pitch) * (2 * batch + 1));
+
+            if (!PackRow(row0, data, section, reinterpret_cast<const Mat4*>(model->m_boneMatrices), data->m_bones.m_count)
+                || !PackRow(row1, data, section, eligible->bones, eligible->count)) {
+                ++s_stats.skippedRange;
+                continue;
+            }
+
+            // As CGxDeviceD3d::Draw / ISetVertexBuffer: a byte offset into the stream, or a base vertex without stream
+            // offsets.
+            BatchDraw draw;
+            draw.vertices = static_cast<IDirect3DVertexBuffer9*>(vertexBuf->m_pool->m_apiSpecific);
+            draw.indices = static_cast<IDirect3DIndexBuffer9*>(indexBuf->m_pool->m_apiSpecific);
+            draw.offset = vertexBuf->m_index;
+            draw.stride = vertexBuf->m_itemSize;
+            draw.baseVertex = 0;
+
+            if (!gx->m_caps.m_streamOffset) {
+                draw.offset = 0;
+                draw.baseVertex = static_cast<INT>(vertexBuf->m_index / vertexBuf->m_itemSize);
+            }
+
+            draw.minIndex = section->m_vertexStart;
+            draw.vertexCount = section->m_vertexCount;
+            draw.startIndex = section->m_indexStart + (indexBuf->m_index >> 1);
+            draw.primCount = section->m_indexCount / 3u;
+            draw.rowBase = static_cast<float>(2 * batch);
+            s_batches.push_back(draw);
+
+            if (!eligible->drawn) {
+                eligible->drawn = true;
+                ++s_stats.drawn;
+            }
+        }
+    }
+
+    // 2. Model pass: the opaque batches of every model that moved on its own (skinned, or a static model whose world
+    // transform changed) re-drawn with SkinnedMotionVS / MotionPS, depth-tested against the world's INTZ. One palette
+    // upload per frame (GatherBatches), then one draw per batch with its palette row base in c12.x.
+    void ModelPass(CGxDevice* gx, IDirect3DDevice9* device, IDirect3DTexture9* palette, IDirect3DSurface9* depthSurface, const Frame& frame, uint32_t width, uint32_t height) {
+        const CM2Scene* scene = World::s_m2Scene;
+
+        if (!scene || s_eligible.empty()) {
+            return;
+        }
+
+        D3DLOCKED_RECT locked;
+        bool isLocked = false;
+        GatherBatches(gx, palette, scene, locked, isLocked);
+
+        if (isLocked) {
+            palette->UnlockRect(0);
+        }
+
+        if (!isLocked || s_batches.empty()) {
             return;
         }
 
         // c0..c3: the projection the world rasterised with (the jittered cur.proj in the device's native form), so the
         // depth test lines up; c4..c7 / c8..c11: the unjittered GL-style cur.proj / prev.proj (the motion uses .xyw,
-        // which the native form leaves the same up to a common factor of w).
+        // which the native form leaves the same up to a common factor of w). c12.x (per batch): palette row base.
         const Mat4 renderProj = NativeProjection(ApplyJitter(frame.cur.proj, frame.jitterX, frame.jitterY, width, height));
         float constants[12][4];
         memcpy(constants[0], renderProj.m, sizeof(renderProj.m));
         memcpy(constants[4], frame.cur.proj.m, sizeof(frame.cur.proj.m));
         memcpy(constants[8], frame.prev.proj.m, sizeof(frame.prev.proj.m));
+
+        // Stream 0 and the index buffer are put back by hand as well as by the state block: the device caches them
+        // (ISetVertexBuffer, IStateSync) and skips re-binding a buffer it believes is still bound.
+        IDirect3DVertexBuffer9* savedStream = nullptr;
+        UINT savedOffset = 0;
+        UINT savedStride = 0;
+        IDirect3DIndexBuffer9* savedIndices = nullptr;
+        device->GetStreamSource(0, &savedStream, &savedOffset, &savedStride);
+        device->GetIndices(&savedIndices);
 
         device->SetDepthStencilSurface(depthSurface);
         SetViewport(device, width, height, frame.depthMin, frame.depthMax);
@@ -452,100 +649,15 @@ namespace {
         PointClamp(device, D3DVERTEXTEXTURESAMPLER0);
         device->SetTexture(D3DVERTEXTEXTURESAMPLER0, palette);
 
-        // Stream 0 and the index buffer are put back by hand as well as by the state block: the device caches them
-        // (ISetVertexBuffer, IStateSync) and skips re-binding a buffer it believes is still bound.
-        IDirect3DVertexBuffer9* savedStream = nullptr;
-        UINT savedOffset = 0;
-        UINT savedStride = 0;
-        IDirect3DIndexBuffer9* savedIndices = nullptr;
-        device->GetStreamSource(0, &savedStream, &savedOffset, &savedStride);
-        device->GetIndices(&savedIndices);
-
-        std::unordered_map<const CM2Model*, ModelPrevious> previous;
-        const TSGrowableArray<uint32_t>& list = scene->m_passElements[0];
-
-        for (uint32_t i = 0; i < list.m_count; ++i) {
-            const M2Element* element = &scene->m_elements.m_data[list.m_data[i]];
-
-            if (element->m_type != 0 || !element->m_model || !element->m_batch || !element->m_skinSection) {
-                continue;
-            }
-
-            if (element->m_flags & kElementOptimized) {
-                LogOnce(s_loggedOptimized, "RenderMotion: optimized-geometry M2 batches are not in the model pass (camera motion only)");
-                continue;
-            }
-
-            const CM2Model* model = element->m_model;
-            auto found = previous.find(model);
-
-            if (found == previous.end()) {
-                found = previous.emplace(model, PreviousFor(model, scene, frame)).first;
-            }
-
-            const ModelPrevious prev = found->second;
-
-            if (!prev.bones) {
-                continue;
-            }
-
-            const CM2Shared* shared = model->m_shared;
-            const M2Data* data = shared->m_data;
-            const M2SkinSection* section = element->m_skinSection;
-
-            // Opaque materials only: alpha-keyed batches would write model motion over their cut-out texels (the pass
-            // has no alpha test), so those keep the camera motion.
-            if (data->m_materials[element->m_batch->m_materialIndex].m_blendMode != M2BLEND_OPAQUE || section->m_boneCount == 0 || section->m_indexCount < 3) {
-                continue;
-            }
-
-            if (section->m_boneCount > MotionCache::kMaxBones) {
-                LogOnce(s_loggedBones, "RenderMotion: an M2 batch has more bones than the palette holds; it keeps the camera motion");
-                continue;
-            }
-
-            // The geometry the world drew for this batch: CM2Shared's index and vertex buffers (SetIndices /
-            // SetVertices(0), both already uploaded for this frame's draw), the range of CM2SceneRender::DrawBatch.
-            const CGxBuf* vertexBuf = shared->m_vertexBuf;
-            const CGxBuf* indexBuf = shared->m_indexBuf;
-
-            if (!vertexBuf || !indexBuf || !vertexBuf->m_pool || !indexBuf->m_pool || !vertexBuf->m_pool->m_apiSpecific || !indexBuf->m_pool->m_apiSpecific
-                || !vertexBuf->m_hasData || !vertexBuf->m_valid || !indexBuf->m_hasData || !indexBuf->m_valid || vertexBuf->m_itemSize != sizeof(M2Vertex)) {
-                continue;
-            }
-
-            D3DLOCKED_RECT locked;
-
-            if (FAILED(palette->LockRect(0, &locked, nullptr, D3DLOCK_DISCARD))) {
-                continue;
-            }
-
-            float* row0 = static_cast<float*>(locked.pBits);
-            float* row1 = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits) + locked.Pitch);
-            const uint32_t boneCount = data->m_bones.m_count;
-            const bool packed = PackRow(row0, data, section, reinterpret_cast<const Mat4*>(model->m_boneMatrices), boneCount)
-                && PackRow(row1, data, section, prev.bones, prev.count);
-            palette->UnlockRect(0);
-
-            if (!packed) {
-                continue;
-            }
-
-            // As CGxDeviceD3d::Draw / ISetVertexBuffer: a byte offset into the stream, or a base vertex without stream
-            // offsets.
-            uint32_t offset = vertexBuf->m_index;
-            INT baseVertex = 0;
-
-            if (!gx->m_caps.m_streamOffset) {
-                offset = 0;
-                baseVertex = static_cast<INT>(vertexBuf->m_index / vertexBuf->m_itemSize);
-            }
-
-            device->SetStreamSource(0, static_cast<IDirect3DVertexBuffer9*>(vertexBuf->m_pool->m_apiSpecific), offset, vertexBuf->m_itemSize);
-            device->SetIndices(static_cast<IDirect3DIndexBuffer9*>(indexBuf->m_pool->m_apiSpecific));
-            device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, baseVertex, section->m_vertexStart, section->m_vertexCount,
-                                         section->m_indexStart + (indexBuf->m_index >> 1), section->m_indexCount / 3);
+        for (const BatchDraw& draw : s_batches) {
+            const float rowBase[4] = { draw.rowBase, 0.0f, 0.0f, 0.0f };
+            device->SetVertexShaderConstantF(12, rowBase, 1);
+            device->SetStreamSource(0, draw.vertices, draw.offset, draw.stride);
+            device->SetIndices(draw.indices);
+            device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, draw.baseVertex, draw.minIndex, draw.vertexCount, draw.startIndex, draw.primCount);
         }
+
+        s_stats.batchesDrawn += static_cast<uint32_t>(s_batches.size());
 
         device->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
         device->SetStreamSource(0, savedStream, savedOffset, savedStride);
@@ -558,6 +670,22 @@ namespace {
         if (savedIndices) {
             savedIndices->Release();
         }
+    }
+
+    // One line every kStatsIntervalMs with the current frame's counts.
+    void LogStats() {
+        const uint64_t now = GetTickCount64();
+
+        if (now - s_statsLogged < kStatsIntervalMs) {
+            return;
+        }
+
+        s_statsLogged = now;
+        const Stats& s = s_stats;
+        CoA::Log::Printf("RenderMotion: models walked=%u animated=%u culled=%u staticunchanged=%u nohistory=%u eligible=%u drawn=%u; "
+                         "batches drawn=%u skipped alpha=%u optgeo=%u slots=%u buffers=%u range=%u overflow=%u",
+                         s.walked, s.animated, s.culled, s.staticUnchanged, s.noHistory, s.eligible, s.drawn,
+                         s.batchesDrawn, s.skippedAlpha, s.skippedOptimized, s.skippedSlots, s.skippedBuffers, s.skippedRange, s.skippedOverflow);
     }
 
     // 3. Mask pass: white where the final world colour differs from the opaque snapshot (translucency drawn over it).
@@ -573,7 +701,7 @@ namespace {
     }
 
     // 4. This frame's bones and world transform of every model animated this frame and not culled (drawn in the model
-    // pass or not), for next frame's model pass; models above kMaxBones are not stored.
+    // pass or not), for next frame's model pass; models above MotionCache::kMaxModelBones are not stored.
     void StoreBones(const Frame& frame) {
         if (frame.reset) {
             MotionCache::Clear();
@@ -639,6 +767,7 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
         return;
     }
 
+    s_stats = {};
     uint32_t height = 0;
     const uint32_t width = TextureWidth(motion, height);
 
@@ -700,6 +829,13 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
         // 2. Model pass, over the static result.
         IDirect3DTexture9* palette = reproject ? Palette(device) : nullptr;
 
+        // Classified on every new frame (also feeds the diagnostics line); drawn only with a palette.
+        if (!repeated && World::s_m2Scene) {
+            ClassifyModels(World::s_m2Scene, frame);
+        } else {
+            s_eligible.clear();
+        }
+
         if (palette && SUCCEEDED(depth->GetSurfaceLevel(0, &depthSurface)) && depthSurface) {
             ModelPass(gx, device, palette, depthSurface, frame, width, height);
             device->SetDepthStencilSurface(nullptr);
@@ -737,6 +873,8 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
     if (!repeated) {
         StoreBones(frame);
     }
+
+    LogStats();
 }
 
 bool CoA::RenderMotionClient::DrawDebugView(int mode) {

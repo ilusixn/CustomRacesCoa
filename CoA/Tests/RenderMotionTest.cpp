@@ -303,12 +303,24 @@ COA_TEST(MotionCache_HandleChangeDropsHistory) {
 
 COA_TEST(MotionCache_RejectsOversizedPalette) {
     CoA::MotionCache::Clear();
-    static Mat4 big[CoA::MotionCache::kMaxBones + 1];
-    CHECK(!CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxBones + 1));
+    static Mat4 big[CoA::MotionCache::kMaxModelBones + 1];
+    CHECK(!CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxModelBones + 1));
     CHECK(!CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, 0));
     CHECK(CoA::MotionCache::Size() == 0);
-    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxBones));
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), big, CoA::MotionCache::kMaxModelBones));
     CHECK(CoA::MotionCache::Size() == 1);
+}
+
+COA_TEST(MotionCache_StoresModelsAbovePaletteSlots) {   // character / creature models have more bones than 85 slots
+    CoA::MotionCache::Clear();
+    static Mat4 bones[200];
+    for (int i = 0; i < 200; ++i) {
+        bones[i] = Mat(static_cast<float>(i + 1));
+    }
+    CHECK(CoA::MotionCache::Store({ &s_m1, 7 }, 10, Mat(0), bones, 200));
+    uint32_t n = 0;
+    const Mat4* p = CoA::MotionCache::Previous({ &s_m1, 7 }, 11, n);
+    CHECK(p && n == 200 && p[0].m[0][0] == 1.0f && p[85].m[0][0] == 86.0f && p[199].m[0][0] == 200.0f);
 }
 
 COA_TEST(MotionCache_EndFrameEvictsUnseen) {

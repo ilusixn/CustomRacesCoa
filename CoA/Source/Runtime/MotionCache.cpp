@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iterator>
 #include <unordered_map>
+#include <vector>
 
 namespace CoA::MotionCache {
     using RenderPipeline::Mat4;
@@ -11,7 +12,8 @@ namespace CoA::MotionCache {
             uint32_t frame;
             uint32_t count;     // 0 = empty
             Mat4 world;
-            Mat4 bones[kMaxBones];
+            // Sized on first store and reused (grown only for a larger model), so no allocation per frame.
+            std::vector<Mat4> bones;
         };
 
         // Two slots: the one written this frame and the one written last frame.
@@ -42,7 +44,7 @@ namespace CoA::MotionCache {
     }
 
     bool Store(Key key, uint32_t frameIndex, const Mat4& world, const Mat4* bones, uint32_t count) {
-        if (count == 0 || count > kMaxBones || !bones) {
+        if (count == 0 || count > kMaxModelBones || !bones) {
             return false;
         }
         auto [it, inserted] = Map().try_emplace(key.model);
@@ -74,14 +76,19 @@ namespace CoA::MotionCache {
         slot->frame = frameIndex;
         slot->count = count;
         slot->world = world;
-        std::memcpy(slot->bones, bones, sizeof(Mat4) * count);
+
+        if (slot->bones.size() < count) {
+            slot->bones.resize(count);
+        }
+
+        std::memcpy(slot->bones.data(), bones, sizeof(Mat4) * count);
         return true;
     }
 
     const Mat4* Previous(Key key, uint32_t frameIndex, uint32_t& count) {
         const Slot* s = FindPrevious(key, frameIndex);
         count = s ? s->count : 0;
-        return s ? s->bones : nullptr;
+        return s ? s->bones.data() : nullptr;
     }
 
     const Mat4* PreviousWorld(Key key, uint32_t frameIndex) {
