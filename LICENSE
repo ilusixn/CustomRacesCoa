@@ -1,0 +1,31 @@
+CoA64 — Proprietary License
+
+Copyright (c) 2025-2026 Sven Bledt. All rights reserved.
+
+This repository and its contents, excluding the third-party and upstream material listed in NOTICE.md
+(the "Software"), are proprietary. No license is granted to you except as stated below.
+
+1. Without the prior written permission of the copyright holder you may NOT:
+   a. copy, reproduce or redistribute the Software, in source or binary form, in whole or in part;
+   b. modify, adapt, translate or create derivative works of the Software;
+   c. publish, sublicense, sell, lease, lend or otherwise make the Software available to any third party;
+   d. use the Software, or any part of it, in any other project, product or service.
+
+2. Viewing the Software where it is published by the copyright holder (for example on the copyright holder's
+   own GitHub repository) does not grant any of the rights in section 1. Any copy made by a hosting platform
+   under its own terms of service (such as a fork on GitHub) does not grant permission to use, modify or
+   distribute the Software outside that platform's terms.
+
+3. Third-party and upstream material in this repository remains under its own licenses and copyright,
+   as listed in NOTICE.md. Nothing in this license restricts the rights those licenses grant for that
+   material, and nothing in this license claims ownership of it.
+
+4. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+   LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+   EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF
+   OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+5. Any use, copying, modification or distribution not expressly permitted in writing by the copyright holder
+   terminates any rights you may have and may constitute copyright infringement.
+
+Permission requests: contact the copyright holder through https://github.com/svenbledt.
