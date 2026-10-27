@@ -2498,11 +2498,14 @@ void CGxDeviceD3d::IStateSync() {
     if (this->m_primIndexDirty) {
         this->m_primIndexDirty = 0;
 
-        LPDIRECT3DINDEXBUFFER9 indexBuffer = static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific);
+        // CoA64: BufDestroy clears m_primIndexBuf for a destroyed buffer; nothing to bind then.
+        if (this->m_primIndexBuf) {
+            LPDIRECT3DINDEXBUFFER9 indexBuffer = static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific);
 
-        if (this->m_d3dCurrentIndexBuf != indexBuffer) {
-            this->m_d3dDevice->SetIndices(indexBuffer);
-            this->m_d3dCurrentIndexBuf = indexBuffer;
+            if (this->m_d3dCurrentIndexBuf != indexBuffer) {
+                this->m_d3dDevice->SetIndices(indexBuffer);
+                this->m_d3dCurrentIndexBuf = indexBuffer;
+            }
         }
     }
 

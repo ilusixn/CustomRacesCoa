@@ -84,6 +84,8 @@ namespace {
     bool s_loggedProjection;
     bool s_loggedViewport;
     bool s_loggedVertexTextures;
+    bool s_loggedLockFailed;
+    bool s_loggedTargets;
 
     void LogOnce(bool& logged, const char* message) {
         if (!logged) {
@@ -569,14 +571,14 @@ namespace {
         }
     }
 
-    // Phase 2: one D3DLOCK_DISCARD lock of just the palette rows in use (2 per found batch), both rows of every batch
-    // packed, then s_batches built for the draws. False when the lock fails.
+    // Phase 2: one D3DLOCK_DISCARD lock of the whole palette level (DXVK ignores DISCARD on a sub-rect lock and may stall
+    // on last frame's upload), only the rows in use (2 per found batch) written, both rows of every batch packed, then
+    // s_batches built for the draws. False when the lock fails.
     bool PackBatches(CGxDevice* gx, IDirect3DTexture9* palette) {
         s_batches.clear();
-        RECT rows = { 0, 0, static_cast<LONG>(kPaletteWidth), static_cast<LONG>(2 * s_sources.size()) };
         D3DLOCKED_RECT locked;
 
-        if (FAILED(palette->LockRect(0, &locked, &rows, D3DLOCK_DISCARD))) {
+        if (FAILED(palette->LockRect(0, &locked, nullptr, D3DLOCK_DISCARD))) {
             return false;
         }
 
@@ -643,7 +645,16 @@ namespace {
 
         FindBatches(scene);
 
-        if (s_sources.empty() || !PackBatches(gx, palette) || s_batches.empty()) {
+        if (s_sources.empty()) {
+            return;
+        }
+
+        if (!PackBatches(gx, palette)) {
+            LogOnce(s_loggedLockFailed, "RenderMotion: the palette texture lock failed, the model pass is skipped (camera motion only)");
+            return;
+        }
+
+        if (s_batches.empty()) {
             return;
         }
 
@@ -857,8 +868,28 @@ static void RunPasses(CGxDevice* gx) {
     IDirect3DSurface9* depthSurface = nullptr;
 
     // Render targets are objects, not state: Get works on the pure device (the engine does it in IStateSetD3DDefaults).
-    device->GetRenderTarget(0, &savedTarget);
-    device->GetDepthStencilSurface(&savedDepth);
+    const bool haveTarget = SUCCEEDED(device->GetRenderTarget(0, &savedTarget)) && savedTarget;
+    const bool haveDepth = SUCCEEDED(device->GetDepthStencilSurface(&savedDepth)) && savedDepth;
+
+    // Without both surfaces there is nothing to put back: skip the passes, change no state.
+    if (!haveTarget || !haveDepth) {
+        LogOnce(s_loggedTargets, "RenderMotion: the device's render target or depth surface could not be read, the motion passes are skipped");
+
+        if (savedTarget) {
+            savedTarget->Release();
+        }
+
+        if (savedDepth) {
+            savedDepth->Release();
+        }
+
+        if (!repeated) {
+            StoreBones(frame);
+        }
+
+        return;
+    }
+
     CommonStates(device);
 
     // 1. Static pass (or the reset clear), no depth surface bound while INTZ is sampled.

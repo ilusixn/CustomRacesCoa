@@ -1146,6 +1146,12 @@ void CGxDevice::BufDestroy(CGxBuf*& buf) {
         buf->m_pool->UnlinkBuf(buf);
     }
 
+    // CoA64: the bound primitive index buffer must not outlive the buffer (IStateSync would dereference it).
+    if (this->m_primIndexBuf == buf) {
+        this->m_primIndexBuf = nullptr;
+        this->m_primIndexDirty = 0;
+    }
+
     buf->m_link.Unlink();
     delete buf;
     buf = nullptr;
