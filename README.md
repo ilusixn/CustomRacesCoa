@@ -29,3 +29,8 @@ Output: `bin\Win\CoA64.exe` (+ `.pdb`, `.map`) and `XvidDecoder.dll`. `BuildCoA6
 
 Copy `CoA64.exe` and `XvidDecoder.dll` into a CoA client folder (next to `Ascension.exe`, which is left untouched)
 and start `CoA64.exe` from there. `-extlog 1` turns on the developer log `Logs\Extensions.log`.
+
+## License
+
+Proprietary — all rights reserved. No one may copy, distribute or modify this code without written permission;
+see `LICENSE`. Third-party and upstream material keeps its own licenses; see `NOTICE.md`.
