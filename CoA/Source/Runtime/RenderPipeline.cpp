@@ -44,17 +44,35 @@ namespace CoA::RenderPipeline {
             if (dx * dx + dy * dy + dz * dz > kTeleportDistance * kTeleportDistance) {
                 reset = true;
             }
+            // Turned more than kCameraCutDegrees: dot of the normalised forwards (a zero-length one never cuts).
+            const float* a = s_frame.cur.forward;
+            const float* b = cam.forward;
+            const float la = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+            const float lb = std::sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+            if (la > 0.0f && lb > 0.0f) {
+                const float dot = (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]) / (la * lb);
+                if (dot < std::cos(kCameraCutDegrees * 3.14159265358979f / 180.0f)) {
+                    reset = true;
+                }
+            }
         }
         s_frame.prev = first ? cam : s_frame.cur;
         s_frame.cur = cam;
         s_frame.index++;
         s_frame.reset = reset;
+        s_frame.jitterX = 0.0f;
+        s_frame.jitterY = 0.0f;
         s_frame.depthMin = depthMin;
         s_frame.depthMax = depthMax;
     }
 
     const Frame& Current() {
         return s_frame;
+    }
+
+    void SetJitter(float jx, float jy) {
+        s_frame.jitterX = jx;
+        s_frame.jitterY = jy;
     }
 
     void Halton23(uint32_t index, float& x, float& y) {
@@ -102,6 +120,7 @@ namespace CoA::RenderPipelineClient {
         CVar* s_pipeline;
         CVar* s_debug;
         CVar* s_jitter;
+        CVar* s_motion;
     }
 
     void QueueCVars() {
@@ -109,6 +128,7 @@ namespace CoA::RenderPipelineClient {
         COA_CVAR("coaRenderPipeline", nullptr, 1, "0", nullptr, 1, false, &s_pipeline, false);
         COA_CVAR("coaRenderDebug", nullptr, 1, "0", nullptr, 1, false, &s_debug, false);
         COA_CVAR("coaRenderJitter", nullptr, 1, "0", nullptr, 1, false, &s_jitter, false);
+        COA_CVAR("coaRenderMotion", nullptr, 1, "0", nullptr, 1, false, &s_motion, false);
     }
 
     CVar** PipelineSlot() {
@@ -121,5 +141,9 @@ namespace CoA::RenderPipelineClient {
 
     CVar** JitterSlot() {
         return &s_jitter;
+    }
+
+    CVar** MotionSlot() {
+        return &s_motion;
     }
 }

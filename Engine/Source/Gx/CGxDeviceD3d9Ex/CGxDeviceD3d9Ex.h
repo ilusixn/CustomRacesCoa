@@ -267,6 +267,16 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     int32_t m_worldTargetBegun = 0;
     // CoA64: WorldTargetSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
     int32_t m_worldTargetSupported = -1;
+    // CoA64: render pipeline motion targets (see WorldMotionTargetsEnsure): motion (G16R16F), translucency mask
+    // (A8R8G8B8) and opaque snapshot (colour format) render-target textures at the world target size. Each holds one
+    // reference; all three exist or none do. Freed in WorldTargetRelease.
+    LPDIRECT3DTEXTURE9 m_worldMotionTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldMaskTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldSnapshotTexture = nullptr;
+    uint32_t m_worldMotionWidth = 0;
+    uint32_t m_worldMotionHeight = 0;
+    // CoA64: WorldMotionSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
+    int32_t m_worldMotionSupported = -1;
 
     virtual void ITexMarkAsUpdated(CGxTex* texId);
     virtual void IRsSendToHw(EGxRenderState which);
@@ -334,6 +344,13 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
+    virtual bool WorldMotionSupported();
+    virtual bool WorldMotionTargetsEnsure();
+    virtual void* WorldMotionTexture();
+    virtual void* WorldMaskTexture();
+    virtual void* WorldSnapshotTexture();
+    virtual bool WorldSnapshotOpaque();
+    virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
     virtual void* D3dDevice();
 
     static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
@@ -425,6 +442,7 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     void IWorldTargetApply();
     void IWorldTargetFree();
     void IWorldTargetRestore(bool rebind = true);
+    void IWorldMotionTargetsFree();
 };
 
 CGxDevice* CreateCGxDeviceD3d9Ex();

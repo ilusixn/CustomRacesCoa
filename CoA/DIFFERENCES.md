@@ -57,6 +57,10 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
   Console-only, all default 0: `coaRenderPipeline`, `coaRenderDebug`, `coaRenderJitter`. Active only without MSAA, with
   INTZ, a 24-bit depth format and shaders; otherwise the direct path runs. Groundwork for DLSS
   (`docs/superpowers/specs/2026-10-26-streamline-rendering-design.md`).
+  `coaRenderMotion` (default 0, needs `coaRenderPipeline 1`) adds per-pixel motion vectors (static geometry from depth
+  and the camera; animated models redrawn with own shaders from this and last frame's bones) and a translucency mask,
+  written to their own textures only — the colour image is unchanged. `coaRenderDebug` 3/4/5/6 = motion view, mask,
+  model-pass coverage, motion ×16.
 
 ## Forced by x64
 

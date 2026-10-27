@@ -1027,6 +1027,212 @@ void* CGxDeviceD3d9Ex::WorldColorTexture() {
     return this->m_worldColorTexture;
 }
 
+// CoA64: the device can render into G16R16F (motion) and A8R8G8B8 (translucency mask) render-target textures; the
+// snapshot uses the world colour format, which WorldTargetSupported already checks. Asked once per device like
+// WorldTargetSupported (IReleaseD3dResources forgets the answer); a no is logged once per device so the motion pass
+// staying off is explained.
+bool CGxDeviceD3d9Ex::WorldMotionSupported() {
+    if (!this->m_d3d) {
+        return false;
+    }
+
+    if (this->m_worldMotionSupported < 0) {
+        this->m_worldMotionSupported = this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_G16R16F) == D3D_OK
+            && this->m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_devAdapterFormat, D3DUSAGE_RENDERTARGET, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8) == D3D_OK;
+
+        if (!this->m_worldMotionSupported) {
+            CGxDevice::Log("CGxDeviceD3d9Ex::WorldMotionSupported(): no G16R16F / A8R8G8B8 render-target textures, motion stays off");
+        }
+    }
+
+    return this->m_worldMotionSupported != 0;
+}
+
+// CoA64: creates (or reuses, same size) the motion, mask and snapshot render-target textures at the world colour
+// texture's size. Only valid while the world target is held (its colour texture exists, begun or not). False when it
+// is not held, when the device cannot (WorldMotionSupported) or when any creation fails -- then none of the three are
+// kept.
+bool CGxDeviceD3d9Ex::WorldMotionTargetsEnsure() {
+    if (!this->m_d3dDevice || !this->m_worldColorTexture || !this->WorldMotionSupported()) {
+        return false;
+    }
+
+    uint32_t width = this->m_worldTargetWidth;
+    uint32_t height = this->m_worldTargetHeight;
+
+    if (this->m_worldMotionTexture && (this->m_worldMotionWidth != width || this->m_worldMotionHeight != height)) {
+        this->IWorldMotionTargetsFree();
+    }
+
+    if (!this->m_worldMotionTexture) {
+        if (FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_G16R16F, D3DPOOL_DEFAULT, &this->m_worldMotionTexture, nullptr))
+            || FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &this->m_worldMaskTexture, nullptr))
+            || FAILED(this->m_d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET, this->m_devAdapterFormat, D3DPOOL_DEFAULT, &this->m_worldSnapshotTexture, nullptr))) {
+            this->IWorldMotionTargetsFree();
+            return false;
+        }
+
+        this->m_worldMotionWidth = width;
+        this->m_worldMotionHeight = height;
+    }
+
+    return true;
+}
+
+// CoA64: the motion texture (IDirect3DTexture9*, G16R16F) or nullptr.
+void* CGxDeviceD3d9Ex::WorldMotionTexture() {
+    return this->m_worldMotionTexture;
+}
+
+// CoA64: the translucency mask texture (IDirect3DTexture9*, A8R8G8B8) or nullptr.
+void* CGxDeviceD3d9Ex::WorldMaskTexture() {
+    return this->m_worldMaskTexture;
+}
+
+// CoA64: the opaque snapshot texture (IDirect3DTexture9*, colour format) or nullptr.
+void* CGxDeviceD3d9Ex::WorldSnapshotTexture() {
+    return this->m_worldSnapshotTexture;
+}
+
+// CoA64: copies the world colour as it is now (the default colour surface while begun) into the snapshot texture, full
+// size, D3DTEXF_NONE. False when not begun, when there is no snapshot at the world size (WorldMotionTargetsEnsure) or
+// when the copy fails.
+bool CGxDeviceD3d9Ex::WorldSnapshotOpaque() {
+    if (!this->m_worldTargetBegun || !this->m_worldSnapshotTexture || !this->m_worldColorSurface
+        || this->m_worldMotionWidth != this->m_worldTargetWidth || this->m_worldMotionHeight != this->m_worldTargetHeight) {
+        return false;
+    }
+
+    LPDIRECT3DSURFACE9 snapshotSurface = nullptr;
+
+    if (FAILED(this->m_worldSnapshotTexture->GetSurfaceLevel(0, &snapshotSurface))) {
+        return false;
+    }
+
+    // GetSurfaceLevel added a reference; the texture keeps its own, so drop this one once the copy is issued.
+    HRESULT result = this->m_d3dDevice->StretchRect(this->m_worldColorSurface, nullptr, snapshotSurface, nullptr, D3DTEXF_NONE);
+    snapshotSurface->Release();
+
+    return SUCCEEDED(result);
+}
+
+// CoA64: the render pipeline's motion passes (CoA::RenderMotionClient) drew with raw D3D9 calls. Puts D3D9 back in step
+// with this device's own caches for every state those passes may change, so later draws (which skip anything they
+// believe is already set) render as before. The D3D9 device is a pure device, so nothing is read back with Get*. Plain
+// values are re-sent from the caches: ZENABLE (the engine keeps it TRUE, IStateSetD3DDefaults), DEPTHBIAS
+// (GxRs_PolygonOffset as IRsSendToHw sends it), SLOPESCALEDEPTHBIAS (never set by the engine: 0), SCISSORTESTENABLE
+// (GxRs_ScissorTest), the DsSet-cached alpha blend / alpha test / Z write / Z func / colour write / cull / clip planes
+// and samplers 0-1 filter / wrap states, the first vertex sampler's texture (never used by the engine: none) and the
+// first vsConstants / psConstants shader constants (from CGxDevice::s_shadowConstants). Cached pointers are never
+// dereferenced here, because the engine itself only compares them: a hw slot holds the inverted app value after
+// IRsForceUpdate (TexSetFlags / TexSetWrap) or a texture TexDestroy has deleted, and a D3D9 buffer whose pool was
+// released lived on only while it was bound. The textures of stages 0-1, the vertex / pixel shader, the vertex
+// declaration, stream 0 and the index buffer are instead marked dirty, so the next engine draw re-binds them through
+// its own path (IRsSync -> ISetTexture / IBindVertexShader / IBindPixelShader; IStateSync -> IStateSyncVertexPtrs and
+// the index buffer). Likewise the viewport and scissor rect, which the caller's SetRenderTarget reset. Render targets
+// are the caller's.
+void CGxDeviceD3d9Ex::ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants) {
+    if (!this->m_d3dDevice) {
+        return;
+    }
+
+    LPDIRECT3DDEVICE9 device = this->m_d3dDevice;
+
+    device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+
+    float bias = 0.0f;
+
+    if (this->m_caps.m_depthBias) {
+        bias = -this->m_hwRenderStates[GxRs_PolygonOffset].m_data.f[0];
+    }
+
+    device->SetRenderState(D3DRS_DEPTHBIAS, *reinterpret_cast<DWORD*>(&bias));
+    device->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, 0);
+    device->SetRenderState(D3DRS_SCISSORTESTENABLE, this->m_hwRenderStates[GxRs_ScissorTest].m_data.i[0] != 0);
+
+    // A DsSet state never set since the last reset (0xFFFFFFFF) is still at its D3D9 default for render states, and is
+    // re-sent by the next DsSet anyway; sampler states only matter once ISetTexture binds a texture, which sets them.
+    struct RenderStateDefault {
+        EDeviceState state;
+        D3DRENDERSTATETYPE renderState;
+        DWORD value;
+    };
+
+    const RenderStateDefault renderStates[] = {
+        { Ds_AlphaBlendEnable, D3DRS_ALPHABLENDENABLE, FALSE },
+        { Ds_AlphaTestEnable, D3DRS_ALPHATESTENABLE, FALSE },
+        { Ds_ZWriteEnable, D3DRS_ZWRITEENABLE, TRUE },
+        { Ds_ZFunc, D3DRS_ZFUNC, D3DCMP_LESSEQUAL },
+        { Ds_ColorWriteEnable, D3DRS_COLORWRITEENABLE, 0xF },
+        { Ds_CullMode, D3DRS_CULLMODE, D3DCULL_CCW },
+        { Ds_ClipPlaneEnable, D3DRS_CLIPPLANEENABLE, 0 }
+    };
+
+    for (const RenderStateDefault& entry : renderStates) {
+        const uint32_t value = this->m_deviceStates[entry.state];
+
+        if (value == 0xFFFFFFFF) {
+            device->SetRenderState(entry.renderState, entry.value);
+        } else {
+            this->m_deviceStates[entry.state] = ~value;
+            this->DsSet(entry.state, value);
+        }
+    }
+
+    for (uint32_t tmu = 0; tmu < 2; tmu++) {
+        const EDeviceState samplerStates[] = {
+            static_cast<EDeviceState>(Ds_TssMinFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssMagFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssMipFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssWrapU0 + tmu),
+            static_cast<EDeviceState>(Ds_TssWrapV0 + tmu)
+        };
+
+        for (EDeviceState state : samplerStates) {
+            const uint32_t value = this->m_deviceStates[state];
+
+            if (value != 0xFFFFFFFF) {
+                this->m_deviceStates[state] = ~value;
+                this->DsSet(state, value);
+            }
+        }
+
+        // The hw slot's CGxTex* is not safe to dereference (see above): the next IRsSync re-binds the app texture.
+        this->IRsForceUpdate(static_cast<EGxRenderState>(GxRs_Texture0 + tmu));
+    }
+
+    device->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
+
+    this->IRsForceUpdate(GxRs_VertexShader);
+    this->IRsForceUpdate(GxRs_PixelShader);
+
+    if (vsConstants) {
+        device->SetVertexShaderConstantF(0, CGxDevice::s_shadowConstants[1].constants, vsConstants < 256 ? vsConstants : 256);
+    }
+
+    if (psConstants) {
+        device->SetPixelShaderConstantF(0, CGxDevice::s_shadowConstants[0].constants, psConstants < 256 ? psConstants : 256);
+    }
+
+    // Empty the geometry caches so IStateSync re-binds the current prim pointers at the next draw: IStateSyncVertexPtrs
+    // always re-sends a declaration and a stream 0 that differ from the cache (DrawPrimitiveUP also leaves D3D9 with no
+    // stream 0); the index buffer is only re-sent while m_primIndexDirty is set (PrimIndexPtr sets it on a change of
+    // buffer alone), so set it when there is a prim index buffer to re-send.
+    this->m_d3dCurrentVertexDecl = nullptr;
+    this->m_d3dVertexStreamBuf[0] = nullptr;
+    this->m_d3dVertexStreamOfs[0] = 0xFFFFFFFF;
+    this->m_d3dVertexStreamStride[0] = 0xFFFFFFFF;
+    this->m_d3dCurrentIndexBuf = nullptr;
+
+    if (this->m_primIndexBuf) {
+        this->m_primIndexDirty = 1;
+    }
+
+    // The caller's SetRenderTarget reset the D3D9 viewport and scissor rect (as IWorldTargetApply).
+    this->m_viewportDirty = 1;
+    this->m_scissorRectDirty = 1;
+}
+
 // CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before
 // every Reset and on destroy -- see IReleaseD3dResources).
 void CGxDeviceD3d9Ex::WorldTargetRelease() {
@@ -1042,6 +1248,9 @@ void CGxDeviceD3d9Ex::WorldTargetRelease() {
     }
 
     this->IWorldTargetFree();
+
+    // CoA64: the motion targets are D3DPOOL_DEFAULT too and are sized by the world target.
+    this->IWorldMotionTargetsFree();
 }
 
 // CoA64: the IDirect3DDevice9* (for the render pipeline's debug draw).
@@ -1115,6 +1324,27 @@ void CGxDeviceD3d9Ex::IWorldTargetRestore(bool rebind) {
     if (rebind && this->m_d3dDevice) {
         this->IWorldTargetApply();
     }
+}
+
+// CoA64: releases the motion, mask and snapshot textures (one reference each).
+void CGxDeviceD3d9Ex::IWorldMotionTargetsFree() {
+    if (this->m_worldMotionTexture) {
+        this->m_worldMotionTexture->Release();
+        this->m_worldMotionTexture = nullptr;
+    }
+
+    if (this->m_worldMaskTexture) {
+        this->m_worldMaskTexture->Release();
+        this->m_worldMaskTexture = nullptr;
+    }
+
+    if (this->m_worldSnapshotTexture) {
+        this->m_worldSnapshotTexture->Release();
+        this->m_worldSnapshotTexture = nullptr;
+    }
+
+    this->m_worldMotionWidth = 0;
+    this->m_worldMotionHeight = 0;
 }
 
 // VERIFY: f8ff0fdc manual
@@ -2267,11 +2497,14 @@ void CGxDeviceD3d9Ex::IStateSync() {
     if (this->m_primIndexDirty) {
         this->m_primIndexDirty = 0;
 
-        LPDIRECT3DINDEXBUFFER9 indexBuffer = static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific);
+        // CoA64: BufDestroy clears m_primIndexBuf for a destroyed buffer; nothing to bind then.
+        if (this->m_primIndexBuf) {
+            LPDIRECT3DINDEXBUFFER9 indexBuffer = static_cast<LPDIRECT3DINDEXBUFFER9>(this->m_primIndexBuf->m_pool->m_apiSpecific);
 
-        if (this->m_d3dCurrentIndexBuf != indexBuffer) {
-            this->m_d3dDevice->SetIndices(indexBuffer);
-            this->m_d3dCurrentIndexBuf = indexBuffer;
+            if (this->m_d3dCurrentIndexBuf != indexBuffer) {
+                this->m_d3dDevice->SetIndices(indexBuffer);
+                this->m_d3dCurrentIndexBuf = indexBuffer;
+            }
         }
     }
 
@@ -2866,9 +3099,10 @@ void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
 
     // CoA64: put the original default surfaces back (if the world target is begun) and free the D3DPOOL_DEFAULT world
     // textures before the defaults are released and the device is reset or destroyed. The device's formats may change
-    // with it, so WorldTargetSupported asks again.
+    // with it, so WorldTargetSupported (and WorldMotionSupported) ask again.
     this->WorldTargetRelease();
     this->m_worldTargetSupported = -1;
+    this->m_worldMotionSupported = -1;
 
     if (this->m_defColorSurface) {
         this->m_defColorSurface->Release();

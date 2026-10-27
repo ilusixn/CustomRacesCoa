@@ -1146,6 +1146,12 @@ void CGxDevice::BufDestroy(CGxBuf*& buf) {
         buf->m_pool->UnlinkBuf(buf);
     }
 
+    // CoA64: the bound primitive index buffer must not outlive the buffer (IStateSync would dereference it).
+    if (this->m_primIndexBuf == buf) {
+        this->m_primIndexBuf = nullptr;
+        this->m_primIndexDirty = 0;
+    }
+
     buf->m_link.Unlink();
     delete buf;
     buf = nullptr;
@@ -2156,6 +2162,40 @@ void* CGxDevice::WorldColorTexture() {
 
 // CoA64: see WorldTargetSupported.
 void CGxDevice::WorldTargetRelease() {
+}
+
+// CoA64: render pipeline motion targets -- only the D3D9 devices implement them.
+bool CGxDevice::WorldMotionSupported() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldMotionTargetsEnsure() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMotionTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMaskTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldSnapshotTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldSnapshotOpaque() {
+    return false;
+}
+
+// CoA64: see ExternalStateRestore in CGxDevice.h.
+void CGxDevice::ExternalStateRestore(uint32_t /* vsConstants */, uint32_t /* psConstants */) {
 }
 
 // CoA64: see WorldTargetSupported.

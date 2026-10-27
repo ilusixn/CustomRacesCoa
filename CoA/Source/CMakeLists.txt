@@ -19,3 +19,8 @@ target_link_libraries(CoA
 include(${CMAKE_SOURCE_DIR}/cmake/EmbedShaders.cmake)
 coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/FullscreenVS.hlsl PROFILE vs_3_0 NAME kFullscreenVS)
 coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/DepthViewPS.hlsl PROFILE ps_3_0 NAME kDepthViewPS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/StaticMotionPS.hlsl PROFILE ps_3_0 NAME kStaticMotionPS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/SkinnedMotionVS.hlsl PROFILE vs_3_0 NAME kSkinnedMotionVS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/MotionPS.hlsl PROFILE ps_3_0 NAME kMotionPS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/BiasMaskPS.hlsl PROFILE ps_3_0 NAME kBiasMaskPS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/MotionViewPS.hlsl PROFILE ps_3_0 NAME kMotionViewPS)

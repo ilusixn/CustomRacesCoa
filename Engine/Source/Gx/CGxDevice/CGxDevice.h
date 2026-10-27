@@ -251,6 +251,20 @@ class CGxDevice {
     virtual void* WorldDepthTexture();
     virtual void* WorldColorTexture();
     virtual void WorldTargetRelease();
+    // CoA64: render pipeline motion targets beside the world target -- motion vectors (G16R16F), translucency mask
+    // (A8R8G8B8) and an opaque snapshot (colour format), all at the world target size and freed with it. The base
+    // device has none (Supported/Ensure/Snapshot return false, the textures are nullptr).
+    virtual bool WorldMotionSupported();
+    virtual bool WorldMotionTargetsEnsure();
+    virtual void* WorldMotionTexture();
+    virtual void* WorldMaskTexture();
+    virtual void* WorldSnapshotTexture();
+    virtual bool WorldSnapshotOpaque();
+    // CoA64: puts the D3D9 states the render pipeline's raw D3D9 motion passes change (render targets excepted) back in
+    // step with the device's own state caches: plain values and the first vsConstants / psConstants shader constants are
+    // re-sent, cached bindings (textures, shaders, geometry) are marked dirty for the next engine draw. The base device
+    // has nothing to restore.
+    virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
     // CoA64: the underlying IDirect3DDevice9* of the D3D9 devices (nullptr for others), for the render pipeline's debug draw.
     virtual void* D3dDevice();
 
@@ -378,6 +392,8 @@ struct RenderPipelineHook {
     void (*beginWorld)();
     void (*endWorld)(const CRect& viewportNDC);
     void (*setupWorldProjection)(C44Matrix& projection, const C44Matrix& view, const C3Vector& position, float fovY, float aspect, float nearZ, float farZ, const C3Vector& forward, const C3Vector& up);
+    // CoA64: the opaque world is drawn (CGWorldFrame::OnWorldRender, after the detail doodads).
+    void (*opaqueDone)();
 };
 
 extern RenderPipelineHook* g_renderPipelineHook;

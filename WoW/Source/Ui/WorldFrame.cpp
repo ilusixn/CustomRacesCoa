@@ -1795,6 +1795,11 @@ void CGWorldFrame::OnWorldRender() {
     GxuFlushDrawList(GxuCat_0, *World::GetCamPos());
     CWorldScene::RenderDetailDoodads();
 
+    // CoA64: render pipeline -- the opaque world is complete (the translucency mask compares against it).
+    if (g_renderPipelineHook && g_renderPipelineHook->opaqueDone) {
+        g_renderPipelineHook->opaqueDone();
+    }
+
     if (World::SceneCamLiquidStatus(nullptr)) {
         CWorldScene::RenderBarriers(this->m_elapsedSec);
         scene->Draw(M2PASS_1);

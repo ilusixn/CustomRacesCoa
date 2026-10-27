@@ -43,6 +43,8 @@ namespace CoA::RenderPipeline {
 
     // Yards; a camera that moved farther than this in one frame resets temporal history.
     constexpr float kTeleportDistance = 50.0f;
+    // Degrees; a camera that turned more than this in one frame resets temporal history.
+    constexpr float kCameraCutDegrees = 60.0f;
 
     struct Rect {
         int32_t left, top, right, bottom;
@@ -50,10 +52,12 @@ namespace CoA::RenderPipeline {
 
     Inactive WhyInactive(const ActivationInput& in);
 
-    // Rolls cur -> prev, increments index, sets reset (first frame, forceReset, or a teleport).
+    // Rolls cur -> prev, increments index, sets reset (first frame, forceReset, a teleport, or a camera cut), zeroes the jitter.
     // depthMin / depthMax: the world viewport's Z range for this frame (defaults: the full 0..1).
     void BeginFrame(const Camera& cam, bool forceReset, float depthMin = 0.0f, float depthMax = 1.0f);
     const Frame& Current();
+    // Records the jitter (pixels) applied to this frame's projection; BeginFrame zeroes it, so unjittered frames stay 0.
+    void SetJitter(float jx, float jy);
 
     // Halton(2,3) sample for the given index, in [-0.5, 0.5).
     void Halton23(uint32_t index, float& x, float& y);
@@ -72,12 +76,13 @@ struct CVar;
 
 // The render pipeline's engine glue (RenderPipelineClient.cpp): CVars and the g_renderPipelineHook callbacks.
 namespace CoA::RenderPipelineClient {
-    // Queues coaRenderPipeline / coaRenderDebug / coaRenderJitter as glue CVars (flags 1, category 1, default "0").
+    // Queues coaRenderPipeline / coaRenderDebug / coaRenderJitter / coaRenderMotion as glue CVars (flags 1, category 1, default "0").
     void QueueCVars();
     // The CVars' registration slots (filled by CoA::CVars::RegisterGlue).
     CVar** PipelineSlot();
     CVar** DebugSlot();
     CVar** JitterSlot();
+    CVar** MotionSlot();
     // Queues the CVars with coaRenderPipeline's callback, which installs g_renderPipelineHook while the CVar is 1
     // (including a 1 loaded from Config.wtf). Called once at client init, before the glue CVars register.
     void Install();
