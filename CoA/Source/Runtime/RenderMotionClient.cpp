@@ -339,6 +339,11 @@ namespace {
         }
     }
 
+    int DebugValue() {
+        CVar* var = *CoA::RenderPipelineClient::DebugSlot();
+        return var ? var->m_intValue : 0;
+    }
+
     bool MotionOn(CGxDevice* gx) {
         CVar* var = *CoA::RenderPipelineClient::MotionSlot();
         return var && var->m_intValue != 0 && gx && gx->D3dDevice() && gx->WorldMotionSupported();
@@ -372,7 +377,7 @@ namespace {
 
     // Per-frame diagnostics of the model pass (logged every kStatsIntervalMs while coaRenderMotion is on).
     struct Stats {
-        uint32_t walked, animated, culled, staticUnchanged, noHistory, eligible, drawn;
+        uint32_t elements, models, animated, culled, staticUnchanged, noHistory, eligible, drawn;
         uint32_t batchesDrawn, skippedAlpha, skippedOptimized, skippedSlots, skippedBuffers, skippedRange, skippedOverflow;
     };
 
@@ -407,13 +412,34 @@ namespace {
 
     std::vector<BatchDraw> s_batches;
 
-    // Walks the scene's models: the eligible ones (ModelNeedsPass) into s_eligible, the rest counted by reason.
+    // The unique models of this frame's opaque batch elements (scene->m_passElements[0], type 0), sorted. The pass and
+    // the history work on these only: the scene's whole m_modelList holds every loaded model (tens of thousands).
+    std::vector<const CM2Model*> s_frameModels;
+
+    void CollectModels(const CM2Scene* scene) {
+        s_frameModels.clear();
+        const TSGrowableArray<uint32_t>& list = scene->m_passElements[0];
+        s_stats.elements = list.m_count;
+
+        for (uint32_t i = 0; i < list.m_count; ++i) {
+            const M2Element& element = scene->m_elements.m_data[list.m_data[i]];
+
+            if (element.m_type == 0 && element.m_model) {
+                s_frameModels.push_back(element.m_model);
+            }
+        }
+
+        std::sort(s_frameModels.begin(), s_frameModels.end());
+        s_frameModels.erase(std::unique(s_frameModels.begin(), s_frameModels.end()), s_frameModels.end());
+        s_stats.models = static_cast<uint32_t>(s_frameModels.size());
+    }
+
+    // Classifies this frame's models: the eligible ones (ModelNeedsPass) into s_eligible (sorted, as s_frameModels is),
+    // the rest counted by reason.
     void ClassifyModels(const CM2Scene* scene, const Frame& frame) {
         s_eligible.clear();
 
-        for (const CM2Model* model = scene->m_modelList; model; model = model->m_sceneNext) {
-            ++s_stats.walked;
-
+        for (const CM2Model* model : s_frameModels) {
             const bool animated = model->m_frameStamp == scene->m_frameStamp;
             const bool culled = (model->m_fFlags & kModelCulled) != 0;
             const bool staticSimple = (model->m_fFlags & kModelStaticSimple) != 0;
@@ -451,8 +477,6 @@ namespace {
             ++s_stats.eligible;
             s_eligible.push_back({ model, bones, count, false });
         }
-
-        std::sort(s_eligible.begin(), s_eligible.end(), [](const Eligible& a, const Eligible& b) { return a.model < b.model; });
     }
 
     Eligible* FindEligible(const CM2Model* model) {
@@ -645,6 +669,9 @@ namespace {
         device->SetVertexDeclaration(s_modelDecl);
         device->SetVertexShader(s_skinnedVS);
         device->SetPixelShader(s_motionPS);
+        // c0.x = 1 with coaRenderDebug 5 (coverage): MotionPS writes a constant motion wherever the pass draws.
+        const float coverage[4] = { DebugValue() == 5 ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
+        device->SetPixelShaderConstantF(0, coverage, 1);
         device->SetVertexShaderConstantF(0, constants[0], 12);
         PointClamp(device, D3DVERTEXTEXTURESAMPLER0);
         device->SetTexture(D3DVERTEXTEXTURESAMPLER0, palette);
@@ -682,9 +709,9 @@ namespace {
 
         s_statsLogged = now;
         const Stats& s = s_stats;
-        CoA::Log::Printf("RenderMotion: models walked=%u animated=%u culled=%u staticunchanged=%u nohistory=%u eligible=%u drawn=%u; "
+        CoA::Log::Printf("RenderMotion: elements=%u models=%u animated=%u culled=%u staticunchanged=%u nohistory=%u eligible=%u drawn=%u; "
                          "batches drawn=%u skipped alpha=%u optgeo=%u slots=%u buffers=%u range=%u overflow=%u",
-                         s.walked, s.animated, s.culled, s.staticUnchanged, s.noHistory, s.eligible, s.drawn,
+                         s.elements, s.models, s.animated, s.culled, s.staticUnchanged, s.noHistory, s.eligible, s.drawn,
                          s.batchesDrawn, s.skippedAlpha, s.skippedOptimized, s.skippedSlots, s.skippedBuffers, s.skippedRange, s.skippedOverflow);
     }
 
@@ -700,15 +727,16 @@ namespace {
         device->SetTexture(1, nullptr);
     }
 
-    // 4. This frame's bones and world transform of every model animated this frame and not culled (drawn in the model
-    // pass or not), for next frame's model pass; models above MotionCache::kMaxModelBones are not stored.
+    // 4. This frame's bones and world transform of every model of this frame's opaque elements (s_frameModels) that was
+    // animated this frame and is not culled (drawn in the model pass or not), for next frame's model pass; models above
+    // MotionCache::kMaxModelBones are not stored.
     void StoreBones(const Frame& frame) {
         if (frame.reset) {
             MotionCache::Clear();
         }
 
         if (const CM2Scene* scene = World::s_m2Scene) {
-            for (const CM2Model* model = scene->m_modelList; model; model = model->m_sceneNext) {
+            for (const CM2Model* model : s_frameModels) {
                 if (model->m_frameStamp != scene->m_frameStamp || (model->m_fFlags & kModelCulled) || !model->m_boneMatrices || !model->m_shared || !model->m_shared->m_data) {
                     continue;
                 }
@@ -802,6 +830,15 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
     // Reset (history restarts) or an empty depth range (c9.y would be 1 / 0): motion is cleared to (0, 0).
     const bool reproject = !repeated && normalProjection && fullViewport && !frame.reset && frame.depthMax != frame.depthMin;
 
+    // This frame's models, classified on every new frame (also feeds the diagnostics line); drawn only with a palette.
+    if (!repeated && World::s_m2Scene) {
+        CollectModels(World::s_m2Scene);
+        ClassifyModels(World::s_m2Scene, frame);
+    } else {
+        s_frameModels.clear();
+        s_eligible.clear();
+    }
+
     IDirect3DSurface9* savedTarget = nullptr;
     IDirect3DSurface9* savedDepth = nullptr;
     IDirect3DSurface9* depthSurface = nullptr;
@@ -828,13 +865,6 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
 
         // 2. Model pass, over the static result.
         IDirect3DTexture9* palette = reproject ? Palette(device) : nullptr;
-
-        // Classified on every new frame (also feeds the diagnostics line); drawn only with a palette.
-        if (!repeated && World::s_m2Scene) {
-            ClassifyModels(World::s_m2Scene, frame);
-        } else {
-            s_eligible.clear();
-        }
 
         if (palette && SUCCEEDED(depth->GetSurfaceLevel(0, &depthSurface)) && depthSurface) {
             ModelPass(gx, device, palette, depthSurface, frame, width, height);
@@ -911,8 +941,9 @@ bool CoA::RenderMotionClient::DrawDebugView(int mode) {
         return false;
     }
 
-    // c0.x: 0 = motion hue view (coaRenderDebug 3), 1 = grey mask (coaRenderDebug 4).
-    const float view[4] = { mode == 4 ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f };
+    // c0.x: 0 = motion hue view (coaRenderDebug 3 / 5 / 6), 1 = grey mask (coaRenderDebug 4); c0.y: brightness scale,
+    // 16 for the amplified view (coaRenderDebug 6), else 1.
+    const float view[4] = { mode == 4 ? 1.0f : 0.0f, mode == 6 ? 16.0f : 1.0f, 0.0f, 0.0f };
     CommonStates(device);
     SetViewport(device, width, height, 0.0f, 1.0f);
     PointClamp(device, 0);

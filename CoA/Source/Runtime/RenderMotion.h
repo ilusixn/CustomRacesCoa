@@ -38,7 +38,8 @@ namespace CoA::RenderMotionClient {
     void OpaqueDone();
     // EndWorld, before WorldTargetEnd: the static, model and mask passes, then this frame's bones into MotionCache.
     void BeforeCopyBack();
-    // coaRenderDebug 3 (motion) / 4 (mask), after WorldTargetEnd: draws the view over the bound target. False: nothing drawn.
+    // coaRenderDebug 3 (motion) / 4 (mask) / 5 (motion, the model pass writing a constant: its coverage) / 6 (motion,
+    // 16x brighter), after WorldTargetEnd: draws the view over the bound target. False: nothing drawn.
     bool DrawDebugView(int mode);
     // The world target is being released (device reset / destroy, pipeline off): frees every D3D9 object of the
     // passes and clears MotionCache.

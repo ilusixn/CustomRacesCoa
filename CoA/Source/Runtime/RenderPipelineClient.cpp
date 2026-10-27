@@ -387,11 +387,12 @@ namespace {
             }
 
             // coaRenderDebug 1 / 2: the depth view is drawn over the copied world (the same full rect), so a failure
-            // leaves the normal image; 3 / 4: the motion / translucency mask view (nothing without coaRenderMotion 1).
-            // The UI draws on top afterwards as usual.
+            // leaves the normal image; 3 / 4: the motion / translucency mask view, 5: the motion view with the model pass
+            // writing a constant motion (its coverage), 6: the motion view 16x brighter (nothing without coaRenderMotion
+            // 1). The UI draws on top afterwards as usual.
             const int debug = CVarOn(CoA::RenderPipelineClient::DebugSlot()) ? (*CoA::RenderPipelineClient::DebugSlot())->m_intValue : 0;
 
-            if (debug == 3 || debug == 4) {
+            if (debug >= 3 && debug <= 6) {
                 CoA::RenderMotionClient::DrawDebugView(debug);
             } else if (debug != 0) {
                 DrawDepthView(device);
