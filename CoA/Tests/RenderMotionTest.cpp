@@ -1,3 +1,8 @@
+#include "CoA/Shaders/BiasMaskPS.h"
+#include "CoA/Shaders/MotionPS.h"
+#include "CoA/Shaders/MotionViewPS.h"
+#include "CoA/Shaders/SkinnedMotionVS.h"
+#include "CoA/Shaders/StaticMotionPS.h"
 #include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/MotionCache.h"
 #include "CoA/Source/Runtime/RenderMotion.h"
@@ -329,4 +334,13 @@ COA_TEST(MotionCache_PreviousWorldFollowsSameRules) {
     CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 7 }, 12) == nullptr);
     CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 8 }, 11) == nullptr);
     CHECK(CoA::MotionCache::PreviousWorld({ &s_m1, 7 }, 10) == nullptr);
+}
+
+COA_TEST(RenderMotion_EmbeddedShadersAreSm3Bytecode) {
+    auto token = [](const unsigned char* b) { return uint32_t(b[0]) | uint32_t(b[1]) << 8 | uint32_t(b[2]) << 16 | uint32_t(b[3]) << 24; };
+    CHECK(token(kSkinnedMotionVS) == 0xFFFE0300u);  // vs_3_0
+    CHECK(token(kStaticMotionPS) == 0xFFFF0300u);   // ps_3_0
+    CHECK(token(kMotionPS) == 0xFFFF0300u);
+    CHECK(token(kBiasMaskPS) == 0xFFFF0300u);
+    CHECK(token(kMotionViewPS) == 0xFFFF0300u);
 }
