@@ -1116,6 +1116,117 @@ bool CGxDeviceD3d9Ex::WorldSnapshotOpaque() {
     return SUCCEEDED(result);
 }
 
+// CoA64: the render pipeline's motion passes (CoA::RenderMotionClient) drew with raw D3D9 calls. Re-sends, from this
+// device's own caches, every D3D9 state those passes may change, so D3D9 again holds exactly what the caches say and
+// later draws (which skip anything they believe is already set) render as before. The D3D9 device is a pure device,
+// so nothing is read back with Get*. Covered: ZENABLE (the engine keeps it TRUE, IStateSetD3DDefaults), DEPTHBIAS
+// (GxRs_PolygonOffset as IRsSendToHw sends it), SLOPESCALEDEPTHBIAS (never set by the engine: 0), SCISSORTESTENABLE
+// (GxRs_ScissorTest), the DsSet-cached alpha blend / alpha test / Z write / Z func / colour write / cull / clip planes
+// and samplers 0-1 filter / wrap states, the textures of stages 0-1 (GxRs_Texture0/1) and of the first vertex sampler
+// (never used by the engine: none), the vertex / pixel shader (GxRs_VertexShader / GxRs_PixelShader), the first
+// vsConstants / psConstants shader constants (from CGxDevice::s_shadowConstants), the vertex declaration, stream 0 and
+// index buffer (the m_d3dCurrent* / m_d3dVertexStream* caches) and the viewport. Render targets are the caller's.
+void CGxDeviceD3d9Ex::ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants) {
+    if (!this->m_d3dDevice) {
+        return;
+    }
+
+    LPDIRECT3DDEVICE9 device = this->m_d3dDevice;
+
+    device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+
+    float bias = 0.0f;
+
+    if (this->m_caps.m_depthBias) {
+        bias = -this->m_hwRenderStates[GxRs_PolygonOffset].m_data.f[0];
+    }
+
+    device->SetRenderState(D3DRS_DEPTHBIAS, *reinterpret_cast<DWORD*>(&bias));
+    device->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, 0);
+    device->SetRenderState(D3DRS_SCISSORTESTENABLE, this->m_hwRenderStates[GxRs_ScissorTest].m_data.i[0] != 0);
+
+    // A DsSet state never set since the last reset (0xFFFFFFFF) is still at its D3D9 default for render states, and is
+    // re-sent by the next DsSet anyway; sampler states only matter once ISetTexture binds a texture, which sets them.
+    struct RenderStateDefault {
+        EDeviceState state;
+        D3DRENDERSTATETYPE renderState;
+        DWORD value;
+    };
+
+    const RenderStateDefault renderStates[] = {
+        { Ds_AlphaBlendEnable, D3DRS_ALPHABLENDENABLE, FALSE },
+        { Ds_AlphaTestEnable, D3DRS_ALPHATESTENABLE, FALSE },
+        { Ds_ZWriteEnable, D3DRS_ZWRITEENABLE, TRUE },
+        { Ds_ZFunc, D3DRS_ZFUNC, D3DCMP_LESSEQUAL },
+        { Ds_ColorWriteEnable, D3DRS_COLORWRITEENABLE, 0xF },
+        { Ds_CullMode, D3DRS_CULLMODE, D3DCULL_CCW },
+        { Ds_ClipPlaneEnable, D3DRS_CLIPPLANEENABLE, 0 }
+    };
+
+    for (const RenderStateDefault& entry : renderStates) {
+        const uint32_t value = this->m_deviceStates[entry.state];
+
+        if (value == 0xFFFFFFFF) {
+            device->SetRenderState(entry.renderState, entry.value);
+        } else {
+            this->m_deviceStates[entry.state] = ~value;
+            this->DsSet(entry.state, value);
+        }
+    }
+
+    for (uint32_t tmu = 0; tmu < 2; tmu++) {
+        const EDeviceState samplerStates[] = {
+            static_cast<EDeviceState>(Ds_TssMinFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssMagFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssMipFilter0 + tmu),
+            static_cast<EDeviceState>(Ds_TssWrapU0 + tmu),
+            static_cast<EDeviceState>(Ds_TssWrapV0 + tmu)
+        };
+
+        for (EDeviceState state : samplerStates) {
+            const uint32_t value = this->m_deviceStates[state];
+
+            if (value != 0xFFFFFFFF) {
+                this->m_deviceStates[state] = ~value;
+                this->DsSet(state, value);
+            }
+        }
+
+        CGxTex* texture = static_cast<CGxTex*>(this->m_hwRenderStates[GxRs_Texture0 + tmu].m_data.p);
+        device->SetTexture(tmu, texture ? static_cast<IDirect3DBaseTexture9*>(texture->m_apiSpecificData) : nullptr);
+    }
+
+    device->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
+
+    CGxShader* vertexShader = static_cast<CGxShader*>(this->m_hwRenderStates[GxRs_VertexShader].m_data.p);
+    CGxShader* pixelShader = static_cast<CGxShader*>(this->m_hwRenderStates[GxRs_PixelShader].m_data.p);
+    device->SetVertexShader(vertexShader ? static_cast<LPDIRECT3DVERTEXSHADER9>(vertexShader->m_apiSpecific) : nullptr);
+    device->SetPixelShader(pixelShader ? static_cast<LPDIRECT3DPIXELSHADER9>(pixelShader->m_apiSpecific) : nullptr);
+
+    if (vsConstants) {
+        device->SetVertexShaderConstantF(0, CGxDevice::s_shadowConstants[1].constants, vsConstants < 256 ? vsConstants : 256);
+    }
+
+    if (psConstants) {
+        device->SetPixelShaderConstantF(0, CGxDevice::s_shadowConstants[0].constants, psConstants < 256 ? psConstants : 256);
+    }
+
+    if (this->m_d3dCurrentVertexDecl) {
+        device->SetVertexDeclaration(this->m_d3dCurrentVertexDecl);
+    }
+
+    if (this->m_d3dVertexStreamBuf[0]) {
+        device->SetStreamSource(0, this->m_d3dVertexStreamBuf[0], this->m_d3dVertexStreamOfs[0], this->m_d3dVertexStreamStride[0]);
+    } else {
+        // Unbound in the cache: D3D9 holds none either (DrawPrimitiveUP clears stream 0); force the next bind.
+        this->m_d3dVertexStreamOfs[0] = 0xFFFFFFFF;
+        this->m_d3dVertexStreamStride[0] = 0xFFFFFFFF;
+    }
+
+    device->SetIndices(this->m_d3dCurrentIndexBuf);
+    this->IXformSetViewport();
+}
+
 // CoA64: restores the original default surfaces if begun, then frees the world textures (D3DPOOL_DEFAULT, so before
 // every Reset and on destroy -- see IReleaseD3dResources).
 void CGxDeviceD3d9Ex::WorldTargetRelease() {

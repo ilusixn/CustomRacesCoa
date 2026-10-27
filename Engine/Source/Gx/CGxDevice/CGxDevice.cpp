@@ -2188,6 +2188,10 @@ bool CGxDevice::WorldSnapshotOpaque() {
     return false;
 }
 
+// CoA64: see ExternalStateRestore in CGxDevice.h.
+void CGxDevice::ExternalStateRestore(uint32_t /* vsConstants */, uint32_t /* psConstants */) {
+}
+
 // CoA64: see WorldTargetSupported.
 void* CGxDevice::D3dDevice() {
     return nullptr;

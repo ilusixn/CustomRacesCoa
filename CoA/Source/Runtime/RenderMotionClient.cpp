@@ -1,8 +1,9 @@
 // RenderMotion's engine half: the motion passes of CoA64's render pipeline (stage 2), run by RenderPipelineClient while
 // the world target is begun. OpaqueDone snapshots the opaque world; BeforeCopyBack draws the static (camera) motion,
 // the skinned-model motion and the translucency mask into the device's motion targets, then records this frame's bone
-// palettes for the next frame. Raw D3D9 behind a D3DSBT_ALL state block, so the engine's state and its caches are as
-// they were afterwards. Nothing here runs unless coaRenderMotion is 1. Not part of the original (CoA64 addition).
+// palettes for the next frame. Raw D3D9; afterwards CGxDevice::ExternalStateRestore re-sends every state the passes
+// touch from the device's own caches (the D3D9 device is a pure device: no Get* of state), so the engine's state and
+// its caches agree again. Nothing here runs unless coaRenderMotion is 1. Not part of the original (CoA64 addition).
 #include "CoA/Shaders/BiasMaskPS.h"
 #include "CoA/Shaders/FullscreenVS.h"
 #include "CoA/Shaders/MotionPS.h"
@@ -64,7 +65,6 @@ namespace {
     IDirect3DPixelShader9* s_viewPS;
     IDirect3DVertexDeclaration9* s_quadDecl;
     IDirect3DVertexDeclaration9* s_modelDecl;
-    IDirect3DStateBlock9* s_block;
     // Created lazily with the model pass; nullptr when the device has no A32B32G32R32F vertex textures.
     IDirect3DTexture9* s_palette;
     // Creation failed (logged): the passes stay off until Release (device reset / pipeline off) tries again.
@@ -146,7 +146,7 @@ namespace {
     }
 
     void ReleaseObjects() {
-        IUnknown* objects[] = { s_fullscreenVS, s_skinnedVS, s_staticPS, s_motionPS, s_maskPS, s_viewPS, s_quadDecl, s_modelDecl, s_block, s_palette };
+        IUnknown* objects[] = { s_fullscreenVS, s_skinnedVS, s_staticPS, s_motionPS, s_maskPS, s_viewPS, s_quadDecl, s_modelDecl, s_palette };
 
         for (IUnknown* object : objects) {
             if (object) {
@@ -162,13 +162,12 @@ namespace {
         s_viewPS = nullptr;
         s_quadDecl = nullptr;
         s_modelDecl = nullptr;
-        s_block = nullptr;
         s_palette = nullptr;
     }
 
-    // Shaders, declarations and the state block; false (logged once until Release) when any creation fails.
+    // Shaders and declarations; false (logged once until Release) when any creation fails.
     bool CreateObjects(IDirect3DDevice9* device) {
-        if (s_block) {
+        if (s_modelDecl) {
             return true;
         }
 
@@ -196,8 +195,7 @@ namespace {
             || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kBiasMaskPS), &s_maskPS))
             || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kMotionViewPS), &s_viewPS))
             || FAILED(device->CreateVertexDeclaration(quad, &s_quadDecl))
-            || FAILED(device->CreateVertexDeclaration(model, &s_modelDecl))
-            || FAILED(device->CreateStateBlock(D3DSBT_ALL, &s_block))) {
+            || FAILED(device->CreateVertexDeclaration(model, &s_modelDecl))) {
             ReleaseObjects();
             s_failed = true;
             CoA::Log::Printf("RenderMotion: motion passes unavailable (D3D9 object creation failed)");
@@ -243,36 +241,31 @@ namespace {
         return s_palette;
     }
 
+    // Point / clamp sampling. Only the sampler states the engine itself manages are set (ExternalStateRestore re-sends
+    // them); ADDRESSW is CLAMP on every sampler (IStateSetD3DDefaults) and SRGBTEXTURE / MIPMAPLODBIAS / MAXMIPLEVEL are
+    // never changed from their D3D9 defaults (0) by the engine, so they already hold what the passes need.
     void PointClamp(IDirect3DDevice9* device, DWORD sampler) {
         device->SetSamplerState(sampler, D3DSAMP_MINFILTER, D3DTEXF_POINT);
         device->SetSamplerState(sampler, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
         device->SetSamplerState(sampler, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
         device->SetSamplerState(sampler, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
         device->SetSamplerState(sampler, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-        device->SetSamplerState(sampler, D3DSAMP_ADDRESSW, D3DTADDRESS_CLAMP);
-        device->SetSamplerState(sampler, D3DSAMP_SRGBTEXTURE, FALSE);
-        // Explicitly not fetch4 (D3DSAMP_MIPMAPLODBIAS == 'GET4' enables it in DXVK), whatever the engine left there.
-        device->SetSamplerState(sampler, D3DSAMP_MIPMAPLODBIAS, 0);
-        device->SetSamplerState(sampler, D3DSAMP_MAXMIPLEVEL, 0);
     }
 
-    // The fixed-function states every pass shares (the state block restores the engine's afterwards).
+    // The render states every pass shares; exactly the set ExternalStateRestore re-sends. Stencil, sRGB write and
+    // WRAP0 are never changed from their D3D9 defaults by the engine, fixed-function fog does not apply to ps_3_0, and
+    // FILLMODE only differs in the wireframe debug mode, so none of those are touched.
     void CommonStates(IDirect3DDevice9* device) {
         device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
         device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
         device->SetRenderState(D3DRS_DEPTHBIAS, 0);
         device->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, 0);
-        device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
         device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
         device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
         device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
         device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-        device->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
         device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
         device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
-        device->SetRenderState(D3DRS_SRGBWRITEENABLE, FALSE);
-        device->SetRenderState(D3DRS_FOGENABLE, FALSE);
-        device->SetRenderState(D3DRS_WRAP0, 0);
     }
 
     // A quad over the bound render target (width x height) with FullscreenVS; uv 0..1 over it. The caller sets the
@@ -314,29 +307,21 @@ namespace {
         device->SetViewport(&viewport);
     }
 
-    // Applies the captured state and makes sure none of the given textures stays bound to a pixel sampler or the first
-    // vertex sampler (a held D3DPOOL_DEFAULT texture fails the next Reset).
-    void RestoreState(IDirect3DDevice9* device, IDirect3DBaseTexture9* const* ours, size_t count) {
-        s_block->Apply();
+    // The highest shader constant registers the passes write (+1): VS c0..c12 (SkinnedMotionVS; FullscreenVS uses c0),
+    // PS c0..c9 (StaticMotionPS; MotionPS / MotionViewPS use c0). ExternalStateRestore re-sends that many from the
+    // engine's shadow constants.
+    constexpr uint32_t kVsConstantsUsed = 13;
+    constexpr uint32_t kPsConstantsUsed = 10;
 
-        const DWORD samplers[] = { 0, 1, D3DVERTEXTEXTURESAMPLER0 };
+    // CPU time of OpaqueDone / BeforeCopyBack (QueryPerformanceCounter ticks) and world renders since the last log.
+    int64_t s_opaqueTicks;
+    int64_t s_passTicks;
+    uint32_t s_timedFrames;
 
-        for (DWORD sampler : samplers) {
-            IDirect3DBaseTexture9* bound = nullptr;
-
-            if (FAILED(device->GetTexture(sampler, &bound)) || !bound) {
-                continue;
-            }
-
-            for (size_t i = 0; i < count; ++i) {
-                if (ours[i] && bound == ours[i]) {
-                    device->SetTexture(sampler, nullptr);
-                    break;
-                }
-            }
-
-            bound->Release();
-        }
+    int64_t Ticks() {
+        LARGE_INTEGER now;
+        QueryPerformanceCounter(&now);
+        return now.QuadPart;
     }
 
     int DebugValue() {
@@ -509,10 +494,18 @@ namespace {
         return true;
     }
 
-    // Gathers the drawable opaque batches of the eligible models into s_batches, packing both palette rows of each into
-    // the locked palette (rows 2b / 2b + 1 for batch b). The palette is locked on the first drawable batch.
-    void GatherBatches(CGxDevice* gx, IDirect3DTexture9* palette, const CM2Scene* scene, D3DLOCKED_RECT& locked, bool& isLocked) {
-        s_batches.clear();
+    // A drawable batch found by FindBatches: batch b of the frame uses palette rows 2b / 2b + 1.
+    struct BatchSource {
+        const M2Element* element;
+        const Eligible* eligible;
+    };
+
+    std::vector<BatchSource> s_sources;
+
+    // Phase 1: the drawable opaque batches of the eligible models into s_sources (at most kMaxBatches), the rest
+    // counted by reason.
+    void FindBatches(const CM2Scene* scene) {
+        s_sources.clear();
         const TSGrowableArray<uint32_t>& list = scene->m_passElements[0];
 
         for (uint32_t i = 0; i < list.m_count; ++i) {
@@ -522,7 +515,7 @@ namespace {
                 continue;
             }
 
-            Eligible* eligible = FindEligible(element->m_model);
+            const Eligible* eligible = FindEligible(element->m_model);
 
             if (!eligible) {
                 continue;
@@ -534,8 +527,7 @@ namespace {
                 continue;
             }
 
-            const CM2Model* model = element->m_model;
-            const CM2Shared* shared = model->m_shared;
+            const CM2Shared* shared = element->m_model->m_shared;
             const M2Data* data = shared->m_data;
             const M2SkinSection* section = element->m_skinSection;
 
@@ -567,21 +559,32 @@ namespace {
                 continue;
             }
 
-            const uint32_t batch = static_cast<uint32_t>(s_batches.size());
-
-            if (batch >= kMaxBatches) {
+            if (s_sources.size() >= kMaxBatches) {
                 ++s_stats.skippedOverflow;
                 continue;
             }
 
-            if (!isLocked) {
-                if (FAILED(palette->LockRect(0, &locked, nullptr, D3DLOCK_DISCARD))) {
-                    return;
-                }
+            s_sources.push_back({ element, eligible });
+        }
+    }
 
-                isLocked = true;
-            }
+    // Phase 2: one D3DLOCK_DISCARD lock of just the palette rows in use (2 per found batch), both rows of every batch
+    // packed, then s_batches built for the draws. False when the lock fails.
+    bool PackBatches(CGxDevice* gx, IDirect3DTexture9* palette) {
+        s_batches.clear();
+        RECT rows = { 0, 0, static_cast<LONG>(kPaletteWidth), static_cast<LONG>(2 * s_sources.size()) };
+        D3DLOCKED_RECT locked;
 
+        if (FAILED(palette->LockRect(0, &locked, &rows, D3DLOCK_DISCARD))) {
+            return false;
+        }
+
+        for (uint32_t batch = 0; batch < s_sources.size(); ++batch) {
+            const M2Element* element = s_sources[batch].element;
+            const Eligible* eligible = s_sources[batch].eligible;
+            const CM2Model* model = element->m_model;
+            const M2Data* data = model->m_shared->m_data;
+            const M2SkinSection* section = element->m_skinSection;
             float* row0 = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits) + static_cast<size_t>(locked.Pitch) * (2 * batch));
             float* row1 = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits) + static_cast<size_t>(locked.Pitch) * (2 * batch + 1));
 
@@ -593,6 +596,8 @@ namespace {
 
             // As CGxDeviceD3d::Draw / ISetVertexBuffer: a byte offset into the stream, or a base vertex without stream
             // offsets.
+            const CGxBuf* vertexBuf = model->m_shared->m_vertexBuf;
+            const CGxBuf* indexBuf = model->m_shared->m_indexBuf;
             BatchDraw draw;
             draw.vertices = static_cast<IDirect3DVertexBuffer9*>(vertexBuf->m_pool->m_apiSpecific);
             draw.indices = static_cast<IDirect3DIndexBuffer9*>(indexBuf->m_pool->m_apiSpecific);
@@ -612,16 +617,22 @@ namespace {
             draw.rowBase = static_cast<float>(2 * batch);
             s_batches.push_back(draw);
 
-            if (!eligible->drawn) {
-                eligible->drawn = true;
+            Eligible* drawn = const_cast<Eligible*>(eligible);
+
+            if (!drawn->drawn) {
+                drawn->drawn = true;
                 ++s_stats.drawn;
             }
         }
+
+        palette->UnlockRect(0);
+        return true;
     }
 
     // 2. Model pass: the opaque batches of every model that moved on its own (skinned, or a static model whose world
     // transform changed) re-drawn with SkinnedMotionVS / MotionPS, depth-tested against the world's INTZ. One palette
-    // upload per frame (GatherBatches), then one draw per batch with its palette row base in c12.x.
+    // upload per frame (FindBatches / PackBatches), then one draw per batch with its palette row base in c12.x; stream
+    // 0 and the index buffer are only re-bound when they change.
     void ModelPass(CGxDevice* gx, IDirect3DDevice9* device, IDirect3DTexture9* palette, IDirect3DSurface9* depthSurface, const Frame& frame, uint32_t width, uint32_t height) {
         const CM2Scene* scene = World::s_m2Scene;
 
@@ -629,15 +640,9 @@ namespace {
             return;
         }
 
-        D3DLOCKED_RECT locked;
-        bool isLocked = false;
-        GatherBatches(gx, palette, scene, locked, isLocked);
+        FindBatches(scene);
 
-        if (isLocked) {
-            palette->UnlockRect(0);
-        }
-
-        if (!isLocked || s_batches.empty()) {
+        if (s_sources.empty() || !PackBatches(gx, palette) || s_batches.empty()) {
             return;
         }
 
@@ -649,15 +654,6 @@ namespace {
         memcpy(constants[0], renderProj.m, sizeof(renderProj.m));
         memcpy(constants[4], frame.cur.proj.m, sizeof(frame.cur.proj.m));
         memcpy(constants[8], frame.prev.proj.m, sizeof(frame.prev.proj.m));
-
-        // Stream 0 and the index buffer are put back by hand as well as by the state block: the device caches them
-        // (ISetVertexBuffer, IStateSync) and skips re-binding a buffer it believes is still bound.
-        IDirect3DVertexBuffer9* savedStream = nullptr;
-        UINT savedOffset = 0;
-        UINT savedStride = 0;
-        IDirect3DIndexBuffer9* savedIndices = nullptr;
-        device->GetStreamSource(0, &savedStream, &savedOffset, &savedStride);
-        device->GetIndices(&savedIndices);
 
         device->SetDepthStencilSurface(depthSurface);
         SetViewport(device, width, height, frame.depthMin, frame.depthMax);
@@ -676,27 +672,32 @@ namespace {
         PointClamp(device, D3DVERTEXTEXTURESAMPLER0);
         device->SetTexture(D3DVERTEXTEXTURESAMPLER0, palette);
 
+        IDirect3DVertexBuffer9* boundVertices = nullptr;
+        UINT boundOffset = 0;
+        UINT boundStride = 0;
+        IDirect3DIndexBuffer9* boundIndices = nullptr;
+
         for (const BatchDraw& draw : s_batches) {
             const float rowBase[4] = { draw.rowBase, 0.0f, 0.0f, 0.0f };
             device->SetVertexShaderConstantF(12, rowBase, 1);
-            device->SetStreamSource(0, draw.vertices, draw.offset, draw.stride);
-            device->SetIndices(draw.indices);
+
+            if (draw.vertices != boundVertices || draw.offset != boundOffset || draw.stride != boundStride) {
+                device->SetStreamSource(0, draw.vertices, draw.offset, draw.stride);
+                boundVertices = draw.vertices;
+                boundOffset = draw.offset;
+                boundStride = draw.stride;
+            }
+
+            if (draw.indices != boundIndices) {
+                device->SetIndices(draw.indices);
+                boundIndices = draw.indices;
+            }
+
             device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, draw.baseVertex, draw.minIndex, draw.vertexCount, draw.startIndex, draw.primCount);
         }
 
         s_stats.batchesDrawn += static_cast<uint32_t>(s_batches.size());
-
         device->SetTexture(D3DVERTEXTEXTURESAMPLER0, nullptr);
-        device->SetStreamSource(0, savedStream, savedOffset, savedStride);
-        device->SetIndices(savedIndices);
-
-        if (savedStream) {
-            savedStream->Release();
-        }
-
-        if (savedIndices) {
-            savedIndices->Release();
-        }
     }
 
     // One line every kStatsIntervalMs with the current frame's counts.
@@ -709,10 +710,19 @@ namespace {
 
         s_statsLogged = now;
         const Stats& s = s_stats;
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
+        const double usPerTick = 1e6 / static_cast<double>(frequency.QuadPart);
+        const uint32_t frames = s_timedFrames ? s_timedFrames : 1;
+        const unsigned opaqueUs = static_cast<unsigned>(static_cast<double>(s_opaqueTicks) * usPerTick / frames + 0.5);
+        const unsigned passUs = static_cast<unsigned>(static_cast<double>(s_passTicks) * usPerTick / frames + 0.5);
+        s_opaqueTicks = 0;
+        s_passTicks = 0;
+        s_timedFrames = 0;
         CoA::Log::Printf("RenderMotion: elements=%u models=%u animated=%u culled=%u staticunchanged=%u nohistory=%u eligible=%u drawn=%u; "
-                         "batches drawn=%u skipped alpha=%u optgeo=%u slots=%u buffers=%u range=%u overflow=%u",
+                         "batches drawn=%u skipped alpha=%u optgeo=%u slots=%u buffers=%u range=%u overflow=%u; cpu opaque=%uus passes=%uus",
                          s.elements, s.models, s.animated, s.culled, s.staticUnchanged, s.noHistory, s.eligible, s.drawn,
-                         s.batchesDrawn, s.skippedAlpha, s.skippedOptimized, s.skippedSlots, s.skippedBuffers, s.skippedRange, s.skippedOverflow);
+                         s.batchesDrawn, s.skippedAlpha, s.skippedOptimized, s.skippedSlots, s.skippedBuffers, s.skippedRange, s.skippedOverflow, opaqueUs, passUs);
     }
 
     // 3. Mask pass: white where the final world colour differs from the opaque snapshot (translucency drawn over it).
@@ -771,16 +781,18 @@ void CoA::RenderMotionClient::OpaqueDone() {
         return;
     }
 
+    const int64_t start = Ticks();
     // Ensure first: a Begin at a new size leaves the old-size motion targets in place until then.
     s_snapshotTaken = gx->WorldMotionTargetsEnsure() && gx->WorldSnapshotOpaque();
+    s_opaqueTicks += Ticks() - start;
 }
 
-void CoA::RenderMotionClient::BeforeCopyBack() {
-    CGxDevice* gx = g_theGxDevicePtr;
+// BeforeCopyBack's work (coaRenderMotion is on).
+static void RunPasses(CGxDevice* gx) {
     const bool snapshotTaken = s_snapshotTaken;
     s_snapshotTaken = false;
 
-    if (!MotionOn(gx) || !gx->WorldMotionTargetsEnsure()) {
+    if (!gx->WorldMotionTargetsEnsure()) {
         return;
     }
 
@@ -843,10 +855,7 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
     IDirect3DSurface9* savedDepth = nullptr;
     IDirect3DSurface9* depthSurface = nullptr;
 
-    if (FAILED(s_block->Capture())) {
-        return;
-    }
-
+    // Render targets are objects, not state: Get works on the pure device (the engine does it in IStateSetD3DDefaults).
     device->GetRenderTarget(0, &savedTarget);
     device->GetDepthStencilSurface(&savedDepth);
     CommonStates(device);
@@ -884,7 +893,7 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
         }
     }
 
-    // Render targets are not part of the state block: put the world target's surfaces back, then the rest.
+    // Put the world target's surfaces back, then every other state from the device's caches.
     device->SetRenderTarget(0, savedTarget);
     device->SetDepthStencilSurface(savedDepth);
 
@@ -896,14 +905,26 @@ void CoA::RenderMotionClient::BeforeCopyBack() {
         }
     }
 
-    IDirect3DBaseTexture9* ours[] = { motion, mask, snapshot, color, depth, s_palette };
-    RestoreState(device, ours, sizeof(ours) / sizeof(ours[0]));
+    gx->ExternalStateRestore(kVsConstantsUsed, kPsConstantsUsed);
 
     // 4. Next frame's history.
     if (!repeated) {
         StoreBones(frame);
     }
+}
 
+void CoA::RenderMotionClient::BeforeCopyBack() {
+    CGxDevice* gx = g_theGxDevicePtr;
+
+    if (!MotionOn(gx)) {
+        s_snapshotTaken = false;
+        return;
+    }
+
+    const int64_t start = Ticks();
+    RunPasses(gx);
+    s_passTicks += Ticks() - start;
+    ++s_timedFrames;
     LogStats();
 }
 
@@ -917,7 +938,7 @@ bool CoA::RenderMotionClient::DrawDebugView(int mode) {
     IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(gx->D3dDevice());
     IDirect3DBaseTexture9* source = static_cast<IDirect3DBaseTexture9*>(mode == 4 ? gx->WorldMaskTexture() : gx->WorldMotionTexture());
 
-    if (!source || !CreateObjects(device) || FAILED(s_block->Capture())) {
+    if (!source || !CreateObjects(device)) {
         return false;
     }
 
@@ -952,8 +973,7 @@ bool CoA::RenderMotionClient::DrawDebugView(int mode) {
     device->SetPixelShaderConstantF(0, view, 1);
     DrawQuad(device, width, height);
 
-    IDirect3DBaseTexture9* ours[] = { source };
-    RestoreState(device, ours, 1);
+    gx->ExternalStateRestore(kVsConstantsUsed, kPsConstantsUsed);
 
     return true;
 }

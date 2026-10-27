@@ -339,6 +339,7 @@ class CGxDeviceD3d : public CGxDevice {
     virtual void* WorldMaskTexture();
     virtual void* WorldSnapshotTexture();
     virtual bool WorldSnapshotOpaque();
+    virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
     virtual void* D3dDevice();
 
     static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
