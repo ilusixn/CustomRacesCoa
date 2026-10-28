@@ -245,110 +245,95 @@ int32_t BuildComponentArray(uint32_t count, st_race** lookupOut) {
 
     st_race* lookup = new (__FILE__, __LINE__) st_race[count];
 
-    int32_t variationIndex = 0;
-    CharSectionsRec* first = (0 >= g_charSectionsDB.m_numRecords) ? nullptr : &g_charSectionsDB.m_records[0];
-    int32_t raceID = first->m_raceID;
-    int32_t sexID = first->m_sexID;
-    int32_t baseSection = first->m_baseSection;
-
     for (int32_t i = 0; i < g_charSectionsDB.m_numRecords; i++) {
         CharSectionsRec* rec = (i < 0 || i >= g_charSectionsDB.m_numRecords) ? nullptr : &g_charSectionsDB.m_records[i];
 
-        if (rec->m_baseSection >= CHARTEXTUREVARIATIONS_NUM) {
+        if (!rec || static_cast<uint32_t>(rec->m_baseSection) >= CHARTEXTUREVARIATIONS_NUM) {
             continue;
         }
 
-        if (raceID != rec->m_raceID || sexID != rec->m_sexID || baseSection != rec->m_baseSection) {
-            CharVariationList& list = lookup[raceID * 2 + sexID].m_variation[baseSection];
-            list.m_numVariations = variationIndex + 1;
+        uint32_t idx = static_cast<uint32_t>(rec->m_raceID * 2 + rec->m_sexID);
+
+        if (idx >= count || rec->m_variationIndex < 0) {
+            continue;
+        }
+
+        CharVariationList& list = lookup[idx].m_variation[rec->m_baseSection];
+
+        if (list.m_numVariations <= rec->m_variationIndex) {
+            list.m_numVariations = rec->m_variationIndex + 1;
+        }
+    }
+
+    for (uint32_t idx = 0; idx < count; idx++) {
+        for (int32_t baseSection = 0; baseSection < CHARTEXTUREVARIATIONS_NUM; baseSection++) {
+            CharVariationList& list = lookup[idx].m_variation[baseSection];
 
             if (list.m_numVariations > 0) {
                 list.m_variation = new (__FILE__, __LINE__) CharColorList[list.m_numVariations];
             }
-
-            variationIndex = 0;
         }
-
-        if (variationIndex <= rec->m_variationIndex) {
-            variationIndex = rec->m_variationIndex;
-        }
-
-        raceID = rec->m_raceID;
-        sexID = rec->m_sexID;
-        baseSection = rec->m_baseSection;
     }
-
-    CharVariationList& lastList = lookup[raceID * 2 + sexID].m_variation[baseSection];
-    lastList.m_numVariations = variationIndex + 1;
-
-    if (lastList.m_numVariations > 0) {
-        lastList.m_variation = new (__FILE__, __LINE__) CharColorList[lastList.m_numVariations];
-    }
-
-    sexID = 0;
-    raceID = 1;
-    baseSection = 0;
-    variationIndex = 0;
-    int32_t colorIndex = 0;
 
     for (int32_t i = 0; i < g_charSectionsDB.m_numRecords; i++) {
         CharSectionsRec* rec = (i < 0 || i >= g_charSectionsDB.m_numRecords) ? nullptr : &g_charSectionsDB.m_records[i];
 
-        if (rec->m_baseSection >= CHARTEXTUREVARIATIONS_NUM) {
+        if (!rec || static_cast<uint32_t>(rec->m_baseSection) >= CHARTEXTUREVARIATIONS_NUM) {
             continue;
         }
 
-        if (raceID != rec->m_raceID || sexID != rec->m_sexID || baseSection != rec->m_baseSection || variationIndex != rec->m_variationIndex) {
-            CharVariationList& list = lookup[raceID * 2 + sexID].m_variation[baseSection];
+        uint32_t idx = static_cast<uint32_t>(rec->m_raceID * 2 + rec->m_sexID);
 
-            if (list.m_numVariations > 0) {
-                CharColorList& colors = list.m_variation[variationIndex];
-                colors.m_numColors = colorIndex + 1;
+        if (idx >= count || rec->m_variationIndex < 0 || rec->m_colorIndex < 0) {
+            continue;
+        }
 
-                if (colors.m_numColors > 0) {
-                    colors.m_color = new (__FILE__, __LINE__) CharSectionsRec*[colorIndex + 1]();
-                }
+        CharVariationList& list = lookup[idx].m_variation[rec->m_baseSection];
+
+        if (rec->m_variationIndex < list.m_numVariations) {
+            CharColorList& colors = list.m_variation[rec->m_variationIndex];
+
+            if (colors.m_numColors <= rec->m_colorIndex) {
+                colors.m_numColors = rec->m_colorIndex + 1;
             }
-
-            colorIndex = 0;
         }
-
-        if (colorIndex <= rec->m_colorIndex) {
-            colorIndex = rec->m_colorIndex;
-        }
-
-        raceID = rec->m_raceID;
-        sexID = rec->m_sexID;
-        baseSection = rec->m_baseSection;
-        variationIndex = rec->m_variationIndex;
     }
 
-    CharVariationList& lastColors = lookup[raceID * 2 + sexID].m_variation[baseSection];
+    for (uint32_t idx = 0; idx < count; idx++) {
+        for (int32_t baseSection = 0; baseSection < CHARTEXTUREVARIATIONS_NUM; baseSection++) {
+            CharVariationList& list = lookup[idx].m_variation[baseSection];
 
-    if (lastColors.m_numVariations > 0) {
-        CharColorList& colors = lastColors.m_variation[variationIndex];
-        colors.m_numColors = colorIndex + 1;
+            for (int32_t v = 0; v < list.m_numVariations; v++) {
+                CharColorList& colors = list.m_variation[v];
 
-        if (colors.m_numColors > 0) {
-            colors.m_color = new (__FILE__, __LINE__) CharSectionsRec*[colorIndex + 1]();
+                if (colors.m_numColors > 0) {
+                    colors.m_color = new (__FILE__, __LINE__) CharSectionsRec*[colors.m_numColors]();
+                }
+            }
         }
     }
 
     for (int32_t i = 0; i < g_charSectionsDB.m_numRecords; i++) {
         CharSectionsRec* rec = (i < 0 || i >= g_charSectionsDB.m_numRecords) ? nullptr : &g_charSectionsDB.m_records[i];
 
-        if (rec->m_baseSection >= CHARTEXTUREVARIATIONS_NUM) {
+        if (!rec || static_cast<uint32_t>(rec->m_baseSection) >= CHARTEXTUREVARIATIONS_NUM) {
+            continue;
+        }
+
+        uint32_t idx = static_cast<uint32_t>(rec->m_raceID * 2 + rec->m_sexID);
+
+        if (idx >= count) {
             continue;
         }
 
         int32_t recVariation = rec->m_variationIndex;
         int32_t recColor = rec->m_colorIndex;
-        CharVariationList& list = lookup[rec->m_raceID * 2 + rec->m_sexID].m_variation[rec->m_baseSection];
+        CharVariationList& list = lookup[idx].m_variation[rec->m_baseSection];
 
-        if (list.m_numVariations > 0 && recVariation < list.m_numVariations) {
+        if (list.m_numVariations > 0 && recVariation >= 0 && recVariation < list.m_numVariations) {
             CharColorList& colors = list.m_variation[recVariation];
 
-            if (colors.m_numColors > 0 && recColor < colors.m_numColors) {
+            if (colors.m_numColors > 0 && recColor >= 0 && recColor < colors.m_numColors) {
                 colors.m_color[recColor] = rec;
             }
         }
@@ -375,7 +360,11 @@ int32_t CountFacialFeatures(uint32_t count, uint32_t** facialFeatures) {
             return 0;
         }
 
-        counts[rec->m_raceID * 2 + rec->m_sexID]++;
+        uint32_t idx = static_cast<uint32_t>(rec->m_raceID * 2 + rec->m_sexID);
+
+        if (idx < count) {
+            counts[idx]++;
+        }
     }
 
     *facialFeatures = counts;

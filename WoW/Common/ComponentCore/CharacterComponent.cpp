@@ -1807,7 +1807,7 @@ void CCharacterComponent::SetHairColor(int32_t hairColorID, bool loadHair, const
     this->m_data.m_preferences.m_hairColorId = hairColorID;
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(this->m_data.m_preferences.m_raceID);
 
-    if (!this->m_data.m_preferences.m_sexID && !this->m_data.m_preferences.m_hairStyleId && (raceRec->m_flags & 0x8)) {
+    if (!this->m_data.m_preferences.m_sexID && !this->m_data.m_preferences.m_hairStyleId && raceRec && (raceRec->m_flags & 0x8)) {
         this->ReplaceHairTexture(1, debug);
     }
 
@@ -3872,7 +3872,7 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
         return;
     }
 
-    uint32_t raceMask = 1 << this->m_data.m_preferences.m_raceID;
+    uint32_t raceMask = this->m_data.m_preferences.m_raceID < 32 ? (1u << this->m_data.m_preferences.m_raceID) : 0;
 
     if (raceMask & visRec->m_hideGeoset[0]) {
         this->m_data.m_geosets[CHARGEOSET_HAIR] = 1;
@@ -5551,7 +5551,7 @@ bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
     }
 
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(this->m_data.m_preferences.m_raceID);
-    this->m_flags = (this->m_flags & ~0x10) | (((raceRec->m_flags & 0x2) != 0) << 4);
+    this->m_flags = (this->m_flags & ~0x10) | (((raceRec && (raceRec->m_flags & 0x2)) != 0) << 4);
 
     if (dataFlags & 0x1) {
         this->SkinNpc(debug);

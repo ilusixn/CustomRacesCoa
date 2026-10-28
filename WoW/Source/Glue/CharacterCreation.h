@@ -14,7 +14,7 @@ struct CharacterPreferences;
 
 class CCharacterCreation {
     public:
-    static CharacterPreferences* m_charPreferences[32][2];
+    static CharacterPreferences* m_charPreferences[64][2];
     static CCharacterComponent* m_character;
     static CNameGen m_nameGen;
     static CSimpleModelFFX* m_charCustomizeFrame;

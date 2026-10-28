@@ -38,7 +38,7 @@ int32_t CCharacterCreation::m_existingCharacterIndex = -1;
 // STATIC: 0x00B6B0D0
 // CoA: AscAttachPatches.cpp:RaceTables (FUN_10a5e020, orig hook 0x4E157D) -- the eight sites read a 64-entry
 // table (32 races).
-CharacterPreferences* CCharacterCreation::m_charPreferences[32][2];
+CharacterPreferences* CCharacterCreation::m_charPreferences[64][2];
 
 // STATIC: 0x00B6B180
 uint32_t CCharacterCreation::m_raceIndex;
@@ -125,9 +125,11 @@ void CCharacterCreation::Shutdown() {
     CCharacterCreation::m_nameGen.m_names.Clear();
     CCharacterCreation::m_nameGen.m_dictionary.Clear();
 
-    for (uint32_t i = 0; i < 22; i++) {
+    for (uint32_t i = 0; i < 64; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            delete CCharacterCreation::m_charPreferences[i][j];
+            if (CCharacterCreation::m_charPreferences[i][j]) {
+                SMemFree(CCharacterCreation::m_charPreferences[i][j], __FILE__, __LINE__, 0);
+            }
             CCharacterCreation::m_charPreferences[i][j] = nullptr;
         }
     }
@@ -398,14 +400,14 @@ int32_t CCharacterCreation::GetExistingClassIndex() {
 // OFFSET: 0x004E0F50
 int32_t CCharacterCreation::GetRandomClassID() {
     // CoA: Ascension.exe patch 0x4E0F55 -- room for 30 classes (0x78 bytes) instead of 10
-    int32_t classes[30];
+    int32_t classes[64];
     int32_t count = 0;
     uint8_t expansion = ClientServices::Connection()->m_accountExpansion;
 
     for (uint32_t i = 0; i < CCharacterCreation::m_classes.Count(); i++) {
         ChrClassesRec* rec = CCharacterCreation::m_classes.m_data[i];
 
-        if (expansion >= rec->m_requiredExpansion) {
+        if (expansion >= rec->m_requiredExpansion && count < 64) {
             classes[count++] = rec->m_id;
         }
     }
