@@ -38,6 +38,7 @@ jobs:
             $glslangDir = "$env:RUNNER_TEMP\glslang"
             Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/16.6.0/glslang-16.6.0-windows-x86_64-release.zip" -OutFile $glslangZip
             Expand-Archive -Path $glslangZip -DestinationPath $glslangDir -Force
+            Copy-Item "$glslangDir\bin\glslang.exe" "$glslangDir\bin\glslangValidator.exe"
             Add-Content -Path $env:GITHUB_PATH -Value "$glslangDir\bin"
           }
 
