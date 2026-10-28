@@ -37,8 +37,8 @@ cmake --build "%BUILD%" --target dxvk
 if errorlevel 1 goto :fail
 :nodxvk
 
-if not exist "%BIN%\Win\Wow64.exe" goto :missing
-if not exist "%BIN%\Win\Wow64.map" goto :missing
+if not exist "%BIN%\Win\CoA64.exe" goto :missing
+if not exist "%BIN%\Win\CoA64.map" goto :missing
 if not exist "%BIN%\Win\XvidDecoder.dll" goto :missing
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
