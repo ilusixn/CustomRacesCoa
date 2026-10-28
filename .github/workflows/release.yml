@@ -1,0 +1,202 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release (x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSVC x64 environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Setup Meson, Ninja, and glslangValidator for DXVK
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip meson ninja
+          $scriptsDir = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+          $userScriptsDir = python -c "import site; print(site.USER_BASE + '\\Scripts')"
+          if (Test-Path $scriptsDir) { Add-Content -Path $env:GITHUB_PATH -Value $scriptsDir }
+          if (Test-Path $userScriptsDir) { Add-Content -Path $env:GITHUB_PATH -Value $userScriptsDir }
+
+          if (-not (Get-Command glslangValidator -ErrorAction SilentlyContinue)) {
+            $glslangZip = "$env:RUNNER_TEMP\glslang.zip"
+            $glslangDir = "$env:RUNNER_TEMP\glslang"
+            Invoke-WebRequest -Uri "https://github.com/KhronosGroup/glslang/releases/download/16.6.0/glslang-16.6.0-windows-x86_64-release.zip" -OutFile $glslangZip
+            Expand-Archive -Path $glslangZip -DestinationPath $glslangDir -Force
+            Add-Content -Path $env:GITHUB_PATH -Value "$glslangDir\bin"
+          }
+
+      - name: Configure CMake (Release)
+        shell: pwsh
+        run: |
+          cmake -G Ninja `
+            -DCMAKE_BUILD_TYPE=Release `
+            -S "$env:GITHUB_WORKSPACE" `
+            -B "$env:GITHUB_WORKSPACE/out/build/x64-Release"
+
+      - name: Build CoA64, XvidDecoder, DXVK, and Tests
+        shell: pwsh
+        run: |
+          $buildDir = "$env:GITHUB_WORKSPACE/out/build/x64-Release"
+          cmake --build $buildDir --target Wow XvidDecoder CoATests
+          if (Select-String -Path "$buildDir/build.ninja" -Pattern "^build dxvk:" -Quiet) {
+            cmake --build $buildDir --target dxvk
+          }
+
+      - name: Run Unit Tests
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE/out/build/x64-Release/bin/CoATests.exe"
+
+      - name: Package Release Archive (No .map / debug files)
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $binDir = "$env:GITHUB_WORKSPACE/bin/Win"
+          $stageDir = "$env:RUNNER_TEMP/coa64_release"
+
+          if (-not (Test-Path "$binDir/CoA64.exe")) { throw "Missing CoA64.exe" }
+          if (-not (Test-Path "$binDir/XvidDecoder.dll")) { throw "Missing XvidDecoder.dll" }
+          if (-not (Test-Path "$binDir/x64/d3d9.dll")) { throw "Missing x64/d3d9.dll" }
+
+          if (Test-Path $stageDir) { Remove-Item -Recurse -Force $stageDir }
+          New-Item -ItemType Directory -Path $stageDir | Out-Null
+
+          Copy-Item "$binDir/CoA64.exe" "$stageDir/CoA64.exe"
+          Copy-Item "$binDir/XvidDecoder.dll" "$stageDir/XvidDecoder.dll"
+
+          if (Test-Path "$binDir/x64/d3d9.dll") {
+            New-Item -ItemType Directory -Path "$stageDir/x64" | Out-Null
+            Copy-Item "$binDir/x64/d3d9.dll" "$stageDir/x64/d3d9.dll"
+          }
+
+          $zipName = "CoA64-$tag.zip"
+          $zipPath = "$env:GITHUB_WORKSPACE/$zipName"
+          Compress-Archive -Path "$stageDir/*" -DestinationPath $zipPath -Force
+
+          $hash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLower()
+          "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_PATH=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_SHA256=$hash" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Generate Release Notes & Changelog
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $commit = (git rev-parse --short=7 HEAD).Trim()
+          $buildNum = (git rev-list --count HEAD).Trim()
+          $date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
+
+          $prevTag = ""
+          try {
+            $prevTag = (git describe --tags --abbrev=0 "HEAD^" 2>$null).Trim()
+          } catch {
+            $prevTag = ""
+          }
+
+          if ($prevTag) {
+            $range = "$prevTag..HEAD"
+            $compareUrl = "https://github.com/$env:GITHUB_REPOSITORY/compare/$prevTag...$tag"
+          } else {
+            $range = "-n 30 HEAD"
+            $compareUrl = "https://github.com/$env:GITHUB_REPOSITORY/commits/$tag"
+          }
+
+          $rawCommits = if ($prevTag) {
+            git log $range --no-merges --pretty=format:"%h|%s|%an"
+          } else {
+            git log -n 30 --no-merges --pretty=format:"%h|%s|%an"
+          }
+
+          $features = [System.Collections.Generic.List[string]]::new()
+          $fixes = [System.Collections.Generic.List[string]]::new()
+          $other = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($line in $rawCommits) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $parts = $line -split '\|', 3
+            $sha = $parts[0]
+            $subject = $parts[1]
+            $entry = "- $subject ([``$sha``](https://github.com/$env:GITHUB_REPOSITORY/commit/$sha))"
+
+            if ($subject -match '^(?i)(fix|bug|hotfix|guard|clamp|crash|resolve)') {
+              $fixes.Add($entry)
+            } elseif ($subject -match '^(?i)(port|add|feat|implement|support|enable)') {
+              $features.Add($entry)
+            } else {
+              $other.Add($entry)
+            }
+          }
+
+          $notes = [System.Text.StringBuilder]::new()
+          [void]$notes.AppendLine("## CoA64 $tag")
+          [void]$notes.AppendLine("")
+          [void]$notes.AppendLine("| Property | Value |")
+          [void]$notes.AppendLine("| :--- | :--- |")
+          [void]$notes.AppendLine("| **Version** | ``$tag`` |")
+          [void]$notes.AppendLine("| **Build** | ``$buildNum`` (``$commit``) |")
+          [void]$notes.AppendLine("| **Configuration** | Windows x64 Release (LTO) |")
+          [void]$notes.AppendLine("| **Date** | $date UTC |")
+          [void]$notes.AppendLine("")
+          [void]$notes.AppendLine("### Package Contents")
+          [void]$notes.AppendLine("- ``CoA64.exe`` — 64-bit Conquest of Azeroth client")
+          [void]$notes.AppendLine("- ``XvidDecoder.dll`` — 64-bit video decoder")
+          [void]$notes.AppendLine("- ``x64/d3d9.dll`` — DXVK v2.5.3 Vulkan renderer")
+          [void]$notes.AppendLine("")
+
+          if ($features.Count -gt 0) {
+            [void]$notes.AppendLine("### Features & Ports")
+            foreach ($item in $features) { [void]$notes.AppendLine($item) }
+            [void]$notes.AppendLine("")
+          }
+
+          if ($fixes.Count -gt 0) {
+            [void]$notes.AppendLine("### Bug Fixes")
+            foreach ($item in $fixes) { [void]$notes.AppendLine($item) }
+            [void]$notes.AppendLine("")
+          }
+
+          if ($other.Count -gt 0) {
+            [void]$notes.AppendLine("### Other Changes")
+            foreach ($item in $other) { [void]$notes.AppendLine($item) }
+            [void]$notes.AppendLine("")
+          }
+
+          if ($prevTag) {
+            [void]$notes.AppendLine("**Full Changelog:** [$prevTag...$tag]($compareUrl)")
+          } else {
+            [void]$notes.AppendLine("**Commit History:** [$tag]($compareUrl)")
+          }
+          [void]$notes.AppendLine("")
+          [void]$notes.AppendLine("### Checksum (SHA-256)")
+          [void]$notes.AppendLine("``````text")
+          [void]$notes.AppendLine("$($env:ZIP_SHA256)  $($env:ZIP_NAME)")
+          [void]$notes.AppendLine("``````")
+
+          $notesPath = "$env:RUNNER_TEMP/RELEASE_NOTES.md"
+          $notes.ToString() | Set-Content -Path $notesPath -Encoding UTF8
+          "RELEASE_NOTES_PATH=$notesPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CoA64 ${{ github.ref_name }}
+          body_path: ${{ env.RELEASE_NOTES_PATH }}
+          files: ${{ env.ZIP_PATH }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
