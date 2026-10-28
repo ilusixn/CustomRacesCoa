@@ -5,7 +5,7 @@
 #include <cstdint>
 
 struct TEXTEMOTELOOKUP {
-    /* 0000 */ int32_t m_soundIds[22][2];
+    /* 0000 */ int32_t m_soundIds[64][2];
     /* 00B0 */ int32_t m_emotesTextId;
 
     TEXTEMOTELOOKUP();
