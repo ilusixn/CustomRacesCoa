@@ -5651,6 +5651,11 @@ driver:SetScript("OnUpdate", function(self, elapsed)
     end
 end)
 
+-- Leaving the creator drops the sliders (Finish already stored them for the new character).
+if CharacterCreateFrame and CharacterCreateFrame.HookScript then
+    CharacterCreateFrame:HookScript("OnHide", function() if ResetBodyShape then ResetBodyShape() end end)
+end
+
 -- A new character starts with default sliders.
 do
     local onShow = CharacterCreate_OnShow

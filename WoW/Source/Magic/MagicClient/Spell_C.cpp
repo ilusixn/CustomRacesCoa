@@ -7042,7 +7042,8 @@ bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool 
         return false;
     }
 
-    if (!checkAmmo) {
+    // CoA: no class uses ammo and the server never asks for it, so ranged weapons never fail here for a missing projectile.
+    if (true || !checkAmmo) {
         return true;
     }
 

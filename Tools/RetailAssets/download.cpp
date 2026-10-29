@@ -62,10 +62,13 @@ int main(int argc, char** argv) {
         auto add = [&](uint32_t id, const char* type) {
             if (id && queued.emplace(id, type).second) queue.emplace_back(id, type);
         };
-        for (int i = 3; i < argc; ++i) for (uint32_t sex = 0; sex < 2; ++sex) {
+        for (int i = 3; i < argc; ++i) for (uint32_t sex = 0; sex < 2; ++sex) for (uint32_t form = 0; form <= app::FormDreadnaught; ++form) {
             app::CharacterAssets roots;
             std::string error;
-            if (!app::CollectCharacterAssets(Id(argv[i]), sex, roots, error)) throw std::runtime_error(error);
+            if (!app::CollectCharacterAssets(Id(argv[i]), sex, roots, error, form)) {
+                if (form) continue; // not every race has a model for every form
+                throw std::runtime_error(error);
+            }
             for (auto id : roots.models) add(id, ".m2");
             for (auto id : roots.textures) add(id, ".blp");
             for (auto id : roots.skeletons) add(id, ".skel");

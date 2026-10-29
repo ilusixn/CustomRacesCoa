@@ -191,6 +191,12 @@ static int32_t Script_SaveBodyShape(lua_State* L) {
     return 0;
 }
 
+// RevertBodyShape(): drop unsaved slider changes of the local player.
+static int32_t Script_RevertBodyShape(lua_State* L) {
+    CoA::Esteria::BodySliders::Revert();
+    return 0;
+}
+
 #define BODY_SHAPE_SCRIPT_ENTRIES \
     { "SetBodyShape", &Script_SetBodyShape }, \
     { "GetBodyShape", &Script_GetBodyShape }, \
@@ -204,6 +210,7 @@ static int32_t Script_SaveBodyShape(lua_State* L) {
     { "BodyShapeProbe", &Script_BodyShapeProbe }, \
     { "BodyShapeBoneInfo", &Script_BodyShapeBoneInfo }, \
     { "SaveBodyShape", &Script_SaveBodyShape }, \
+    { "RevertBodyShape", &Script_RevertBodyShape }, \
     { "BodyShapeLog", &Script_BodyShapeLog },
 
 #endif

@@ -43,3 +43,7 @@ target_compile_definitions(RetailAssets PUBLIC WOWDECOMP_RETAIL_ASSETS=1)
 target_link_libraries(RetailAssets PRIVATE casc_static)
 
 # CoA: the probe / test / download executables of the Esteria tree are not built here (Tools/RetailAssets keeps their sources)
+
+# CoA: prefetches every customization asset of a retail race into the decoded cache (shipped in the release so players do not download)
+add_executable(CdnAssetDownload EXCLUDE_FROM_ALL "${CMAKE_SOURCE_DIR}/Tools/RetailAssets/download.cpp")
+target_link_libraries(CdnAssetDownload PRIVATE RetailAssets)

@@ -13,12 +13,12 @@
 #include <cstring>
 
 namespace {
-constexpr uint32_t SMSG_ESTERIA_BODY_SHAPE = 0x523;
-constexpr uint32_t SMSG_ESTERIA_RETAIL_LOOK = 0x524;
-constexpr uint32_t SMSG_ESTERIA_FORM_LOOK_ACK = 0x526;
+constexpr uint32_t SMSG_ESTERIA_BODY_SHAPE = 0x575;   // 0x51F..0x55E have no handler table in this client, so these sit above 0x55E (free in Ascension's table)
+constexpr uint32_t SMSG_ESTERIA_RETAIL_LOOK = 0x576;
+constexpr uint32_t SMSG_ESTERIA_FORM_LOOK_ACK = 0x577;
 
 int32_t ReceiveBody(void*, NETMESSAGE, uint32_t, CDataStore* message) {
-    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x523 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
+    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x575 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
     constexpr uint32_t Size = 8 + CharacterBodyShape::PayloadSize;
     if (!message || message->m_read > message->m_size || message->m_size - message->m_read != Size || !message->FetchRead(message->m_read, Size)) {
         return 0;
@@ -40,7 +40,7 @@ int32_t ReceiveBody(void*, NETMESSAGE, uint32_t, CDataStore* message) {
 }
 
 int32_t ReceiveLook(void*, NETMESSAGE, uint32_t, CDataStore* message) {
-    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x524 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
+    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x576 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
     constexpr uint32_t Size = 8 + CharacterRetailLook::PayloadSize;
     if (!message || message->m_read > message->m_size || message->m_size - message->m_read != Size || !message->FetchRead(message->m_read, Size)) {
         return 0;
@@ -62,7 +62,7 @@ int32_t ReceiveLook(void*, NETMESSAGE, uint32_t, CDataStore* message) {
 }
 
 int32_t ReceiveFormAck(void*, NETMESSAGE, uint32_t, CDataStore* message) {
-    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x526 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
+    { char line[96]; std::snprintf(line, sizeof(line), "recv 0x577 size=%u read=%u", message ? message->m_size : 0u, message ? message->m_read : 0u); BodyShape::Log(line); }
     constexpr uint32_t Size = 8 + 4 + 1;
     if (!message || message->m_read > message->m_size || message->m_size - message->m_read != Size) {
         return 0;

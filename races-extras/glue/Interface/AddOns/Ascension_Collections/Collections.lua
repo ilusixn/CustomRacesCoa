@@ -127,6 +127,8 @@ local function CoABody_Build()
 		saved:SetText("|cff00ff00Saved for this character|r")
 	end)
 	frame:SetScript("OnShow", function() saved:SetText(""); CoABody_Refresh() end)
+	-- sliders only stay when Save was pressed
+	frame:SetScript("OnHide", function() if RevertBodyShape then RevertBodyShape() end end)
 
 	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 	close:SetPoint("TOPRIGHT", -4, -4)

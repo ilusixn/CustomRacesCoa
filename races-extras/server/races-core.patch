@@ -159,7 +159,7 @@ index d3c708fb7..9c82dbbb4 100644
      CHAR_SEL_CHAR_ZONE,
      CHAR_SEL_CHARACTER_NAME_DATA,
 diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
-index 765de1549..3b8ada3f8 100644
+index 765de1549..942727bd8 100644
 --- a/src/server/game/Entities/Player/Player.cpp
 +++ b/src/server/game/Entities/Player/Player.cpp
 @@ -16,6 +16,7 @@
@@ -184,7 +184,7 @@ index 765de1549..3b8ada3f8 100644
                  Corpse::DeleteFromDB(playerGuid, trans);
  
                  sScriptMgr->OnPlayerDeleteFromDB(trans, lowGuid);
-@@ -12387,8 +12395,127 @@ void Player::SendInitialPacketsBeforeAddToMap()
+@@ -12387,8 +12395,129 @@ void Player::SendInitialPacketsBeforeAddToMap()
      sScriptMgr->OnPlayerSendInitialPacketsBeforeAddToMap(this, data);
  }
  
@@ -241,6 +241,7 @@ index 765de1549..3b8ada3f8 100644
 +    data << GetGUID().GetRawValue();
 +    data.append(_retailLook.data(), _retailLook.size());
 +    receiver->GetSession()->SendPacket(&data);
++    LOG_INFO("coa", "Retail look of {} (form {}) sent to {}", GetName(), GetActiveRetailForm(), receiver->GetName());
 +}
 +
 +void Player::LoadFormLook(PreparedQueryResult result)
@@ -302,6 +303,7 @@ index 765de1549..3b8ada3f8 100644
 +    data << GetGUID().GetRawValue();
 +    data.append(_retailLook.data(), _retailLook.size());
 +    SendMessageToSet(&data, true);
++    LOG_INFO("coa", "Retail look of {} switched to form {} and sent to the set", GetName(), GetActiveRetailForm());
 +    return true;
 +}
 +
@@ -312,7 +314,7 @@ index 765de1549..3b8ada3f8 100644
      UpdateVisibilityForPlayer(true);
  
      GetSession()->ResetTimeSync();
-@@ -14953,6 +15080,9 @@ void Player::HandleFall(MovementInfo const& movementInfo)
+@@ -14953,6 +15082,9 @@ void Player::HandleFall(MovementInfo const& movementInfo)
                  if (HasAura(SPELL_DIVINE_PROTECTION))
                      damage /= 2;
  
@@ -671,17 +673,17 @@ index 2d0cd3950..3882b2b14 100644
      // -- Handle_NULL is the fallback when the module is disabled) --
      /*0x592*/ DEFINE_HANDLER(CMSG_COA_START_CHALLENGE,                                               STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
 diff --git a/src/server/game/Server/Protocol/Opcodes.h b/src/server/game/Server/Protocol/Opcodes.h
-index 8531a1d86..8f5e98a45 100644
+index 8531a1d86..7df297146 100644
 --- a/src/server/game/Server/Protocol/Opcodes.h
 +++ b/src/server/game/Server/Protocol/Opcodes.h
 @@ -1340,6 +1340,10 @@ enum Opcodes : uint16
      SMSG_MULTIPLE_MOVES                             = 0x51E, // uncompressed version of SMSG_COMPRESSED_MOVES
      CMSG_ANTICHEAT_ALERT                            = 0x51F, // Ascension client: local anti-tamper/anti-debug alert, see WorldSession::HandleAnticheatAlert
      TC9_SMSG_READY_FOR_REDIRECT                     = 0x520,
-+    SMSG_ESTERIA_BODY_SHAPE                         = 0x523,
-+    SMSG_ESTERIA_RETAIL_LOOK                        = 0x524,
++    SMSG_ESTERIA_BODY_SHAPE                         = 0x575,
++    SMSG_ESTERIA_RETAIL_LOOK                        = 0x576,
 +    CMSG_ESTERIA_FORM_LOOK                          = 0x525,
-+    SMSG_ESTERIA_FORM_LOOK_ACK                      = 0x526,
++    SMSG_ESTERIA_FORM_LOOK_ACK                      = 0x577,
      // -- CoA extension range (custom client; see mod-coa-challenges) --
      SMSG_COA_CONFIG                                 = 0x58D,
      SMSG_COA_CHALLENGE_ACTIVE_LIST                  = 0x596,

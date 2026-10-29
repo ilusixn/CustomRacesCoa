@@ -34,6 +34,7 @@ namespace CoA::Esteria {
 
     namespace BodySliders {
         void SavePending();   // the creator's Finish: keep the Body page values for the new character
+        void Revert();        // back to the last saved sliders
         void SaveNow();       // the in-world Body panel's Save button
         void SyncPlayer();    // the local player in the world: restore / persist the sliders by character name
         void Init();

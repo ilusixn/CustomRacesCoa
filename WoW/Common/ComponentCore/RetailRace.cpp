@@ -1097,8 +1097,17 @@ bool RetailRaceMapped(uint32_t race) {
     return RetailRaceId(race) != 0;
 }
 
+// Stage size of a race in the creator and on the character screen. The facing setters apply it on every turn of the model, so
+// it has to live here (a one-off resize is undone by the next turn). Keep in step with FixedPreviewScale (EsteriaAppearance.cpp).
 float RetailRacePreviewScale(uint32_t race) {
-    return Retail::Centaur::Race(race) ? .75f : 1.0f;
+    switch (race) {
+    case 54: case 58: return .5f;           // Dracthyr
+    case 107: return .6f;                   // Kyrian
+    case 101: return .7f;                   // Venthyr
+    case 87: return .7f;                    // Faceless One
+    case 56: case 57: return .55f;          // Vrykul
+    default: return Retail::Centaur::Race(race) ? .55f : 1.0f;
+    }
 }
 
 void RetailRaceDuplicateCollections(CM2Model* source, CM2Model* target) {

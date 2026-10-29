@@ -554,20 +554,7 @@ int EsteriaCycle(void* state)
         return 1;
     }
     if (std::strcmp(command, "EA_PREVIEW_SCALE") == 0)
-    {
-        double index = number(state, 2);
-        if (!std::isfinite(index) || index < 0 || index > 100 || index != std::floor(index))
-            return 0;
-        if (index == 0)
-            ScaleVrykulPreview(CreationCharacter());
-        else
-        {
-            unsigned count = SelCount();
-            if (count <= 100 && index <= count)
-                ScaleVrykulPreview(Field<void*>(SelRow(static_cast<unsigned>(index) - 1), 0x188));
-        }
-        return 0;
-    }
+        return 0; // stage sizes are applied natively by RetailRacePreviewScale; the raw 32-bit offsets this used corrupt the x64 heap
     void* character = CreationCharacter();
     if (!character)
         return 0;
