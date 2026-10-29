@@ -8,3 +8,8 @@ Everything outside the C++ client that the custom race work depends on. Developm
 - `tools/`  Python/C++ helper scripts used to build the client data patches and merge the pieces.
 
 Not included: models, textures, DBC files, MPQs (large, and many are other authors' work).
+
+## assets (added later)
+- `assets/mpq/`  the client patch archives built for these races (patch-ZZZD, ZZZZA, ZZZZC, ZZZZD), as installed in `Data/`.
+- `assets/faun_fix_patch/`  the source tree packed into patch-ZZZZA.
+Not included: the generated intermediates (about 1.7 GB), third-party race source packs, and the server runtime/database.
