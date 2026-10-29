@@ -1,0 +1,64 @@
+{
+  "packageVersion": "kyrian-venthyr-20261027-1",
+  "races": {
+    "Kyrian": 60,
+    "Venthyr": 61
+  },
+  "component": "client",
+  "sourceBaselineHead": "2271eb42bfdc9868abdb42988a9bc6adcb09d292",
+  "scope": "Race integration overlay, not a game or full source repository.",
+  "sourcePatches": [
+    {
+      "path": "WoW/Source/Object/ObjectClient/Unit_C.cpp",
+      "baselineBlob": "b633e16806d4e582ebd2f817c5ff1fb64b6af8ce33cf76387c090da026a3702d",
+      "currentSourceSha256": "131f09e1d7cd839d9280738282b406243a0e22746f86175648bc139df806a818",
+      "includedHunks": 14,
+      "note": "Race-relevant hunks; shared native-race framework is prerequisite."
+    },
+    {
+      "path": "WoW/Source/Object/ObjectClient/Unit_C.h",
+      "baselineBlob": "592772c5d93ab38f7d88806185535afd555fa5959b07f6eb0cb99a12ef1d9605",
+      "currentSourceSha256": "e99ac3554624f4680a0d006a76f2fc7aaa6ca0fd8158dbe1c62b51a870c8f796",
+      "includedHunks": 2,
+      "note": "Race-relevant hunks; shared native-race framework is prerequisite."
+    }
+  ],
+  "gameplayAndVisualAcceptance": "pending user testing",
+  "requires": [
+    "Aetheria/Esteria native custom-race client/server framework",
+    "Matching race IDs 60/61 and extended appearance protocol",
+    "Existing race creation/display records; matching native asset loader"
+  ],
+  "ownedSpellIds": [
+    111100,
+    111101,
+    111102,
+    111103,
+    111104,
+    111105,
+    111106,
+    111107,
+    111108,
+    111109,
+    111110,
+    111111,
+    111112,
+    111113,
+    111200,
+    111201,
+    111202,
+    111203,
+    111204,
+    111205,
+    111206,
+    111207,
+    111208,
+    111209,
+    111210,
+    111211,
+    111212
+  ],
+  "integrationMode": "Review/merge into prerequisite extended Aetheria/Esteria framework; not a stock-client drop-in",
+  "baseRaceCreationRecordsIncluded": false,
+  "fullClientOrServerIncluded": false
+}

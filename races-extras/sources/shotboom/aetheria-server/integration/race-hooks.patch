@@ -1,0 +1,84 @@
+diff --git a/src/server/game/Spells/Auras/SpellAuraEffects.cpp b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
+--- a/src/server/game/Spells/Auras/SpellAuraEffects.cpp
++++ b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
+@@ -38,6 +38,7 @@
+ #include "Unit.h"
+ #include "Util.h"
+ #include "Vehicle.h"
++#include "VenthyrRacials.h"
+ #include "WorldPacket.h"
+ 
+ /// @todo: this import is not necessary for compilation and marked as unused by the IDE
+@@ -6539,7 +6540,18 @@
+ 
+     float gainMultiplier = GetSpellInfo()->Effects[GetEffIndex()].CalcValueMultiplier(caster);
+ 
+-    uint32 heal = uint32(caster->SpellHealingBonusDone(caster, GetSpellInfo(), uint32(new_damage * gainMultiplier), DOT, GetEffIndex(), 0.0f, GetBase()->GetStackAmount()));
++    uint32 baseHeal = uint32(new_damage * gainMultiplier);
++    if (GetId() == VenthyrRacials::Feast)
++    {
++        // Preserve half-health points between actual damage ticks. At level one,
++        // four one-damage ticks must heal twice instead of rounding all four to zero.
++        double const exactHeal = double(new_damage) * gainMultiplier + m_venthyrFeastLeechRemainder;
++        baseHeal = uint32(exactHeal);
++        m_venthyrFeastLeechRemainder = exactHeal - baseHeal;
++    }
++
++    uint32 heal = uint32(caster->SpellHealingBonusDone(caster, GetSpellInfo(), baseHeal,
++        DOT, GetEffIndex(), 0.0f, GetBase()->GetStackAmount()));
+     heal = uint32(caster->SpellHealingBonusTaken(caster, GetSpellInfo(), heal, DOT, GetBase()->GetStackAmount()));
+ 
+     HealInfo healInfo(caster, caster, heal, GetSpellInfo(), GetSpellInfo()->GetSchoolMask());
+diff --git a/src/server/game/Spells/Auras/SpellAuraEffects.h b/src/server/game/Spells/Auras/SpellAuraEffects.h
+--- a/src/server/game/Spells/Auras/SpellAuraEffects.h
++++ b/src/server/game/Spells/Auras/SpellAuraEffects.h
+@@ -141,6 +141,7 @@
+     int32 m_periodicTimer;
+     int32 m_amplitude;
+     uint32 m_tickNumber;
++    mutable double m_venthyrFeastLeechRemainder = 0.0;
+ 
+     uint8 const m_effIndex;
+     bool m_canBeRecalculated;
+diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
+--- a/src/server/game/Entities/Player/Player.cpp
++++ b/src/server/game/Entities/Player/Player.cpp
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include "Player.h"
++#include "KyrianRacials.h"
+ #include "AccountMgr.h"
+ #include "AchievementMgr.h"
+ #include "AreaDefines.h"
+@@ -14238,6 +14239,9 @@
+                 if (HasAura(SPELL_DIVINE_PROTECTION))
+                     damage /= 2;
+ 
++                if (getRace(true) == KyrianRacials::Race && HasAura(KyrianRacials::AscendedWings))
++                    damage = CalculatePct(damage, 100 - KyrianRacials::FallReductionPercent);
++
+                 final_damage = EnvironmentalDamage(DAMAGE_FALL, damage);
+             }
+ 
+diff --git a/src/server/scripts/Custom/custom_script_loader.cpp b/src/server/scripts/Custom/custom_script_loader.cpp
+--- a/src/server/scripts/Custom/custom_script_loader.cpp
++++ b/src/server/scripts/Custom/custom_script_loader.cpp
+@@ -16,11 +16,15 @@
+  */
+ 
+ // This is where scripts' loading functions should be declared:
+-// void MyExampleScript()
++void AddSC_kyrian_hover();
++void AddSC_kyrian_racials();
++void AddSC_venthyr_racials();
+ 
+ // The name of this function should match:
+ // void Add${NameOfDirectory}Scripts()
+ void AddCustomScripts()
+ {
+-    // MyExampleScript()
++    AddSC_kyrian_hover();
++    AddSC_kyrian_racials();
++    AddSC_venthyr_racials();
+ }

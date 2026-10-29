@@ -1,0 +1,2943 @@
+{
+  "compression": "zlib, concatenated parts per file",
+  "assets": [
+    {
+      "path": "custom/kyrian/creature/kyrianfemale/orange.blp",
+      "bytes": 12108,
+      "sha256": "c2ff6c940753f5de9cf2b407f829f8714be9309fefadd34a91ccf1113ea9a422",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/creature/kyrianfemale/orange.blp.zlib.001",
+          "bytes": 7794,
+          "sha256": "29a97051478b5dfa6895880af3e147e5493121d80fbed5e2273297042275a3a1"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/creature/kyrianmale/orange.blp",
+      "bytes": 12108,
+      "sha256": "c2ff6c940753f5de9cf2b407f829f8714be9309fefadd34a91ccf1113ea9a422",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/creature/kyrianmale/orange.blp.zlib.001",
+          "bytes": 7794,
+          "sha256": "29a97051478b5dfa6895880af3e147e5493121d80fbed5e2273297042275a3a1"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/brunette/armor.blp",
+      "bytes": 2797376,
+      "sha256": "511d492b7c17d83eadfadf2bb099779deceb1654cf20ee2c5be2b4629d3549a6",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/brunette/armor.blp.zlib.001",
+          "bytes": 2034675,
+          "sha256": "2aae030a0744c066f0be0e6c47ff9768371e89b594f974f4c2136b7847818a66"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/brunette/body.blp",
+      "bytes": 2797376,
+      "sha256": "0318ab8868659145ba97aa8705a30b21695e3b296f903dc5ea9560b76a885b71",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/brunette/body.blp.zlib.001",
+          "bytes": 1658413,
+          "sha256": "30f1f783b7183056b6d410160100e29dda800ba1a7ba7bf93d14ae065c414a6a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/brunette/female-wing.blp",
+      "bytes": 2797376,
+      "sha256": "16e8843f54cfad02da802ec78ef81c95ec11852bcb0ee7f64c4631f3a51fcec7",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/brunette/female-wing.blp.zlib.001",
+          "bytes": 1214428,
+          "sha256": "7c2008362e19d339ad4eb6ace104dfc0d811660efaecb7c973725c79a1eb41bc"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/brunette/hair-wing.blp",
+      "bytes": 2797376,
+      "sha256": "51b54027bbdd7099a12dc49a6b262f913c9988095efba02b25ec67daae7bc481",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/brunette/hair-wing.blp.zlib.001",
+          "bytes": 1216346,
+          "sha256": "3e0e06d93d13e8115ee9a63c7c1a8600e1eddcec698718ba57a82bbd77aa72e0"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/green/armor.blp",
+      "bytes": 2797376,
+      "sha256": "4a9b6a0c160715fe28c5f80447b0754ec2321fbb5949a3330d1a92a23c4fd768",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/green/armor.blp.zlib.001",
+          "bytes": 2155235,
+          "sha256": "69ad3e7bf31072c96b017bd4e0e1b6bd90de761d6fc2950955db396d193d76ed"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/green/body.blp",
+      "bytes": 2797376,
+      "sha256": "6ef7d74e46b0746c3be34bdf575bb0dd567264d1e6d8575961e5758fa01be75d",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/green/body.blp.zlib.001",
+          "bytes": 1682195,
+          "sha256": "8b8e992dd8efb5f76e045acdb5e96fad0d3b33db7be787754847734b929644fc"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/green/female-wing.blp",
+      "bytes": 2797376,
+      "sha256": "cbc1b35f334306883b9c1c3b6e8c38065bef7abd5d078e972f65e04592049848",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/green/female-wing.blp.zlib.001",
+          "bytes": 1240182,
+          "sha256": "4e3e5324a492339507403d3d7295115f97b5ec89a365707c31ec3e50abf0f038"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/green/hair-wing.blp",
+      "bytes": 2797376,
+      "sha256": "60347aaf137885a1a01c259a69312a3ba8c4ca517317e7335940aa2f887ce8e5",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/green/hair-wing.blp.zlib.001",
+          "bytes": 1241394,
+          "sha256": "82eb72b2bd16d56b9308d27104f7b66ee58f392f9916b77f857bbcca0b12f215"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/red/armor.blp",
+      "bytes": 2797376,
+      "sha256": "37b03ae32833956141643c7fa5bf4cf850bb2e3656593be3296af5b4d25ee647",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/red/armor.blp.zlib.001",
+          "bytes": 1987487,
+          "sha256": "79febfb61328e74e9a56595a7343497516bec747c3cbd217314c1227abb065c5"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/red/body.blp",
+      "bytes": 2797376,
+      "sha256": "ebe512d0777460b0239ec2e9ebf652ebfa56d632fadc2e256fb0d6ea1783f0cb",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/red/body.blp.zlib.001",
+          "bytes": 1644147,
+          "sha256": "14f24121fa822af36375187e7b0facbe8acc385609000ff251652161f545c817"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/red/female-wing.blp",
+      "bytes": 2797376,
+      "sha256": "8286a9bc74f0df52038fc732d22902bcf294f8436a214d71fa4e9e00fe1cafdd",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/red/female-wing.blp.zlib.001",
+          "bytes": 1161428,
+          "sha256": "08d5d1dd6de2d8fecbb6d35a13516dda03cfdb86877dc1801743e9508027176a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/red/hair-wing.blp",
+      "bytes": 2797376,
+      "sha256": "6ce8d3ac9230611473045ad6437b7df3d7569fd8d687dfebbfe1d5fc7cb35551",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/red/hair-wing.blp.zlib.001",
+          "bytes": 1162939,
+          "sha256": "19c8b40820c3aaaedf349b969c7d24beffd60d606b7f1e19402d5ad8065f8ce8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/silver/armor.blp",
+      "bytes": 2797376,
+      "sha256": "18bff4077f19feb5351c18208843ccae8bee9f30d0c1ff3c144522072aab412f",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/silver/armor.blp.zlib.001",
+          "bytes": 2009123,
+          "sha256": "02cf958aab4254e312b5115233245899d53e2325f62b71fa9c940808d1a0f0ab"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/silver/body.blp",
+      "bytes": 2797376,
+      "sha256": "f5d0c6871c93e813156b276d141f36795cd9317c9f3aa574da1feb2d9d595d0e",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/silver/body.blp.zlib.001",
+          "bytes": 1433297,
+          "sha256": "1092cf78093680def50b1b147f35e6cc0dfc0f6b4d91643a767b6a92cb2242c2"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/silver/female-wing.blp",
+      "bytes": 2797376,
+      "sha256": "ce9d5baad1130ca8eab5e96d228e2e5f18fc802e9b398f856c7fe7e8b3707ac1",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/silver/female-wing.blp.zlib.001",
+          "bytes": 1096544,
+          "sha256": "6eb1a7a3059dbb6700e4b22796aef6d344258720124295aec16c1dca11851db2"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/colors/silver/hair-wing.blp",
+      "bytes": 2797376,
+      "sha256": "7767224d81ec4a71ff36ad10c6ccb2702cceddc9ee5a6c02d5ea7700f036c80d",
+      "providerArchive": "Patch-ZP.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/colors/silver/hair-wing.blp.zlib.001",
+          "bytes": 1098050,
+          "sha256": "347db31b4167dc22aba2b554b094c7b520bcb12dc9f13e3bcb21b029914ff6b7"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/female/body-female-body-blue-underwear-test.blp",
+      "bytes": 2797376,
+      "sha256": "4c2f59e6b506fea9a98d715580503cedf81fbcbf6c723fa789921c1aee03c4c1",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/female/body-female-body-blue-underwear-test.blp.zlib.001",
+          "bytes": 1708831,
+          "sha256": "d46dd539ebb4b77b13eaf724d53b106d9f168617594f9202e0079416640e8599"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/body-male-body-charcoal-flame.blp",
+      "bytes": 2797376,
+      "sha256": "357191a56eb99faf78f39e943804b33e9531391909d217f20adc7cf5623f5e23",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/body-male-body-charcoal-flame.blp.zlib.001",
+          "bytes": 1572461,
+          "sha256": "bbd10ef2840c41ab847b6a5b64fe77a5a2859162742ba834a8fdcf333dc04ef3"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/body-male-body-gold-green.blp",
+      "bytes": 2797376,
+      "sha256": "017fa91e99c4c163589492e00f99919c4f526bd06aac3c14680a1c757ba5bd2e",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/body-male-body-gold-green.blp.zlib.001",
+          "bytes": 1724693,
+          "sha256": "4f6e156ccfd25d57196efb78ed219089ab61cba5313999c3fba0cf72299fcbce"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/body-male-body-purple-glow.blp",
+      "bytes": 2797376,
+      "sha256": "a9cfdf0ead2b121c95c695f04c120df9d1f5df004fa20c04510d0d9c0a71b40e",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/body-male-body-purple-glow.blp.zlib.001",
+          "bytes": 1672396,
+          "sha256": "ae4ad526733a6331f6ce8f43142a03b536842893da0860635e3eb8e7013812f9"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/body-male-body-silver-amber.blp",
+      "bytes": 2797376,
+      "sha256": "491d3c306f663a205ac9980853e4b7d6601ac44d9ccb21d77381600f0eb4ce20",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/body-male-body-silver-amber.blp.zlib.001",
+          "bytes": 1845655,
+          "sha256": "0cb0afaba1793e31eaa99b8ef716f7aed6284ea8328c9b3809b5a045cd7444b9"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/body-male-body-silver-teal.blp",
+      "bytes": 2797376,
+      "sha256": "4538cdd36b7b768b5cc6abfc66071960c4d9529bf25bab92e8407efdf9c42d73",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/body-male-body-silver-teal.blp.zlib.001",
+          "bytes": 1838307,
+          "sha256": "4e777779e615ea65a2538fc38a73f81e140b74cd78779324c6e39a56c74c9397"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-flame.blp",
+      "bytes": 2797376,
+      "sha256": "9dabf8b6353db85b903c05d4c24eb597e2170d361dc27dd798fd851d09b18b02",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-flame.blp.zlib.001",
+          "bytes": 1279643,
+          "sha256": "7fd5ab70664f8c4f4d9c26cade665c6edc77ac327436019ac87a91c81d490228"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-green.blp",
+      "bytes": 2797376,
+      "sha256": "76c0baf9f445a58247025045ccdb4dd1f09ec13d79e1244cd63ae704606faea3",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-green.blp.zlib.001",
+          "bytes": 1367627,
+          "sha256": "2fc2830d2c0fc3b3a2ee4c0ef8fae019dd860eb779e0b861ad1b86cda4898722"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-ice-blue.blp",
+      "bytes": 2797376,
+      "sha256": "db7f02b90fe8cf14fe4ab863bffd7e17fd519bba92249efa3c70e52fb2f52d7a",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-ice-blue.blp.zlib.001",
+          "bytes": 1220910,
+          "sha256": "f5999a4bd81589cd314d150e285e1a8aabff53a9ce0dcf080f8b44045d4d0fac"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-purple.blp",
+      "bytes": 2797376,
+      "sha256": "1e32bc3757b34051b285367d7bc92d53946ae302c66ba6bff9472e2878400ccc",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-purple.blp.zlib.001",
+          "bytes": 1303715,
+          "sha256": "ce892c654ecfd67835e1fd01d992f1d9f7be0bcb9bf58826cf3254a56807c07d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-red.blp",
+      "bytes": 2797376,
+      "sha256": "98d6fed46e2ccead17ac4d4ccee0d19e09675fd6158ec4a75a6d61fe2f999922",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-red.blp.zlib.001",
+          "bytes": 1127282,
+          "sha256": "f9dc272b476bb91fadf04282f77c833b0cd09b7cce84e72ae2a01e739810e983"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/hair-male-hair-wing-teal.blp",
+      "bytes": 2797376,
+      "sha256": "74dce205c8ff337f467664a107495c696d1fbe8874c2558d06a8a70dea574246",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/hair-male-hair-wing-teal.blp.zlib.001",
+          "bytes": 1231111,
+          "sha256": "266a53b604bbf9f3222bc7cbac02877bf8f2ba2b137aa11d916a834a9c919e08"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-flame.blp",
+      "bytes": 2797376,
+      "sha256": "9dabf8b6353db85b903c05d4c24eb597e2170d361dc27dd798fd851d09b18b02",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-flame.blp.zlib.001",
+          "bytes": 1279643,
+          "sha256": "7fd5ab70664f8c4f4d9c26cade665c6edc77ac327436019ac87a91c81d490228"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-green.blp",
+      "bytes": 2797376,
+      "sha256": "76c0baf9f445a58247025045ccdb4dd1f09ec13d79e1244cd63ae704606faea3",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-green.blp.zlib.001",
+          "bytes": 1367627,
+          "sha256": "2fc2830d2c0fc3b3a2ee4c0ef8fae019dd860eb779e0b861ad1b86cda4898722"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-ice-blue.blp",
+      "bytes": 2797376,
+      "sha256": "db7f02b90fe8cf14fe4ab863bffd7e17fd519bba92249efa3c70e52fb2f52d7a",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-ice-blue.blp.zlib.001",
+          "bytes": 1220910,
+          "sha256": "f5999a4bd81589cd314d150e285e1a8aabff53a9ce0dcf080f8b44045d4d0fac"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-purple.blp",
+      "bytes": 2797376,
+      "sha256": "1e32bc3757b34051b285367d7bc92d53946ae302c66ba6bff9472e2878400ccc",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-purple.blp.zlib.001",
+          "bytes": 1303715,
+          "sha256": "ce892c654ecfd67835e1fd01d992f1d9f7be0bcb9bf58826cf3254a56807c07d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-red.blp",
+      "bytes": 2797376,
+      "sha256": "98d6fed46e2ccead17ac4d4ccee0d19e09675fd6158ec4a75a6d61fe2f999922",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-red.blp.zlib.001",
+          "bytes": 1127282,
+          "sha256": "f9dc272b476bb91fadf04282f77c833b0cd09b7cce84e72ae2a01e739810e983"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/dive-update/male/wing-male-hair-wing-teal.blp",
+      "bytes": 2797376,
+      "sha256": "74dce205c8ff337f467664a107495c696d1fbe8874c2558d06a8a70dea574246",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/dive-update/male/wing-male-hair-wing-teal.blp.zlib.001",
+          "bytes": 1231111,
+          "sha256": "266a53b604bbf9f3222bc7cbac02877bf8f2ba2b137aa11d916a834a9c919e08"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-09-teal-silver.blp",
+      "bytes": 2797376,
+      "sha256": "40216bf03cc5f4005d4d95629b6e60723fdce3e7969a14ac6b8cfc85a021bb71",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-09-teal-silver.blp.zlib.001",
+          "bytes": 1827003,
+          "sha256": "e17089a82e0d98be9404bafb9884820b8f24d1fc498cfb2298b11cade5352097"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-10-fair-purple.blp",
+      "bytes": 2797376,
+      "sha256": "86ba1035654088fd54467fba734d7bb860c0e538510ae00dcc2b04d87900a15e",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-10-fair-purple.blp.zlib.001",
+          "bytes": 1801723,
+          "sha256": "06d362cbb0aa24291f18caa54fbfa64973708e25a66d3ab0bed5ee881bbf6bdb"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-11-lavender-rose.blp",
+      "bytes": 2797376,
+      "sha256": "de8db0e8e08b7c538c5abec7e55eb7f85e1ab4f4072374422dd85b0cb2eb642c",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-11-lavender-rose.blp.zlib.001",
+          "bytes": 1916040,
+          "sha256": "fd18eb53257d34ebecac84616836bda7f0623c6793a5366c3892885ca04558dc"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-12-fair-gold-purple.blp",
+      "bytes": 2797376,
+      "sha256": "be782fbe4ef39a363b76c711bca6d7bc8af7e89343214294739d167bf0583bcf",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-12-fair-gold-purple.blp.zlib.001",
+          "bytes": 1758709,
+          "sha256": "b7101375222eb71487a4a09fb60017a78a90e8d93851416cb59d3fdac21eaf6d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-13-golden-cracks-dark.blp",
+      "bytes": 2797376,
+      "sha256": "0af7c136db7c833056ccfc63d61c3405ca2f8d57dfc338ab331175bc52c302ec",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-13-golden-cracks-dark.blp.zlib.001",
+          "bytes": 2048058,
+          "sha256": "5288c8a3c3c328bc6c12bdfa206d98825e0201ee2cfbd0153f3582c1881977fb"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-14-golden-lines-ivory.blp",
+      "bytes": 2797376,
+      "sha256": "080cca06bfbf1ba72284c9365308bda7f8ef974ce502ab2f8701fed255f86eae",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-14-golden-lines-ivory.blp.zlib.001",
+          "bytes": 1964873,
+          "sha256": "f6eed03d82ac29831321fea5e8ffd34978027e8246a38082a976961a5c3e9298"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-15-golden-dark-armor.blp",
+      "bytes": 2797376,
+      "sha256": "36cbabf324df5dfd611ebbfaeaeadadb3693ff075ed876ae97add62d5e6fcbd2",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-15-golden-dark-armor.blp.zlib.001",
+          "bytes": 1919949,
+          "sha256": "ed5169edc1831332b00dc824bc0a94ff591a5b7c99d976cc182407d57abc50d5"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-16-ice-lightning.blp",
+      "bytes": 2797376,
+      "sha256": "5f08fe8d1931f7dc39645819d43f94a3f1c0f7ebfd8e9a6ec8cf28e3ed4acd2e",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-16-ice-lightning.blp.zlib.001",
+          "bytes": 1688870,
+          "sha256": "43ebde57334ad7d4851a0a0b94178ed1d4fabf630f53ad033d01ae6d6f821369"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-17-bronze-teal-lightning.blp",
+      "bytes": 2797376,
+      "sha256": "da2874d043548e70089b2354b5b9809fc5ef5f0d6179d3461d6a3effeed35069",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-17-bronze-teal-lightning.blp.zlib.001",
+          "bytes": 1657703,
+          "sha256": "44650591728f75aed92fd949023d732449590e0893cb0e83fa3044de45740a96"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-18-pale-purple-lightning.blp",
+      "bytes": 2797376,
+      "sha256": "307cf3dffd4a430c83e0510cf3b083d26bdbf6b47631b609343f7a2b6ca44ca7",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-18-pale-purple-lightning.blp.zlib.001",
+          "bytes": 1682756,
+          "sha256": "96667681068f390c9ae7e7e88d8aeb476329c7ca621f761b4f9f8f8d61492883"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-19-dark-cyan-lines.blp",
+      "bytes": 2797376,
+      "sha256": "ef8240face3165210af7149df0f87a4b38228d630f9e170e330646de5b0351bb",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-19-dark-cyan-lines.blp.zlib.001",
+          "bytes": 1607724,
+          "sha256": "fe52892a4e73969ae5a98671b62a40a95801ade760a2083450455a67277549e8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-20-mauve-purple-lines.blp",
+      "bytes": 2797376,
+      "sha256": "fdb11eb325d61c794cee3828af13e5cfe7eb140467653396779a959a6a9d8a47",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-20-mauve-purple-lines.blp.zlib.001",
+          "bytes": 1728863,
+          "sha256": "a0944cd3c5beecac25df66ee3d11f805beabe42052c968c724b39f8e7aa142bd"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-21-bronze-green-lines.blp",
+      "bytes": 2797376,
+      "sha256": "a683f9659f2cdd982fbc44da094c4f93ecf000d1bcfb41a704a5c5d73bc71f49",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-21-bronze-green-lines.blp.zlib.001",
+          "bytes": 1870121,
+          "sha256": "e7267061ac57374802bd261d1ea09c408834e944ae33129b5ec7a2654f205e0a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/body-22-ivory-red-gold-lines.blp",
+      "bytes": 2797376,
+      "sha256": "44831f2d0d4b188ec739c1f577bf8e505c98eea3da6c67180baf8da033baa264",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/body-22-ivory-red-gold-lines.blp.zlib.001",
+          "bytes": 1778021,
+          "sha256": "82073e53cb2fee107d9a152655f1ba0b0783e6ff510f0d72032ce4b2c51dc6b5"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-05-violet-glow.blp",
+      "bytes": 2797376,
+      "sha256": "da97dacc213f022f31418ec35fddf09a4ef6961161104486a26d74210b151230",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-05-violet-glow.blp.zlib.001",
+          "bytes": 1109424,
+          "sha256": "ffc7c1f7df5178dd4fc7a336698e812fce57c0659ac0e025fb5f8f94e398a7fd"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-06-red-glow.blp",
+      "bytes": 2797376,
+      "sha256": "025ac3ce130c354e89cce9045f7378fb0e5c39e910dc156d26e3315936dc5117",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-06-red-glow.blp.zlib.001",
+          "bytes": 1099709,
+          "sha256": "314adf6af17f69a79526137148ce4ee968979e94dcaabf08a98daf1da9bf1c47"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-07-green-glow.blp",
+      "bytes": 2797376,
+      "sha256": "41e7e5c2bb2bce30e152c60cb8aa5d9474897acccfcc7ec2ca27f5832bd4ad8d",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-07-green-glow.blp.zlib.001",
+          "bytes": 1077154,
+          "sha256": "40bf1c050f074aab639dfa70a5d63308814be76e7c748598742135381bdc52ed"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-08-orange-glow.blp",
+      "bytes": 2797376,
+      "sha256": "59c35c9a01dd6e79d395405eae53bed7d55f3765762dbedac39fb2a8093378b8",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-08-orange-glow.blp.zlib.001",
+          "bytes": 1110404,
+          "sha256": "89134b857c9ed7d66fc9ccc563566bd0a934e7d235ff6419789a92ac91d3ca9f"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-09-ivory-red.blp",
+      "bytes": 2797376,
+      "sha256": "34cdf89a5b31292bc71141d7dd018c719da5685e6ab51567ffffb337d423ac90",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-09-ivory-red.blp.zlib.001",
+          "bytes": 1218457,
+          "sha256": "991a7bc83035705656e68c52f307ff12639c33d77e95eb80d1a11af9a2caa412"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-10-ivory-purple.blp",
+      "bytes": 2797376,
+      "sha256": "8598264bf4456e39255c3fa2c9b4a1b9f677226132fbe96e910ccdf5153235dd",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-10-ivory-purple.blp.zlib.001",
+          "bytes": 1271207,
+          "sha256": "0e35c306534abcfb61abfc6e388b9928cd58edb26e15e33d5872f7a022a8d406"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-11-gold-green.blp",
+      "bytes": 2797376,
+      "sha256": "d1ecfa4e7cd742766dc8c7acb033387f089673e6c599b9be3d6a48b65ef0c2c7",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-11-gold-green.blp.zlib.001",
+          "bytes": 1257867,
+          "sha256": "7678e019e51d3913dcabd57d13ec4bf11878b9d003223a12dca47a520cf03ea3"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-12-dark-cyan.blp",
+      "bytes": 2797376,
+      "sha256": "a88f037609bcaf5733a3b72a768175660652a6f562e9bfb0af565edbe8941377",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-12-dark-cyan.blp.zlib.001",
+          "bytes": 1399302,
+          "sha256": "dbe15b5fbc7d9082d40dc2a16ffe73803ba4d6f7d6741da4c64d1cbf13eb3c97"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-13-lavender-pink.blp",
+      "bytes": 2797376,
+      "sha256": "07d735134f9b0f2e8c67125cf0f191fbcef960d22e95f5651e4cdca5e7f5b9b0",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-13-lavender-pink.blp.zlib.001",
+          "bytes": 1326329,
+          "sha256": "e96b50863db58e1b557b0094f7880bc9c2e1304df25717b60bceec22e8d5825f"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-14-gold-navy.blp",
+      "bytes": 2797376,
+      "sha256": "f42b99b7e6605ecaf3c22043657c2d9c360d66c729d56c5efcb597e4c2b1d4f9",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-14-gold-navy.blp.zlib.001",
+          "bytes": 1264211,
+          "sha256": "d46c87f2a22fe29381bcc3f00b19230b6899326f9042932344392ec6deda89c8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-15-emerald-gold.blp",
+      "bytes": 2797376,
+      "sha256": "9e265904223191660a517781a2997b634bd24985f4f1dbf325e0149a568bd15b",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-15-emerald-gold.blp.zlib.001",
+          "bytes": 1427977,
+          "sha256": "cf8a0598c4bd1a8c877d537d12997d795443a9657c6a4afb216e9aa298f7a4d5"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-16-violet-blue-gold.blp",
+      "bytes": 2797376,
+      "sha256": "f056d7313a90c5db724fbb8ca271183816a66dab01e0e48c97122c3fc3f8f7c2",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-16-violet-blue-gold.blp.zlib.001",
+          "bytes": 1556392,
+          "sha256": "a82228a4a9012994162a3663968453f9371f3e1231d993e57de3cdd6d8018dff"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-17-dark-red.blp",
+      "bytes": 2797376,
+      "sha256": "9a7aff5051394d3f1a87b41d3c3f2da73410b3582c472ec03bef1634ceb8ec35",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-17-dark-red.blp.zlib.001",
+          "bytes": 1050818,
+          "sha256": "c5192bc6a3b3050f9ae276abb7d6e6d47ce8355683c06c77a449b96610d7898b"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/hair-18-mint-green.blp",
+      "bytes": 2797376,
+      "sha256": "53cbf7a5760cc4a6852fcf064b11490bbd66cedca118f017f3903533b264ff82",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/hair-18-mint-green.blp.zlib.001",
+          "bytes": 1223482,
+          "sha256": "466fc0a12c80ecd07d21a0798e1109d0c2f47d187abc8fe83b6848b08257ff36"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-11-violet-glow.blp",
+      "bytes": 2797376,
+      "sha256": "da97dacc213f022f31418ec35fddf09a4ef6961161104486a26d74210b151230",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-11-violet-glow.blp.zlib.001",
+          "bytes": 1109424,
+          "sha256": "ffc7c1f7df5178dd4fc7a336698e812fce57c0659ac0e025fb5f8f94e398a7fd"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-12-red-glow.blp",
+      "bytes": 2797376,
+      "sha256": "025ac3ce130c354e89cce9045f7378fb0e5c39e910dc156d26e3315936dc5117",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-12-red-glow.blp.zlib.001",
+          "bytes": 1099709,
+          "sha256": "314adf6af17f69a79526137148ce4ee968979e94dcaabf08a98daf1da9bf1c47"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-13-green-glow.blp",
+      "bytes": 2797376,
+      "sha256": "41e7e5c2bb2bce30e152c60cb8aa5d9474897acccfcc7ec2ca27f5832bd4ad8d",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-13-green-glow.blp.zlib.001",
+          "bytes": 1077154,
+          "sha256": "40bf1c050f074aab639dfa70a5d63308814be76e7c748598742135381bdc52ed"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-14-orange-glow.blp",
+      "bytes": 2797376,
+      "sha256": "59c35c9a01dd6e79d395405eae53bed7d55f3765762dbedac39fb2a8093378b8",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-14-orange-glow.blp.zlib.001",
+          "bytes": 1110404,
+          "sha256": "89134b857c9ed7d66fc9ccc563566bd0a934e7d235ff6419789a92ac91d3ca9f"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-15-ivory-red.blp",
+      "bytes": 2797376,
+      "sha256": "34cdf89a5b31292bc71141d7dd018c719da5685e6ab51567ffffb337d423ac90",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-15-ivory-red.blp.zlib.001",
+          "bytes": 1218457,
+          "sha256": "991a7bc83035705656e68c52f307ff12639c33d77e95eb80d1a11af9a2caa412"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-16-ivory-purple.blp",
+      "bytes": 2797376,
+      "sha256": "8598264bf4456e39255c3fa2c9b4a1b9f677226132fbe96e910ccdf5153235dd",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-16-ivory-purple.blp.zlib.001",
+          "bytes": 1271207,
+          "sha256": "0e35c306534abcfb61abfc6e388b9928cd58edb26e15e33d5872f7a022a8d406"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-17-gold-green.blp",
+      "bytes": 2797376,
+      "sha256": "d1ecfa4e7cd742766dc8c7acb033387f089673e6c599b9be3d6a48b65ef0c2c7",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-17-gold-green.blp.zlib.001",
+          "bytes": 1257867,
+          "sha256": "7678e019e51d3913dcabd57d13ec4bf11878b9d003223a12dca47a520cf03ea3"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-18-dark-cyan.blp",
+      "bytes": 2797376,
+      "sha256": "a88f037609bcaf5733a3b72a768175660652a6f562e9bfb0af565edbe8941377",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-18-dark-cyan.blp.zlib.001",
+          "bytes": 1399302,
+          "sha256": "dbe15b5fbc7d9082d40dc2a16ffe73803ba4d6f7d6741da4c64d1cbf13eb3c97"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-19-lavender-pink.blp",
+      "bytes": 2797376,
+      "sha256": "07d735134f9b0f2e8c67125cf0f191fbcef960d22e95f5651e4cdca5e7f5b9b0",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-19-lavender-pink.blp.zlib.001",
+          "bytes": 1326329,
+          "sha256": "e96b50863db58e1b557b0094f7880bc9c2e1304df25717b60bceec22e8d5825f"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-20-gold-navy.blp",
+      "bytes": 2797376,
+      "sha256": "f42b99b7e6605ecaf3c22043657c2d9c360d66c729d56c5efcb597e4c2b1d4f9",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-20-gold-navy.blp.zlib.001",
+          "bytes": 1264211,
+          "sha256": "d46c87f2a22fe29381bcc3f00b19230b6899326f9042932344392ec6deda89c8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-21-emerald-gold.blp",
+      "bytes": 2797376,
+      "sha256": "9e265904223191660a517781a2997b634bd24985f4f1dbf325e0149a568bd15b",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-21-emerald-gold.blp.zlib.001",
+          "bytes": 1427977,
+          "sha256": "cf8a0598c4bd1a8c877d537d12997d795443a9657c6a4afb216e9aa298f7a4d5"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-22-violet-blue-gold.blp",
+      "bytes": 2797376,
+      "sha256": "f056d7313a90c5db724fbb8ca271183816a66dab01e0e48c97122c3fc3f8f7c2",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-22-violet-blue-gold.blp.zlib.001",
+          "bytes": 1556392,
+          "sha256": "a82228a4a9012994162a3663968453f9371f3e1231d993e57de3cdd6d8018dff"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-23-dark-red.blp",
+      "bytes": 2797376,
+      "sha256": "9a7aff5051394d3f1a87b41d3c3f2da73410b3582c472ec03bef1634ceb8ec35",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-23-dark-red.blp.zlib.001",
+          "bytes": 1050818,
+          "sha256": "c5192bc6a3b3050f9ae276abb7d6e6d47ce8355683c06c77a449b96610d7898b"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/female-expansion/wing-24-mint-green.blp",
+      "bytes": 2797376,
+      "sha256": "53cbf7a5760cc4a6852fcf064b11490bbd66cedca118f017f3903533b264ff82",
+      "providerArchive": "Patch-ZT.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/female-expansion/wing-24-mint-green.blp.zlib.001",
+          "bytes": 1223482,
+          "sha256": "466fc0a12c80ecd07d21a0798e1109d0c2f47d187abc8fe83b6848b08257ff36"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/kyrianfemale.m2",
+      "bytes": 18373830,
+      "sha256": "cdc34df6e4b4678970a23ee0e09b275f228c7c63f1810171fca7e5514e37125d",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/kyrianfemale.m2.zlib.001",
+          "bytes": 6335715,
+          "sha256": "65901372137310a66ab49a99ba0780cfcdff245f951cb87980aeaf9e523a78af"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/kyrianfemale00.skin",
+      "bytes": 447676,
+      "sha256": "27ba20cabb3583a2e3a155e68b5a7346b8ebb10c7b4411c510f3701c2c4be3aa",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/kyrianfemale00.skin.zlib.001",
+          "bytes": 217863,
+          "sha256": "7e41744b6895228c01c1d7230ebb2bbbe2f38c8cc084745848058ad50fe36494"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/kyrianmale.m2",
+      "bytes": 17169876,
+      "sha256": "1ee5bcb1032ed1a1177e067b92541ecb2bb6875ed73a7eb1388044f87bf5618f",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/kyrianmale.m2.zlib.001",
+          "bytes": 6022011,
+          "sha256": "06e6ed902d9697c0176fef95b859d8d38a68aa8a63d84d408f7ba6267d0c4570"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/kyrianmale00.skin",
+      "bytes": 455264,
+      "sha256": "4d8f3a0d6ee7405d69e7b75b9582762c2160de0187a9122f84e859e03da9ce1c",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/kyrianmale00.skin.zlib.001",
+          "bytes": 221695,
+          "sha256": "a4a3b28b381f0a0ccef4ed5d4644a1a81fc0fc865fdebf380ecdd686b0c42a4b"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/armor-armor-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "04ff43dd1d95c77293219a53828f65c61ff4e70a134828089f57c10bd505d17a",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/armor-armor-dark-teal.blp.zlib.001",
+          "bytes": 1867471,
+          "sha256": "bbd9e2685da3c7261ef750e2d14d63542ff2db345efb8a3f140d86dcb30d4ab8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/armor-armor-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "cc3bb06cb33052be9da195a0bf0b75387447958e3d5cc21e17f2d6f278a4fc4f",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/armor-armor-lavender.blp.zlib.001",
+          "bytes": 2135921,
+          "sha256": "d1c43aeed54daaba5772ea6d837491e841b8968333c4fff875ae7c1fe0f1348d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/armor-armor-peach.blp",
+      "bytes": 2797376,
+      "sha256": "b088c901c0bb0f62119b4dc17411b3ffe27e1e3af33af704114df5773d7613e0",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/armor-armor-peach.blp.zlib.001",
+          "bytes": 2059974,
+          "sha256": "f323582a9d9910d32d6d82d6ad033d2c848c67bbda2757b723512eea0632aad1"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-dark-pink.blp",
+      "bytes": 2797376,
+      "sha256": "eb1130c7856b17e1d90f3f98b162cc5b7eca3310ab2f6203329ae32a6bed67dd",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-dark-pink.blp.zlib.001",
+          "bytes": 1455045,
+          "sha256": "cf317f0026cb85b060bcc8d432e3e5dca5f0039c829a77b403429a52ecbe8ed3"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-gold-purple.blp",
+      "bytes": 2797376,
+      "sha256": "8513af5abfde13a5aa7c6d26a9b2c60e37224b74e92177926cd66f73ea435c43",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-gold-purple.blp.zlib.001",
+          "bytes": 1542028,
+          "sha256": "53aa6efc35930157d99636980ee2e954a223252c979068334a8000749b3cf30a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "8e87cd115d1ff3d2a21878c6d070b248396d08867732547dfb6bbe2750c2e753",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-lavender.blp.zlib.001",
+          "bytes": 1739015,
+          "sha256": "7fc8ba5b75d4ded5e7ded09aef959d40afee725e408ecf0ff731a24277400ae0"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-pale-green.blp",
+      "bytes": 2797376,
+      "sha256": "a1387bf8f79596ee56460672f80083d85d1a66c6ec18bc56bf8d5bbcdc29d93d",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-pale-green.blp.zlib.001",
+          "bytes": 1573764,
+          "sha256": "3bbf4c678941cf6021566848f7b8d14dc44a60ae2d5c085069e9a1a402c6b6cd"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-peach-red.blp",
+      "bytes": 2797376,
+      "sha256": "2a60569c521501d5f4deef207ca51a17947e915906753a08ffa56eca67ba0aba",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-peach-red.blp.zlib.001",
+          "bytes": 1778823,
+          "sha256": "cc7400173f1ad2d75aba0b7c9b4336fb69feeb190cb3fc5aac1fb576b726c601"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/body-female-body-tan-teal.blp",
+      "bytes": 2797376,
+      "sha256": "8c3be767565809db8966554541c8dd9a55b85fb9c2801b7d4ddd4231a0f8b75a",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/body-female-body-tan-teal.blp.zlib.001",
+          "bytes": 1662998,
+          "sha256": "ed475f0e46a0106286667c2e354487b9e48c13da52212596b16340e72e6cc66a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/hair-hair-wing-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "c5611f70225ce4976f08d8316f095bd9778a1dd956fa371772950482ac0401d1",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/hair-hair-wing-dark-teal.blp.zlib.001",
+          "bytes": 1092121,
+          "sha256": "a84dca9c7491adbeb9a9171576d29988058519e798924aef739ad6d41826abb6"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/hair-hair-wing-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "c0fb056d1732ee8f123e188c81c2e1d1760d4b4a4257e9ba3d94d08ad71f5272",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/hair-hair-wing-lavender.blp.zlib.001",
+          "bytes": 1113450,
+          "sha256": "0236b89c6c0270a6f3db54ac731c0d9b9e6efade9a4fa9f9cad0658b92e6dd35"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/hair-hair-wing-pink.blp",
+      "bytes": 2797376,
+      "sha256": "f9960ef246da28f5518e16540dd9f26c93653bd43833a85b5a956766437234bd",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/hair-hair-wing-pink.blp.zlib.001",
+          "bytes": 1044602,
+          "sha256": "c487921b2f06890218099ff7bd680bf1f5621f10ff995be4501583b461ff5999"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/wing-hair-wing-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "c5611f70225ce4976f08d8316f095bd9778a1dd956fa371772950482ac0401d1",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/wing-hair-wing-dark-teal.blp.zlib.001",
+          "bytes": 1092121,
+          "sha256": "a84dca9c7491adbeb9a9171576d29988058519e798924aef739ad6d41826abb6"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/wing-hair-wing-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "c0fb056d1732ee8f123e188c81c2e1d1760d4b4a4257e9ba3d94d08ad71f5272",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/wing-hair-wing-lavender.blp.zlib.001",
+          "bytes": 1113450,
+          "sha256": "0236b89c6c0270a6f3db54ac731c0d9b9e6efade9a4fa9f9cad0658b92e6dd35"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/female/wing-hair-wing-pink.blp",
+      "bytes": 2797376,
+      "sha256": "f9960ef246da28f5518e16540dd9f26c93653bd43833a85b5a956766437234bd",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/female/wing-hair-wing-pink.blp.zlib.001",
+          "bytes": 1044602,
+          "sha256": "c487921b2f06890218099ff7bd680bf1f5621f10ff995be4501583b461ff5999"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/armor-armor-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "790d9a5225efbf1efa66398ec8bd81c7b847239c560d0afdf57f5930c02c76d9",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/armor-armor-dark-teal.blp.zlib.001",
+          "bytes": 1864171,
+          "sha256": "bbf979d1336f93d76195972f7201791fe650f257127be21396fbb47cba677a6c"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/armor-armor-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "859850dc7ea6b9632534f981dd7cd1ea2d74f7c21d90ee1beaa2e5019a62c3c4",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/armor-armor-lavender.blp.zlib.001",
+          "bytes": 2136446,
+          "sha256": "b32dec2a04627fb25bff2568b12cb253b7653786b4d7c0fb95c4b58eff5f3c7a"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/armor-armor-peach.blp",
+      "bytes": 2797376,
+      "sha256": "12a29b86d9a27581bb2ac48ac6cefbdd7eefc23f0f32307d8d0064fb8d12d6fa",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/armor-armor-peach.blp.zlib.001",
+          "bytes": 2060651,
+          "sha256": "ed3b013410ee77b7283b3833f900e731f06fa5b3b0789fbf2504b99a1620a880"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-dark-pink.blp",
+      "bytes": 2797376,
+      "sha256": "8ff4bb91741ecd1ae912cf6d7df91cd33242effb13ef425f5a572198bf074b30",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-dark-pink.blp.zlib.001",
+          "bytes": 1674643,
+          "sha256": "55198a2ae3a0b1a7c404749a98ab87a9717639dbb315a2554563af2935721fe0"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "c4b8884021360f0fa127b604f3723064367d172fdcf921a044a33cbf265fcbb9",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-dark-teal.blp.zlib.001",
+          "bytes": 1511482,
+          "sha256": "50c3ef37bccbdb40a5abf149f7f8c85635c9110742766bb31cec5c9be0266d69"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-gold-purple.blp",
+      "bytes": 2797376,
+      "sha256": "e16236bfebdc1e1efc75832f0dbca05694270e3a687191c4b2719be184d0b71d",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-gold-purple.blp.zlib.001",
+          "bytes": 1655724,
+          "sha256": "8cac5fef772e6b0cd2ec68952f7de541eab1011513632548961f09b2e824e017"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-pale-regal.blp",
+      "bytes": 2797376,
+      "sha256": "648c2af6cf50c97ea71ac39e3104af99b9a25715f7e2482af2bf632398ea4ace",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-pale-regal.blp.zlib.001",
+          "bytes": 1744076,
+          "sha256": "ec15d75dc3744bfc621974546f4be696e6d1264c07a0a0f9182b890242e4579d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-silver-red.blp",
+      "bytes": 2797376,
+      "sha256": "fd0771a6e1abcbcb3c456bf893a769de85f3a6f072122e4b97377b88c25217ec",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-silver-red.blp.zlib.001",
+          "bytes": 1529518,
+          "sha256": "9817713e85736ab7b9d01311ebd9e597100efe43de79e24b8fa63ce652b4e30d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-tan-blue.blp",
+      "bytes": 2797376,
+      "sha256": "050c1909fb9658322f0cc3c96bc34abf864c8e8efb80e52e195107292b658c8b",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-tan-blue.blp.zlib.001",
+          "bytes": 1697211,
+          "sha256": "15321919c8bfcfe9c2b9f8286729148395c0a4e8097998ed3b57f9206a9aeed9"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/body-male-body-tan-regal.blp",
+      "bytes": 2797376,
+      "sha256": "e2d2061fdfa89f43e62823ea6d8208844387f8e5ed881adb2ce7d04e3ebd377f",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/body-male-body-tan-regal.blp.zlib.001",
+          "bytes": 1880358,
+          "sha256": "a850c6aed37bfeeda44f648d7d95b3f4064753eca052ac423ff9035c4fbbbce1"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/hair-hair-wing-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "c711c858f37314e5bf7d3a82d5f8e1f2339ea99bdce6a755d645be446c671d1f",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/hair-hair-wing-dark-teal.blp.zlib.001",
+          "bytes": 1093739,
+          "sha256": "deef6dce16015a8b11a7ead86480a00f0c1416ee0c8e86debf28a5eb99c16ce0"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/hair-hair-wing-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "c8c1e0ad495feceb2447b05128582108f66c05fe5f151134f9321731e3e2cca6",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/hair-hair-wing-lavender.blp.zlib.001",
+          "bytes": 1114600,
+          "sha256": "efa7a53cdba0a7701ce08a8cafba5f0c896e456abb2233b05834c3c54a1c70e9"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/hair-hair-wing-pink.blp",
+      "bytes": 2797376,
+      "sha256": "a4b170d4690ed520967ca1b49eb465b6809dc55cad6c8047828096cb1171a1b6",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/hair-hair-wing-pink.blp.zlib.001",
+          "bytes": 1046168,
+          "sha256": "9cc1a5097ee19f96b4fbc6af6da49d0eeb4b66e4df98852726523cce2ef82629"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/wing-hair-wing-dark-teal.blp",
+      "bytes": 2797376,
+      "sha256": "c711c858f37314e5bf7d3a82d5f8e1f2339ea99bdce6a755d645be446c671d1f",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/wing-hair-wing-dark-teal.blp.zlib.001",
+          "bytes": 1093739,
+          "sha256": "deef6dce16015a8b11a7ead86480a00f0c1416ee0c8e86debf28a5eb99c16ce0"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/wing-hair-wing-lavender.blp",
+      "bytes": 2797376,
+      "sha256": "c8c1e0ad495feceb2447b05128582108f66c05fe5f151134f9321731e3e2cca6",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/wing-hair-wing-lavender.blp.zlib.001",
+          "bytes": 1114600,
+          "sha256": "efa7a53cdba0a7701ce08a8cafba5f0c896e456abb2233b05834c3c54a1c70e9"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/new-palettes/male/wing-hair-wing-pink.blp",
+      "bytes": 2797376,
+      "sha256": "a4b170d4690ed520967ca1b49eb465b6809dc55cad6c8047828096cb1171a1b6",
+      "providerArchive": "Patch-ZS.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/new-palettes/male/wing-hair-wing-pink.blp.zlib.001",
+          "bytes": 1046168,
+          "sha256": "9cc1a5097ee19f96b4fbc6af6da49d0eeb4b66e4df98852726523cce2ef82629"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/female-blue-wing.blp",
+      "bytes": 2797376,
+      "sha256": "b62700a205c5a3ce94f1042350827837f4b7078085ff4eae289b21bf1901109c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/female-blue-wing.blp.zlib.001",
+          "bytes": 362574,
+          "sha256": "371ac146adcacb82d316c6b692b63c49f82d57b8758de95417967944619c8a09"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/female-dark-wing.blp",
+      "bytes": 2797376,
+      "sha256": "823470c986273b4770d5732b2445bdd46d97acf7281e4876e61e4adb48ee5475",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/female-dark-wing.blp.zlib.001",
+          "bytes": 293865,
+          "sha256": "e2eca579bf8f49948245fb91faeb8c9e1096749f179a6e4d996fb56bbc44a099"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/female-gold-wing.blp",
+      "bytes": 2797376,
+      "sha256": "7f8b480a02b0aa1982f711a6862ea01220c8ecbd8b473e0d1cb0d9699b281240",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/female-gold-wing.blp.zlib.001",
+          "bytes": 370891,
+          "sha256": "5976f3c66a9954dd5629ba9e2252bb2ed8423ff0f80f77da78cd8017b68df25d"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/female-white-wing.blp",
+      "bytes": 2797376,
+      "sha256": "722bacdb7933b595676984a85b3f057d40ebacb38bddd42b6d2ec7ada1715bc1",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/female-white-wing.blp.zlib.001",
+          "bytes": 389434,
+          "sha256": "7870e1d88af988f9bb9f6430d486b349dd07ee4e7e206a9d7b31b42b639671f2"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-blue-wing.blp",
+      "bytes": 2797376,
+      "sha256": "dfdc6cb28a0eedcd6c1475db5ff79fcf88549d21af0bbee0e8b64bd7027ee722",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-blue-wing.blp.zlib.001",
+          "bytes": 412158,
+          "sha256": "c12f28120be6a3204b9c8fc6580f956a87f475f9f867540729728c04b0d21b87"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-dark-wing.blp",
+      "bytes": 2797376,
+      "sha256": "47daf1dba8dbf6689e64c6ec2e4b5283b6fe157a6757fd72c0a1dc90e459335d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-dark-wing.blp.zlib.001",
+          "bytes": 331487,
+          "sha256": "80756880318aab9a09f35e81403c394d23e42a1598b72921c12082bc3c4e9b75"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-gold-armor.blp",
+      "bytes": 2797376,
+      "sha256": "171470a3182ac1dd1b2b8fbfcee364c2c21d7329e8b9350cf25eff89f7a4cf83",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-gold-armor.blp.zlib.001",
+          "bytes": 1049541,
+          "sha256": "4f2e1388f9a043715bf9eb478cfef7fdca641b4d942df2e4a22a87a9eaa9fa01"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-gold-body.blp",
+      "bytes": 2797376,
+      "sha256": "7bf38c8812d8f4aeec54c929edce71c108592bb3705581830d17f6896553389d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-gold-body.blp.zlib.001",
+          "bytes": 623979,
+          "sha256": "7c6529564fbac727eb648d0b3c6f01ce4130fed67ecdaf99266b77c4bc788ebc"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-gold-wing.blp",
+      "bytes": 2797376,
+      "sha256": "62e9bfa9fbb12e355ab02e934a86329178d590d2840a01c52f8ec24e0b56a767",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-gold-wing.blp.zlib.001",
+          "bytes": 378017,
+          "sha256": "669d96115d4b1117759137c9cf9d6344c0936c5476d4303a48b8ba7b8bd0c70b"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/palettes/male-white-wing.blp",
+      "bytes": 2797376,
+      "sha256": "a0e808e3abe775d5eccc7e1e48ec646b725a9218846aa0f883dc78160a8b7552",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/palettes/male-white-wing.blp.zlib.001",
+          "bytes": 440142,
+          "sha256": "d7332e7be0be1b536a5826a8dbee0f914f883fc30449a77ef47fb9eaad1f2034"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976403.blp",
+      "bytes": 700260,
+      "sha256": "4cde2facf2d92280bf8ecebd0b9f1e4b99562b0843138f6dc0fe601485c023b9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976403.blp.zlib.001",
+          "bytes": 469107,
+          "sha256": "8b1dcfc0c2d50c47d0261216af4e39fb540b2ab40712196a126c14cd03180523"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976404.blp",
+      "bytes": 700260,
+      "sha256": "1c970af9c99ddf8208a48b19553c19466d0ccf1886cb5b32bbec5126280074d8",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976404.blp.zlib.001",
+          "bytes": 473843,
+          "sha256": "eb756489664c13e65060b2bf8a79e9ebaa15ea3892f2b533f1b5305add5fa9e8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976405.blp",
+      "bytes": 700260,
+      "sha256": "cf02ec10560b5d5ea0ee4d8bed67588ba5cf5658398b11f1319815b886c9bd3c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976405.blp.zlib.001",
+          "bytes": 353220,
+          "sha256": "1a8792846bfe6fa7f0e008351ddf6f0cb08b2887b1e33993c43ac124827d6683"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976406.blp",
+      "bytes": 700260,
+      "sha256": "adae067561a0d169f527a475f72ee9ab8676b2d53c8affa7bfa237f6c0ec7cf4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976406.blp.zlib.001",
+          "bytes": 356947,
+          "sha256": "c69b60c787654407cf4f63833733db5878d275c4d75e86e9c4f17e09070b5a94"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976407.blp",
+      "bytes": 700260,
+      "sha256": "419aa1af66acbed85132a7dbdaefbcc9d413c51df62f98c4df94c21f05f32690",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976407.blp.zlib.001",
+          "bytes": 168413,
+          "sha256": "26db62aa86fff47b3a28b596936c6710ef2c163d5b847822d378458956bac17e"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/2976408.blp",
+      "bytes": 700260,
+      "sha256": "64b812882156eae44e004dea46586cb51979a650c3eae67e901b8ac31e8d3937",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/2976408.blp.zlib.001",
+          "bytes": 168948,
+          "sha256": "005f270ecaebd1eed4b98ad5bdbf51e8f2817e910c34f0bf8f0ab5c0c041b40f"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034029.blp",
+      "bytes": 700260,
+      "sha256": "938842d8534aae882f323fc3d9ac4737d8a1321895873b540a021ae59410944d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034029.blp.zlib.001",
+          "bytes": 463388,
+          "sha256": "e31b2c35927ff87542d412d7391731b76d20031863c7d0ff57f9c4519d0291a8"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034030.blp",
+      "bytes": 700260,
+      "sha256": "ccae845c6c0ac3d845161733cc7e89b324196ea8ffdea8ff20f8093d19c8f1f4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034030.blp.zlib.001",
+          "bytes": 468938,
+          "sha256": "5be79caeeb9057075ab9f8a401fcb99983b54a9f8e1f8ce906a2cb8759cd521b"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034031.blp",
+      "bytes": 700260,
+      "sha256": "6d1892bc7388e87c62ef73ec7e468aa13bba5cf45fc2ba69077527cb2d8438d4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034031.blp.zlib.001",
+          "bytes": 300944,
+          "sha256": "c0b4e17807e15b01f584e276b78219bf11581344c5fcfa8ffc23f8f1a911eb3c"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034032.blp",
+      "bytes": 700260,
+      "sha256": "ce95a021b452d440e84d394493fefb1886c001888688b8e55226aec2f2d0c5dd",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034032.blp.zlib.001",
+          "bytes": 303790,
+          "sha256": "eeb6e1cea6b800786a3cc3eac1d3980110174f5da7d89f24601f538109c89c95"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034033.blp",
+      "bytes": 700260,
+      "sha256": "dc175a12a5ef692735857f3346fb82302d87826ce075d1f214a41a558ba4ae61",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034033.blp.zlib.001",
+          "bytes": 186959,
+          "sha256": "10b00b52f97e2f874db3304fecfa7b2202261baed7c24b5205d6cd47fc0c0d79"
+        }
+      ]
+    },
+    {
+      "path": "custom/kyrian/native/textures/3034034.blp",
+      "bytes": 700260,
+      "sha256": "0a0b8187c77e6b9aae8c592a47cc4b34289d273fba083b93769668c8a92e9346",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/kyrian/native/textures/3034034.blp.zlib.001",
+          "bytes": 187379,
+          "sha256": "68bf254ddedb556878c639a737823d0028a32a4075d4502579adb15ecd9bc5e4"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/7fx_alphamask_shockwavesoft_256.blp",
+      "bytes": 88580,
+      "sha256": "b7390ffd7ffceabd6cd8cd43577b825e78eedbc03cd67e129df80ceccca99111",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/7fx_alphamask_shockwavesoft_256.blp.zlib.001",
+          "bytes": 58864,
+          "sha256": "974bfd4c551b7ee4652b4b5090df592d285cb0cb87169889f3b69c4946544fbe"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/armorreflect_rainbow.blp",
+      "bytes": 3916,
+      "sha256": "9f8b36fc892ecf257c021f7f25b8d9a2093a8c9d19847d1a19e006fd012facf3",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/armorreflect_rainbow.blp.zlib.001",
+          "bytes": 1946,
+          "sha256": "c41ca204b7a18fe1620d0ea7378cef8e728078f258757cadd8bc9df6cf8136dd"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/grey50percentsquare16x16_a.blp",
+      "bytes": 1540,
+      "sha256": "b788d710dc88baf4fa99b585ba86e89d623ee3000ab4b3653660d3daea96e66f",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/grey50percentsquare16x16_a.blp.zlib.001",
+          "bytes": 181,
+          "sha256": "5f76cf026ac743cd4cbe6b3d59b218d80826b46998e288366c45b451e5cecdc4"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/ring_distortion.blp",
+      "bytes": 88580,
+      "sha256": "9a2242622d1ef8d77c6ce6561d515ec8470ef2f8828b889a55d898fd31d833eb",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/ring_distortion.blp.zlib.001",
+          "bytes": 53798,
+          "sha256": "fc69d7e8f67159ba33351154f024cb2217bfe62ab14a40c6f9f05febca807829"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/smoke_soft_01.blp",
+      "bytes": 350724,
+      "sha256": "e007ed4f6e6c567816e27b78594df61b84180ce1b18716db718a96c9914dc805",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/smoke_soft_01.blp.zlib.001",
+          "bytes": 201474,
+          "sha256": "b67c559c5e92df7b385bee456ab9d66b5b47ebd2007b96c35692fdbde7ceea75"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308185.blp",
+      "bytes": 88580,
+      "sha256": "e58e75edf99089ac662822e5c3f14cc7eb89e52d18e0570311c8da2af049e181",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308185.blp.zlib.001",
+          "bytes": 65282,
+          "sha256": "004aa4b6545f29bd61db14c78ee0b22ccdcf4c2bcf5ac30065a9b16ba91dabdd"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308186.blp",
+      "bytes": 23044,
+      "sha256": "5714ff5248e4a97e300018835edb95df69a5f4de70d8ab737334374257490cde",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308186.blp.zlib.001",
+          "bytes": 13009,
+          "sha256": "f68d3c615328d14d98b1aaa98e03d6c727b1c88bcb4b13f9257955be8fa4ce8b"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308189.blp",
+      "bytes": 88580,
+      "sha256": "284d669a51ebfc2de9ceda46c4e6bf24fd3be52664c49865f4e53e18a66a3e6a",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308189.blp.zlib.001",
+          "bytes": 14646,
+          "sha256": "9545e24ca995d9d553ea9ea3dc5c080499e795d9767ddc931853a44098621345"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308190.blp",
+      "bytes": 44900,
+      "sha256": "ec1229c3d37ab8e64cbc5be626a4f8920ab7de19cf3d78a2610d16a352cac1bc",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308190.blp.zlib.001",
+          "bytes": 31078,
+          "sha256": "e80217ca862cc428ad79635caa9f7dbbcb839b64292f51ee104ed1935c7acd43"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308191.blp",
+      "bytes": 350724,
+      "sha256": "1dcbfae35c7faf59ed71cf3a2d1e256383771d8d0a50016c9e78ca466aef276a",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308191.blp.zlib.001",
+          "bytes": 223419,
+          "sha256": "d7c9e13391d9332392cedd21afa50601a7f25208c4bc341e1cf8dee654fd0718"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308192.blp",
+      "bytes": 350724,
+      "sha256": "7c42ad5e4c35b1dbfb6a5ae5596ba8b6b5c59e5c41eba9d86d95bc306d15e0ef",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308192.blp.zlib.001",
+          "bytes": 65839,
+          "sha256": "c5e5f0f77c14fc1b1eedac886ebd23c9516324e79af110672e88255416896cb5"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308193.blp",
+      "bytes": 88580,
+      "sha256": "73377ca3bb9dae4410490a62e5ef7c5afff1fec253c85a702c067748a4857525",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308193.blp.zlib.001",
+          "bytes": 17546,
+          "sha256": "e9e40d3fe105242f8845aa2d97216bdc689619513dc36a70417be8110ae225bc"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_female/vampire_female_3308194.blp",
+      "bytes": 44900,
+      "sha256": "2fd2160385a3c042244a0959dbb1cddb608a0c38ce4b187dcf79953080338a82",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_female/vampire_female_3308194.blp.zlib.001",
+          "bytes": 7645,
+          "sha256": "dff0c95a71b71e9716e855995ed0a5bde331b46853089926e4192d40f49413c3"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/7fx_alphamask_shockwavesoft_256.blp",
+      "bytes": 88580,
+      "sha256": "b7390ffd7ffceabd6cd8cd43577b825e78eedbc03cd67e129df80ceccca99111",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/7fx_alphamask_shockwavesoft_256.blp.zlib.001",
+          "bytes": 58864,
+          "sha256": "974bfd4c551b7ee4652b4b5090df592d285cb0cb87169889f3b69c4946544fbe"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/armorreflect_rainbow.blp",
+      "bytes": 3916,
+      "sha256": "9f8b36fc892ecf257c021f7f25b8d9a2093a8c9d19847d1a19e006fd012facf3",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/armorreflect_rainbow.blp.zlib.001",
+          "bytes": 1946,
+          "sha256": "c41ca204b7a18fe1620d0ea7378cef8e728078f258757cadd8bc9df6cf8136dd"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/grey50percentsquare16x16_a.blp",
+      "bytes": 1540,
+      "sha256": "b788d710dc88baf4fa99b585ba86e89d623ee3000ab4b3653660d3daea96e66f",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/grey50percentsquare16x16_a.blp.zlib.001",
+          "bytes": 181,
+          "sha256": "5f76cf026ac743cd4cbe6b3d59b218d80826b46998e288366c45b451e5cecdc4"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/ring_distortion.blp",
+      "bytes": 88580,
+      "sha256": "9a2242622d1ef8d77c6ce6561d515ec8470ef2f8828b889a55d898fd31d833eb",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/ring_distortion.blp.zlib.001",
+          "bytes": 53798,
+          "sha256": "fc69d7e8f67159ba33351154f024cb2217bfe62ab14a40c6f9f05febca807829"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/smoke_soft_01.blp",
+      "bytes": 350724,
+      "sha256": "e007ed4f6e6c567816e27b78594df61b84180ce1b18716db718a96c9914dc805",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/smoke_soft_01.blp.zlib.001",
+          "bytes": 201474,
+          "sha256": "b67c559c5e92df7b385bee456ab9d66b5b47ebd2007b96c35692fdbde7ceea75"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259787.blp",
+      "bytes": 88580,
+      "sha256": "e58e75edf99089ac662822e5c3f14cc7eb89e52d18e0570311c8da2af049e181",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259787.blp.zlib.001",
+          "bytes": 65282,
+          "sha256": "004aa4b6545f29bd61db14c78ee0b22ccdcf4c2bcf5ac30065a9b16ba91dabdd"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259792.blp",
+      "bytes": 23044,
+      "sha256": "5714ff5248e4a97e300018835edb95df69a5f4de70d8ab737334374257490cde",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259792.blp.zlib.001",
+          "bytes": 13009,
+          "sha256": "f68d3c615328d14d98b1aaa98e03d6c727b1c88bcb4b13f9257955be8fa4ce8b"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259807.blp",
+      "bytes": 44900,
+      "sha256": "ec1229c3d37ab8e64cbc5be626a4f8920ab7de19cf3d78a2610d16a352cac1bc",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259807.blp.zlib.001",
+          "bytes": 31078,
+          "sha256": "e80217ca862cc428ad79635caa9f7dbbcb839b64292f51ee104ed1935c7acd43"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259812.blp",
+      "bytes": 350724,
+      "sha256": "1dcbfae35c7faf59ed71cf3a2d1e256383771d8d0a50016c9e78ca466aef276a",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259812.blp.zlib.001",
+          "bytes": 223419,
+          "sha256": "d7c9e13391d9332392cedd21afa50601a7f25208c4bc341e1cf8dee654fd0718"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259817.blp",
+      "bytes": 350724,
+      "sha256": "7c42ad5e4c35b1dbfb6a5ae5596ba8b6b5c59e5c41eba9d86d95bc306d15e0ef",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259817.blp.zlib.001",
+          "bytes": 65839,
+          "sha256": "c5e5f0f77c14fc1b1eedac886ebd23c9516324e79af110672e88255416896cb5"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259822.blp",
+      "bytes": 88580,
+      "sha256": "73377ca3bb9dae4410490a62e5ef7c5afff1fec253c85a702c067748a4857525",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259822.blp.zlib.001",
+          "bytes": 17546,
+          "sha256": "e9e40d3fe105242f8845aa2d97216bdc689619513dc36a70417be8110ae225bc"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3259827.blp",
+      "bytes": 44900,
+      "sha256": "2fd2160385a3c042244a0959dbb1cddb608a0c38ce4b187dcf79953080338a82",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3259827.blp.zlib.001",
+          "bytes": 7645,
+          "sha256": "dff0c95a71b71e9716e855995ed0a5bde331b46853089926e4192d40f49413c3"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/creature/vampire_male/vampire_male_3285332.blp",
+      "bytes": 88580,
+      "sha256": "284d669a51ebfc2de9ceda46c4e6bf24fd3be52664c49865f4e53e18a66a3e6a",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/creature/vampire_male/vampire_male_3285332.blp.zlib.001",
+          "bytes": 14646,
+          "sha256": "9545e24ca995d9d553ea9ea3dc5c080499e795d9767ddc931853a44098621345"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924969.blp",
+      "bytes": 700260,
+      "sha256": "dea30bded75fa05822fa1cce3976b4c365fce974f39d2b0737191193b546416f",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924969.blp.zlib.001",
+          "bytes": 585389,
+          "sha256": "7c89f91391c0269349561014fd938a46dafd859f2d40c558546c2f3088a77bce"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924970.blp",
+      "bytes": 700260,
+      "sha256": "8b86081b9413e343822368c9b3aa8d93a812496118f546662888dfaa8899eec4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924970.blp.zlib.001",
+          "bytes": 571133,
+          "sha256": "3892c16ac0ac33771ccca38fe25c845c9eadfa64b3b43539f87d101445293232"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924971.blp",
+      "bytes": 700260,
+      "sha256": "706481ae10655216307c6d4e768979b9233a74a49471235b3256cbf396b64268",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924971.blp.zlib.001",
+          "bytes": 573484,
+          "sha256": "205ce1f3321282cd771e2e53d2c1aca8e07112924f19ef2799c09b44fa92b518"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924973.blp",
+      "bytes": 700260,
+      "sha256": "ebb9a76c8a11a83d76a1152adfcf3c0095b254449aa6dab2a7fe9c8df9d6650c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924973.blp.zlib.001",
+          "bytes": 620854,
+          "sha256": "38a5aaa40167680d3b97d5cdbae0c57d38a8d08248ac5e357b2d6e861053c10a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924975.blp",
+      "bytes": 700260,
+      "sha256": "1fda146ab039367aca06020c5113910381765ed285fe6c799514513bf0623a4d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924975.blp.zlib.001",
+          "bytes": 611141,
+          "sha256": "5acead29b4b2ef4bf3dabe8f2e05752dc2eabc898091c418f71b429c1ac45f6a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/2924976.blp",
+      "bytes": 700260,
+      "sha256": "3b312301b063b9f4612d404b1da6d5934a12262f94ad1913ceab0b669e521abb",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/2924976.blp.zlib.001",
+          "bytes": 607612,
+          "sha256": "b59caa5ab787ceaf3b3110dbef64ad7a73d206ce6e9f52f9b8c62f6bc4b4dbae"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050751.blp",
+      "bytes": 700260,
+      "sha256": "042a45530b97d89daf6f83229b157d05ae5938d277addc953a31612303bed820",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050751.blp.zlib.001",
+          "bytes": 582833,
+          "sha256": "62543aaf9c2e8b5e31c267bd12b662c070f62845267eb2fcff0f2fe75326d5df"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050752.blp",
+      "bytes": 700260,
+      "sha256": "8a19c84755f7ebed47c5fe4f3abe529caf96dead6b4ad5b2ed6781c4e1a9ddaf",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050752.blp.zlib.001",
+          "bytes": 565036,
+          "sha256": "04013b41236faedb89baa5a8f4f7555c708e7075215ca354794494e94f0472cf"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050753.blp",
+      "bytes": 700260,
+      "sha256": "268394fb03322a048c8284a3f480db95e91ee268b16fae5f89dc3a907ca2dfc8",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050753.blp.zlib.001",
+          "bytes": 560499,
+          "sha256": "9874080ea1cf5dd2abdd99c5881dcd80a66adc4dc490c2fbf86a05eeafef861f"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050754.blp",
+      "bytes": 700260,
+      "sha256": "b74759c8b9c361e479bdcf713c608f7c7cfb54da4489bc3140ed57f879af105c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050754.blp.zlib.001",
+          "bytes": 608277,
+          "sha256": "da98a2370af9f9c956c7c5d8ba703fafd239f4d4edb89b8654869c581be210ff"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050755.blp",
+      "bytes": 700260,
+      "sha256": "f1ff2d0d56f7c8e5c447f0c9893bb7270695a7f7a3ef364120fd993485b76137",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050755.blp.zlib.001",
+          "bytes": 598581,
+          "sha256": "d6b68b607dc4a7004da9f2a5992aedc874c3a375d22431607f90cc0c97bac55e"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3050756.blp",
+      "bytes": 700260,
+      "sha256": "5eaa8212d1c55cfd1664b740ece9cd600a463c90c08b1eb33e12456ffc9648a9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3050756.blp.zlib.001",
+          "bytes": 593882,
+          "sha256": "2ff377f81207ef281bb5ba97378b5ecdf33cec5adb100a4a161c19ef5b6ac5db"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160218.blp",
+      "bytes": 88580,
+      "sha256": "5f18e8861ec80465847cc1e92af7bc1e7199484ee8a85223c756bc4858deb1f7",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160218.blp.zlib.001",
+          "bytes": 62938,
+          "sha256": "7766acef3c0d4663d4302fc791f40c4f95f72a2a61335674cdca767aefd9f01d"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160219.blp",
+      "bytes": 88580,
+      "sha256": "c20f332e10db9f974f444926dccc0d38f257b7d728b9c1dbbf99273cd5cb8c99",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160219.blp.zlib.001",
+          "bytes": 60043,
+          "sha256": "e17e79fe89785b788c777c847aad0f25ee8c0abd6728d59cac39061d51aa2be9"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160220.blp",
+      "bytes": 88580,
+      "sha256": "8a09a1d893ba3457af0f09e5068ec143433555a66a9e88db5119493b22e8d3c7",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160220.blp.zlib.001",
+          "bytes": 63800,
+          "sha256": "a9025f8ea22a902ce4e179d3034268d8098b439b9dff68a6af6c23ea14811bc6"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160221.blp",
+      "bytes": 88580,
+      "sha256": "6c361635c6d0fd2e84b87e8ecb00fd48b834320e1bb3090d9bbe04d3ddd43494",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160221.blp.zlib.001",
+          "bytes": 61708,
+          "sha256": "03179b24b8a36e8610db7544afb17ddea09b6bd05cd591403af7924458d109f0"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160222.blp",
+      "bytes": 88580,
+      "sha256": "74f0363765a74f8c70b7e31534463f0da5ab02d61987b42677d8c4004b72357d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160222.blp.zlib.001",
+          "bytes": 63871,
+          "sha256": "cf8629773634ea59b07fe1c51ab201c40ac10c6bbe89040d39688c0fb7ab4e1a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160223.blp",
+      "bytes": 88580,
+      "sha256": "02c7fb8da466faa28d9ec4591ac4d54b13df685c0811f058f30d30cab42094f9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160223.blp.zlib.001",
+          "bytes": 61393,
+          "sha256": "cf30c53e80052d39508cfc14c2575be7dcb853d7db41ca6d227b12231da30574"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160224.blp",
+      "bytes": 700260,
+      "sha256": "68f78ebb6a89e710023dec4511e1b3a029e414ec7f0a65badaa0bafb0714aa65",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160224.blp.zlib.001",
+          "bytes": 590116,
+          "sha256": "fa91bea6f962fd44e4953be72f716eaa22d9521061d90e4bf57b8bf9f1b3a0bc"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160225.blp",
+      "bytes": 700260,
+      "sha256": "81cecee0870c7af903bd0427b0259f6618d16525b660d658ed4c1dd926dbf225",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160225.blp.zlib.001",
+          "bytes": 585210,
+          "sha256": "bd7e870eaf2bad34c2324d08c25473479c86056fb9f8f163525375ea59ba8aff"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160226.blp",
+      "bytes": 700260,
+      "sha256": "93baaae177b9ae52a78674c966ee5f964115f7f574c3b15bb3702b37ab78baef",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160226.blp.zlib.001",
+          "bytes": 603419,
+          "sha256": "14d5aef505b964fb3aa437bed3b19ef24fec13d2e6466559066b83d02eb3775b"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160227.blp",
+      "bytes": 700260,
+      "sha256": "387420d7f791881ef880f036f8245f185ef80ea44cdf2435a5a299f5060fa3cf",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160227.blp.zlib.001",
+          "bytes": 623703,
+          "sha256": "d02684f5dac84adc9e6399fc4b5b34c666bb68fa4f659394c433429a45a5c930"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160228.blp",
+      "bytes": 700260,
+      "sha256": "f202f30a3532347a46ac1ffb3e663407412433b62c7cfaa36d7bb4670d1dd719",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160228.blp.zlib.001",
+          "bytes": 624376,
+          "sha256": "d48048c3afa9a4e8e1b20cf12a72158a64508c7abb0607012e221e44ad339a31"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3160229.blp",
+      "bytes": 700260,
+      "sha256": "cbbb10d23eaefb482e65b5ec6eef9cb51401ef97411bdafa918a0698b9b9aa56",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3160229.blp.zlib.001",
+          "bytes": 616363,
+          "sha256": "d297f5dc9a3712f856268f5f812daefee73bd342f123e0455b18ee726b4eb003"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163630.blp",
+      "bytes": 700260,
+      "sha256": "232c0cb7b5b257f235154fc1e412b82e382f3dd44ebde0a550fc4b859124abe9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163630.blp.zlib.001",
+          "bytes": 583221,
+          "sha256": "f47f81c60657ea2a6068f5b278c15d25f57422f3da0f7c76634d4c24d2cb4530"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163631.blp",
+      "bytes": 700260,
+      "sha256": "26542414da1cf1aa8f7e2797bf5adc937dddf305de5de8787f8ef22325299d9a",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163631.blp.zlib.001",
+          "bytes": 580653,
+          "sha256": "eeeceae63b464544839b5f479cd4de5d97c7dd73cdbdbce762c11f59f71225b7"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163632.blp",
+      "bytes": 700260,
+      "sha256": "500471135e3d29b7ee6ac608c5c49898fb1678f64a18e00ad3341e98f0ec3e7e",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163632.blp.zlib.001",
+          "bytes": 575924,
+          "sha256": "d54bbb92674507959a8f09c994ef979bb8b4dcc59f5f9e71ac3e63e7d28f7232"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163633.blp",
+      "bytes": 700260,
+      "sha256": "ce875870e7b94c3268df2feadfbe8ee637e9bd650b811a65163f42572b9d0172",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163633.blp.zlib.001",
+          "bytes": 615166,
+          "sha256": "b0a4bc2e9533821b77065712b30569f09fdc86e4f02fd940a6a488611421319c"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163634.blp",
+      "bytes": 700260,
+      "sha256": "0fe076e15f4758620a1364ee4b774d46cdfd6668c7b24fa0e0554e6a86402cc3",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163634.blp.zlib.001",
+          "bytes": 618629,
+          "sha256": "8fcade19991c0f88ae6586db0930ef7b339eeb0002bf4f110c3590b8c6076971"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163635.blp",
+      "bytes": 700260,
+      "sha256": "edb65b587c70915bd7111cf0b03314a6fe0aa95079a2d53d228c025c9427d293",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163635.blp.zlib.001",
+          "bytes": 608368,
+          "sha256": "5790defa73db81fb438b6273a09a3d5e8fd455f66179e74e35bb5441f1782291"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163636.blp",
+      "bytes": 88580,
+      "sha256": "5f18e8861ec80465847cc1e92af7bc1e7199484ee8a85223c756bc4858deb1f7",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163636.blp.zlib.001",
+          "bytes": 62938,
+          "sha256": "7766acef3c0d4663d4302fc791f40c4f95f72a2a61335674cdca767aefd9f01d"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163637.blp",
+      "bytes": 88580,
+      "sha256": "c20f332e10db9f974f444926dccc0d38f257b7d728b9c1dbbf99273cd5cb8c99",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163637.blp.zlib.001",
+          "bytes": 60043,
+          "sha256": "e17e79fe89785b788c777c847aad0f25ee8c0abd6728d59cac39061d51aa2be9"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163638.blp",
+      "bytes": 88580,
+      "sha256": "8a09a1d893ba3457af0f09e5068ec143433555a66a9e88db5119493b22e8d3c7",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163638.blp.zlib.001",
+          "bytes": 63800,
+          "sha256": "a9025f8ea22a902ce4e179d3034268d8098b439b9dff68a6af6c23ea14811bc6"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163639.blp",
+      "bytes": 88580,
+      "sha256": "6c361635c6d0fd2e84b87e8ecb00fd48b834320e1bb3090d9bbe04d3ddd43494",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163639.blp.zlib.001",
+          "bytes": 61708,
+          "sha256": "03179b24b8a36e8610db7544afb17ddea09b6bd05cd591403af7924458d109f0"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163640.blp",
+      "bytes": 88580,
+      "sha256": "74f0363765a74f8c70b7e31534463f0da5ab02d61987b42677d8c4004b72357d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163640.blp.zlib.001",
+          "bytes": 63871,
+          "sha256": "cf8629773634ea59b07fe1c51ab201c40ac10c6bbe89040d39688c0fb7ab4e1a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3163641.blp",
+      "bytes": 88580,
+      "sha256": "02c7fb8da466faa28d9ec4591ac4d54b13df685c0811f058f30d30cab42094f9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3163641.blp.zlib.001",
+          "bytes": 61393,
+          "sha256": "cf30c53e80052d39508cfc14c2575be7dcb853d7db41ca6d227b12231da30574"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3530082.blp",
+      "bytes": 88580,
+      "sha256": "e625a8dc04bf57811e28d49769071a4334937e9abdac7880ad3985b8ad02a96d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3530082.blp.zlib.001",
+          "bytes": 63885,
+          "sha256": "39c06cdce29fab7b6ae22cb4ecfc8e5c92352806373b30cc7acec440b5c86aaf"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3530083.blp",
+      "bytes": 700260,
+      "sha256": "1468a62b7539b977235de9af1b1702c2509d0c361782f196f2ae6785d28b6533",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3530083.blp.zlib.001",
+          "bytes": 591259,
+          "sha256": "eae018522122bab0d4f1f8bc441cb43f692604e86791a029515ef7eb069c8b14"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/textures/3530084.blp",
+      "bytes": 700260,
+      "sha256": "a8073767928132ce712e0fcbcbfb5f23418b7b86018f3defeba59044d9e08050",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/textures/3530084.blp.zlib.001",
+          "bytes": 620250,
+          "sha256": "c01d575d5f3cbabd015d5f21f6134faf6481f5a080f58deaacd25aee77c7d6b2"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female.m2",
+      "bytes": 160690288,
+      "sha256": "b4ad6f1b3a2b14c57b79dcafc402bd29bfa6f97fdb5a19f40b7d072d32059ea7",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female.m2.zlib.001",
+          "bytes": 29675626,
+          "sha256": "e797fe1fc360580fd786aef665b55c6249b1913b43c2c1bf913b00dc1e4d5c8e"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female00.skin",
+      "bytes": 559300,
+      "sha256": "78c064a0a3867598e19b0e17a513091f74f4f6679e49904284ad7773ae516fea",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female00.skin.zlib.001",
+          "bytes": 274081,
+          "sha256": "b31950dfffab1e7b5f8e1de5419dbca376edbe78076d8f3522d985c4ca504e9a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0060-00.anim",
+      "bytes": 183968,
+      "sha256": "866dbaff3f43cd2334b848fd46e15996c24e723a1f4cc46bc6a0cc0572b87886",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0060-00.anim.zlib.001",
+          "bytes": 55232,
+          "sha256": "e6d830bd0d2cb5130dd1559a77228ed6dc6b9c98f516ebaa7dd905ed9c726fcb"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0061-00.anim",
+      "bytes": 140704,
+      "sha256": "3992fbdfb58ef9199dd423dea429cc2f302bb8517e1e26691ce0163ac2f424b9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0061-00.anim.zlib.001",
+          "bytes": 39562,
+          "sha256": "249b1b656a1ce161de22904d4ffc168f2435f3e7e93c8370549bcce7998636f0"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0065-00.anim",
+      "bytes": 161200,
+      "sha256": "0bbf15f28b3f21c692a64832738d5e1d919593f1fcb158164d17635e7f837899",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0065-00.anim.zlib.001",
+          "bytes": 96110,
+          "sha256": "8ae1e6f35b706e23f80e4bdcfa99c3b49cba92440c0a14af73778cdf5ef32dd2"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0084-00.anim",
+      "bytes": 92864,
+      "sha256": "34f2c51738dbc9de8602a7f1a8dcae9fdf87360e31f069d26c86d4e859394218",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0084-00.anim.zlib.001",
+          "bytes": 27890,
+          "sha256": "147b95501e8db80de28b2dbe4603d6b63d41a0f34925933caa175f6afd21b21e"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0113-00.anim",
+      "bytes": 74784,
+      "sha256": "a9d61f73e906d12530fb35c9953a6206b3bec09894a3e574122ec52f37613aea",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0113-00.anim.zlib.001",
+          "bytes": 21674,
+          "sha256": "224fc0574d6b9b004d458e574eb438219ca1f3f0dfb6e80fcd7ed9dcacc5456a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0123-00.anim",
+      "bytes": 290544,
+      "sha256": "8bae880298c2c1f4f6fe9da896fc285b22058951e44e3fbdf9543e7ded05a6c4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0123-00.anim.zlib.001",
+          "bytes": 53705,
+          "sha256": "49fef018c30bf194c39e049ef357c2abb74fa3c8fbf555166829614fadb7bbe8"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0128-00.anim",
+      "bytes": 32640,
+      "sha256": "b24bcc78736c08a00026cb5168fa37b67aef73297b72360aab7c6b517ffe0dd4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0128-00.anim.zlib.001",
+          "bytes": 18656,
+          "sha256": "c6422387c15632d4bb5da916aa54babc8be431ed3e4c60565e22856452826edf"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0129-00.anim",
+      "bytes": 50976,
+      "sha256": "530e18dd014ec7e87f7316289a8ee35884a066de4ccb318817d89a2dd2bd628c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0129-00.anim.zlib.001",
+          "bytes": 30804,
+          "sha256": "cd9985aee416a5ed861614c1d29dce38acf43cc83fede40c7d1893b87f1bb81d"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female0186-00.anim",
+      "bytes": 57376,
+      "sha256": "85170198bd5d76603ab45f93a3bd9d7ec9bcf35e81a60130ce133ade2b0e9138",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female0186-00.anim.zlib.001",
+          "bytes": 32528,
+          "sha256": "4d353bd6c18a0d7cc7ceecc2e9b10d022e76842437d887740c264dcf89ebeaff"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female1194-00.anim",
+      "bytes": 32864,
+      "sha256": "7b48e9e50faaaaf6b1f4ec9aa7dc485ec818af40b9142d297d1c1e892b10a2a9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female1194-00.anim.zlib.001",
+          "bytes": 16326,
+          "sha256": "42173601739fa0a86962d3bb8529796c7d1fd7fbba13fa934ace0f9c6d76119a"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_female1480-00.anim",
+      "bytes": 117488,
+      "sha256": "cc12e1bce906866667fc756bb51b7489005077a2afcc199892fe1782b584dd93",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_female1480-00.anim.zlib.001",
+          "bytes": 62689,
+          "sha256": "e40db1cb16eff061a89c41cb2e53a2710466665dbcb61cba3e8e97ccbab26b58"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male.m2",
+      "bytes": 168482196,
+      "sha256": "f7c5d34a583e9f8992f57336335a5f3ef1fc23f0cf8499f5bb3c692fda2ee9d4",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male.m2.zlib.001",
+          "bytes": 30985322,
+          "sha256": "8e7688730db03b97a26584e8c18976e7922282a6b46722ae3e7b8f739aeaebef"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male00.skin",
+      "bytes": 694352,
+      "sha256": "40b511ef639fddc70c83bcb026c9ddb6b53c556ea96ab6bb6f81968a7f158434",
+      "providerArchive": "Patch-ZX.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male00.skin.zlib.001",
+          "bytes": 336601,
+          "sha256": "7f2e8154f86d84f49fd3b76ab1876221e9a9510e712a464669207c0d8dc0b5e3"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0060-00.anim",
+      "bytes": 194816,
+      "sha256": "2c3b646314843e1e0d58341a341a12bbd84b495d8d31bec351e75e65571ebab6",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0060-00.anim.zlib.001",
+          "bytes": 56002,
+          "sha256": "a0b2e8bf920f7492369d8adc1d9e24a0a7c4cc744dca7131f652a18330daf604"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0061-00.anim",
+      "bytes": 140704,
+      "sha256": "4a2234cc87c052e6bd1ddce650d3d29e72b404bc0a7eb42b5c422f99d748ba32",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0061-00.anim.zlib.001",
+          "bytes": 36752,
+          "sha256": "26112e90aa204658937af3541515d4ff45f130b3ac5959c7c4a1100138c81790"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0065-00.anim",
+      "bytes": 165216,
+      "sha256": "0d0da9ac991537f3c58e87faa5d469f919d4d0ae745c41dfdb0b8dba880f857d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0065-00.anim.zlib.001",
+          "bytes": 96831,
+          "sha256": "a4998bbf2cad02e599d6f865240a19c0349fb64f2225d5cf44d1a0a714fc19dd"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0084-00.anim",
+      "bytes": 94912,
+      "sha256": "6173191ddda5221912a2499f35982bb62ea0f6901c5e68eb7247ac78cdf2a80d",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0084-00.anim.zlib.001",
+          "bytes": 26093,
+          "sha256": "223c5a9d027382c6a04b9c2711f5a0c3ecbcd479b2b97f74d2e44e4f5318bee2"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0113-00.anim",
+      "bytes": 79776,
+      "sha256": "03ace5b3981382d16ddad3a8556c29a1e8f30506b07e6b3b31277c30da642db4",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0113-00.anim.zlib.001",
+          "bytes": 21868,
+          "sha256": "2a5f69e1fa90919a10c0e10edd5bed7b26410233f0f479cbf0f16ad78828fa32"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0123-00.anim",
+      "bytes": 298608,
+      "sha256": "bad24e09b4543d8743e37dd1814e0631ff4764f8bdfb71b59396ffcd8c49c02c",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0123-00.anim.zlib.001",
+          "bytes": 53559,
+          "sha256": "832a8431d84b8f672499869b1e775bc78729452557a739b7691c2d23576e5ced"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0128-00.anim",
+      "bytes": 32736,
+      "sha256": "cddf22a37e7eff8deb98bd816a59d2a467221fdf3ea8ff8b082caf0c2461727e",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0128-00.anim.zlib.001",
+          "bytes": 17887,
+          "sha256": "32723115e4bb04c997be79dd293eb559397d880254e373f64d67a689129295e8"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0129-00.anim",
+      "bytes": 47232,
+      "sha256": "479a8cd65943a3a53367560f6e142725d1387fb43c39c6d5de8eebdecf9dd0c9",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0129-00.anim.zlib.001",
+          "bytes": 26929,
+          "sha256": "0252d0ff97130ee090a5e00ac8dafd9fda22635ad9e9fcd84f45f7bd26bb2c0d"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male0186-00.anim",
+      "bytes": 57888,
+      "sha256": "adc24bb75313e89ef0309ed84513f6f86b38adacfea397509ca56daca30e30ce",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male0186-00.anim.zlib.001",
+          "bytes": 31662,
+          "sha256": "fd08be9c0615bc9ce1585a3bd73ff50d3ec5db719cfd0cb5c90e30850d736ebf"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male1194-00.anim",
+      "bytes": 35328,
+      "sha256": "73e745b5e9c491a8ee153dcdc0f7bb1cfda0fa7ba4a2a8bd11b195138a47fbe8",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male1194-00.anim.zlib.001",
+          "bytes": 16538,
+          "sha256": "c5458e83122734372065b8d1251449c841c259048d29ce73636289018e444ff6"
+        }
+      ]
+    },
+    {
+      "path": "custom/venthyr/native/vampire_male1480-00.anim",
+      "bytes": 119616,
+      "sha256": "77d2249fe0a83507fa2701e06054409ed8868b066748e81266108bea903adeed",
+      "providerArchive": "Patch-ZO.mpq",
+      "parts": [
+        {
+          "path": "assets/custom/venthyr/native/vampire_male1480-00.anim.zlib.001",
+          "bytes": 54006,
+          "sha256": "6711e0f6333a658092b16a851cd3505144a06b4df95d818c165a23ea1e0435a7"
+        }
+      ]
+    }
+  ]
+}

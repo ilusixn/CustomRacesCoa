@@ -1,0 +1,79 @@
+{
+  "packageVersion": "kyrian-venthyr-20261027-1",
+  "races": {
+    "Kyrian": 60,
+    "Venthyr": 61
+  },
+  "component": "server",
+  "sourceBaselineHead": "2a2211cd8f3d157da432ec0175ddd4b8a191931f",
+  "scope": "Race integration overlay, not a game or full source repository.",
+  "sourcePatches": [
+    {
+      "path": "src/server/game/Spells/Auras/SpellAuraEffects.cpp",
+      "baselineBlob": "2c3216e0258dd9449705f6cb82676a69c7de5646ad4f3174c2f59b3b24ca70e2",
+      "currentSourceSha256": "05852957b6badd3254df0be5c269c055357ce41d759c4473a84a877bfdf6f462",
+      "includedHunks": 2,
+      "note": "Race-relevant hunks; shared native-race framework is prerequisite."
+    },
+    {
+      "path": "src/server/game/Spells/Auras/SpellAuraEffects.h",
+      "baselineBlob": "235cea89c9a9cbd5ddc8b41810f2345d4d44fdabc58516501a96342cd1a83c0b",
+      "currentSourceSha256": "2039763e03c240b23d91a36388c9111c0a8902262bc8476acb9cfbdd389a4c62",
+      "includedHunks": 1,
+      "note": "Race-relevant hunks; shared native-race framework is prerequisite."
+    }
+  ],
+  "gameplayAndVisualAcceptance": "pending user testing",
+  "requires": [
+    "Aetheria/Esteria native custom-race client/server framework",
+    "Matching race IDs 60/61 and extended appearance protocol",
+    "Existing race creation/display records; matching native asset loader"
+  ],
+  "ownedSpellIds": [
+    111100,
+    111101,
+    111102,
+    111103,
+    111104,
+    111105,
+    111106,
+    111107,
+    111108,
+    111109,
+    111110,
+    111111,
+    111112,
+    111113,
+    111200,
+    111201,
+    111202,
+    111203,
+    111204,
+    111205,
+    111206,
+    111207,
+    111208,
+    111209,
+    111210,
+    111211,
+    111212
+  ],
+  "migrationOrder": [
+    "rev_20261025010000000_kyrian_hover.sql.prepared",
+    "rev_20261025020000000_kyrian_flight.sql.prepared",
+    "rev_20261025030000000_kyrian_racials.sql.prepared",
+    "rev_20261025040000000_kyrian_charge_targeting.sql.prepared",
+    "rev_20261025050000000_kyrian_charge_holy_ring.sql.prepared",
+    "rev_20261026010000000_kyrian_dive_update.sql.prepared",
+    "rev_20261027020000000_venthyr_racials.sql.prepared",
+    "rev_20261027120000000_venthyr_polish.sql.prepared"
+  ],
+  "batDependency": {
+    "creature": 9501110,
+    "display": 95110,
+    "note": "Existing base-client/server dependency; not created by racial migrations."
+  },
+  "integrationMode": "Review/merge into prerequisite extended Aetheria/Esteria framework; not a stock-client drop-in",
+  "baseRaceCreationRecordsIncluded": false,
+  "fullClientOrServerIncluded": false
+}
