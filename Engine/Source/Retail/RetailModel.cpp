@@ -1209,4 +1209,144 @@ bool PrepareSkin(std::vector<uint8_t>& b, const std::vector<uint8_t>& m, std::st
     }
     return ValidateSkin(b, m, error);
 }
+
+// CoA: the vertex constant file of the D3D9 backend holds 75 bone matrices per draw; Retail sections go up to 246 (Dracthyr).
+// A section over the limit is cut into several sections of at most 75 bones: triangles are grouped greedily by the palette
+// slots they need, each group gets its own copy of the vertices (the bone indices live in the skin, per skin vertex) and
+// a palette appended to the bone lookup of the model, and every batch of the section is repeated per group.
+bool ReduceBones(std::vector<uint8_t>& b, std::vector<uint8_t>& m, std::string& error) {
+    constexpr uint32_t kMax = 75;
+    if (!Range(b, 0, 48) || !Range(m, 0, 0x130) || !Array(b, 28, 48) || !Array(b, 36, 24) || !Array(b, 4, 2) || !Array(b, 12, 2))
+        return Fail(error, "Invalid SKIN arrays");
+    const uint32_t sectionCount = U32(b, 28);
+    bool oversized = false;
+    for (uint32_t i = 0; i < sectionCount; ++i) oversized |= U16(b, U32(b, 32) + size_t(i) * 48 + 12) > kMax;
+    if (!oversized) return true;
+
+    std::vector<uint16_t> ov, ot, verts, tris, comboTable;   // o*: the original arrays; verts/tris/props: rebuilt, only what the sections use
+    std::vector<uint8_t> op, props;
+    for (uint32_t i = 0; i < U32(b, 4); ++i) ov.push_back(U16(b, U32(b, 8) + size_t(i) * 2));
+    for (uint32_t i = 0; i < U32(b, 12); ++i) ot.push_back(U16(b, U32(b, 16) + size_t(i) * 2));
+    op.assign(b.begin() + U32(b, 24), b.begin() + U32(b, 24) + size_t(U32(b, 4)) * 4);
+    for (uint32_t i = 0; i < U32(m, 0x78); ++i) comboTable.push_back(U16(m, U32(m, 0x7c) + size_t(i) * 2));
+
+    std::vector<std::vector<uint8_t>> sections;                // 48 bytes each; groups past the first are appended
+    std::vector<std::vector<uint32_t>> groupsOf(sectionCount); // section index of every group of a section
+    for (uint32_t i = 0; i < sectionCount; ++i)
+        sections.emplace_back(b.begin() + U32(b, 32) + size_t(i) * 48, b.begin() + U32(b, 32) + size_t(i + 1) * 48);
+
+    for (uint32_t i = 0; i < sectionCount; ++i) {
+        const std::vector<uint8_t> original = sections[i];
+        const uint32_t bones = U16(original, 12), combo = U16(original, 14), vstart = U16(original, 4), vcount = U16(original, 6);
+        const uint32_t first = (uint32_t(U16(original, 2)) << 16) | U16(original, 8), icount = U16(original, 10);
+        if (!Index(b, 4, vstart, vcount) || first + icount > ot.size())
+            return Fail(error, "Invalid SKIN section range");
+        if (bones <= kMax) {
+            const uint32_t vbase = uint32_t(verts.size()), firstTri = uint32_t(tris.size());
+            for (uint32_t v = 0; v < vcount; ++v) {
+                verts.push_back(ov[vstart + v]);
+                props.insert(props.end(), op.begin() + size_t(vstart + v) * 4, op.begin() + size_t(vstart + v) * 4 + 4);
+            }
+            for (uint32_t t = 0; t < icount; ++t) tris.push_back(uint16_t(ot[first + t] - vstart + vbase));
+            Put16(sections[i], 4, uint16_t(vbase)); Put16(sections[i], 2, uint16_t(firstTri >> 16)); Put16(sections[i], 8, uint16_t(firstTri));
+            groupsOf[i] = {i};
+            continue;
+        }
+        if (!Index(m, 0x78, combo, bones) || icount % 3)
+            return Fail(error, "Invalid SKIN bone palette range");
+        struct Group { std::vector<uint32_t> slots; std::vector<uint32_t> tris; };
+        std::vector<Group> groups(1);
+        std::vector<bool> inGroup(bones, false);
+        for (uint32_t t = 0; t < icount; t += 3) {
+            std::vector<uint32_t> need;
+            for (uint32_t c = 0; c < 3; ++c) {
+                const uint32_t sv = ot[first + t + c];
+                const size_t vertex = U32(m, 0x40) + size_t(ov[sv]) * 48;
+                for (uint32_t k = 0; k < 4; ++k) {
+                    const uint32_t slot = op[size_t(sv) * 4 + k];
+                    if (m[vertex + 12 + k] && slot < bones && std::find(need.begin(), need.end(), slot) == need.end()) need.push_back(slot);
+                }
+            }
+            uint32_t extra = 0;
+            for (uint32_t slot : need) if (!inGroup[slot]) ++extra;
+            if (groups.back().slots.size() + extra > kMax) {
+                for (uint32_t slot : groups.back().slots) inGroup[slot] = false;
+                groups.emplace_back();
+            }
+            for (uint32_t slot : need) if (!inGroup[slot]) { inGroup[slot] = true; groups.back().slots.push_back(slot); }
+            for (uint32_t c = 0; c < 3; ++c) groups.back().tris.push_back(ot[first + t + c]);
+        }
+        for (uint32_t g = 0; g < groups.size(); ++g) {
+            Group& group = groups[g];
+            if (group.slots.empty()) group.slots.push_back(0);
+            std::sort(group.slots.begin(), group.slots.end());
+            std::vector<int> local(bones, 0);
+            for (uint32_t k = 0; k < group.slots.size(); ++k) local[group.slots[k]] = int(k);
+            const uint32_t newCombo = uint32_t(comboTable.size());
+            for (uint32_t slot : group.slots) comboTable.push_back(comboTable[combo + slot]);
+            if (comboTable.size() > 0xffff) return Fail(error, "Too many split bone palettes");
+            std::map<uint32_t, uint32_t> remap;
+            const uint32_t vbase = uint32_t(verts.size());
+            std::vector<uint32_t> groupTris;
+            for (uint32_t sv : group.tris) {
+                auto found = remap.find(sv);
+                if (found == remap.end()) {
+                    found = remap.emplace(sv, uint32_t(verts.size())).first;
+                    verts.push_back(ov[sv]);
+                    for (uint32_t k = 0; k < 4; ++k) {
+                        const uint32_t slot = op[size_t(sv) * 4 + k];
+                        props.push_back(slot < bones ? uint8_t(local[slot]) : 0);
+                    }
+                }
+                groupTris.push_back(found->second);
+            }
+            if (verts.size() > 0xffff) return Fail(error, "Split bone sections exceed the vertex limit");
+            std::vector<uint8_t> entry = original;
+            const uint32_t firstTri = uint32_t(tris.size());
+            for (uint32_t t : groupTris) tris.push_back(uint16_t(t));
+            Put16(entry, 4, uint16_t(vbase)); Put16(entry, 6, uint16_t(verts.size() - vbase));
+            Put16(entry, 2, uint16_t(firstTri >> 16)); Put16(entry, 8, uint16_t(firstTri));
+            Put16(entry, 10, uint16_t(groupTris.size()));
+            Put16(entry, 12, uint16_t(group.slots.size())); Put16(entry, 14, uint16_t(newCombo));
+            if (g == 0) { sections[i] = entry; groupsOf[i].push_back(i); }
+            else { groupsOf[i].push_back(uint32_t(sections.size())); sections.push_back(entry); }
+        }
+    }
+
+    // batches: one copy per group, in place so the draw order survives
+    std::vector<uint8_t> batches;
+    for (uint32_t i = 0; i < U32(b, 36); ++i) {
+        const size_t at = U32(b, 40) + size_t(i) * 24;
+        const uint16_t section = U16(b, at + 4);
+        if (section >= sectionCount) return Fail(error, "SKIN batch section is out of range");
+        for (uint32_t target : groupsOf[section]) {
+            std::vector<uint8_t> batch(b.begin() + at, b.begin() + at + 24);
+            Put16(batch, 4, uint16_t(target));
+            batches.insert(batches.end(), batch.begin(), batch.end());
+        }
+    }
+
+    std::vector<uint8_t> out(b.begin(), b.begin() + 48);
+    auto append = [&](const void* data, size_t size) {
+        const size_t at = out.size();
+        out.insert(out.end(), static_cast<const uint8_t*>(data), static_cast<const uint8_t*>(data) + size);
+        while (out.size() % 4) out.push_back(0);
+        return uint32_t(at);
+    };
+    Put(out, 4, uint32_t(verts.size())); Put(out, 8, append(verts.data(), verts.size() * 2));
+    Put(out, 12, uint32_t(tris.size())); Put(out, 16, append(tris.data(), tris.size() * 2));
+    Put(out, 20, uint32_t(verts.size())); Put(out, 24, append(props.data(), props.size()));
+    std::vector<uint8_t> sectionBytes;
+    for (const auto& entry : sections) sectionBytes.insert(sectionBytes.end(), entry.begin(), entry.end());
+    Put(out, 28, uint32_t(sections.size())); Put(out, 32, append(sectionBytes.data(), sectionBytes.size()));
+    Put(out, 36, uint32_t(batches.size() / 24)); Put(out, 40, append(batches.data(), batches.size()));
+    Put(out, 44, kMax);
+    // the bone lookup of the model, longer by the new palettes (the old table stays in the file, unused)
+    const uint32_t tableAt = uint32_t(m.size());
+    for (uint16_t value : comboTable) { m.push_back(uint8_t(value)); m.push_back(uint8_t(value >> 8)); }
+    while (m.size() % 4) m.push_back(0);
+    Put(m, 0x78, uint32_t(comboTable.size())); Put(m, 0x7c, tableAt);
+    b.swap(out);
+    return ValidateSkin(b, m, error);
+}
 }

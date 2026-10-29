@@ -3268,7 +3268,7 @@ void CM2Model::RenderBatchShadowMap(int32_t untextured, M2Batch* batch, const CM
             for (uint32_t n = 0; n < instances; n++) {
                 CM2Model* model = list.m_batches[done + index + n].m_model;
 
-                for (uint32_t i = 0; i < section->m_boneCount; i++) {
+                for (uint32_t i = 0; i < std::min<uint32_t>(section->m_boneCount, 75); i++) { // CoA: 75 bones fit the constant file
                     const C44Matrix& bone = model->m_boneMatrices[this->m_shared->m_data->m_boneCombos[i + section->m_boneComboIndex]];
                     constants[0] = bone.a0;
                     constants[1] = bone.b0;

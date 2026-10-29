@@ -80,6 +80,7 @@ struct CacheLock { explicit CacheLock(void*) {} };
 #endif
 struct Model {
     std::vector<uint8_t> bytes;
+    std::map<uint32_t, std::vector<uint8_t>> skins; // prepared skins by FileDataID: ReduceBones edits the model together with them
     ModelFiles files;
     bool character = false;
     bool slimeGiant = false;
@@ -384,10 +385,16 @@ bool CascSource::Configure(const char* configPath, std::string& error) {
             if (separator == std::string::npos || !Number(Trim(line.substr(0, separator)), id))
                 return Failure(error, "Retail mapping must use FileDataID;path rows");
             auto name = Normalize(Trim(line.substr(separator + 1)));
-            if (!SafeName(name)) return Failure(error, "Invalid Retail mapping path");
+            if (!SafeName(name)) {
+                if (std::string(kind) == "listfile") continue; // the community listfile has odd rows; only the aliases file is ours
+                return Failure(error, "Invalid Retail mapping path");
+            }
             if (std::string(kind) == "listfile") name = s.Prefix() + name;
             const auto result = names.emplace(name, id);
-            if (!result.second && result.first->second != id) return Failure(error, "Conflicting Retail mappings");
+            if (!result.second && result.first->second != id) {
+                if (std::string(kind) == "listfile") continue;
+                return Failure(error, "Conflicting Retail mappings");
+            }
         }
     }
     std::map<uint32_t, HandItemAppearance> handItems;
@@ -578,6 +585,8 @@ bool CascSource::Read(const char* name, std::vector<uint8_t>& bytes, std::string
             if (success && model->ethereal)
                 success = Ethereal::PrepareSkin(raw, model->ethereal == Ethereal::Bodies[2], error, &model->bytes);
             success = success && PrepareSkin(raw, model->bytes, error, model->character || model->files.skeleton != 0);
+            success = success && ReduceBones(raw, model->bytes, error);
+            if (success) model->skins[model->files.skins[i]] = raw;
             char suffix[16];
             std::snprintf(suffix, sizeof(suffix), "%02u.skin", static_cast<unsigned>(i));
             pending.emplace(base + suffix, std::move(skin));
@@ -603,6 +612,9 @@ bool CascSource::Read(const char* name, std::vector<uint8_t>& bytes, std::string
     } else if (ext == ".skin") {
         success = ref.owner != nullptr;
         if (!success) error = "Open the Retail model before its skin";
+        const auto prepared = success ? ref.owner->skins.find(ref.id) : decltype(ref.owner->skins.end()){};
+        if (success && prepared != ref.owner->skins.end()) bytes = prepared->second; // already prepared when the model opened
+        else {
         if (success && ref.owner->slimeGiant) success = SlimeGiant::PrepareSkin(bytes, error);
         if (success && ref.owner->centaur) success = Centaur::PrepareSkin(bytes, error, ref.owner->centaurFemale);
         if (success && ref.owner->ethereal && ref.owner->ethereal != Ethereal::Bodies[2])
@@ -610,6 +622,7 @@ bool CascSource::Read(const char* name, std::vector<uint8_t>& bytes, std::string
         if (success && ref.owner->ethereal)
             success = Ethereal::PrepareSkin(bytes, ref.owner->ethereal == Ethereal::Bodies[2], error, &ref.owner->bytes);
         success = success && PrepareSkin(bytes, ref.owner->bytes, error, ref.owner->character || ref.owner->files.skeleton != 0);
+        }
     } else if (ext == ".anim") {
         success = ref.owner ? (StripAnimationChunk(bytes, error) && ValidateAnimation(bytes, ref.owner->bytes, ref.animation, ref.variation, error)) :
             Failure(error, "Open the Retail model before its animation");

@@ -13,6 +13,9 @@ using namespace CoA::Esteria::Compat;
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include "Engine/Source/Retail/BodyShape.h"
+#include "Engine/Source/Retail/RetailLookWire.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
 #include <random>
 #include <algorithm>
 
@@ -441,24 +444,60 @@ bool EsteriaDropdownWheelBlocked()
 
 namespace
 {
+    // The bounding boxes of the retail-built models do not report their real size, so the big races have a set stage scale.
+    float FixedPreviewScale(unsigned race)
+    {
+        switch (race)
+        {
+        case 54: case 58: return .5f;   // Dracthyr
+        case 107: return .6f;           // Kyrian
+        case 101: return .7f;           // Venthyr
+        case 75: case 102: return .55f; // Centaur
+        case 87: return .7f;            // Faceless One
+        default: return 0.f;
+        }
+    }
+
+    // Fits a preview model on the creation / selection screen: Vrykul get their fixed size, anything else whose bounding box
+    // (height, or 0.8 x the wider side for wings and centaur bodies) passes 2.2 units is shrunk uniformly to 2.2.
     void ScaleVrykulPreview(void* character)
     {
-        if (!character || (RaceOf(CC<unsigned>(character, 0x18)) != 56 && RaceOf(CC<unsigned>(character, 0x18)) != 57))
+        if (!character)
             return;
         void* instance = CC<void*>(character, 0x38);
         CM2Shared* model = instance ? ModelShared(instance) : nullptr;
-        if (!model || _strnicmp(model->m_fileName, "custom\\vrykul\\", 14))
+        float const fixedScale = FixedPreviewScale(RaceOf(CC<unsigned>(character, 0x18)));
+        if (!instance || (!model && !fixedScale))
             return;
         auto const* matrix = ModelMatrix(instance);
         float current = std::hypot(matrix[0], matrix[1]);
         float position[] = {matrix[12], matrix[13], matrix[14]};
         if (!std::isfinite(current) || current < .001f
-            || !std::all_of(std::begin(position), std::end(position), [](float v) { return std::isfinite(v); })
-            || std::abs(current - .55f) < .0001f)
+            || !std::all_of(std::begin(position), std::end(position), [](float v) { return std::isfinite(v); }))
+            return;
+        float target = 0.f;
+        if (fixedScale)
+            target = fixedScale;
+        else if ((RaceOf(CC<unsigned>(character, 0x18)) == 56 || RaceOf(CC<unsigned>(character, 0x18)) == 57)
+            && !_strnicmp(model->m_fileName, "custom\\vrykul\\", 14))
+            target = .55f;
+        else
+        {
+            auto const& box = model->m_boundingBox;
+            float const height = box.t.z - box.b.z;
+            float const width = std::max(box.t.x - box.b.x, box.t.y - box.b.y);
+            float const extent = std::max(height, .8f * width);
+            if (!std::isfinite(extent) || extent <= 2.2f)
+                return;
+            target = std::max(.25f, 2.2f / extent);
+        }
+        if (std::abs(current - target) < .0001f)
             return;
         // Verified 12340 UI placement ABI: position, yaw, uniform scale. Preserve facing and pedestal position.
-        N_8251D0(
-            instance, position, std::atan2(matrix[1], matrix[0]), .55f);
+        N_8251D0(instance, position, std::atan2(matrix[1], matrix[0]), target);
+        char line[96];
+        std::snprintf(line, sizeof(line), "preview scale: race %u %.3f -> %.3f", RaceOf(CC<unsigned>(character, 0x18)), current, target);
+        BodyShape::Log(line);
     }
 }
 
@@ -532,6 +571,12 @@ int EsteriaCycle(void* state)
     void* character = CreationCharacter();
     if (!character)
         return 0;
+    {
+        // Races built from the Retail files answer the EA_* commands themselves (options, forms, preview); -1: not one.
+        int const retail = RetailRaceCycleCommand(static_cast<lua_State*>(state), static_cast<CCharacterComponent*>(character), command);
+        if (retail >= 0)
+            return retail;
+    }
     if (std::strcmp(command, "EA_PREVIEW_SAVE") == 0 || std::strcmp(command, "EA_PREVIEW_RESTORE") == 0
         || std::strcmp(command, "EA_PREVIEW_END") == 0)
     {
@@ -1745,6 +1790,8 @@ void EsteriaEnumExtra(void* packet)
 {
     highmountainRoster.clear();
     cosmeticWingRoster.clear();
+    BodyShape::Roster().clear();
+    RetailRaceClearLooks();
     if (!packet)
         return;
     unsigned length = static_cast<CDataStore*>(packet)->m_size;
@@ -1755,10 +1802,12 @@ void EsteriaEnumExtra(void* packet)
     unsigned size = length - base;
     if (!bytes)
         return;
-    for (unsigned tail = 0; tail < 3 && size >= 8; ++tail)
+    for (unsigned tail = 0; tail < 6 && size >= 8; ++tail)
     {
         unsigned magic = Field<unsigned>(bytes, size - 4);
-        unsigned stride = magic == 0x31455848 ? 9 : magic == 0x32455848 ? 16 : magic == 0x31475743 ? 12 : 0;
+        unsigned stride = magic == 0x31455848 ? 9 : magic == 0x32455848 ? 16 : magic == 0x31475743 ? 12
+            : magic == CharacterBodyShape::EnumMagic ? CharacterBodyShape::EnumStride
+            : magic == CharacterRetailLook::EnumMagic || magic == CharacterRetailLook::ParkedMagic ? CharacterRetailLook::EnumStride : 0;
         if (!stride)
             break;
         unsigned count = Field<unsigned>(bytes, size - 8);
@@ -1770,6 +1819,23 @@ void EsteriaEnumExtra(void* packet)
             auto guid = Field<std::uint64_t>(bytes, start + i * stride);
             if (stride == 12)
                 cosmeticWingRoster[guid] = Field<unsigned>(bytes, start + i * stride + 8);
+            else if (stride == CharacterRetailLook::EnumStride)
+            {
+                CharacterRetailLook::Look look;
+                if (CharacterRetailLook::ReadPayload(bytes + start + i * stride + 8, CharacterRetailLook::PayloadSize, look))
+                {
+                    if (magic == CharacterRetailLook::ParkedMagic)
+                        RetailRaceSetParkedLook(guid, look);
+                    else
+                        RetailRaceSetLook(guid, look);
+                }
+            }
+            else if (stride == CharacterBodyShape::EnumStride)
+            {
+                CharacterBodyShape::Values wire{};
+                if (CharacterBodyShape::ReadPayload(bytes + start + i * stride + 8, CharacterBodyShape::PayloadSize, wire))
+                    BodyShape::Roster()[guid] = BodyShape::FromWire(wire);
+            }
             else
                 highmountainRoster[guid] = stride == 9
                     ? bytes[start + i * stride + 8] : Field<std::uint64_t>(bytes, start + i * stride + 8);
@@ -1791,6 +1857,7 @@ void EsteriaSelectExtra(void* character)
         auto* row = SelRow(i);
         if (Field<void*>(row, 0x188) != character)
             continue;
+        RetailRaceApplyLookTo(static_cast<CCharacterComponent*>(character), Field<std::uint64_t>(row, 0), false); // CoA: the retail look saved for this character
         auto wing = cosmeticWingRoster.find(Field<std::uint64_t>(row, 0));
         cosmeticWingSelections[character] = wing == cosmeticWingRoster.end() ? 0 : wing->second;
         UpdateCosmeticWing(character);

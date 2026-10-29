@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "Player_C.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -13584,6 +13585,7 @@ void CGPlayer_C::DestructActivePlayer() {
         }
 
         CGGameUI::LeaveWorld();
+        CoA::Esteria::LeaveWorld();
     }
 
     for (uint32_t i = 0; i < 1002; i++) {

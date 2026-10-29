@@ -11,5 +11,3 @@ void EsteriaRetailFields(CCharacterComponent*, const std::array<uint8_t, 13>&) {
 static ExtensionMgr s_extensionMgr;
 ExtensionMgr* sExtensionMgr = &s_extensionMgr;
 
-// No extension channel yet (the server side of the retail form toggle is a later step).
-bool ExtensionMgr::SendClientMessage(uint32_t, const void*, uint32_t) { return false; }

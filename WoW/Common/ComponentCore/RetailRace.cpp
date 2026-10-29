@@ -1098,8 +1098,6 @@ bool RetailRaceMapped(uint32_t race) {
 }
 
 float RetailRacePreviewScale(uint32_t race) {
-    if (race == 75) return 0.56f;
-    if (race == 76) return 0.75f;
     return Retail::Centaur::Race(race) ? .75f : 1.0f;
 }
 
@@ -1118,7 +1116,6 @@ void RetailRaceDuplicateCollections(CM2Model* source, CM2Model* target) {
 }
 
 uint32_t RetailRaceHelmetMask(uint32_t race) {
-    if (race == 75 || race == 76) return uint32_t{1} << 1;
     const uint32_t retail = RetailRaceId(race);
     const uint32_t donor = retail ? Retail::HelmetMaskRace(retail) : race;
     return donor && donor < 32 ? uint32_t{1} << donor : 0;

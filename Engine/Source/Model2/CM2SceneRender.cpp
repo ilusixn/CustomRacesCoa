@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cmath>
 #include <cstdint>
@@ -442,7 +443,10 @@ void CM2SceneRender::DrawBatch() {
     if (CShaderEffect::s_enableShaders && (this->m_curType != this->m_prevType || this->m_curModel != this->m_prevModel || this->m_curSkinSection->m_boneComboIndex != this->m_prevSkinSection->m_boneComboIndex)) {
         float* constants = g_theGxDevicePtr->ShaderConstantsLock(GxSh_Vertex) + 31 * 4;
 
-        for (uint32_t i = 0; i < this->m_curSkinSection->m_boneCount; i++) {
+        // CoA: the vertex constant file holds 256 registers and the palette starts at 31, so 75 bones fit; a Retail section with
+        // more (the Dracthyr dragon has up to 246) used to run over the neighbouring statics, g_theGxDevicePtr among them.
+        const uint32_t paletteBones = std::min<uint32_t>(this->m_curSkinSection->m_boneCount, 75);
+        for (uint32_t i = 0; i < paletteBones; i++) {
             const C44Matrix& bone = this->m_curModel->m_boneMatrices[this->m_data->m_boneCombos[i + this->m_curSkinSection->m_boneComboIndex]];
             constants[0] = bone.a0;
             constants[1] = bone.b0;
@@ -459,7 +463,7 @@ void CM2SceneRender::DrawBatch() {
             constants += 12;
         }
 
-        g_theGxDevicePtr->ShaderConstantsUnlock(GxSh_Vertex, 31, 3 * this->m_curSkinSection->m_boneCount);
+        g_theGxDevicePtr->ShaderConstantsUnlock(GxSh_Vertex, 31, 3 * paletteBones);
     }
 
     if (this->m_curElement->m_flags & 4) {
@@ -645,7 +649,7 @@ void CM2SceneRender::DrawBatchDoodad(M2Element* elements, uint32_t* indices) {
             for (uint32_t n = 0; n < instances; n++) {
                 CM2Model* model = elements[indices[done + n]].m_model;
 
-                for (uint32_t i = 0; i < this->m_curSkinSection->m_boneCount; i++) {
+                for (uint32_t i = 0; i < std::min<uint32_t>(this->m_curSkinSection->m_boneCount, 75); i++) { // CoA: 75 bones fit the constant file
                     const C44Matrix& bone = model->m_boneMatrices[this->m_data->m_boneCombos[i + this->m_curSkinSection->m_boneComboIndex]];
                     constants[0] = bone.a0;
                     constants[1] = bone.b0;
