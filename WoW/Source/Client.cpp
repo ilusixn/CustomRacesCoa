@@ -1832,6 +1832,15 @@ bool InitializeGlobal() {
     return true;
 }
 
+// CoA: closing the archives on exit touches an archive handle that is already gone (access violation at address 7, found in a
+// crash dump of every normal exit). The process is ending, so the fault is swallowed.
+static void CloseAllArchivesGuarded() {
+    __try {
+        CloseAllArchives();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+}
+
 // VERIFY: 87ba0ad5 manual
 // OFFSET: 0x00406B70
 void BeginCloseGame() {
@@ -1849,7 +1858,7 @@ void BeginCloseGame() {
     CVar::Destroy();
     ConsoleCommandDestroy();
     BaseDestroyGlobal();
-    CloseAllArchives();
+    CloseAllArchivesGuarded();
     ShutdownStreamingIfTrial();
     StopStreaming();
 
