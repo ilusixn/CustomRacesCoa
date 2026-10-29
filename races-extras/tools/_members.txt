@@ -1,0 +1,5 @@
+    CharacterBodyShape::Values _bodyShape{};
+    bool _hasRetailLook = false;
+    std::array<uint8, CharacterRetailLook::PayloadSize> _retailLook{};
+    bool _hasParkedLook = false;
+    std::array<uint8, CharacterRetailLook::PayloadSize> _parkedLook{};

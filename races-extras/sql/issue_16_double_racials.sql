@@ -1,0 +1,4 @@
+-- Issue #16: classic race + classic class learned each racial twice (stock + Bronzebeard copy).
+-- Hide +1100000 copies on racial skill lines from vanilla classes. Stock racials stay.
+-- Applied by Custom/scripts/fix_issues_14_15.py (rewrites Data/dbc/SkillLineAbility.dbc and patch-ZK).
+-- Restart worldserver after apply.

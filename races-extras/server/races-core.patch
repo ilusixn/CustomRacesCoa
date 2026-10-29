@@ -1,0 +1,821 @@
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index e039fc47b..297b144eb 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -8391,6 +8391,9 @@ public:
+ 
+     if (opcode == CMSG_ANTICHEAT_ALERT)
+       return true;
++    // The retail form looks are a regular handler (WorldSession::HandleEsteriaFormLookOpcode), not a consumed extension packet.
++    if (opcode == CMSG_ESTERIA_FORM_LOOK)
++      return true;
+ 
+     if (std::find(CORE_EXTENSION_OPCODES.begin(), CORE_EXTENSION_OPCODES.end(), opcode) !=
+         CORE_EXTENSION_OPCODES.end())
+diff --git a/src/server/coa/CoAGameplayTest.cpp b/src/server/coa/CoAGameplayTest.cpp
+index 0e311c399..f6416658c 100644
+--- a/src/server/coa/CoAGameplayTest.cpp
++++ b/src/server/coa/CoAGameplayTest.cpp
+@@ -2072,7 +2072,7 @@ private:
+                 {
+                     Require(bool(result), "Created character missing from enumeration");
+                     auto& current = _actors.at(id);
+-                    current.session->HandleCharEnum(result);
++                    current.session->HandleCharEnum(result, nullptr, nullptr);
+                     Reach(current, ActorStage::Enumerated);
+                 }));
+         }
+diff --git a/src/server/coa/EsteriaRacials/CoaRacialSync.cpp b/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
+index b5dedbde6..43378ba64 100644
+--- a/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
++++ b/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
+@@ -69,6 +69,9 @@ void AddSC_CoaEsteriaRacials()
+     void AddSC_drakonid_racials();
+     void AddSC_darkfallen_racials();
+     void AddSC_broken_racials();
++    void AddSC_kyrian_hover();
++    void AddSC_kyrian_racials();
++    void AddSC_venthyr_racials();
+ 
+     new CoaRacialSync();
+     AddSC_race_racials();
+@@ -76,4 +79,7 @@ void AddSC_CoaEsteriaRacials()
+     AddSC_drakonid_racials();
+     AddSC_darkfallen_racials();
+     AddSC_broken_racials();
++    AddSC_kyrian_hover();
++    AddSC_kyrian_racials();
++    AddSC_venthyr_racials();
+ }
+diff --git a/src/server/coa/EsteriaRacials/race_racials.cpp b/src/server/coa/EsteriaRacials/race_racials.cpp
+index 378751f10..2685f8337 100644
+--- a/src/server/coa/EsteriaRacials/race_racials.cpp
++++ b/src/server/coa/EsteriaRacials/race_racials.cpp
+@@ -1135,6 +1135,15 @@ class spell_race_visage : public SpellScript
+         if (!player)
+             return;
+ 
++        // Retail adapter: with a saved Dragon/Visage look pair the client swaps the model, no morph needed.
++        bool const toggled = player->ToggleRetailForm();
++        LOG_INFO("coa", "Visage: {} toggled the retail form: {}", player->GetName(), toggled);
++        if (toggled)
++        {
++            player->RemoveAurasDueToSpell(SPELL_VISAGE_FORM);
++            return;
++        }
++
+         if (player->HasAura(SPELL_VISAGE_FORM))
+             player->RemoveAurasDueToSpell(SPELL_VISAGE_FORM);
+         else
+@@ -1147,6 +1156,23 @@ class spell_race_visage : public SpellScript
+     }
+ };
+ 
++// Worgen: Two Forms (110690) switches between the Wolf and Human looks.
++class spell_race_two_forms : public SpellScript
++{
++    PrepareSpellScript(spell_race_two_forms);
++
++    void HandleDummy(SpellEffIndex /*effIndex*/)
++    {
++        if (Player* player = GetCaster()->ToPlayer())
++            LOG_INFO("coa", "Two Forms: {} toggled the retail form: {}", player->GetName(), player->ToggleRetailForm());
++    }
++
++    void Register() override
++    {
++        OnEffectHitTarget += SpellEffectFn(spell_race_two_forms::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
++    }
++};
++
+ class spell_race_visage_form : public AuraScript
+ {
+     PrepareAuraScript(spell_race_visage_form);
+@@ -1685,6 +1711,7 @@ void AddSC_race_racials()
+     RegisterSpellScript(spell_race_rummage_your_bag);
+     RegisterSpellScript(spell_race_visage);
+     RegisterSpellScript(spell_race_visage_form);
++    RegisterSpellScript(spell_race_two_forms);
+     RegisterSpellScript(spell_race_chosen_identity);
+     RegisterSpellScript(spell_race_ingest_minerals);
+     RegisterSpellScript(spell_race_quiet_contemplation);
+diff --git a/src/server/database/Database/Implementation/CharacterDatabase.cpp b/src/server/database/Database/Implementation/CharacterDatabase.cpp
+index 066f3d113..84fd7965c 100644
+--- a/src/server/database/Database/Implementation/CharacterDatabase.cpp
++++ b/src/server/database/Database/Implementation/CharacterDatabase.cpp
+@@ -249,6 +249,32 @@ void CharacterDatabaseConnection::DoPrepareStatements()
+                      "LEFT JOIN character_ascension_state AS cas ON cas.guid = c.guid "
+                      "WHERE c.account = ? AND c.deleteInfos_Name IS NULL AND (cas.active IS NULL OR cas.active <> 0) "
+                      "ORDER BY COALESCE(c.order, c.guid)", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_SEL_ENUM_BODY_SHAPE,
++        "SELECT b.guid, b.data FROM character_body_shape AS b JOIN characters AS c ON c.guid = b.guid "
++        "WHERE c.account = ? AND c.deleteInfos_Name IS NULL", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_SEL_ENUM_RETAIL_LOOK,
++        "SELECT l.guid, l.data, 0 FROM character_retail_look AS l JOIN characters AS c ON c.guid = l.guid "
++        "WHERE c.account = ? AND c.deleteInfos_Name IS NULL "
++        "UNION ALL SELECT f.guid, f.data, 1 FROM character_form_look AS f JOIN characters AS c ON c.guid = f.guid "
++        "WHERE c.account = ? AND c.deleteInfos_Name IS NULL", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_SEL_RETAIL_LOOK,
++        "SELECT data FROM character_retail_look WHERE guid = ?", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_REP_RETAIL_LOOK,
++        "REPLACE INTO character_retail_look (guid, data) VALUES (?, ?)", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_DEL_RETAIL_LOOK,
++        "DELETE FROM character_retail_look WHERE guid = ?", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_SEL_FORM_LOOK,
++        "SELECT data FROM character_form_look WHERE guid = ?", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_REP_FORM_LOOK,
++        "REPLACE INTO character_form_look (guid, data) VALUES (?, ?)", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_DEL_FORM_LOOK,
++        "DELETE FROM character_form_look WHERE guid = ?", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_SEL_BODY_SHAPE,
++        "SELECT data FROM character_body_shape WHERE guid = ?", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_REP_BODY_SHAPE,
++        "REPLACE INTO character_body_shape (guid, data) VALUES (?, ?)", CONNECTION_ASYNC);
++    PrepareStatement(CHAR_DEL_BODY_SHAPE,
++        "DELETE FROM character_body_shape WHERE guid = ?", CONNECTION_ASYNC);
+     PrepareStatement(CHAR_SEL_ENUM_DECLINED_NAME, "SELECT c.guid, c.name, c.race, c.class, c.gender, c.skin, c.face, c.hairStyle, c.hairColor, c.facialStyle, c.level, c.zone, c.map, "
+                      "c.position_x, c.position_y, c.position_z, gm.guildid, c.playerFlags, c.at_login, cp.entry, cp.modelid, cp.level, c.equipmentCache, "
+                      "cb.guid, c.extra_flags, cd.genitive, c.extraAppearance FROM characters AS c LEFT JOIN character_pet AS cp ON c.guid = cp.owner AND cp.slot = ? "
+diff --git a/src/server/database/Database/Implementation/CharacterDatabase.h b/src/server/database/Database/Implementation/CharacterDatabase.h
+index d3c708fb7..9c82dbbb4 100644
+--- a/src/server/database/Database/Implementation/CharacterDatabase.h
++++ b/src/server/database/Database/Implementation/CharacterDatabase.h
+@@ -48,6 +48,17 @@ enum CharacterDatabaseStatements : uint32
+     CHAR_SEL_BANNED_NAME,
+     CHAR_SEL_ENUM,
+     CHAR_SEL_ENUM_DECLINED_NAME,
++    CHAR_SEL_ENUM_BODY_SHAPE,
++    CHAR_SEL_ENUM_RETAIL_LOOK,
++    CHAR_SEL_BODY_SHAPE,
++    CHAR_REP_BODY_SHAPE,
++    CHAR_DEL_BODY_SHAPE,
++    CHAR_SEL_RETAIL_LOOK,
++    CHAR_REP_RETAIL_LOOK,
++    CHAR_DEL_RETAIL_LOOK,
++    CHAR_SEL_FORM_LOOK,
++    CHAR_REP_FORM_LOOK,
++    CHAR_DEL_FORM_LOOK,
+     CHAR_SEL_FREE_NAME,
+     CHAR_SEL_CHAR_ZONE,
+     CHAR_SEL_CHARACTER_NAME_DATA,
+diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
+index 765de1549..3b8ada3f8 100644
+--- a/src/server/game/Entities/Player/Player.cpp
++++ b/src/server/game/Entities/Player/Player.cpp
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include "Player.h"
++#include "KyrianRacials.h"
+ #include "CoaCustomRacials.h"
+ #include "AscensionSpellCopy.h"
+ #include "AscensionIncarnation.h"
+@@ -4663,6 +4664,13 @@ void Player::DeleteFromDB(ObjectGuid::LowType lowGuid, uint32 accountId, bool up
+                 stmt->SetData(0, lowGuid);
+                 trans->Append(stmt);
+ 
++                for (auto id : { CHAR_DEL_BODY_SHAPE, CHAR_DEL_RETAIL_LOOK, CHAR_DEL_FORM_LOOK })
++                {
++                    stmt = CharacterDatabase.GetPreparedStatement(id);
++                    stmt->SetData(0, lowGuid);
++                    trans->Append(stmt);
++                }
++
+                 Corpse::DeleteFromDB(playerGuid, trans);
+ 
+                 sScriptMgr->OnPlayerDeleteFromDB(trans, lowGuid);
+@@ -12387,8 +12395,127 @@ void Player::SendInitialPacketsBeforeAddToMap()
+     sScriptMgr->OnPlayerSendInitialPacketsBeforeAddToMap(this, data);
+ }
+ 
++void Player::LoadBodyShape(PreparedQueryResult result)
++{
++    _bodyShape = {};
++    if (!result)
++        return;
++
++    auto const payload = (*result)[0].Get<Binary, CharacterBodyShape::PayloadSize>();
++    CharacterBodyShape::Values values{};
++    if (CharacterBodyShape::ReadPayload(payload.data(), payload.size(), values))
++        _bodyShape = values;
++}
++
++void Player::SendBodyShapeTo(Player* receiver) const
++{
++    if (!receiver || !receiver->GetSession())
++        return;
++
++    // Always sent, defaults included, so a client that cached an older value for this guid replaces it.
++    uint8 payload[CharacterBodyShape::PayloadSize];
++    CharacterBodyShape::WritePayload(payload, _bodyShape);
++
++    WorldPacket data(SMSG_ESTERIA_BODY_SHAPE, 8 + CharacterBodyShape::PayloadSize);
++    data << GetGUID().GetRawValue();
++    data.append(payload, sizeof(payload));
++    receiver->GetSession()->SendPacket(&data);
++}
++
++void Player::LoadRetailLook(PreparedQueryResult result)
++{
++    _hasRetailLook = false;
++    _retailLook = {};
++    if (!result)
++        return;
++
++    auto const payload = (*result)[0].Get<Binary, CharacterRetailLook::PayloadSize>();
++    CharacterRetailLook::Look look;
++    if (CharacterRetailLook::ReadPayload(payload.data(), payload.size(), look))
++    {
++        _retailLook = payload;
++        _hasRetailLook = true;
++    }
++}
++
++void Player::SendRetailLookTo(Player* receiver) const
++{
++    // Players without a saved look have nothing to send: the client falls back to the five stock bytes.
++    if (!_hasRetailLook || !receiver || !receiver->GetSession())
++        return;
++
++    WorldPacket data(SMSG_ESTERIA_RETAIL_LOOK, 8 + CharacterRetailLook::PayloadSize);
++    data << GetGUID().GetRawValue();
++    data.append(_retailLook.data(), _retailLook.size());
++    receiver->GetSession()->SendPacket(&data);
++}
++
++void Player::LoadFormLook(PreparedQueryResult result)
++{
++    _hasParkedLook = false;
++    _parkedLook = {};
++    if (!result)
++        return;
++
++    auto const payload = (*result)[0].Get<Binary, CharacterRetailLook::PayloadSize>();
++    CharacterRetailLook::Look look;
++    if (CharacterRetailLook::ReadPayload(payload.data(), payload.size(), look))
++    {
++        _parkedLook = payload;
++        _hasParkedLook = true;
++    }
++}
++
++uint8 Player::GetActiveRetailForm() const
++{
++    CharacterRetailLook::Look look;
++    return _hasRetailLook && CharacterRetailLook::ReadPayload(_retailLook.data(), _retailLook.size(), look) ? look.form : 0;
++}
++
++bool Player::ToggleRetailForm()
++{
++    if (!_hasRetailLook || !_hasParkedLook)
++        return false;
++
++    CharacterRetailLook::Look active, parked;
++    if (!CharacterRetailLook::ReadPayload(_retailLook.data(), _retailLook.size(), active)
++        || !CharacterRetailLook::ReadPayload(_parkedLook.data(), _parkedLook.size(), parked))
++        return false;
++
++    uint8 const first = CharacterRetailLook::FirstFormForRace(getRace());
++    uint8 const second = static_cast<uint8>(first + 1);
++    bool const formsMatch = (active.form == first && parked.form == second)
++        || (active.form == second && parked.form == first);
++    if (!first || !formsMatch || active.race != getRace() || parked.race != getRace()
++        || active.sex != getGender() || parked.sex != getGender())
++        return false;
++
++    std::swap(_retailLook, _parkedLook);
++
++    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
++    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_RETAIL_LOOK);
++    stmt->SetData(0, GetGUID().GetCounter());
++    stmt->SetData(1, std::vector<uint8>(_retailLook.begin(), _retailLook.end()));
++    trans->Append(stmt);
++    stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_FORM_LOOK);
++    stmt->SetData(0, GetGUID().GetCounter());
++    stmt->SetData(1, std::vector<uint8>(_parkedLook.begin(), _parkedLook.end()));
++    trans->Append(stmt);
++    CharacterDatabase.CommitTransaction(trans);
++
++    // To this player and everyone who has them in view; players who come into view later get the active look from
++    // SendRetailLookTo like any other.
++    WorldPacket data(SMSG_ESTERIA_RETAIL_LOOK, 8 + CharacterRetailLook::PayloadSize);
++    data << GetGUID().GetRawValue();
++    data.append(_retailLook.data(), _retailLook.size());
++    SendMessageToSet(&data, true);
++    return true;
++}
++
+ void Player::SendInitialPacketsAfterAddToMap()
+ {
++    SendBodyShapeTo(this);
++    SendRetailLookTo(this);
+     UpdateVisibilityForPlayer(true);
+ 
+     GetSession()->ResetTimeSync();
+@@ -14953,6 +15080,9 @@ void Player::HandleFall(MovementInfo const& movementInfo)
+                 if (HasAura(SPELL_DIVINE_PROTECTION))
+                     damage /= 2;
+ 
++                if (getRace(true) == KyrianRacials::Race && HasAura(KyrianRacials::AscendedWings))
++                    damage = CalculatePct(damage, 100 - KyrianRacials::FallReductionPercent);
++
+                 final_damage = EnvironmentalDamage(DAMAGE_FALL, damage);
+             }
+ 
+diff --git a/src/server/game/Entities/Player/Player.h b/src/server/game/Entities/Player/Player.h
+index ec40e2369..4ff3d0255 100644
+--- a/src/server/game/Entities/Player/Player.h
++++ b/src/server/game/Entities/Player/Player.h
+@@ -19,6 +19,8 @@
+ #define _PLAYER_H
+ 
+ #include "ArenaTeam.h"
++#include "BodyShapeWire.h"
++#include "RetailLookWire.h"
+ #include "Battleground.h"
+ #include "CharmInfo.h"
+ #include "CharacterCache.h"
+@@ -891,6 +893,9 @@ enum PlayerLoginQueryIndex
+     PLAYER_LOGIN_QUERY_LOAD_CHARACTER_SETTINGS           = 36,
+     PLAYER_LOGIN_QUERY_LOAD_PET_SLOTS                    = 37,
+     PLAYER_LOGIN_QUERY_LOAD_OFFLINE_ACHIEVEMENTS_UPDATES = 38,
++    PLAYER_LOGIN_QUERY_LOAD_BODY_SHAPE                   = 39,
++    PLAYER_LOGIN_QUERY_LOAD_RETAIL_LOOK                  = 40,
++    PLAYER_LOGIN_QUERY_LOAD_FORM_LOOK                    = 41,
+     MAX_PLAYER_LOGIN_QUERY
+ };
+ 
+@@ -1144,6 +1149,18 @@ public:
+ 
+     void SendInitialPacketsBeforeAddToMap();
+     void SendInitialPacketsAfterAddToMap();
++    // Body sliders (see BodyShapeWire.h): loaded at login, announced to every player who gets this one in view.
++    void LoadBodyShape(PreparedQueryResult result);
++    void SendBodyShapeTo(Player* receiver) const;
++    // Full Retail customization (see RetailLookWire.h): opaque to the server, passed on to every player who sees this one.
++    void LoadRetailLook(PreparedQueryResult result);
++    void SendRetailLookTo(Player* receiver) const;
++    // Two Forms (Worgen Wolf/Human, Dracthyr Dragon/Visage): the look of the form that is not showing.
++    // ToggleRetailForm swaps it with the active one, saves both and tells everyone who sees this player; false when
++    // there is no saved pair.
++    void LoadFormLook(PreparedQueryResult result);
++    bool ToggleRetailForm();
++    uint8 GetActiveRetailForm() const; // the form (see RetailLookWire.h) of the look showing, 0 when none or the race's default
+     void SendTransferAborted(uint32 mapid, TransferAbortReason reason, uint8 arg = 0);
+     void SendInstanceResetWarning(uint32 mapid, Difficulty difficulty, uint32 time, bool onEnterMap);
+ 
+@@ -3205,9 +3222,14 @@ private:
+     bool _expectingChangeTransport;
+     uint32 _pendingFlightChangeCounter;
+     uint32 _mapChangeOrderCounter;
++    CharacterBodyShape::Values _bodyShape{};
++    bool _hasRetailLook = false;
++    std::array<uint8, CharacterRetailLook::PayloadSize> _retailLook{};
++    bool _hasParkedLook = false;
++    std::array<uint8, CharacterRetailLook::PayloadSize> _parkedLook{};
+ };
+ 
+ void AddItemsSetItem(Player* player, Item* item);
+ void RemoveItemsSetItem(Player* player, ItemTemplate const* proto);
+ 
+-#endif
++#endif
+\ No newline at end of file
+diff --git a/src/server/game/Entities/Player/PlayerStorage.cpp b/src/server/game/Entities/Player/PlayerStorage.cpp
+index c3a8cac43..d9da0273c 100644
+--- a/src/server/game/Entities/Player/PlayerStorage.cpp
++++ b/src/server/game/Entities/Player/PlayerStorage.cpp
+@@ -5759,6 +5759,9 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
+     _LoadBrewOfTheMonth(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_BREW_OF_THE_MONTH));
+ 
+     _LoadCharacterSettings(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CHARACTER_SETTINGS));
++    LoadBodyShape(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_BODY_SHAPE));
++    LoadRetailLook(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_RETAIL_LOOK));
++    LoadFormLook(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FORM_LOOK));
+ 
+     // Players are immune to taunt
+     ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, true);
+diff --git a/src/server/game/Entities/Player/PlayerUpdates.cpp b/src/server/game/Entities/Player/PlayerUpdates.cpp
+index 9ca720317..4eaf929cc 100644
+--- a/src/server/game/Entities/Player/PlayerUpdates.cpp
++++ b/src/server/game/Entities/Player/PlayerUpdates.cpp
+@@ -1779,6 +1779,8 @@ inline void UpdateVisibilityOf_helper(Player* player, Player* target,
+ {
+     player->GetObjectVisibilityContainer().LinkWorldObjectVisibility(target);
+     v.push_back(target);
++    target->SendBodyShapeTo(player);
++    target->SendRetailLookTo(player);
+ }
+ 
+ template <class T>
+@@ -1850,6 +1852,12 @@ void Player::UpdateVisibilityOf(WorldObject* target)
+             target->SendUpdateToPlayer(this);
+             GetObjectVisibilityContainer().LinkWorldObjectVisibility(target);
+ 
++            if (Player* other = target->ToPlayer())
++            {
++                other->SendBodyShapeTo(this);
++                other->SendRetailLookTo(this);
++            }
++
+             // target aura duration for caster show only if target exist at
+             // caster client send data at target visibility change (adding to
+             // client)
+diff --git a/src/server/game/Handlers/CharacterHandler.cpp b/src/server/game/Handlers/CharacterHandler.cpp
+index fc8eed4e1..73e3138d7 100644
+--- a/src/server/game/Handlers/CharacterHandler.cpp
++++ b/src/server/game/Handlers/CharacterHandler.cpp
+@@ -217,11 +217,49 @@ bool LoginQueryHolder::Initialize()
+     stmt->SetData(0, rawGUID);
+     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_OFFLINE_ACHIEVEMENTS_UPDATES, stmt);
+ 
++    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_BODY_SHAPE);
++    stmt->SetData(0, rawGUID);
++    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_BODY_SHAPE, stmt);
++
++    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_RETAIL_LOOK);
++    stmt->SetData(0, rawGUID);
++    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_RETAIL_LOOK, stmt);
++
++    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_FORM_LOOK);
++    stmt->SetData(0, rawGUID);
++    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_FORM_LOOK, stmt);
++
+     return res;
+ }
+ 
+-void WorldSession::HandleCharEnum(PreparedQueryResult result)
++void WorldSession::HandleCharEnum(PreparedQueryResult result, PreparedQueryResult bodyShape, PreparedQueryResult retailLook)
+ {
++    using RetailPayload = std::array<uint8, CharacterRetailLook::PayloadSize>;
++    std::unordered_map<uint32, RetailPayload> retailLooks, parkedLooks; // parked: the Two Forms look that is not showing
++    if (retailLook)
++    {
++        do
++        {
++            auto const payload = (*retailLook)[1].Get<Binary, CharacterRetailLook::PayloadSize>();
++            CharacterRetailLook::Look look;
++            if (CharacterRetailLook::ReadPayload(payload.data(), payload.size(), look))
++                ((*retailLook)[2].Get<uint8>() ? parkedLooks : retailLooks)[(*retailLook)[0].Get<uint32>()] = payload;
++        } while (retailLook->NextRow());
++    }
++    std::unordered_map<uint32, std::array<uint8, CharacterBodyShape::PayloadSize>> bodyShapes;
++    if (bodyShape)
++    {
++        do
++        {
++            auto const payload = (*bodyShape)[1].Get<Binary, CharacterBodyShape::PayloadSize>();
++            CharacterBodyShape::Values values{};
++            if (CharacterBodyShape::ReadPayload(payload.data(), payload.size(), values) && !CharacterBodyShape::AllDefault(values))
++                bodyShapes[(*bodyShape)[0].Get<uint32>()] = payload;
++        } while (bodyShape->NextRow());
++    }
++    ByteBuffer bodyShapeBlock, retailLookBlock, parkedLookBlock;
++    uint32 bodyShapeCount = 0, retailLookCount = 0, parkedLookCount = 0;
++
+     WorldPacket data(SMSG_CHAR_ENUM, 100);                  // we guess size
+ 
+     uint8 num = 0;
+@@ -243,6 +281,24 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
+             {
+                 _legitCharacters.insert(guid);
+                 ++num;
++                if (auto const look = retailLooks.find(guid.GetCounter()); look != retailLooks.end())
++                {
++                    retailLookBlock << guid.GetRawValue();
++                    retailLookBlock.append(look->second.data(), look->second.size());
++                    ++retailLookCount;
++                }
++                if (auto const look = parkedLooks.find(guid.GetCounter()); look != parkedLooks.end())
++                {
++                    parkedLookBlock << guid.GetRawValue();
++                    parkedLookBlock.append(look->second.data(), look->second.size());
++                    ++parkedLookCount;
++                }
++                if (auto const shape = bodyShapes.find(guid.GetCounter()); shape != bodyShapes.end())
++                {
++                    bodyShapeBlock << guid.GetRawValue();
++                    bodyShapeBlock.append(shape->second.data(), shape->second.size());
++                    ++bodyShapeCount;
++                }
+                 uint64 extra = (*result)[result->GetFieldCount() - 1].Get<uint64>();
+                 if (UsesExtendedAppearance((*result)[2].Get<uint8>()))
+                 {
+@@ -269,6 +325,21 @@ void WorldSession::HandleCharEnum(PreparedQueryResult result)
+         data.append(haranirAppearances);
+         data << haranirCount << uint32(0x32455848);     // HXE2: GUID + uint64 extension
+     }
++    if (bodyShapeCount)
++    {
++        data.append(bodyShapeBlock);
++        data << bodyShapeCount << CharacterBodyShape::EnumMagic; // BSE1
++    }
++    if (retailLookCount)
++    {
++        data.append(retailLookBlock);
++        data << retailLookCount << CharacterRetailLook::EnumMagic; // RLE1
++    }
++    if (parkedLookCount)
++    {
++        data.append(parkedLookBlock);
++        data << parkedLookCount << CharacterRetailLook::ParkedMagic; // RLP1
++    }
+ 
+     SendPacket(&data);
+ }
+@@ -287,7 +358,26 @@ void WorldSession::HandleCharEnumOpcode(WorldPacket& /*recvData*/)
+     stmt->SetData(0, PET_SAVE_AS_CURRENT);
+     stmt->SetData(1, GetAccountId());
+ 
+-    _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&WorldSession::HandleCharEnum, this, std::placeholders::_1)));
++    _queryProcessor.AddCallback(CharacterDatabase.AsyncQuery(stmt).WithChainingPreparedCallback(
++        [this](QueryCallback& callback, PreparedQueryResult result)
++        {
++            auto* bodyShapeStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ENUM_BODY_SHAPE);
++            bodyShapeStmt->SetData(0, GetAccountId());
++            callback.WithChainingPreparedCallback(
++                [this, result](QueryCallback& lastCallback, PreparedQueryResult bodyShape)
++                {
++                    auto* lookStmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ENUM_RETAIL_LOOK);
++                    lookStmt->SetData(0, GetAccountId());
++                    lookStmt->SetData(1, GetAccountId());
++                    lastCallback.WithPreparedCallback(
++                        [this, result, bodyShape](PreparedQueryResult retailLook)
++                        {
++                            HandleCharEnum(result, bodyShape, retailLook);
++                        });
++                    lastCallback.SetNextQuery(CharacterDatabase.AsyncQuery(lookStmt));
++                });
++            callback.SetNextQuery(CharacterDatabase.AsyncQuery(bodyShapeStmt));
++        }));
+ }
+ 
+ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
+@@ -305,6 +395,15 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
+              >> createInfo->FacialHair
+              >> createInfo->OutfitId;
+ 
++    // CoA: Esteria's retail look / body slider footers ride at the very end of the packet
++    if (!CharacterRetailLook::ReadTail(recvData, createInfo->HasRetailLook, createInfo->RetailLook) ||
++        (createInfo->HasRetailLook && (createInfo->RetailLook.race != createInfo->Race || createInfo->RetailLook.sex != createInfo->Gender)) ||
++        !CharacterBodyShape::ReadTail(recvData, createInfo->HasBodyShape, createInfo->BodyShape))
++    {
++        SendCharCreate(CHAR_CREATE_FAILED);
++        return;
++    }
++
+     // CoA: Esteria's Haranir append a uint64 appearance and the HRC1 magic to the stock packet
+     if (UsesHaranirAppearance(createInfo->Race))
+     {
+@@ -2049,6 +2148,87 @@ void WorldSession::HandleEquipmentSetUse(WorldPacket& recvData)
+     SendPacket(&data);
+ }
+ 
++// Two Forms: the client commits both forms of a Worgen or Dracthyr after creating it (or editing it later).
++//   CMSG: guid(8) revision(u32) activeForm(u8) look(132) look(132). The first look is the active form's, the second the
++//         other form's; both are version-2 looks (CharacterRetailLook).
++//   SMSG_ESTERIA_FORM_LOOK_ACK: guid(8) revision(u32) result(u8): 0 saved, 1 not this account's character, 2 invalid,
++//         3 not a Two Forms race. The write is a plain REPLACE, so a resend of the same commit is harmless.
++void WorldSession::HandleEsteriaFormLookOpcode(WorldPacket& recvData)
++{
++    constexpr size_t payloadSize = CharacterRetailLook::PayloadSize;
++    if (recvData.size() - recvData.rpos() != 8 + 4 + 1 + 2 * payloadSize)
++        return;
++
++    uint64 rawGuid;
++    uint32 revision;
++    uint8 activeForm;
++    std::array<uint8, payloadSize> activePayload, parkedPayload;
++    recvData >> rawGuid >> revision >> activeForm;
++    recvData.read(activePayload.data(), payloadSize);
++    recvData.read(parkedPayload.data(), payloadSize);
++
++    ObjectGuid const guid(rawGuid);
++    auto reply = [&](uint8 result)
++    {
++        if (result)
++            LOG_WARN("network.opcode", "CMSG_ESTERIA_FORM_LOOK from account {} refused with result {}", GetAccountId(), result);
++        WorldPacket data(SMSG_ESTERIA_FORM_LOOK_ACK, 8 + 4 + 1);
++        data << rawGuid << revision << result;
++        SendPacket(&data);
++    };
++
++    if (!IsLegitCharacterForAccount(guid))
++    {
++        reply(1);
++        return;
++    }
++
++    CharacterCacheEntry const* character = sCharacterCache->GetCharacterCacheByGuid(guid);
++    if (!character)
++    {
++        reply(1);
++        return;
++    }
++
++    uint8 const first = CharacterRetailLook::FirstFormForRace(character->Race);
++    if (!first)
++    {
++        reply(3);
++        return;
++    }
++    uint8 const second = static_cast<uint8>(first + 1);
++
++    CharacterRetailLook::Look active, parked;
++    if (!CharacterRetailLook::ReadPayload(activePayload.data(), payloadSize, active)
++        || !CharacterRetailLook::ReadPayload(parkedPayload.data(), payloadSize, parked)
++        || (activeForm != first && activeForm != second)
++        || active.form != activeForm || parked.form != (activeForm == first ? second : first)
++        || active.race != character->Race || parked.race != character->Race
++        || active.sex != character->Sex || parked.sex != character->Sex)
++    {
++        reply(2);
++        return;
++    }
++
++    // Written from the parsed looks, so what is stored is always the canonical encoding.
++    std::vector<uint8> activeOut(payloadSize), parkedOut(payloadSize);
++    CharacterRetailLook::WritePayload(activeOut.data(), active);
++    CharacterRetailLook::WritePayload(parkedOut.data(), parked);
++
++    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
++    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_RETAIL_LOOK);
++    stmt->SetData(0, guid.GetCounter());
++    stmt->SetData(1, activeOut);
++    trans->Append(stmt);
++    stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_FORM_LOOK);
++    stmt->SetData(0, guid.GetCounter());
++    stmt->SetData(1, parkedOut);
++    trans->Append(stmt);
++    CharacterDatabase.CommitTransaction(trans);
++
++    reply(0);
++}
++
+ void WorldSession::HandleCharFactionOrRaceChange(WorldPacket& recvData)
+ {
+     std::shared_ptr<CharacterFactionChangeInfo> factionChangeInfo = std::make_shared<CharacterFactionChangeInfo>();
+diff --git a/src/server/game/Server/Protocol/Opcodes.cpp b/src/server/game/Server/Protocol/Opcodes.cpp
+index 2d0cd3950..3882b2b14 100644
+--- a/src/server/game/Server/Protocol/Opcodes.cpp
++++ b/src/server/game/Server/Protocol/Opcodes.cpp
+@@ -1444,6 +1444,10 @@ void OpcodeTable::Initialize()
+     // by internal calls (WorldSession::HandleTC9PrepareForRedirect), not by the client.
+     /*0x51F*/ DEFINE_HANDLER(CMSG_ANTICHEAT_ALERT,                                                  STATUS_AUTHED,     PROCESS_THREADUNSAFE,   &WorldSession::HandleAnticheatAlert                     );
+     /*0x520*/ DEFINE_SERVER_OPCODE_HANDLER(TC9_SMSG_READY_FOR_REDIRECT, STATUS_NEVER);
++    DEFINE_SERVER_OPCODE_HANDLER(SMSG_ESTERIA_BODY_SHAPE, STATUS_NEVER);
++    DEFINE_SERVER_OPCODE_HANDLER(SMSG_ESTERIA_RETAIL_LOOK, STATUS_NEVER);
++    DEFINE_HANDLER(CMSG_ESTERIA_FORM_LOOK, STATUS_AUTHED, PROCESS_THREADUNSAFE, &WorldSession::HandleEsteriaFormLookOpcode);
++    DEFINE_SERVER_OPCODE_HANDLER(SMSG_ESTERIA_FORM_LOOK_ACK, STATUS_NEVER);
+     // -- CoA extension range (consumed by mod-coa-challenges via CanPacketReceive;
+     // -- Handle_NULL is the fallback when the module is disabled) --
+     /*0x592*/ DEFINE_HANDLER(CMSG_COA_START_CHALLENGE,                                               STATUS_LOGGEDIN,   PROCESS_INPLACE,        &WorldSession::Handle_NULL                              );
+diff --git a/src/server/game/Server/Protocol/Opcodes.h b/src/server/game/Server/Protocol/Opcodes.h
+index 8531a1d86..8f5e98a45 100644
+--- a/src/server/game/Server/Protocol/Opcodes.h
++++ b/src/server/game/Server/Protocol/Opcodes.h
+@@ -1340,6 +1340,10 @@ enum Opcodes : uint16
+     SMSG_MULTIPLE_MOVES                             = 0x51E, // uncompressed version of SMSG_COMPRESSED_MOVES
+     CMSG_ANTICHEAT_ALERT                            = 0x51F, // Ascension client: local anti-tamper/anti-debug alert, see WorldSession::HandleAnticheatAlert
+     TC9_SMSG_READY_FOR_REDIRECT                     = 0x520,
++    SMSG_ESTERIA_BODY_SHAPE                         = 0x523,
++    SMSG_ESTERIA_RETAIL_LOOK                        = 0x524,
++    CMSG_ESTERIA_FORM_LOOK                          = 0x525,
++    SMSG_ESTERIA_FORM_LOOK_ACK                      = 0x526,
+     // -- CoA extension range (custom client; see mod-coa-challenges) --
+     SMSG_COA_CONFIG                                 = 0x58D,
+     SMSG_COA_CHALLENGE_ACTIVE_LIST                  = 0x596,
+diff --git a/src/server/game/Server/WorldSession.h b/src/server/game/Server/WorldSession.h
+index 59e6456ca..64b44acbb 100644
+--- a/src/server/game/Server/WorldSession.h
++++ b/src/server/game/Server/WorldSession.h
+@@ -25,6 +25,8 @@
+ #include "AccountMgr.h"
+ #include "AddonMgr.h"
+ #include "AuthDefines.h"
++#include "BodyShapeWire.h"
++#include "RetailLookWire.h"
+ #include "CircularBuffer.h"
+ #include "Common.h"
+ #include "DatabaseEnv.h"
+@@ -384,6 +386,10 @@ protected:
+     uint8 FacialHair = 0;
+     uint8 OutfitId = 0;
+     uint64 HaranirExtra = 0;                            // CoA: Esteria Haranir appearance extension
++    bool HasBodyShape = false;
++    CharacterBodyShape::Values BodyShape{};
++    bool HasRetailLook = false;
++    CharacterRetailLook::Look RetailLook;
+ 
+     /// Server side data
+     uint8 CharCount = 0;
+@@ -724,7 +730,8 @@ public:                                                 // opcodes handlers
+     void HandleCharDeleteOpcode(WorldPacket& recvPacket);
+     void HandleCharCreateOpcode(WorldPacket& recvPacket);
+     void HandlePlayerLoginOpcode(WorldPacket& recvPacket);
+-    void HandleCharEnum(PreparedQueryResult result);
++    void HandleCharEnum(PreparedQueryResult result, PreparedQueryResult bodyShape, PreparedQueryResult retailLook);
++    void HandleEsteriaFormLookOpcode(WorldPacket& recvPacket);
+     void HandlePlayerLoginFromDB(LoginQueryHolder const& holder);
+     void HandlePlayerLoginToCharInWorld(Player* pCurrChar);
+     void HandlePlayerLoginToCharOutOfWorld(Player* pCurrChar);
+diff --git a/src/server/game/Spells/Auras/SpellAuraEffects.cpp b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
+index 2fc1cdeb5..e3ca8977f 100644
+--- a/src/server/game/Spells/Auras/SpellAuraEffects.cpp
++++ b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
+@@ -40,6 +40,7 @@
+ #include "Unit.h"
+ #include "Util.h"
+ #include "Vehicle.h"
++#include "VenthyrRacials.h"
+ #include "WorldPacket.h"
+ 
+ /// @todo: this import is not necessary for compilation and marked as unused by the IDE
+@@ -6761,7 +6762,18 @@ void AuraEffect::HandlePeriodicHealthLeechAuraTick(Unit* target, Unit* caster) c
+ 
+     float gainMultiplier = GetSpellInfo()->Effects[GetEffIndex()].CalcValueMultiplier(caster);
+ 
+-    uint32 heal = uint32(caster->SpellHealingBonusDone(caster, GetSpellInfo(), uint32(new_damage * gainMultiplier), DOT, GetEffIndex(), 0.0f, GetBase()->GetStackAmount()));
++    uint32 baseHeal = uint32(new_damage * gainMultiplier);
++    if (GetId() == VenthyrRacials::Feast)
++    {
++        // Preserve half-health points between actual damage ticks. At level one,
++        // four one-damage ticks must heal twice instead of rounding all four to zero.
++        double const exactHeal = double(new_damage) * gainMultiplier + m_venthyrFeastLeechRemainder;
++        baseHeal = uint32(exactHeal);
++        m_venthyrFeastLeechRemainder = exactHeal - baseHeal;
++    }
++
++    uint32 heal = uint32(caster->SpellHealingBonusDone(caster, GetSpellInfo(), baseHeal,
++        DOT, GetEffIndex(), 0.0f, GetBase()->GetStackAmount()));
+     heal = uint32(caster->SpellHealingBonusTaken(caster, GetSpellInfo(), heal, DOT, GetBase()->GetStackAmount()));
+ 
+     HealInfo healInfo(caster, caster, heal, GetSpellInfo(), GetSpellInfo()->GetSchoolMask());
+diff --git a/src/server/game/Spells/Auras/SpellAuraEffects.h b/src/server/game/Spells/Auras/SpellAuraEffects.h
+index ee897766d..6628d2e8e 100644
+--- a/src/server/game/Spells/Auras/SpellAuraEffects.h
++++ b/src/server/game/Spells/Auras/SpellAuraEffects.h
+@@ -151,6 +151,7 @@ private:
+     int32 m_periodicTimer;
+     int32 m_amplitude;
+     uint32 m_tickNumber;
++    mutable double m_venthyrFeastLeechRemainder = 0.0;
+ 
+     uint8 const m_effIndex;
+     bool m_canBeRecalculated;
+diff --git a/src/server/shared/CoaCustomRacials.h b/src/server/shared/CoaCustomRacials.h
+index e853457d0..7d30573cc 100644
+--- a/src/server/shared/CoaCustomRacials.h
++++ b/src/server/shared/CoaCustomRacials.h
+@@ -17,7 +17,7 @@ struct CoaCustomRacial
+ inline constexpr std::array<CoaCustomRacial, 66> CoaCustomRacials =
+ {{
+     {12, {110560, 110561, 110562, 110563}},
+-    {13, {14000131, 14000132, 14000133, 14000134}},
++    {13, {14000131, 14000132, 14000133, 14000134, 110690}},
+     {14, {111985, 111986, 111987, 111988, 111989}},
+     {15, {110840, 110841, 110842, 110843, 110981}},
+     {16, {14000161, 14000162, 14000163, 14000164}},
+@@ -41,11 +41,11 @@ inline constexpr std::array<CoaCustomRacial, 66> CoaCustomRacials =
+     {50, {14000501, 14000502, 14000503, 14000504}},
+     {51, {14000511, 14000512, 14000513, 14000514}},
+     {53, {110900, 110901, 110902, 110903, 110904}},
+-    {54, {110680, 110681, 110682, 110683, 110684, 110685, 110687}},
++    {54, {110680, 110681, 110682, 110683, 110684, 110685}},
+     {55, {110740, 110741, 110742, 110743, 110744}},
+     {56, {14000561, 14000562, 14000563, 14000564}},
+     {57, {14000571, 14000572, 14000573, 14000574}},
+-    {58, {110680, 110681, 110682, 110683, 110684, 110685, 110687}},
++    {58, {110680, 110681, 110682, 110683, 110684, 110685}},
+     {59, {110520, 110522, 110523, 110524, 110525}},
+     {60, {14000601, 14000602, 14000603, 14000604}},
+     {61, {14000611, 14000612, 14000613, 14000614}},
+@@ -76,8 +76,8 @@ inline constexpr std::array<CoaCustomRacial, 66> CoaCustomRacials =
+     {87, {14001221, 14001222, 14001223, 14001224, 14001225}},
+     {88, {14001231, 14001232, 14001233, 14001234, 14001235}},
+     {103, {14001031, 14001032, 14001033, 14001034}},
+-    {107, {110540, 110542, 110500, 110501, 14001075}},
+-    {101, {110040, 110041, 110920, 110921, 14001015}},
++    {107, {111104, 111105, 111106, 111107, 111108, 111110}},   // Kyrian: Aetheria racials (kyrian_racials.cpp)
++    {101, {111200, 111201, 111202, 111203, 111204, 111206, 111209}},   // Venthyr: Aetheria racials (venthyr_racials.cpp)
+     {112, {14001121, 14001122, 14001123, 14001124, 14001125}},
+     {104, {110700, 110704, 14000261, 14000262, 14001045}},
+     {75, {110600, 110602, 110940, 110942, 14001005, 14001006}},
+@@ -85,7 +85,7 @@ inline constexpr std::array<CoaCustomRacial, 66> CoaCustomRacials =
+ }};
+ 
+ // every racial this table has ever handed out (current and our older CoA set): a race keeps only its own
+-inline constexpr std::array<uint32, 331> CoaManagedRacialSpells =
++inline constexpr std::array<uint32, 332> CoaManagedRacialSpells =
+ {{
+     110040, 110041, 110042, 110043, 110044, 110050, 110051, 110102, 110103, 110300,
+     110301, 110302, 110303, 110304, 110305, 110306, 110307, 110308, 110309, 110310,
+@@ -98,7 +98,7 @@ inline constexpr std::array<uint32, 331> CoaManagedRacialSpells =
+     110602, 110603, 110604, 110605, 110620, 110621, 110622, 110623, 110624, 110625,
+     110640, 110641, 110642, 110643, 110644, 110645, 110646, 110647, 110648, 110649,
+     110650, 110651, 110652, 110660, 110661, 110662, 110664, 110665, 110680, 110681,
+-    110682, 110683, 110684, 110685, 110686, 110687, 110700, 110701, 110702, 110703,
++    110682, 110683, 110684, 110685, 110686, 110687, 110690, 110700, 110701, 110702, 110703,
+     110704, 110705, 110706, 110707, 110708, 110709, 110710, 110711, 110712, 110713,
+     110720, 110721, 110722, 110723, 110724, 110725, 110726, 110740, 110741, 110742,
+     110743, 110744, 110760, 110761, 110762, 110763, 110764, 110765, 110766, 110767,
