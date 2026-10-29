@@ -12448,6 +12448,7 @@ void Player::SendRetailLookTo(Player* receiver) const
     data << GetGUID().GetRawValue();
     data.append(_retailLook.data(), _retailLook.size());
     receiver->GetSession()->SendPacket(&data);
+    LOG_INFO("coa", "Retail look of {} (form {}) sent to {}", GetName(), GetActiveRetailForm(), receiver->GetName());
 }
 
 void Player::LoadFormLook(PreparedQueryResult result)
@@ -12509,6 +12510,7 @@ bool Player::ToggleRetailForm()
     data << GetGUID().GetRawValue();
     data.append(_retailLook.data(), _retailLook.size());
     SendMessageToSet(&data, true);
+    LOG_INFO("coa", "Retail look of {} switched to form {} and sent to the set", GetName(), GetActiveRetailForm());
     return true;
 }
 
