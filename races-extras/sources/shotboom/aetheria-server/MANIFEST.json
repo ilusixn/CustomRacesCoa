@@ -1,0 +1,112 @@
+{
+  "packageVersion": "kyrian-venthyr-20261027-1",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 54,
+      "sha256": "dce7d401cd73f6c5c4bafaf375a9b200996e3732b0c396c1fbd09447e4645266"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 469,
+      "sha256": "035d9bfd1ebeb738064cec266854a2d07f68a4d12340754004ec0651c396837b"
+    },
+    {
+      "path": "CREDITS.md",
+      "bytes": 822,
+      "sha256": "a83f89e21846cd8385b1988d83a4ae34fe3305f5ded14fff8447a6a9f9dfa614"
+    },
+    {
+      "path": "PROVENANCE.md",
+      "bytes": 1326,
+      "sha256": "346703f34a44ec681714988ce2a7cd4b847890d260df711cb619a8cc56730da9"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4824,
+      "sha256": "78a7cc2dbaee27df603517cbb8a84930873e5856918c52845575ee4b97ec6c6d"
+    },
+    {
+      "path": "integration/race-hooks.patch",
+      "bytes": 3469,
+      "sha256": "8941d6eaa7be760585520a0658945e3aa2f6097458a1e64c050c1673f24f5588"
+    },
+    {
+      "path": "migrations/rev_20261025010000000_kyrian_hover.sql.prepared",
+      "bytes": 19015,
+      "sha256": "fcf5737ffdddae5e8c29fd3c161a9bd3379c66484a7c98e219780de3690164c7"
+    },
+    {
+      "path": "migrations/rev_20261025020000000_kyrian_flight.sql.prepared",
+      "bytes": 24962,
+      "sha256": "54a27739017e18a0d374d5be45eadabdc24ca4e9ca7d68f2d6dc8b83a9ba03c9"
+    },
+    {
+      "path": "migrations/rev_20261025030000000_kyrian_racials.sql.prepared",
+      "bytes": 54274,
+      "sha256": "a8b7973c80bf8b66af487847f8fd50516dccc28239145cb0b1ab7f519e01f8d5"
+    },
+    {
+      "path": "migrations/rev_20261025040000000_kyrian_charge_targeting.sql.prepared",
+      "bytes": 233,
+      "sha256": "34c7f02a6bf89ef7bc1acc2ee6f5ac28f6b327cdc64973b335218bcf33914104"
+    },
+    {
+      "path": "migrations/rev_20261025050000000_kyrian_charge_holy_ring.sql.prepared",
+      "bytes": 8041,
+      "sha256": "7e5c8d6ef3c3ad5e645cb24dd188aa0821b1b7977e9068cc6978c7ddac64ff96"
+    },
+    {
+      "path": "migrations/rev_20261026010000000_kyrian_dive_update.sql.prepared",
+      "bytes": 1098,
+      "sha256": "cc4864dfbfcaab81d1572231ae1dfe18206dcdd8e21e8d272a57c729d674437f"
+    },
+    {
+      "path": "migrations/rev_20261027020000000_venthyr_racials.sql.prepared",
+      "bytes": 80424,
+      "sha256": "54317b0b9743faa557bf088ea3efa9a922a642bed2c58c38f3c7e72ac787e2cd"
+    },
+    {
+      "path": "migrations/rev_20261027120000000_venthyr_polish.sql.prepared",
+      "bytes": 197,
+      "sha256": "7bd49cd1f0551fd490e1a529a173aa12e110f051bcb9d0b3ed7ce416ac03e7f0"
+    },
+    {
+      "path": "package.json",
+      "bytes": 2629,
+      "sha256": "3d0cf3a3a5b7be7f399e2b38ee0563bab06d63a27e44a42d4404bfb9a4efaa1b"
+    },
+    {
+      "path": "source/src/server/scripts/Custom/kyrian_hover.cpp",
+      "bytes": 8800,
+      "sha256": "ce6e2eb6bdfd1297dc42adc99afbd536e020655e64029e7bc109e5214ee06301"
+    },
+    {
+      "path": "source/src/server/scripts/Custom/kyrian_racials.cpp",
+      "bytes": 9645,
+      "sha256": "1cb26e751c30ee0b30ce854202cc569c363d789eeddcedd501a76203ddc24402"
+    },
+    {
+      "path": "source/src/server/scripts/Custom/venthyr_racials.cpp",
+      "bytes": 12815,
+      "sha256": "ed40249d333e9d79fdeb1deb1e64ca0bfc051a9d12f04d3d4a14c398265a32cc"
+    },
+    {
+      "path": "source/src/server/shared/KyrianHover.h",
+      "bytes": 1878,
+      "sha256": "ab380544c0534637cc3508cae8ec2104a78741ffc760a70e190e1c6dcca981c9"
+    },
+    {
+      "path": "source/src/server/shared/KyrianRacials.h",
+      "bytes": 945,
+      "sha256": "d625366e75b6f4dd70170541939ab10dfef1b774b79edb0800be67c3740188d9"
+    },
+    {
+      "path": "source/src/server/shared/VenthyrRacials.h",
+      "bytes": 1820,
+      "sha256": "b6ca5ae42c2553f458df81e3e7731892f6c2a284a7c2d87f80b780d4e76f90c5"
+    }
+  ],
+  "scope": "Kyrian/Venthyr only; no source history or game payload",
+  "gameplayAcceptance": "pending"
+}
