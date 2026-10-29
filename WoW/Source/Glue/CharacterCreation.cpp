@@ -1,3 +1,4 @@
+#include "Engine/Source/Retail/BodyShape.h"
 #include "CharacterCreation.h"
 #include "CoA/Source/Modules/CharacterCreate.h"
 #include <cstring>
@@ -38,7 +39,7 @@ int32_t CCharacterCreation::m_existingCharacterIndex = -1;
 // STATIC: 0x00B6B0D0
 // CoA: AscAttachPatches.cpp:RaceTables (FUN_10a5e020, orig hook 0x4E157D) -- the eight sites read a 64-entry
 // table (32 races).
-CharacterPreferences* CCharacterCreation::m_charPreferences[32][2];
+CharacterPreferences* CCharacterCreation::m_charPreferences[CCharacterCreation::MAX_RACES][2];
 
 // STATIC: 0x00B6B180
 uint32_t CCharacterCreation::m_raceIndex;
@@ -125,7 +126,7 @@ void CCharacterCreation::Shutdown() {
     CCharacterCreation::m_nameGen.m_names.Clear();
     CCharacterCreation::m_nameGen.m_dictionary.Clear();
 
-    for (uint32_t i = 0; i < 22; i++) {
+    for (uint32_t i = 0; i < CCharacterCreation::MAX_RACES; i++) {
         for (uint32_t j = 0; j < 2; j++) {
             delete CCharacterCreation::m_charPreferences[i][j];
             CCharacterCreation::m_charPreferences[i][j] = nullptr;
@@ -137,6 +138,14 @@ void CCharacterCreation::Shutdown() {
 // OFFSET: 0x004DFA50
 int32_t CCharacterCreation::Idle(const void* data, void* param) {
     CGlueLoading::Idle(CCharacterCreation::m_character);
+
+    // CoA (Esteria fork): body sliders from the creator's Body page, shown on the preview model.
+    if (CCharacterCreation::m_character && CCharacterCreation::m_character->m_data.m_model) {
+        static const bool noTwist[2] = { false, false };
+        static const C44Matrix noBase[2];
+        BodyShape::FemaleHint() = CCharacterCreation::m_character->m_data.m_preferences.m_sexID == 1;
+        BodyShape::ApplyEdited(CCharacterCreation::m_character->m_data.m_model, noTwist, noBase);
+    }
     return 1;
 }
 

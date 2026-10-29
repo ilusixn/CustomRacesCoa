@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "CharacterSelection.h"
 #include "CoA/Source/Modules/CVarHooks.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
@@ -460,6 +461,7 @@ void CCharacterSelection::ShowCharacter() {
         data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(playerRec->m_modelName, 0);
         data.m_flags |= 0x2;
 
+        CoA::Esteria::SelectExtra(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component); // CoA: EsteriaSelectExtra (orig patch 0x4E3E74)
         CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->Init(&data, nullptr);
 
         CM2Model* characterModel = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model;

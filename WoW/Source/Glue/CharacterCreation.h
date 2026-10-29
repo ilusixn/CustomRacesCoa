@@ -14,7 +14,9 @@ struct CharacterPreferences;
 
 class CCharacterCreation {
     public:
-    static CharacterPreferences* m_charPreferences[32][2];
+    // CoA: indexed by ChrRaces id; the 3.3.5a table (32) overflowed into neighbouring statics for custom race ids (up to 112)
+    static const uint32_t MAX_RACES = 129;
+    static CharacterPreferences* m_charPreferences[MAX_RACES][2];
     static CCharacterComponent* m_character;
     static CNameGen m_nameGen;
     static CSimpleModelFFX* m_charCustomizeFrame;

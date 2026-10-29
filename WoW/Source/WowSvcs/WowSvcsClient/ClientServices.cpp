@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstdint>
 #include "CoA/Source/Modules/CVarHooks.h"
 #include <cstring>
@@ -1382,6 +1383,7 @@ void ClientConnection::RequestCharacterCreate(const CHARACTER_CREATE_INFO& info)
     msg.Put(info.m_facialHairStyleID);
     msg.Put(info.m_outfitID);
     msg.Finalize();
+    CoA::Esteria::CreateExtra(&msg); // CoA: EsteriaCreateExtra (orig patch 0x6B174C)
     this->Send(&msg);
 }
 

@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "SpellTable.h"
 #include "CoA/Source/Modules/CrashContext.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
@@ -51,6 +52,8 @@ SKILLLINEREC* SkillLineRecTable::InternalNew(TSExplicitList<SKILLLINEREC>* listp
 // VERIFY: 87b0816a manual
 // OFFSET: 0x00810320
 bool SpellTableMatchRaceClass(int32_t race, int32_t classId, int32_t raceMask, int32_t classMask, int32_t excludeRace, int32_t excludeClass) {
+    race = CoA::Esteria::SkillRace(race); // CoA: EsteriaSkillRace (orig patch 0x81033D)
+
     if (excludeRace) {
         raceMask = ~raceMask;
     }
@@ -96,6 +99,8 @@ const SkillRaceClassInfoRec* SpellTableLookupInfo(int32_t race, int32_t classId,
     // CoA: AscCrashContext.cpp:SpellLookupB (orig hook 0x810ED0) -- the third argument as the crash report's "Last Spell
     // Table Lookup ID".
     CoA::CrashContext::RecordNumber(CoA::CrashContext::Field::SpellTableLookup, static_cast<uint32_t>(skillId));
+
+    race = CoA::Esteria::SkillRace(race); // CoA: EsteriaSkillRace (orig patch 0x810F0A)
 
     HASHKEY_NONE key;
     RACECLASSINFO* info = s_raceClassInfo.Ptr(skillId, key);

@@ -1,3 +1,4 @@
+#include "WoW/Source/Ui/BodyShapeScripts.h"
 #include "GameUI.h"
 #include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
@@ -6240,6 +6241,7 @@ static int32_t Script_ToggleTris(lua_State* L) {
 
 // STATIC: 0x00AC80B0
 static FrameScript_Method s_ScriptFunctions[] = {
+    BODY_SHAPE_SCRIPT_ENTRIES // CoA (Esteria fork): body sliders for the in-world panel
     { "FrameXML_Debug", &Script_FrameXML_Debug },
     { "GetBuildInfo", &Script_GetBuildInfo },
     { "ReloadUI", &Script_ReloadUI },

@@ -222,6 +222,12 @@ class CM2Model {
     /* 02E8 */ uint32_t m_handle;
     /* 02EC */ uint32_t unused_02EC;
 
+    // CoA (from the Esteria fork): per-instance bind pose (6 floats per vertex: position, normal) used instead of the shared
+    // vertices when set, and its GPU copy. Lets one model (the local player, the creator preview) be reshaped by the body sliders.
+    float* m_bodyShapeVertices = nullptr;
+    CGxBuf* m_bodyShapeBuf = nullptr;
+    CGxPool* m_bodyShapePool = nullptr;
+
     static void (*s_transformVertices[5])(CM2Model*, M2SkinSection*, uint8_t*, int32_t);
     static TSGrowableArray<M2ModelCallback> s_sequenceCallbacks;
     static TSGrowableArray<C3Vector> s_collisionPositions;
@@ -255,6 +261,18 @@ class CM2Model {
     void PickRandomSequenceVariation(uint32_t* variation, uint16_t* sequenceIndex);
     M2SequenceFallback* SequenceFallbackById(M2SequenceFallback* result, uint32_t id);
     void SetBoneProceduralTransform(uint32_t boneId, const C44Matrix& matrix);
+    bool IsLoaded() const;
+    uint32_t GetBoneCount();
+    uint32_t FindBoneIndexByKey(uint32_t boneId);
+    bool GetBoneInfoByIndex(uint32_t index, int32_t& boneId, int32_t& parent, C3Vector& pivot);
+    uint32_t GetBindVertexCount();
+    bool GetBindVertex(uint32_t index, C3Vector& position, C3Vector& normal);
+    void SetBodyShapeVertices(float* vertices); // takes ownership (delete[]); nullptr restores the shared pose
+    int32_t BindBodyShapeVertices();            // binds this model's own vertex buffer; 0 if it has none
+    void ReleaseBodyShapeBuffer();
+    uint32_t GetBoneNameCrcByIndex(uint32_t index);
+    void SetBoneFlagsByIndex(uint32_t index, uint32_t flags, uint32_t mask);
+    void SetBoneProceduralTransformByIndex(uint32_t index, const C44Matrix& matrix);
     void SetBoneSequenceSpeed(uint32_t boneId, float speed);
     void SetBoneSequenceTime(uint32_t boneId, uint32_t time);
     void SetupBoneSequence(uint16_t sequenceIndex, M2SequenceFallback fallback, uint32_t time, float speed, M2ModelBoneSeq* boneSequence);

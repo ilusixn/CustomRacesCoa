@@ -1,3 +1,4 @@
+#include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -24,6 +25,16 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Os/OsMemory.h"
+
+// Out of range / 0xFFFF coordinate combo indices (newer or converted models) read as coordinate set 0.
+static uint16_t SafeCoordCombo(const M2Data* data, uint32_t index) {
+    if (EsteriaOff("combos")) {
+        return data->m_textureCoordCombos[index];
+    }
+
+    return index < data->m_textureCoordCombos.m_count ? data->m_textureCoordCombos[index] : 0;
+}
+
 
 // STATIC: 0x00A45644
 static const uint32_t s_skinProfileBoneCounts[4] = { 256, 64, 53, 21 };
@@ -357,7 +368,7 @@ int32_t CM2Shared::SetIndices() {
 
         for (uint32_t i = 0; i < this->m_skinData->m_skinSections.m_count; i++) {
             M2SkinSection* section = &this->m_skinSections[i];
-            uint32_t start = this->m_skinData->m_skinSections[i].m_indexStart;
+            uint32_t start = M2EsteriaWideSource(&this->m_skinData->m_skinSections[i], this->m_skinData); // CoA: orig patch 0x83619F
             uint16_t offset = sharedVertices ? 0 : static_cast<uint16_t>(-section->m_vertexStart);
 
             for (uint32_t instance = 0; instance < this->m_instances; instance++) {
@@ -370,6 +381,7 @@ int32_t CM2Shared::SetIndices() {
             }
 
             section->m_indexStart = static_cast<uint16_t>(indexStart);
+            reinterpret_cast<uint16_t*>(section)[1] = static_cast<uint16_t>(indexStart >> 16); // CoA: orig patch 0x836240 -- high bits of a wide section's start
             indexStart += this->m_instances * section->m_indexCount;
         }
 
@@ -475,7 +487,7 @@ CShaderEffect* CM2Shared::GetEffect(uint32_t textureCount, uint16_t shader, uint
         } else {
             vertexShader = "Diffuse_T2";
 
-            if (!this->m_data->m_textureCoordCombos[textureCoordComboIndex]) {
+            if (!SafeCoordCombo(this->m_data, textureCoordComboIndex)) {
                 vertexShader = "Diffuse_T1";
             }
         }
@@ -643,8 +655,18 @@ void CM2Shared::SubstituteSimpleShaders() {
 
         M2Material* material = &this->m_data->m_materials[batch->m_materialIndex];
 
+        // Models from newer clients / converters can carry 0xFFFF ("none") or otherwise out of range
+        // combo indices. The stock client reads past the array and crashes; fall back to coordinate set 0.
+        auto coordCombo = [this](uint32_t index) -> uint16_t {
+            return SafeCoordCombo(this->m_data, index);
+        };
+
+        auto combinerCombo = [this](uint32_t index) -> uint32_t {
+            return EsteriaOff("combos") || index < this->m_data->m_textureCombinerCombos.m_count ? this->m_data->m_textureCombinerCombos[index] : 0;
+        };
+
         if (!(this->m_data->m_flags & 8)) {
-            uint16_t coord = this->m_data->m_textureCoordCombos[batch->m_textureCoordComboIndex];
+            uint16_t coord = coordCombo(batch->m_textureCoordComboIndex);
             uint16_t op = material->m_blendMode != M2BLEND_OPAQUE;
 
             if (coord > 2) {
@@ -662,13 +684,13 @@ void CM2Shared::SubstituteSimpleShaders() {
             batch->m_shader = 0;
 
             for (uint32_t j = 0; j < batch->m_textureCount; j++) {
-                uint32_t op = this->m_data->m_textureCombinerCombos[combiner + j];
+                uint32_t op = combinerCombo(combiner + j);
 
                 if (j == 0 && material->m_blendMode == M2BLEND_OPAQUE) {
                     op = M2COMBINER_OPAQUE;
                 }
 
-                uint16_t coord = this->m_data->m_textureCoordCombos[batch->m_textureCoordComboIndex + j];
+                uint16_t coord = coordCombo(batch->m_textureCoordComboIndex + j);
                 ops[j] = op;
 
                 if (coord > 2) {
@@ -1057,9 +1079,7 @@ void CM2Shared::SubstituteSpecializedShaders() {
                 [[fallthrough]];
             case 0:
                 if (material->m_blendMode == M2BLEND_OPAQUE && batch->m_textureCount == 2 && (op == M2COMBINER_MOD2X || op == M2COMBINER_MOD2X_NA)) {
-                    uint16_t* coords = &this->m_data->m_textureCoordCombos[batch->m_textureCoordComboIndex];
-
-                    if (!coords[0] && coords[1] > 2) {
+                    if (!SafeCoordCombo(this->m_data, batch->m_textureCoordComboIndex) && SafeCoordCombo(this->m_data, batch->m_textureCoordComboIndex + 1) > 2) {
                         state0 = 1;
                     }
                 }
@@ -1072,7 +1092,7 @@ void CM2Shared::SubstituteSpecializedShaders() {
             case 0:
                 break;
             case 1:
-                if ((material->m_blendMode == M2BLEND_ADD || material->m_blendMode == M2BLEND_MOD2X) && batch->m_textureCount == 1 && this->m_data->m_textureCoordCombos[batch->m_textureCoordComboIndex] > 2 && this->m_data->m_textureWeightCombos[base->m_textureWeightComboIndex] == this->m_data->m_textureWeightCombos[batch->m_textureWeightComboIndex]) {
+                if ((material->m_blendMode == M2BLEND_ADD || material->m_blendMode == M2BLEND_MOD2X) && batch->m_textureCount == 1 && SafeCoordCombo(this->m_data, batch->m_textureCoordComboIndex) > 2 && this->m_data->m_textureWeightCombos[base->m_textureWeightComboIndex] == this->m_data->m_textureWeightCombos[batch->m_textureWeightComboIndex]) {
                     batch->m_shader = 0x8000;
                     combined = true;
                     base->m_shader = material->m_blendMode != M2BLEND_ADD ? 0xE : 0x8002;
@@ -1099,7 +1119,7 @@ void CM2Shared::SubstituteSpecializedShaders() {
                 continue;
         }
 
-        if (material->m_blendMode == M2BLEND_OPAQUE && batch->m_textureCount == 1 && !this->m_data->m_textureCoordCombos[batch->m_textureCoordComboIndex]) {
+        if (material->m_blendMode == M2BLEND_OPAQUE && batch->m_textureCount == 1 && !SafeCoordCombo(this->m_data, batch->m_textureCoordComboIndex)) {
             state1 = 1;
         }
     }
@@ -1319,6 +1339,8 @@ int32_t CM2Shared::FinishLoadingSkinProfile(uint32_t size) {
         DebugLog("Corrupt skin profile data: %s", this->m_fileName);
         return 0;
     }
+
+    M2EsteriaSkin(this); // CoA: EsteriaSkin (orig patch 0x83853C)
 
     if (!this->InitializeSkinProfile()) {
         DebugLog("Failed to initialize model skin profile: %s", this->m_fileName);

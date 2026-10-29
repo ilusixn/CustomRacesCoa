@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "BarberShop.h"
 #include "WoW/Source/Ui/ScriptEvents.h"
 #include "WoW/Source/Ui/Types.h"
@@ -379,6 +380,8 @@ void CGBarberShop::ResetAppearance() {
     if (!component) {
         return;
     }
+
+    CoA::Esteria::UnitExtra(player); // CoA: EsteriaUnitExtra (orig patch 0x52E65D)
 
     component->SetHairStyle(player->m_player->m_playerBytes[2], nullptr);
     component->SetHairColor(player->m_player->m_playerBytes[3], true, nullptr);

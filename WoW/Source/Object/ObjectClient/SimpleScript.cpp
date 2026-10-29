@@ -1,4 +1,5 @@
 #include "SimpleScript.h"
+#include "CoA/Source/Runtime/Log.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
@@ -58,6 +59,12 @@ void CSimpleScriptManager::Create() {
     s_instance = manager;
 
     for (uint32_t i = 0; i < s_callbackCount; i++) {
+        // CoA: diagnostic for a crash on entering the world (a null entry with a non-zero count).
+        if (!s_callbacks[i]) {
+            CoA::Log::Printf("SimpleScript: callback %u is null (count %u)", i, s_callbackCount);
+            continue;
+        }
+
         s_callbacks[i](0);
     }
 }
