@@ -1,0 +1,51 @@
+8690cd34625d10878cbc5dc26afd49cbb4bbd474 Add extended race appearance support
+90eef889a780c01e088577b2c2b15d081640a4fa Add Direct3D 11 backend (GxApi_D3d11)
+f78058dff1b00f17e4353a38f65e40e4d16a8651 Add configurable view distance and fog
+fd00ae550f3d988d2f4d52bf35261113f57ed28e Raise view distance, add fog scale and fix crashes/chat/names
+5714f6deafcff93adae1d990013eaf04393b7fe8 Clamp WMO unified shader index (crash flying over newer WMOs)
+bffcefe665bec64eb92993c251c26c6d15978d9a Add native cursor themes and uncaps plan
+801e593d88b79771f8ea8cad6b7dc1fc5a34d83e feat(extensions): adding extensions/modules basic system
+828b82ddb056b1d5c297b2083e04b3a40e2f6239 feat(new hook): Adding more hooks and rewrite some part of the Extensions loader
+7a7448d16d77f1693e5f277347048f712b0e313f feat(Hook): Adding M2, DBC, CVars hookpoint
+2e1913a7d7561d927a8112ff11038156a1017a0d fix(extensions): adding some missing comment and remove duplicate file
+7f6c034172b5a5de17fb63a40ce9867f41809e16 feat(hook): Adding more new hooks
+38260869696387d76b8daaa1d2142dfa5d2d8993 feat(extensions): update HelloWorld first example extension for using new hook and fix some errors
+e6e30ec4c650312a04d14e0aa6712b1ad6eac252 Add extended limits and cursor themes
+7c8b09c89cafa7c4fe55159a992f157444b3b8df feat(hook): adding hooks for custom opcode, xml nodes, unit
+2b4861499c50d14eb76f3b59b5ab1c08ae8f2120 feat(hooks): Adding new Unit, UI, Texture, Terrain, Object, Lua, Console hooks
+07a375e7d04ded81baac95121aab997c6cd59dba fix(extensions): Fix forward declaration
+c87462b419d98b27be8cc4518929050a833e5577 feat(Vulkan): Convert from wxl-vulkan-api
+e7d7d8e45529887cc310e9db19df3bb6136b1cd3 feat(vulkan): bring the Vulkan frame to D3D9 parity with depth, culling, render targets, gamma, queries etc.
+a6cf96e76b7c65c6f6c749884be77768cfc9a2fb fix(vulkan): fix fixed-function texture and texture transform
+5d7e7ded4e34063b19e2b3d78459f263e4b501b9 fix(vulkan): fix crash on switch fullscreen alt-tab
+8ead10dc757184f50fd1621e17bb3621be48917a Merge upstream PR #10 extension hooks into Esteria
+db3abb056a4be046276dc2b109e579dc528034c3 Merge upstream PR #11 Vulkan backend alongside D3D11
+23d787020fe18a9907f15278bff5f0bbd2b27f04 Fix D3D11 compatibility with imported upstream changes
+3433679e4c405e7765136218329436652698bc32 Improve Vulkan rendering and Darkfallen support
+24cd9131b7e2b4f71d5752d83f2d643cce51b674 Add native Retail asset import support
+003789a317ca68f9457420c001635d930d64422e Support Writhing Brood retail mount
+3997ea09c7c710e6ce25644c7b19813f01b06fc1 Use retail assets with Vulkan by default
+78c49417bb7149afbf6465ec0a4c57222b86cf99 Grow Vulkan texture table; fix nearby allocation
+4ea17d58f83a1ed3cbbc0cc1e442cf846b7b15b1 Merge upstream/main into Esteria preserving custom features
+2271eb42bfdc9868abdb42988a9bc6adcb09d292 Merge pull request #1 from STRHercules/codex/merge-upstream-into-esteria
+3e717cf5c3517f9e1198860c2586f4e90ed4dce6 Add native DigitalInventory client extension
+dee9174bddb2cf36c6c8445747c34d0be3080cc0 Extend inventory data and apply client fixes
+3f9e252724bcfce02347120011f683966f584ac5 Add Retail race appearance support
+1f8a3e22919b0eddada4822ea204fbdd9660dddc Improve Retail race appearance compatibility
+3611992ebe44f7d522f018b94ff9f8119e6e15a3 Fix Retail roster appearance integration
+6103fa76280254abdb0c7b86163b4e628c318b8c Add isolated Forever CDN asset pipeline
+0a2311b215d0d44d1b559d7d4f653b763898051c Add per-character eye lightning toggle
+78ac78e7194040711457b14cad84616d71ec4459 Add body sliders: creator Body page, persistence, and sync to other players
+64804d709ba6c803791626624573395d630701cd Add Kyrian and Venthyr appearance support
+adc33eed234224a1b9f7c9f702408555accf8dce Expand and restyle character creation
+3d9b052b421c6afd86fa3ffea7b184081ba28fb6 Initialize body-shape slider values
+ed5b2eb549aa3ae30de9e164e50b1844b0aee796 Integrate ASECM3 native M3 support and character selection polish
+1a1dcc57986aca59516f1768326a1df451d55afb Bundle Esteria inventory and video controls
+acd5b24bb185e5671bf9d34438cc2805ce41a443 Rewrite README to describe Esteria client changes
+566014cd74dbdbddd93d578f54eb3629570e00f0 Add Two Forms character support
+8873f8937d84b795112ad12acf55892ccec9523b Add retail-style Skyriding
+a038a4e5130235f0322a22317c35b49d27559656 Add skyriding visuals and camera FOV controls
+3e0d373e5f91539f5367965d4e17caba69d0d67b test push
+099b416bc74e9aec56d30b8b389d766b49b77530 Enable higher shadow qualities on Vulkan
+5a894c8ea5c50f70357f452c4d8e0207b262138c Expose pending rename flag as 11th GetCharacterInfo return
+ff7b6ecf3a611ca886a6914709cca1062a4af232 Add outlines, loot beams, and Ethereal support
