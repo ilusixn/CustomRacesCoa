@@ -1,0 +1,7 @@
+[
+  {"tier": 0, "suffix": "de cuivre", "skill": 1, "quality": 1, "item_level": 1, "mats": [], "gem": 774},
+  {"tier": 1, "suffix": "d'argent", "skill": 60, "quality": 2, "item_level": 20, "mats": [[2842, 2], [2592, 2], [2319, 2]], "gem": 1529},
+  {"tier": 2, "suffix": "de mithril", "skill": 120, "quality": 3, "item_level": 40, "mats": [[3860, 3], [4338, 2], [4234, 2]], "gem": 3864},
+  {"tier": 3, "suffix": "de thorium", "skill": 180, "quality": 3, "item_level": 60, "mats": [[12359, 3], [14047, 3], [8170, 2]], "gem": 7910},
+  {"tier": 4, "suffix": "d'arcanite", "skill": 240, "quality": 4, "item_level": 75, "mats": [[12360, 2], [14047, 4], [8170, 4]], "gem": 12800}
+]
