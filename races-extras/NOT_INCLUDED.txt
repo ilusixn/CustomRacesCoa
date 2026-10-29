@@ -1,0 +1,13 @@
+Files over 95 MB are not in the repo (GitHub limit 100 MB):
+kv\out\patch-ZZZE.MPQ  211 MB
+kv\out\client\Spell.dbc  210 MB
+kv\out\patch\DBFilesClient\Spell.dbc  210 MB
+kv\out\racials_patch\DBFilesClient\Spell.dbc  210 MB
+kv\out\twoforms_patch\DBFilesClient\Spell.dbc  210 MB
+sources\0_Install_AllRaces\RACES_PACK\client\Data\dbc\Spell.dbc  216 MB
+sources\0_Install_AllRaces\RACES_PACK\server\dbc\Spell.dbc  216 MB
+sources\RaceBins\EsteriaHaranirTextures.bin  152 MB
+sources\shotboom\unpacked\custom\venthyr\native\vampire_female.m2  161 MB
+sources\shotboom\unpacked\custom\venthyr\native\vampire_male.m2  168 MB
+
+Also not included: sources/esteriawow (7.2 GB, a full third-party client) and nested .git folders.
