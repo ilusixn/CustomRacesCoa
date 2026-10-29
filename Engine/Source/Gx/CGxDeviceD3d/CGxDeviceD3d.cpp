@@ -3027,6 +3027,11 @@ void CGxDeviceD3d::TexDestroy(CGxTex* texId) {
 // VERIFY: 571fccbe manual
 // OFFSET: 0x006A2C00
 void CGxDeviceD3d::ITexCreate(CGxTex* texId) {
+    // CoA: a texture whose format is outside the tables read past them and crashed here; it is left uncreated instead.
+    if (!texId || static_cast<uint32_t>(texId->m_format) >= GxTexFormats_Last) {
+        return;
+    }
+
     uint32_t width;
     uint32_t height;
     uint32_t baseMip;

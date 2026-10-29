@@ -39,7 +39,7 @@ namespace CharacterRetailLook
 
     inline constexpr uint8_t FirstFormForRace(uint32_t race)
     {
-        return race == 12 ? 1 : race == 28 ? 3 : (race == 77 || race == 78) ? 5 : 0;
+        return race == 13 ? 1 : (race == 54 || race == 58) ? 3 : 0; // CoA ids: Worgen 13, Dracthyr 54 / 58
     }
 
     struct Look

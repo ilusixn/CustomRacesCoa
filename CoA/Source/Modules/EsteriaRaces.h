@@ -15,6 +15,8 @@ namespace CoA::Esteria {
 
     // Hooks the decompiled client calls (each replaces one patched site of the original Wow.exe; see "CoA: Esteria..." comments).
     void Init();
+    void NetInit();                                             // the Esteria extension opcodes (body sliders, Retail look, form ack)
+    void LeaveWorld();
     void InstallCrashTrace();
     void Skin(void* shared);                                    // CM2Shared*: after its skin profile loaded
     unsigned WideSource(const void* section, const void* skin); // M2SkinSection*, M2SkinProfile*

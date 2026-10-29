@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstdint>
 #include "CoA/Source/Modules/MovementForce.h"
 #include "CoA/Source/Modules/CrashContextClient.h"
@@ -1367,6 +1368,7 @@ void ClientInitializeGame(uint32_t mapId, C3Vector position) {
     ClientServices::SetMessageHandler(SMSG_NOTIFICATION, Packet_SMSG_NOTIFICATION, nullptr);
     ClientServices::SetMessageHandler(SMSG_PLAYED_TIME, Packet_SMSG_PLAYED_TIME, nullptr);
     ClientServices::SetMessageHandler(SMSG_NEW_WORLD, Packet_SMSG_NEW_WORLD, nullptr);
+    CoA::Esteria::NetInit(); // CoA: Esteria extension opcodes 0x523 / 0x524 / 0x526
     ClientServices::SetMessageHandler(SMSG_TRANSFER_PENDING, Packet_SMSG_TRANSFER_PENDING, nullptr);
     ClientServices::SetMessageHandler(SMSG_TRANSFER_ABORTED, Packet_SMSG_TRANSFER_ABORTED, nullptr);
     ClientServices::SetMessageHandler(SMSG_LOGIN_VERIFY_WORLD, Packet_SMSG_LOGIN_VERIFY_WORLD, nullptr);

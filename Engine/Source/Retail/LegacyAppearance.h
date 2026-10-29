@@ -414,8 +414,8 @@ inline constexpr Option Options[] = {
     {47, 1, 8567, 4, 3, 20, 2206},
 };
 inline bool IsPackedRace(uint32_t race) {
-    if (race == 75 || race == 76) return true;
-    for (const auto& option : Options) if (option.race == race) return true;
+    // CoA: the table is keyed by Esteria's race ids; ours differ (our packed races use the DLL catalogs), so no race is "packed" here.
+    (void)race;
     return false;
 }
 inline const Option* Find(uint32_t race, uint32_t sex, uint32_t id) {

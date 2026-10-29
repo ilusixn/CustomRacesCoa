@@ -58,6 +58,7 @@ bool PrepareModel(const std::vector<uint8_t>& bytes, std::vector<uint8_t>& prepa
     ModelFiles& files, std::string& error, const std::vector<uint8_t>* skeleton = nullptr, bool mapFlight = true);
 bool ValidateSkin(const std::vector<uint8_t>& bytes, const std::vector<uint8_t>& model,
     std::string& error);
+bool ReduceBones(std::vector<uint8_t>& skin, std::vector<uint8_t>& model, std::string& error);
 bool PrepareSkin(std::vector<uint8_t>& bytes, const std::vector<uint8_t>& model,
     std::string& error, bool degradeShaders = false);
 // Unwrap model-only AFM2 files. Preserve split skeleton chunks for category-specific relocation.
