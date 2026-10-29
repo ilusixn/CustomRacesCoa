@@ -9,6 +9,8 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"
 #include "Engine/Source/lua-5.1/src/lauxlib.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
+#include "WoW/Source/Ui/BodyShapeScripts.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"

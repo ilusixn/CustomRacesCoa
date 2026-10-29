@@ -13,6 +13,12 @@ project(wowdecomp CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# CoA: Esteria retail adapter (Engine/Source/Retail, WoW/Common/ComponentCore/RetailRace.cpp): Retail assets from local CASC / the CDN
+option(WOWDECOMP_RETAIL_ASSETS "Read Retail assets from local CASC or Blizzard's CDN" ON)
+if (WOWDECOMP_RETAIL_ASSETS)
+    include(cmake/RetailAssets.cmake)
+endif ()
+
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     message(FATAL_ERROR "wowdecomp targets Windows only.")
 endif ()

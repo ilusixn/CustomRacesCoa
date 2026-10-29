@@ -261,6 +261,8 @@ class CM2Model {
     void PickRandomSequenceVariation(uint32_t* variation, uint16_t* sequenceIndex);
     M2SequenceFallback* SequenceFallbackById(M2SequenceFallback* result, uint32_t id);
     void SetBoneProceduralTransform(uint32_t boneId, const C44Matrix& matrix);
+    // Raw bone-index access for the body-shape sliders. Key-bone ids only reach about 70 of a Retail
+    // skeleton's ~200 bones; these skip the id table. All are no-ops until the model has loaded.
     bool IsLoaded() const;
     uint32_t GetBoneCount();
     uint32_t FindBoneIndexByKey(uint32_t boneId);
@@ -269,6 +271,10 @@ class CM2Model {
     bool GetBindVertex(uint32_t index, C3Vector& position, C3Vector& normal);
     void SetBodyShapeVertices(float* vertices); // takes ownership (delete[]); nullptr restores the shared pose
     int32_t BindBodyShapeVertices();            // binds this model's own vertex buffer; 0 if it has none
+    bool SetSkinParent(CM2Model* parent);
+    bool HasSkinParent(const CM2Model* parent) const;
+    bool SetAttachmentFrame(uint32_t bone, const C3Vector& position, float scale = 1.0f);
+    bool CopyAttachmentFrameFrom(const CM2Model* source);
     void ReleaseBodyShapeBuffer();
     uint32_t GetBoneNameCrcByIndex(uint32_t index);
     void SetBoneFlagsByIndex(uint32_t index, uint32_t flags, uint32_t mask);

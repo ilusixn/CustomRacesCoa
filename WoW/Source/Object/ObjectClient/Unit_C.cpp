@@ -25,6 +25,7 @@
 #include "CoA/Source/Modules/AttachLate.h"
 #include "CoA/Source/Modules/AttachPatches.h"
 #include "Unit_C.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
 #include <cmath>
 #include <new>
 #include <typeinfo>
@@ -4433,6 +4434,12 @@ uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
         model = this->GetObjectModel();
     }
 
+    // A retail-only animation (the Dracthyr dragon's hover and cast set, ids past the stock range) plays as itself when
+    // the model has it; the tier lookup below only knows stock ids and would swap it for the tier's default.
+    if (animId >= ANIM_COUNT && animId != 0xFFFFFFFF && model->HasSequence(animId)) {
+        return animId;
+    }
+
     uint32_t result = static_cast<uint16_t>(animId);
     std::vector<int32_t> visited(CoA::AnimationCount::Rows() > 506 ? CoA::AnimationCount::Rows() : 506, 0);
     uint32_t current = animId;
@@ -8379,6 +8386,48 @@ int32_t CGUnit_C::IsRunning() const {
     return this->m_movementData.m_walkSpeed + this->m_movementData.m_walkSpeed >= this->m_movementData.GetBaseSpeed(0);
 }
 
+// Retail animation ids the Dracthyr dragon flies with (the 3.3.5 client flies units with the swim set): hovering in place on
+// DracHoverIdle, sustained wing-powered flight on the flying-mount family.
+enum DragonFlightAnim : uint32_t {
+    DRAGON_HOVER_IDLE = 1604,
+    DRAGON_FLIGHT_BACKWARD = 550,   // MountFlightBackwards
+    DRAGON_FLIGHT_LEFT = 552,       // MountFlightLeft
+    DRAGON_FLIGHT_RIGHT = 554,      // MountFlightRight
+    DRAGON_FLIGHT_RUN = 556,        // MountFlightRun
+    DRAGON_FLIGHT_SPRINT = 558,     // MountFlightSprint
+};
+
+static bool IsFlyingDragon(const CGUnit_C* unit) {
+    return (unit->m_obj->m_type & TYPE_PLAYER) && (unit->m_movementData.m_flags & MOVEMENTFLAG_FLYING)
+        && !(unit->m_movementData.m_flags & MOVEMENTFLAG_SWIMMING)
+        && RetailRaceDragon(unit->m_unit->m_unitFieldBytes0[0], unit->m_obj->m_guid.m_guid);
+}
+
+// A unit mounted without a mount model (Running Wild) stays on its own model's self-mount set (the Worgen wolf on all fours)
+// for as long as it is mounted, not just while the spell casts.
+enum SelfMountAnim : uint32_t {
+    SELF_MOUNT_IDLE = 618,
+    SELF_MOUNT_WALK = 620,
+    SELF_MOUNT_RUN = 622,
+    SELF_MOUNT_SPRINT = 624,
+    SELF_MOUNT_SHUFFLE_LEFT = 630,
+    SELF_MOUNT_SHUFFLE_RIGHT = 632,
+    SELF_MOUNT_WALK_BACKWARDS = 634,
+};
+
+static bool IsSelfMounted(const CGUnit_C* unit) {
+    if (!(unit->m_obj->m_type & TYPE_PLAYER) || !(unit->m_unit->m_unitFieldFlags & 0x08000000) || unit->m_mountModel) {
+        return false;
+    }
+
+    CM2Model* model = unit->m_worldModel;
+    return model && model->IsLoaded(0, 0) && model->HasSequence(SELF_MOUNT_IDLE);
+}
+
+// Dracthyr Glide (110681): the dragon falls on its retail glide animation.
+static const int32_t SPELL_DRACTHYR_GLIDE = 110681;
+static const uint32_t DRAGON_GLIDE = 1694;
+
 // VERIFY: 2be9606e manual
 // OFFSET: 0x00717050
 int32_t CGUnit_C::ChooseMovementAnim(uint32_t flags, uint32_t* anim) const {
@@ -8455,6 +8504,33 @@ float CGUnit_C::GetStandHeight() const {
 // VERIFY: 566bccef manual
 // OFFSET: 0x00717B20
 int32_t CGUnit_C::GetModelFileName(const char** name) const {
+    // Players of a race mapped to Retail data use the Retail character model.
+    if (this->m_obj->m_type & TYPE_PLAYER) {
+        char line[200];
+        std::snprintf(line, sizeof(line), "model: player guid=%llx race=%u sex=%u display=%u native=%u active=%d",
+            static_cast<unsigned long long>(this->m_obj->m_guid.m_guid), unsigned(this->m_unit->m_unitFieldBytes0[0]),
+            unsigned(this->m_unit->m_unitFieldBytes0[2]), unsigned(this->m_displayId), unsigned(this->m_unit->m_unitFieldNativedisplayid),
+            int(this->m_obj->m_guid == ClntObjMgrGetActivePlayer()));
+        BodyShape::Log(line);
+    }
+
+    // Same display the stock GetModelData resolves: players in view start with m_displayId 0, which means "use the
+    // display field". Comparing the raw value left every remote player on the stock model.
+    int32_t effectiveDisplay = this->m_displayId;
+    if (!effectiveDisplay || this->m_unit->m_unitFieldNativedisplayid != this->m_unit->m_unitFieldDisplayid) {
+        effectiveDisplay = this->m_unit->m_unitFieldDisplayid;
+    }
+
+    if ((this->m_obj->m_type & TYPE_PLAYER) && effectiveDisplay == static_cast<int32_t>(this->m_unit->m_unitFieldNativedisplayid)) {
+        static thread_local char retailPath[260];
+
+        if (RetailRaceModelPath(this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[2], retailPath, sizeof(retailPath),
+                                RetailRaceLookForm(this->m_obj->m_guid.m_guid))) {
+            *name = retailPath;
+            return 1;
+        }
+    }
+
     CreatureModelDataRec* modelData = this->GetModelData();
 
     if (modelData) {
@@ -8771,6 +8847,14 @@ int32_t CGUnit_C::ChooseFallAnim(uint32_t* anim) const {
     }
 
     uint32_t current = (this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) ? this->m_worldModel->GetBoneSequenceId(0xFFFFFFFF) : 0xFFFFFFFF;
+    if ((this->m_obj->m_type & TYPE_PLAYER) && this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)
+        && this->m_worldModel->HasSequence(DRAGON_GLIDE)
+        && RetailRaceDragon(this->m_unit->m_unitFieldBytes0[0], this->m_obj->m_guid.m_guid)
+        && const_cast<CGUnit_C*>(this)->HasAuraBySpellId(SPELL_DRACTHYR_GLIDE)) {
+        *anim = current == DRAGON_GLIDE ? CoA::AnimationCount::Rows() : DRAGON_GLIDE;
+        return 1;
+    }
+
     *anim = IsAirborneAnim(current) ? CoA::AnimationCount::Rows() : ANIM_FALL;
     return 1;
 }
@@ -10351,6 +10435,7 @@ void CGUnit_C::InitializeActivePlayerComponent() {
     if (this->m_modelData && (this->m_modelData->m_flags & 0x4) && CGPlayer_C::s_displayId == this->m_unit->m_unitFieldDisplayid) {
         this->SetCharacterModel(CCharacterComponent::m_activePlayerComponent->m_data.m_model);
         this->m_characterComponent = component;
+        RetailRaceBindOwner(component, this);
         CCharacterComponent::m_activePlayerComponent = nullptr;
     } else {
         CCharacterComponent::FreeComponent(CCharacterComponent::m_activePlayerComponent);
@@ -10911,6 +10996,7 @@ CGUnit_C::~CGUnit_C() {
 
     this->m_nameDesc = nullptr;
 
+    RetailRaceBindOwner(this->m_characterComponent, nullptr);
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         if (this->m_worldModel) {
             this->m_worldModel->m_lastAnimTime = 0;
@@ -14297,6 +14383,18 @@ void CGUnit_C::OnAuraUpdate(CDataStore* msg, bool updateAll) {
     Script_SendUniqueSignal(this->m_obj->m_guid, SCRIPT_EVENT_UNIT_AURA);
 }
 
+static bool UsesEtherealSheatheSync(const CGUnit_C* unit) {
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    return (unit->m_obj->m_type & TYPE_PLAYER)
+        && Retail::Ethereal::Race(unit->m_unit->m_unitFieldBytes0[0])
+        && unit->m_characterComponent && unit->m_worldModel
+        && unit->m_worldModel == unit->m_characterComponent->m_data.m_model
+        && RetailRaceActive(unit->m_characterComponent);
+#else
+    return false;
+#endif
+}
+
 // VERIFY: 80b6ec9d manual
 // OFFSET: 0x00736D30
 void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t noSend) {
@@ -14313,6 +14411,10 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
     }
 
     if (showWeapons == this->m_sheatheState) {
+        // A repeated combat/server state update must repair a missed draw, rather than preserve a stale back socket.
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+        if (syncAttachments) Retail::Ethereal::SyncWieldedHands(*this);
+#endif
         return;
     }
 
@@ -14490,13 +14592,16 @@ int32_t CGUnit_C::InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDispl
     data.m_flags ^= (data.m_flags ^ (static_cast<uint32_t>(this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) << 1)) & 0x2;
     data.m_model->m_refCount++;
 
-    if (player) {
+    if (player && RetailRaceMapped(data.m_preferences.m_raceID)) {
+        // Retail options go beyond the stock CharSections ranges; keep the server's values.
+    } else if (player) {
         CCharacterComponent::ValidateComponentData(&data, COMPONENT_CONTEXT_1);
     } else {
         CCharacterComponent::ValidateComponentData(&data, COMPONENT_CONTEXT_2);
     }
 
     this->m_characterComponent->Init(&data, nullptr);
+    RetailRaceBindOwner(this->m_characterComponent, this);
     return 1;
 }
 
@@ -14547,6 +14652,15 @@ int32_t CGUnit_C::InitializeComponent() {
         }
     } else if ((this->m_obj->m_type & TYPE_PLAYER) && (this->m_modelData->m_flags & 0x4)) {
         this->InitializeExtendedDisplay(static_cast<CGPlayer_C*>(this), 0);
+    }
+
+    // Returning from a form creates a fresh Retail body; restore its full appearance before item refresh.
+    if (this->m_characterComponent && this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid &&
+        RetailRaceActive(this->m_characterComponent)) {
+        this->m_characterComponent->m_flags |= 0x4;
+        this->m_characterComponent->m_dirtySections = 0xFFFFFFFF;
+        RetailRaceGeometry(this->m_characterComponent);
+        RetailRaceBody(this->m_characterComponent);
     }
 
     if (!(this->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(this)->RefreshVisibleItems()) {
