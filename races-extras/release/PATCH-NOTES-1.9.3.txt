@@ -1,0 +1,22 @@
+CoA Custom 1.9.3 (x64 client, test build)
+=========================================
+NEW
+- x64 client CoA64.exe (built from the CoA64 decomp, https://github.com/Westen-CoACore/CoA64) with the Retail race adapter:
+  Worgen (Wolf / Human) and Dracthyr (Dragon / Visage) use the real Retail models, read from Blizzard's CDN.
+- Per-form customization in the creator (tabs per form, BOTH shows the other form behind).
+- The creation / selection screens shrink oversized races (Dracthyr, Kyrian, Venthyr, Centaur, Faceless One, Vrykul).
+- Server: the saved Retail look and the second form are stored per character (character_retail_look, character_form_look,
+  character_body_shape) and sent to the client. Worgen get Two Forms (spell 110690) to switch form; Dracthyr use Visage.
+- Chosen Identity removed from Dracthyr.
+- Fix: a texture with a bad format no longer crashes the client.
+
+KNOWN ISSUES (test build)
+- Form switching in the world and the saved look of the second form are still being worked on.
+- Some races can still be too large on the creation / selection screens.
+- Barber shop, customize and faction change do not save the Retail look yet (creation does).
+- Saberon bots: white armor. Alpha Worgen has no Retail mapping yet.
+
+CREDITS
+Jealous-Sound, AzerothCore, SQUID / Zyth45, Corfirean, Kalibros (Wardens of Wen), Dex, Westen, Uncle Snowzo, Yami, FrolickingFauns,
+Furioz / Eunoia, Furioz420, Dokman / WXL, Medviten, Project Reforged, Sirus, romaindnd89-cmd, Project Ascension, ilusixn.
+Details: CREDITS.md in the CoA64 repo.
