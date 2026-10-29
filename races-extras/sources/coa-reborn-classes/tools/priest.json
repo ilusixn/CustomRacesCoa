@@ -1,0 +1,84 @@
+{
+ "out": "gera_priest.py",
+ "label": "Priest",
+ "classtype": 40,
+ "chrspecs_class": "PRIEST",
+ "essence_class": 5,
+ "new_base": 140800,
+ "tabs": [
+  [
+   16,
+   "Discipline"
+  ],
+  [
+   14,
+   "Holy"
+  ],
+  [
+   15,
+   "Shadow"
+  ]
+ ],
+ "templates": {
+  "Discipline": "Fortitude",
+  "Holy": "Vizier",
+  "Shadow": "Venom"
+ },
+ "keystones": {
+  "Discipline": [
+   null,
+   "Mana Burn",
+   "Divine Spirit",
+   "Mass Dispel"
+  ],
+  "Holy": [
+   "Prayer of Healing",
+   "Greater Heal",
+   "Prayer of Mending",
+   "Divine Hymn"
+  ],
+  "Shadow": [
+   "Devouring Plague",
+   "Shadowfiend",
+   "Mind Sear",
+   "Shadow Word: Death"
+  ]
+ },
+ "dup": [
+  "Mind Flay"
+ ],
+ "signature": {
+  "Discipline": 1147540,
+  "Holy": 1134861,
+  "Shadow": 1134914
+ },
+ "examples": {
+  "Discipline": [
+   1100017,
+   1133206,
+   1100588
+  ],
+  "Holy": [
+   1147788,
+   1102061,
+   1100139
+  ],
+  "Shadow": [
+   1115407,
+   1147585,
+   1100589
+  ]
+ },
+ "desc": {
+  "Discipline": "Shield allies from harm with powerful wards, preventing damage before it lands and atoning through the Light.",
+  "Holy": "A devoted healer who channels the Light to mend the wounds of many allies at once.",
+  "Shadow": "Embrace the shadows to torment foes with mind-shattering spells and draining curses."
+ },
+ "trainer_only": [
+  "Fear Ward"
+ ],
+ "baseline": [
+  "Smite",
+  "Lesser Heal"
+ ]
+}

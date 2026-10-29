@@ -1,0 +1,96 @@
+{
+ "out": "gera_druid.py",
+ "label": "Druid",
+ "classtype": 42,
+ "chrspecs_class": "DRUID",
+ "essence_class": 11,
+ "new_base": 141800,
+ "tabs": [
+  [
+   22,
+   "Balance"
+  ],
+  [
+   21,
+   "Feral"
+  ],
+  [
+   20,
+   "Restoration"
+  ]
+ ],
+ "templates": {
+  "Balance": "Venom",
+  "Feral": "Fortitude",
+  "Restoration": "Vizier"
+ },
+ "keystones": {
+  "Balance": [
+   "Starfire",
+   "Starsurge",
+   "Hurricane",
+   "Cyclone"
+  ],
+  "Feral": [
+   "Lacerate",
+   "Mangle (Cat)",
+   "Mangle (Bear)",
+   "Savage Roar"
+  ],
+  "Restoration": [
+   "Tranquility",
+   "Flow of Life",
+   "Lifebloom",
+   "Nourish"
+  ]
+ },
+ "auto_deps": {
+  "Growl": "Bear Form",
+  "Maul": "Bear Form",
+  "Swipe (Bear)": "Bear Form",
+  "Challenging Roar": "Bear Form",
+  "Enrage": "Bear Form",
+  "Claw": "Cat Form",
+  "Prowl": "Cat Form",
+  "Swipe (Cat)": "Cat Form",
+  "Cower": "Cat Form",
+  "Feline Grace": "Cat Form",
+  "Track Humanoids": "Cat Form",
+  "Aquatic Form": "Travel Form",
+  "Teleport: Moonglade": "Travel Form",
+  "Faerie Fire (Feral)": "Faerie Fire",
+  "Abolish Poison": "Cure Poison",
+  "Revive": "Rebirth"
+ },
+ "signature": {
+  "Balance": 1148505,
+  "Feral": 1150334,
+  "Restoration": 1148438
+ },
+ "examples": {
+  "Balance": [
+   1105176,
+   1108921,
+   1150516
+  ],
+  "Feral": [
+   1133917,
+   1149377,
+   1161336
+  ],
+  "Restoration": [
+   1100774,
+   1165139,
+   1105185
+  ]
+ },
+ "desc": {
+  "Balance": "Channel the power of the moon and stars, raining celestial fury and nature's wrath upon your foes.",
+  "Feral": "Take the shape of a fierce cat or a mighty bear, tearing enemies apart or shielding allies from harm.",
+  "Restoration": "Nurture allies with the life-giving magic of nature, healing over time and restoring the fallen."
+ },
+ "baseline": [
+  "Healing Touch",
+  "Wrath"
+ ]
+}

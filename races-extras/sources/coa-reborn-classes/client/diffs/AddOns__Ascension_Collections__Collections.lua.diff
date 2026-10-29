@@ -1,0 +1,20 @@
+--- a/Interface/AddOns/Ascension_Collections/Collections.lua
++++ b/Interface/AddOns/Ascension_Collections/Collections.lua
+@@ -34,7 +34,7 @@
+ 	-- Character Advancement Tab
+ 	local tab
+ 	do
+-		if IsCustomClass() then
++		if IsCustomClass() or IsDefaultClass() then -- unified Character Advancement: classic classes too
+ 			tab = self:AddTab(CHARACTER_ADVANCEMENT, "CoATalentFrame")
+ 		else
+ 			tab = self:AddTab(CHARACTER_ADVANCEMENT, "CharacterAdvancement")
+@@ -130,7 +130,7 @@
+ 	
+ 	-- disable character advancement tab if player is a coa class and not level 10+
+ 	local caTab = self:GetCharacterAdvancementTab()
+-	caTab:SetTabEnabled(not IsCustomClass() or C_Player:GetLevel() >= COA_AUTO_SHOW_TALENTS_LEVEL, format(FEATURE_BECOMES_AVAILABLE_AT_LEVEL, COA_AUTO_SHOW_TALENTS_LEVEL))
++	caTab:SetTabEnabled(not (IsCustomClass() or IsDefaultClass()) or C_Player:GetLevel() >= COA_AUTO_SHOW_TALENTS_LEVEL, format(FEATURE_BECOMES_AVAILABLE_AT_LEVEL, COA_AUTO_SHOW_TALENTS_LEVEL))
+ 	
+ 	-- disable enchanting tab if player is not 60+, is not prestiged, and has not opened the ui before
+ 	local enchantTab = self:GetMysticEnchantTab()

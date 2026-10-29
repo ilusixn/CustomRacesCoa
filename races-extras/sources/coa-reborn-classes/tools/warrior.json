@@ -1,0 +1,86 @@
+{
+ "out": "gera_warrior.py",
+ "label": "Warrior",
+ "classtype": 37,
+ "chrspecs_class": "WARRIOR",
+ "essence_class": 1,
+ "new_base": 140200,
+ "tabs": [
+  [
+   6,
+   "Arms"
+  ],
+  [
+   5,
+   "Fury"
+  ],
+  [
+   7,
+   "Protection"
+  ]
+ ],
+ "templates": {
+  "Arms": "Stalking",
+  "Fury": "Venom",
+  "Protection": "Fortitude"
+ },
+ "keystones": {
+  "Arms": [
+   "Overpower",
+   "Retaliation",
+   "Heroic Throw",
+   "Shattering Throw"
+  ],
+  "Fury": [
+   "Whirlwind",
+   "Berserker Rage",
+   "Enraged Regeneration",
+   "Recklessness"
+  ],
+  "Protection": [
+   "Shield Block",
+   "Shield Wall",
+   "Intervene",
+   "Spell Reflection"
+  ]
+ },
+ "dup": [],
+ "signature": {
+  "Arms": 1112294,
+  "Fury": 1123881,
+  "Protection": 1120243
+ },
+ "examples": {
+  "Arms": [
+   1107384,
+   1100772,
+   1146924
+  ],
+  "Fury": [
+   1101680,
+   1101464,
+   1129801
+  ],
+  "Protection": [
+   1123922,
+   1106572,
+   1146968
+  ]
+ },
+ "desc": {
+  "Arms": "Master of weapons and battlefield tactics, crushing foes with mortal strikes and devastating blows.",
+  "Fury": "Unleash a furious storm of blows, wielding a weapon in each hand and growing stronger with rage.",
+  "Protection": "Stand behind a sturdy shield to protect allies, holding the enemy's attention through the fiercest fights."
+ },
+ "auto_deps_spell": {
+  "Taunt": [
+   1100355,
+   10,
+   "Defensive Stance"
+  ]
+ },
+ "baseline": [
+  "Heroic Strike",
+  "Battle Stance"
+ ]
+}

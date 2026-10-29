@@ -1,0 +1,162 @@
+--- a/Interface/GlueXML/CharacterCreate.lua
++++ b/Interface/GlueXML/CharacterCreate.lua
+@@ -3064,18 +3064,7 @@
+ 	do
+ 		local roles = ClassInfoUtil.GetClassRoles(self.class)
+ 
+-		if roles.MeleeDPS then
+-			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.MELEE_DAMAGER)
+-		end
+-
+-		if roles.RangedDPS then
+-			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.RANGED_DAMAGER)
+-		end
+-
+-		if roles.CasterDPS then
+-			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.CASTER_DAMAGER)
+-		end
+-
++		-- CoA 60: four roles only - Tank, Healer, DPS (melee/ranged/caster merged), Support.
+ 		if roles.Tank then
+ 			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.TANK)
+ 		end
+@@ -3084,6 +3073,10 @@
+ 			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.HEALER)
+ 		end
+ 
++		if roles.MeleeDPS or roles.RangedDPS or roles.CasterDPS then
++			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.DAMAGER)
++		end
++
+ 		if roles.Support then
+ 			GlueTooltip:AddLine(ROLE_TEXT_WITH_ICON.SUPPORT)
+ 		end
+@@ -4467,3 +4460,128 @@
+ CHAR_CREATE_RACE_IDS["Gnoll"] = {83}
+ CHAR_CREATE_RACE_IDS["Saberon"] = {97}
+ if CHAR_CREATE_MALE_ONLY_RACES then CHAR_CREATE_MALE_ONLY_RACES["Gnoll"] = true; CHAR_CREATE_MALE_ONLY_RACES["Saberon"] = true end
++
++
++-- CoA 60: Ogre has no usable female model (ogre female .m2 crashes the client, crash dump 12/10);
++-- force the male model exactly like the other male-only races.
++if CHAR_CREATE_MALE_ONLY_RACES then CHAR_CREATE_MALE_ONLY_RACES["Ogre"] = true end
++
++-- CoA 60: races removed from the creation screen. Data and existing characters are kept; the
++-- server refuses creating them too. Identified by the button's own label, so icons, labels,
++-- tooltips and clicks always stay together; the duplicate Vulpera is the second of that name.
++do
++	local HIDDEN = { ["Skeleton"] = true, ["Alpha Goblin"] = true, ["Test Race"] = true, ["Ice Troll"] = true }
++	function CharacterCreate_LayoutRaceButtons(numRaces)
++		local vulperas = 0
++		for i = 1, numRaces do
++			local button = _G["CharCreateRaceButton"..i]
++			local name = button.Text and button.Text:GetText()
++			local hide = HIDDEN[name or ""]
++			if name == "Vulpera" then
++				vulperas = vulperas + 1
++				if vulperas > 1 then hide = true end
++			end
++			button.coaHidden = hide or nil
++		end
++		local perColumn, columnWidth, rowHeight, scale = 10, 150, 45, 0.7
++		local count = { Alliance = 0, Horde = 0 }
++		for i = 1, numRaces do
++			local button = _G["CharCreateRaceButton"..i]
++			if button.coaHidden then
++				button:Hide()
++			else
++				local ok, _, faction = pcall(GetFactionForRace, i)
++				if not ok or faction ~= "Horde" then
++					faction = "Alliance"
++				end
++				local k = count[faction]
++				count[faction] = k + 1
++				local column, row = math.floor(k / perColumn), k % perColumn
++				button:SetScale(scale)
++				button:ClearAllPoints()
++				if faction == "Alliance" then
++					button:SetPoint("TOPLEFT", CharCreateRaceButtonsFrame, "TOPLEFT", (28 + column * columnWidth) / scale, (-62 - row * rowHeight) / scale)
++				else
++					button:SetPoint("TOPRIGHT", CharCreateRaceButtonsFrame, "TOPRIGHT", (-28 - column * columnWidth) / scale, (-62 - row * rowHeight) / scale)
++				end
++				button:SetFaction(faction)
++				button:Show()
++			end
++		end
++	end
++end
++
++-- Any click (or automatic re-click) aimed at a hidden race is redirected to the first visible
++-- one, inside the normal click path - no engine calls during layout, no re-entrancy.
++do
++	local orig = CharacterRace_OnClick
++	function CharacterRace_OnClick(self, id, forceSelect)
++		local btn = id and _G["CharCreateRaceButton"..id]
++		if btn and btn.coaHidden then
++			for i = 1, (CharacterCreate.numRaces or 0) do
++				local b = _G["CharCreateRaceButton"..i]
++				if b and not b.coaHidden then
++					self, id = b, i
++					break
++				end
++			end
++		end
++		return orig(self, id, forceSelect)
++	end
++end
++
++
++-- CoA 60: one creation screen with all 30 classes. The 21 CoA classes stay in rows 1-2 and the
++-- 9 classic classes fill a third row; the container is a bottom-anchored vertical layout, so the
++-- upper rows slide up by themselves. The swap buttons are kept as a fallback for now.
++do
++	local function EnsureRow3()
++		local container = CharCreateClassContainer
++		if not container.Row3 then
++			local row = CreateFrame("Frame", "CharCreateClassContainerRow3", container, "HorizontalLayoutFrame")
++			row:SetSize(800, 52)
++			row.layoutIndex = 3
++			row.spacing = 36
++			row.align = "center"
++			container.Row3 = row
++		end
++		return container.Row3
++	end
++
++	local origCoA = CharacterCreate_ShowCoAClasses
++	function CharacterCreate_ShowCoAClasses(self)
++		origCoA(self)
++		CharCreateClassContainer:SetScale(0.75) -- 25% menor, a pedido dele
++		CharCreateSwapClassesButton:Hide() -- switch removido: as 30 classes vivem numa tela so
++		if CharacterCreate.classesVisible ~= "COA" or not CharCreateClassContainer:IsShown() then
++			if CharCreateClassContainer.Row3 then CharCreateClassContainer.Row3:Hide() end
++			return
++		end
++		local row = EnsureRow3()
++		row:Show()
++		local pool = self.classButtonPool
++		local layoutIndex = 0
++		for i = 1, 11 do
++			local classID = Enum.Class[CLASSIC_CLASS_ORDER[i]]
++			if classID and classID ~= 6 and classID ~= 10 and C_CharacterCreate.CanCreateClass(classID) then
++				local className, classFile, enabled = GetClassInfo(classID)
++				if className and classFile then
++					layoutIndex = layoutIndex + 1
++					local button = pool:Acquire()
++					button:SetID(classID)
++					button.layoutIndex = layoutIndex
++					button:SetParent(row)
++					button:Show()
++					button:SetClass(className, classFile, enabled)
++				end
++			end
++		end
++		row:MarkDirty()
++		CharCreateClassContainer:MarkDirty()
++	end
++
++	-- a visao so-classicas foi aposentada: qualquer chamada dela abre a tela unica das 30 classes
++	function CharacterCreate_ShowRegularClasses(self)
++		CharacterCreate_ShowCoAClasses(self)
++	end
++end

@@ -1,0 +1,25 @@
+--- a/Interface/FrameXML/UIParent.lua
++++ b/Interface/FrameXML/UIParent.lua
+@@ -325,7 +325,8 @@
+ end
+ 
+ function CharacterAdvancement_LoadUI()
+-	if IsCustomClass() then
++	-- Local server (unified Character Advancement): the classic classes use the CoA talent window too.
++	if IsCustomClass() or IsDefaultClass() then
+ 		UIParentLoadAddOn("Ascension_CoATalents")
+ 		return
+ 	end
+@@ -658,12 +659,6 @@
+ 
+ 	if Collections:IsShown() then
+ 		HideUIPanel(Collections)
+-	elseif IsDefaultClass("player") and not IsShiftKeyDown() then
+-		-- Local server: vanilla classes open the normal talent window (Shift opens Collections).
+-		TalentFrame_LoadUI()
+-		if PlayerTalentFrame_Toggle then
+-			PlayerTalentFrame_Toggle(false, GetActiveTalentGroup())
+-		end
+ 	elseif (IsCustomClass() and (UnitLevel("player") < 10)) then
+ 		Collections:GoToTab(Collections.Tabs.Vanity) -- go to vanity collection if level is below 10
+ 	elseif C_GameMode:IsGameModeActive(Enum.GameMode.BuildDraft) then

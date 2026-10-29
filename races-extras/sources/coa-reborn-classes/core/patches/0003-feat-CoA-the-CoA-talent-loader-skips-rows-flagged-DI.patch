@@ -1,0 +1,28 @@
+From 8c4e1fa9aa2c0e916970366031c4aa6c9eb9e3d3 Mon Sep 17 00:00:00 2001
+From: CoA Reborn Classes contributors <noreply@example.invalid>
+Date: Sun, 11 Oct 2026 07:59:19 +0900
+Subject: [PATCH 3/4] feat(CoA): the CoA talent loader skips rows flagged
+ DISABLED/DEPRECATED in CharacterAdvancement.dbc
+
+---
+ src/server/coa/AscensionCoATalentData.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/server/coa/AscensionCoATalentData.cpp b/src/server/coa/AscensionCoATalentData.cpp
+index 20412c1cdd..bd339966fa 100644
+--- a/src/server/coa/AscensionCoATalentData.cpp
++++ b/src/server/coa/AscensionCoATalentData.cpp
+@@ -226,6 +226,10 @@ bool LoadCoATalentData()
+             classType->second.ClassId >= 1 && classType->second.ClassId <= 11 && classType->second.ClassId != 10;
+         if (!customType && !stockType)
+             continue;
++        // Rows switched off in the client data (ROW_DISABLED 0x8 / ROW_DEPRECATED 0x1 in the
++        // flag dword at byte 479, as the free-pick loader reads it) are not talents of anyone.
++        if (record.GetUInt32At(479) & 0x9)
++            continue;
+ 
+         uint32 const classId = classType->second.ClassId;
+         uint32 const tab = record.GetUInt32(ADVANCEMENT_TAB);
+-- 
+2.39.5
+

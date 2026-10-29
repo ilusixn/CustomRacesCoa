@@ -1,0 +1,9 @@
+*.dbc
+*.MPQ
+*.mpq
+*.blp
+__pycache__/
+*.pyc
+out/
+orig/
+*.log

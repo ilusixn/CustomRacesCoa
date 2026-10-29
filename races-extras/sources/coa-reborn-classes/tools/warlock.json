@@ -1,0 +1,85 @@
+{
+ "out": "gera_warlock.py",
+ "label": "Warlock",
+ "classtype": 41,
+ "chrspecs_class": "WARLOCK",
+ "essence_class": 9,
+ "new_base": 141600,
+ "tabs": [
+  [
+   17,
+   "Affliction"
+  ],
+  [
+   18,
+   "Demonology"
+  ],
+  [
+   19,
+   "Destruction"
+  ]
+ ],
+ "templates": {
+  "Affliction": "Venom",
+  "Demonology": "Vizier",
+  "Destruction": "Stalking"
+ },
+ "keystones": {
+  "Affliction": [
+   "Curse of the Elements",
+   "Howl of Terror",
+   "Death Coil",
+   "Seed of Corruption"
+  ],
+  "Demonology": [
+   "Banish",
+   "Fel Armor",
+   null,
+   null
+  ],
+  "Destruction": [
+   "Rain of Fire",
+   "Hellfire",
+   "Incinerate",
+   "Soul Fire"
+  ]
+ },
+ "dup": [
+  "Metamorphosis"
+ ],
+ "signature": {
+  "Affliction": 1148181,
+  "Demonology": 1159672,
+  "Destruction": 1150796
+ },
+ "examples": {
+  "Affliction": [
+   1100172,
+   1130108,
+   1100980
+  ],
+  "Demonology": [
+   1147193,
+   1100697,
+   1100755
+  ],
+  "Destruction": [
+   1100686,
+   1100348,
+   1117877
+  ]
+ },
+ "desc": {
+  "Affliction": "A master of curses and shadow magic who slowly drains the life of foes with afflictions that linger.",
+  "Demonology": "Command powerful demons and transform into one, bending the forces of the Burning Legion to your will.",
+  "Destruction": "Call down fire and chaos upon your enemies, destroying them with devastating shadow and flame."
+ },
+ "trainer_only": [
+  "Inferno",
+  "Ritual of Doom"
+ ],
+ "baseline": [
+  "Summon Imp",
+  "Shadow Bolt"
+ ]
+}
