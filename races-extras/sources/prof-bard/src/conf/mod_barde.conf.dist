@@ -1,0 +1,391 @@
+#
+# mod-barde v1.0
+#
+# Copiez ce fichier en mod_barde.conf pour changer une valeur.
+# EN: Copy this file to mod_barde.conf to change a value. Each setting is described in French, then in English (lines starting with "EN:").
+#
+
+[worldserver]
+
+#    Barde.Enable
+#        Active le métier.
+#        Défaut : 1
+#
+#        EN: Turns the profession on.
+#        Default: 1
+
+Barde.Enable = 1
+
+#    Barde.RequireInstrument
+#        Il faut l'instrument dans ses sacs pour jouer.
+#        Défaut : 1
+#
+#        EN: The instrument must be in the bags to play.
+#        Default: 1
+
+Barde.RequireInstrument = 1
+
+#    Barde.RequireProfession
+#        Il faut avoir appris le métier (sort « Apprenti barde » du Livre des artisans) pour jouer.
+#        Défaut : 1
+#
+#        EN: The profession must have been learned (the "Apprenti barde" spell of the Crafting book) to play.
+#        Default: 1
+
+Barde.RequireProfession = 1
+
+#    Barde.Buff.MinAccuracy
+#        Justesse minimale pour obtenir le buff. En dessous : fausse note et malus.
+#        Défaut : 0.50
+#
+#        EN: Minimum accuracy to get the chant. Below it: a wrong note and a malus.
+#        Default: 0.50
+
+Barde.Buff.MinAccuracy = 0.50
+
+#    Barde.SkillMax
+#        Compétence maximale du barde : 300 pour un serveur niveau 60, 450 pour un serveur WotLK.
+#        Défaut : 300
+#
+#        EN: Maximum bard skill: 300 for a level-60 server, 450 for a WotLK server.
+#        Default: 300
+
+Barde.SkillMax = 300
+
+#    Barde.Skill.MinAccuracy
+#        Justesse minimale pour gagner un point de compétence. Aucun point en entraînement.
+#        Défaut : 0.70
+#
+#        EN: Minimum accuracy to earn a skill point. No point in training.
+#        Default: 0.70
+
+Barde.Skill.MinAccuracy = 0.70
+
+#    Barde.Buff.BaseMinutes / Barde.Buff.PerTierMinutes
+#        Durée du chant : base + minutes par palier de l'air (Apprenti = palier 0).
+#        Défaut : 10 / 5
+#
+#        EN: Chant duration: base + minutes per song tier (Apprentice = tier 0).
+#        Default: 10 / 5
+
+Barde.Buff.BaseMinutes = 10
+Barde.Buff.PerTierMinutes = 5
+
+#    Barde.Buff.Cap
+#        Un chant ne dépasse jamais Cap x sa base.
+#        Défaut : 1.2
+#
+#        EN: A chant never exceeds Cap x its base.
+#        Default: 1.2
+
+Barde.Buff.Cap = 1.2
+
+#    Barde.Buff.CrescendoStep / Barde.Buff.CrescendoCap
+#        Bonus par série de 25 notes d'affilée, et son plafond.
+#        Défaut : 0.02 / 0.12
+#
+#        EN: Bonus per streak of 25 notes in a row, and its cap.
+#        Default: 0.02 / 0.12
+
+Barde.Buff.CrescendoStep = 0.02
+Barde.Buff.CrescendoCap = 0.12
+
+#    Barde.Buff.Arena / Barde.Buff.Battleground
+#        Multiplicateur du buff en arène et en champ de bataille.
+#        Défaut : 0 / 0.5
+#
+#        EN: Chant multiplier in arenas and battlegrounds.
+#        Default: 0 / 0.5
+
+Barde.Buff.Arena = 0
+Barde.Buff.Battleground = 0.5
+
+#    Barde.Training.Tempo / Barde.Training.BuffFactor
+#        Mode entraînement : tempo ralenti et buff réduit. Aucun score enregistré, aucun malus.
+#        Défaut : 0.75 / 0.5
+#
+#        EN: Training mode: slower tempo and reduced chant. No score recorded, no malus.
+#        Default: 0.75 / 0.5
+
+Barde.Training.Tempo = 0.75
+Barde.Training.BuffFactor = 0.5
+
+#    Barde.Malus.Fraction / Barde.Malus.Seconds
+#        Fausse note : malus à cette part de la base, pendant cette durée.
+#        Défaut : 0.25 / 120
+#
+#        EN: Wrong note: a malus of this share of the base, for this long.
+#        Default: 0.25 / 120
+
+Barde.Malus.Fraction = 0.25
+Barde.Malus.Seconds = 120
+
+#    Barde.Check.DurationSlackSeconds
+#        Un résultat est refusé s'il arrive plus tôt que la durée du morceau moins cette marge.
+#        Défaut : 2
+#
+#        EN: A result is refused if it arrives earlier than the song's length minus this margin.
+#        Default: 2
+
+Barde.Check.DurationSlackSeconds = 2
+
+#    Barde.Check.ResultGraceSeconds
+#        ... ou plus tard que la fin du morceau plus ce délai.
+#        Défaut : 60
+#
+#        EN: ... or later than the song's end plus this delay.
+#        Default: 60
+
+Barde.Check.ResultGraceSeconds = 60
+
+#    Barde.PlayAura
+#        Numéro du sort-aura (invisible dans la barre d'effets) dont l'effet visuel entoure le barde pendant qu'il joue.
+#        1950301 à 1950307 : sept apparences à essayer avec .barde aura <1 à 7>. 0 : aucune aura.
+#        Défaut : 1950307 (la seule des sept qui s'affiche dans ce client : un cercle bleu avec une note de musique)
+#
+#        EN: Aura spell id (invisible in the buff bar) whose visual surrounds the bard while playing.
+#        1950301 to 1950307: seven looks to try with .barde aura <1 to 7>. 0: no aura.
+#        Default: 1950307 (the only one of the seven that shows in this client: a blue circle with a music note)
+
+Barde.PlayAura = 1950307
+
+#    Barde.PlaySoundAura
+#        Second sort-aura posé en même temps que le précédent, pour y ajouter un son. 0 : aucun. Le 1950302 (apparence 2) fait danser le personnage et lui fait ranger son instrument : à éviter.
+#        Défaut : 0
+#
+#        EN: A second aura spell set together with the previous one, to add a sound. 0: none. 1950302 (look 2) makes the character dance and put the instrument away: avoid it.
+#        Default: 0
+
+Barde.PlaySoundAura = 0
+
+#    Barde.PlayEmoteState
+#        Animation (numéro d'état d'emote du jeu) que garde le barde pendant qu'il joue. 0 : aucune.
+#        Liste de numéros séparés par des virgules : une danse est tirée au hasard à chaque morceau. 10, 400 et 413 sont
+#        les trois danses du jeu, qui gardent toutes l'instrument en main grâce au patch client. Vide : pas de danse.
+#        Défaut : 0
+#
+#        EN: Animation (game emote-state id) the bard keeps while playing. 0: none.
+#        A comma-separated list of ids: one dance is drawn at random for each song. 10, 400 and 413 are the game's three dances, all of which keep the instrument in hand thanks to the client patch. Empty: no dance.
+#        Default: 0
+
+Barde.PlayEmoteState = 10,400,413
+
+#    Barde.ListenRange / Barde.ListenMax
+#        Les joueurs à cette distance (en mètres) d'un barde qui joue entendent ses notes (leur addon joue le son),
+#        au plus Barde.ListenMax par barde. 0 pour la portée : personne n'entend à part les partenaires d'un ensemble.
+#        Chaque joueur peut couper l'écoute avec /barde ecoute.
+#        La ligne /me « commence à jouer » a la même portée.
+#        Défaut : 7.5 / 8
+#
+#        EN: Players within this distance (meters) of a playing bard hear their notes (their addon plays the sound),
+#        at most Barde.ListenMax per bard. 0 for the range: nobody hears except the partners of an ensemble.
+#        Each player can turn listening off with /barde ecoute. The "starts playing" /me line has the same range.
+#        Default: 7.5 / 8
+
+Barde.ListenRange = 7.5
+Barde.ListenMax = 8
+
+#    Barde.Craft.CrystalEntry
+#        Objet qui accompagne la gemme de qualité pour les meilleures chances (palier arcanite) : le Cristal arcanique.
+#        Défaut : 12363
+#
+#        EN: Item that goes with the quality gem for the best odds (arcanite tier): the Arcane Crystal.
+#        Default: 12363
+
+Barde.Craft.CrystalEntry = 12363
+
+#    Barde.Camp.Seconds / Barde.Camp.Cooldown / Barde.Camp.Range
+#        Camp de barde : durée (secondes), délai avant que le même barde en refasse un, et distance autour du feu (en mètres)
+#        où l'on profite de ses effets. Un seul camp par zone.
+#        Défaut : 1800 / 3600 / 8
+#
+#        EN: Bard camp: duration (seconds), delay before the same bard can set another, and distance around the fire (meters)
+#        where its effects apply. One camp per zone.
+#        Default: 1800 / 3600 / 8
+
+Barde.Camp.Seconds = 1800
+Barde.Camp.Cooldown = 3600
+Barde.Camp.Range = 8
+
+#    Barde.Camp.TunePer5Seconds
+#        Les instruments d'un barde près du feu regagnent ce nombre de points d'accord (sur 100) toutes les 5 secondes.
+#        Défaut : 1 (12 par minute)
+#
+#        EN: A bard's instruments near the fire regain this many tuning points (out of 100) every 5 seconds.
+#        Default: 1 (12 per minute)
+
+Barde.Camp.TunePer5Seconds = 1
+
+#    Barde.Camp.ListenerFraction
+#        Les joueurs près du feu qui écoutent un barde y jouer reçoivent cette part de son chant (0.5 : la moitié).
+#        Défaut : 0.5
+#
+#        EN: Players near the fire who listen to a bard playing there receive this share of the chant (0.5: half).
+#        Default: 0.5
+
+Barde.Camp.ListenerFraction = 0.5
+
+#    Barde.Concert.Enable
+#        Un barde qui joue à un camp ou dans une zone de repos (taverne, ville) fait un concert : une bourse apparaît à ses pieds.
+#        Défaut : 1
+#
+#        EN: A bard playing at a camp or in a rest zone (tavern, city) gives a concert: a purse appears at their feet.
+#        Default: 1
+
+Barde.Concert.Enable = 1
+
+#    Barde.Concert.GraceSeconds / Barde.Concert.MaxSeconds
+#        La bourse reste ce temps après le dernier morceau, puis son contenu est envoyé par courrier au barde ; jamais plus de MaxSeconds.
+#        Défaut : 180 / 1800
+#
+#        EN: The purse stays this long after the last song, then its content is mailed to the bard; never more than MaxSeconds.
+#        Default: 180 / 1800
+
+Barde.Concert.GraceSeconds = 180
+Barde.Concert.MaxSeconds = 1800
+
+#    Barde.Concert.ApplausePercent / Barde.Concert.ApplauseMax / Barde.Camp.TipPercent
+#        Chaque spectateur qui applaudit (/applaud, ou /applaudir en français) près de la bourse ajoute ce pourcentage aux pourboires, jusqu'au maximum ;
+#        un concert au camp ajoute encore Barde.Camp.TipPercent. Ces bonus sont de l'argent créé : ils sont désactivés par défaut.
+#        Les applaudissements servent à autre chose : voir Barde.Ovation.*.
+#        Défaut : 0 / 0 / 0
+#
+#        EN: Each spectator who applauds (/applaud, or /applaudir in French) near the purse adds this percentage to the tips, up to the maximum;
+#        a concert at a camp adds Barde.Camp.TipPercent more. These bonuses are created money: they are off by default.
+#        Applause is used for something else: see Barde.Ovation.*.
+#        Default: 0 / 0 / 0
+
+Barde.Concert.ApplausePercent = 0
+Barde.Concert.ApplauseMax = 0
+Barde.Camp.TipPercent = 0
+
+#    Barde.Spec.MinSkill / Barde.Spec.ChangeCost / Barde.Spec.ChantPercent
+#        Compétence de barde pour choisir une spécialisation (le premier choix est gratuit), prix d'un changement (en cuivre : 100000 = 10 po)
+#        et bonus des chants de la voie (barde de guerre, conteur), en pour cent.
+#        Défaut : 180 / 100000 / 10
+#
+#        EN: Bard skill needed to choose a specialty (the first choice is free), price of a change (in copper: 100000 = 10 gold)
+#        and the chant bonus of the path (war bard, storyteller), in percent.
+#        Default: 180 / 100000 / 10
+
+Barde.Spec.MinSkill = 180
+Barde.Spec.ChangeCost = 100000
+Barde.Spec.ChantPercent = 10
+
+#    Barde.Ovation.Seconds / Barde.Ovation.MaxSeconds
+#        Chaque spectateur qui applaudit prolonge de ce temps le chant des auditeurs du concert, jusqu'au maximum par concert,
+#        et compte une ovation pour le barde (titres).
+#        Défaut : 60 / 300
+#
+#        EN: Each spectator who applauds lengthens the concert listeners' chant by this much, up to the maximum per concert,
+#        and counts as an ovation for the bard (titles).
+#        Default: 60 / 300
+
+Barde.Ovation.Seconds = 60
+Barde.Ovation.MaxSeconds = 300
+
+#    Barde.Concert.BonusMaxPerConcert / Barde.Concert.BonusMaxPerDay
+#        Les bonus d'applaudissement et de camp sont de l'argent créé : ils sont plafonnés, en cuivre, par concert et par barde et par jour
+#        (5000 = 50 pièces d'argent ; 20000 = 2 pièces d'or). 0 : pas de bonus du tout. Les pourboires eux-mêmes sont de simples échanges
+#        entre joueurs : ils ne sont pas limités.
+#        Défaut : 5000 / 20000
+#
+#        EN: The applause and camp bonuses are created money: they are capped, in copper, per concert and per bard per day
+#        (5000 = 50 silver; 20000 = 2 gold). 0: no bonus at all. Tips themselves are simple exchanges between players: they are not limited.
+#        Default: 5000 / 20000
+
+Barde.Concert.BonusMaxPerConcert = 5000
+Barde.Concert.BonusMaxPerDay = 20000
+
+#    Barde.Concert.AllowSameAccount
+#        1 : un joueur peut laisser un pourboire ou applaudir les personnages de son propre compte (pour les essais). 0 : non.
+#        Défaut : 0
+#
+#        EN: 1: a player may tip or applaud characters of their own account (for testing). 0: no.
+#        Default: 0
+
+Barde.Concert.AllowSameAccount = 0
+
+#    Barde.Concert.ListenerFraction / Barde.Concert.Range
+#        Dans une taverne ou une ville, les joueurs à cette distance (en mètres) d'un barde qui joue reçoivent cette part de son chant.
+#        Défaut : 0.25 / 15
+#
+#        EN: In a tavern or city, players within this distance (meters) of a playing bard receive this share of the chant.
+#        Default: 0.25 / 15
+
+Barde.Concert.ListenerFraction = 0.25
+Barde.Concert.Range = 15
+
+#    Barde.Compose.MaxPerPlayer / MinNotes / MinSeconds / MaxSeconds
+#        Compositions : nombre maximal par joueur, taille minimale (notes et secondes) et durée maximale d'une composition.
+#        Défaut : 10 / 16 / 20 / 240
+#
+#        EN: Compositions: maximum per player, minimum size (notes and seconds) and maximum length of a composition.
+#        Default: 10 / 16 / 20 / 240
+
+Barde.Compose.MaxPerPlayer = 10
+Barde.Compose.MinNotes = 16
+Barde.Compose.MinSeconds = 20
+Barde.Compose.MaxSeconds = 240
+
+#    Barde.Scroll.Effect / Barde.Scroll.EffectSeconds / Barde.Scroll.Sound
+#        Quand on lit un parchemin d'air : l'aura (numéro de sort ; 1950307 est le cercle bleu) gardée quelques secondes, et le son joué
+#        (numéro de son du jeu ; 888 est la fanfare de niveau). 0 : rien.
+#        Défaut : 1950307 / 3 / 888
+#
+#        EN: When a song scroll is read: the aura (spell id; 1950307 is the blue circle) kept for a few seconds, and the sound played
+#        (game sound id; 888 is the level-up fanfare). 0: nothing.
+#        Default: 1950307 / 3 / 888
+
+Barde.Scroll.Effect = 1950307
+Barde.Scroll.EffectSeconds = 3
+Barde.Scroll.Sound = 888
+
+#    Barde.PlayEmote
+#        Une ligne de texte (« commence à jouer ... ») visible des joueurs proches quand un barde commence à jouer.
+#        Défaut : 1
+#
+#        EN: A line of text ("starts playing ...") visible to nearby players when a bard starts playing.
+#        Default: 1
+
+Barde.PlayEmote = 1
+
+#    Barde.Buff.DuoMultiplier / Barde.Buff.TrioMultiplier
+#        Jouer ensemble : multiplicateur de la base du chant pour deux bardes, puis trois.
+#        Défaut : 1.6 / 2.0
+#
+#        EN: Playing together: multiplier of the chant's base for two bards, then three.
+#        Default: 1.6 / 2.0
+
+Barde.Buff.DuoMultiplier = 1.6
+Barde.Buff.TrioMultiplier = 2.0
+
+#    Barde.Buff.MaxChants
+#        Nombre de chants différents qu une même personne peut avoir en même temps.
+#        Défaut : 3
+#
+#        EN: Number of different chants one person can have at the same time.
+#        Default: 3
+
+Barde.Buff.MaxChants = 3
+
+#    Barde.Ensemble.InviteSeconds / Barde.Ensemble.Range
+#        Jouer ensemble : temps laissé pour répondre à une invitation, et distance maximale (en mètres) entre
+#        celui qui propose et le barde invité.
+#        Défaut : 20 / 60
+#
+#        EN: Playing together: time given to answer an invitation, and maximum distance (meters) between
+#        the one who proposes and the invited bard.
+#        Default: 20 / 60
+
+Barde.Ensemble.InviteSeconds = 20
+Barde.Ensemble.Range = 60
+
+#    Barde.Ensemble.CountdownSeconds
+#        Préparation d'un ensemble : le morceau commence ce nombre de secondes après que tout le monde a répondu (0 : tout de suite).
+#        Défaut : 5
+#
+#        EN: Ensemble preparation: the song starts this many seconds after everybody has answered (0: immediately).
+#        Default: 5
+
+Barde.Ensemble.CountdownSeconds = 5

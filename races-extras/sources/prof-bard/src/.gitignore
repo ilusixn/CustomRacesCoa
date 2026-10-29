@@ -1,0 +1,12 @@
+# Généré ou propre à la machine
+__pycache__/
+*.pyc
+*.MPQ
+*.dbc
+*.pre-barde
+build-log*.txt
+worldserver-barde/
+
+# Notes de session internes et outils abandonnés
+docs/sauvegarde-barde.md
+tools/build_frame.py

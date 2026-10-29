@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>
+<title>Carnet du Barde</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: carnet de partitions en liste par rang, scène de jeu plein écran façon pupitre */
+:root{
+  --night:#141826; --wood:#1f2436; --line:#33395a; --ink:#ece6d6; --muted:#9a9fb8;
+  --brass:#d9a441; --perfect:#7fd6a8; --good:#8fb4ff; --miss:#e0707a;
+  --l0:#d9a441; --l1:#c97a5a; --l2:#7fb0d6; --l3:#a98fd6;
+  --display:"Pirata One","Palatino Linotype",Georgia,serif;
+  --body:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+h1{font-family:var(--display);font-weight:400;font-size:2.4rem;line-height:1;margin:0;color:var(--brass);letter-spacing:.01em}
+.lead{color:var(--muted);margin:.5rem 0 1.2rem;max-width:60ch}
+.how{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.how span{font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted)}
+.how b{color:var(--ink)}
+.tier{margin-top:26px}
+.tier h2{font-family:var(--display);font-weight:400;font-size:1.5rem;margin:0 0 2px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;text-wrap:balance}
+.tier h2 small{font-family:var(--body);font-size:.8rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.tier .nw{font-size:.85rem;color:var(--muted);margin:0 0 8px}
+.list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:12px 4px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.row:hover,.row:focus-visible{background:var(--wood);outline:none}
+.row:focus-visible{box-shadow:inset 0 0 0 2px var(--brass)}
+.row .t{font-weight:700;min-width:0}
+.row .t i{font-style:normal;font-weight:400;color:var(--muted)}
+.row .m{grid-column:1;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.row .best{grid-row:1/3;grid-column:2;text-align:right;font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--muted)}
+.row .best b{display:block;font-size:1.05rem;color:var(--brass)}
+.pips{letter-spacing:1px;color:var(--brass)}
+.rules{margin-top:32px;border-top:1px solid var(--line);padding-top:16px;font-size:.92rem;color:var(--muted);max-width:62ch}
+.rules h3{font-family:var(--display);font-weight:400;color:var(--ink);font-size:1.3rem;margin:0 0 6px}
+.rules table{border-collapse:collapse;width:100%;margin:8px 0 12px;font-variant-numeric:tabular-nums}
+.rules td,.rules th{text-align:left;padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.rules th{color:var(--ink);font-weight:700}
+.tw{overflow-x:auto}
+.tabs{display:flex;gap:8px;margin:0 0 4px}
+.tabs button{font:inherit;font-weight:700;background:none;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 16px;cursor:pointer}
+.tabs button[aria-selected="true"]{color:#1a1408;background:var(--brass);border-color:var(--brass)}
+.tabs button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.shop{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:12px}
+.arow{display:grid;grid-template-columns:1fr;gap:6px;padding:12px 2px;border-bottom:1px solid var(--line)}
+.arow .own{font-weight:700}
+.arow .own small{font-weight:400;color:var(--muted)}
+.arow .rec{font-size:.85rem;color:var(--muted)}
+.arow .act{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.arow .act label{font-size:.85rem;display:flex;gap:6px;align-items:center;cursor:pointer}
+.arow .act input{accent-color:var(--brass)}
+.arow .res{font-size:.9rem;min-height:1.2em}
+.btn.sm{padding:6px 12px;font-size:.9rem}
+.shopbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.warn{color:var(--miss)}
+.medal{font-weight:700;font-size:.8rem;margin-left:4px}
+.pads{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.pads button{font:inherit;font-weight:700;font-size:1.1rem;aspect-ratio:1/1;max-width:100%;border-radius:14px;border:2px solid var(--line);background:var(--wood);color:var(--ink);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+.pads button small{display:block;font-size:.75rem;font-weight:400;color:var(--muted)}
+.pads button.on{background:var(--brass);color:#1a1408;border-color:var(--brass)}
+.board{margin-top:10px;font-size:.85rem;border-top:1px solid var(--line);padding-top:8px;font-variant-numeric:tabular-nums}
+.board ol{margin:4px 0 0;padding-left:20px}
+.board li.me{color:var(--brass);font-weight:700}
+.tune{display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--line);vertical-align:middle;margin:0 6px;overflow:hidden}
+.tune i{display:block;height:100%;background:var(--perfect)}
+.tune.low i{background:var(--miss)}
+.pcard{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+.pcard h4{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:1.25rem;color:var(--ink)}
+.steps{list-style:none;padding:0;margin:8px 0}
+.steps li{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.steps li .ck{width:1.2em;color:var(--perfect);font-weight:700}
+.steps li div{flex:1;min-width:0}
+.steps li small{display:block;color:var(--muted)}
+input.txt,select.txt{font:inherit;background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:100%}
+.rec-on{background:var(--miss)!important;border-color:var(--miss)!important;color:#1a0d0f!important}
+.stock{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:.9rem}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+#stage{position:fixed;inset:0;background:var(--night);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+.bar{display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.bar .nm{flex:1;min-width:0;font-family:var(--display);font-size:1.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .nm small{display:block;font-family:var(--body);font-size:.8rem;color:var(--muted)}
+.bar .st{font-variant-numeric:tabular-nums;font-size:.9rem;color:var(--muted);text-align:right}
+.bar .st b{color:var(--ink)}
+button.btn{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--wood);color:var(--ink);padding:10px 16px;cursor:pointer}
+button.btn.main{background:var(--brass);color:#1a1408;border-color:var(--brass)}
+button.btn:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.back{padding:6px 12px!important}
+canvas{flex:1;width:100%;min-height:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.over{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,20,.85);padding:16px;overflow-y:auto}
+.card{background:var(--wood);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:440px;width:100%;margin:auto}
+.card h3{font-family:var(--display);font-weight:400;font-size:2rem;margin:0;color:var(--brass);line-height:1.1}
+.card p{margin:.4rem 0}
+.grp{margin-top:14px}
+.grp .lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{flex:1 1 auto;min-width:0;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:.92rem;line-height:1.2}
+.seg label small{display:block;font-size:.72rem;color:var(--muted)}
+.seg input:checked+label{border-color:var(--brass);background:#2a2a33;color:var(--brass)}
+.seg input:checked+label small{color:var(--ink)}
+.seg input:focus-visible+label{outline:2px solid var(--brass);outline-offset:2px}
+.prev{margin-top:12px;font-size:.9rem;border-top:1px solid var(--line);padding-top:10px}
+.prev b{color:var(--brass)}
+.opt{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:.92rem;cursor:pointer}
+.opt input{margin-top:3px;accent-color:var(--brass);width:18px;height:18px}
+.opt small{display:block;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0;text-align:center;font-variant-numeric:tabular-nums}
+.stats div{border:1px solid var(--line);border-radius:8px;padding:6px}
+.stats b{display:block;font-size:1.3rem}
+.buff{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.buff .v{font-size:1.25rem;font-weight:700}
+.calc{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.aura{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.75rem;color:var(--muted);word-break:break-all}
+.acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.acts .btn{flex:1}
+</style>
+
+<div class="wrap" id="book">
+  <h1>Carnet du Barde</h1>
+  <p class="lead">Prototype du métier de barde. Fabrique tes instruments à l'atelier, choisis un air et un instrument (qui décide du buff), puis joue seul ou à plusieurs : mélodie, rythme et harmonie.</p>
+  <div class="how">
+    <span>Touche les <b>4 colonnes</b> ou <b>D F J K</b></span>
+    <span><b>Notes tenues</b> : garde le doigt jusqu'au bout</span>
+    <span><b>Crescendo</b> : +2 % par série de 25</span>
+    <span>Sous 50 % de justesse, pas de buff</span>
+    <span><b>Un seul chant</b> actif par joueur</span>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tb-songs" aria-selected="true">Partitions</button>
+    <button role="tab" id="tb-shop" aria-selected="false">Atelier</button>
+    <button role="tab" id="tb-imp" aria-selected="false">Improviser</button>
+    <button role="tab" id="tb-prof" aria-selected="false">Profil</button>
+  </div>
+  <section id="tabSongs">
+  <div class="pcard" id="skillBox" style="margin-top:16px"></div>
+  <div id="tiers"></div>
+  <div id="comps"></div>
+  <div class="rules">
+    <h3>Instruments et buffs</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Instrument</th><th>Buff</th><th>Solo</th><th>Duo</th><th>Trio</th></tr></thead>
+      <tbody id="itab"></tbody>
+    </table></div>
+    <h3>Concerts, duels et défis</h3>
+    <p><b>Concert</b> en taverne ou au camp de barde (à fabriquer) : une bourse est posée au sol, les spectateurs y déposent de l'or selon ta justesse et applaudissent (+2 % de pourboires par applaudissement, 20 % max). Les auditeurs reçoivent <i>Bonne humeur</i>, 15 % du buff solo, sans groupe. <b>Duel</b> : deux bardes jouent le même air, le meilleur score remporte la bourse, partagée 50/50 en cas d'égalité. Les <b>défis</b> multiplient le score inscrit au panneau.</p>
+    <p><b>Maîtrise</b> : bronze après 5 réussites, argent après 15, or après 40 (+1, +2, +3 % de buff). <b>Accord</b> : chaque morceau désaccorde l'instrument de 4 % ; sous 50 % il sonne faux et le buff baisse jusqu'à −15 %. Une clé d'accordage le remet à 100 %. <b>Fausse note</b> : sous 50 % de justesse, un malus propre à l'instrument frappe le groupe pendant 2 minutes.</p>
+    <h3>Jouer à plusieurs</h3>
+    <p>Pour jouer à plusieurs, <b>chaque barde</b> doit avoir un instrument au moins du palier de l'air : un débutant ne peut pas suivre un maître sur un air de maître. La qualité des instruments est moyennée sur le groupe. Trois parties : la <b>mélodie</b> (l'instrument choisi, qui donne le buff), le <b>rythme</b> au tambour et l'<b>harmonie</b>, un contre-chant tenu une quinte sous la mélodie, comme l'organum médiéval. En solo, le buff reste modeste. À plusieurs, chaque barde tient une partie différente, les justesses sont moyennées et le buff est multiplié par 1,6 en duo et par 2 en trio. Deux bardes sur la même partie ne cumulent pas. Ici, les autres bardes sont simulés ; dans le module ce seraient de vrais joueurs invités.</p>
+    <p>Airs : <i>Greensleeves</i> et les gigues irlandaises sont traditionnels. Tous les autres sont des compositions originales dans les modes médiévaux (ré, mi, fa, sol, la).</p>
+  </div>
+  </section>
+  <section id="tabShop" hidden>
+    <p class="lead" style="margin-top:12px">Comme le bâtonnet runique de l'enchanteur, chaque palier demande un instrument fabriqué au moins de ce palier. Le formateur offre les instruments de cuivre. Une gemme améliore les chances de qualité ; au dernier palier, un Cristal arcanique permet l'épique.</p>
+    <div class="tw"><table class="rules" style="margin:0;border:0;padding:0"><thead><tr><th>Qualité</th><th>Bonus de buff</th><th>Sans gemme</th><th>Avec gemme</th><th>Gemme + cristal</th></tr></thead><tbody id="qtab"></tbody></table></div>
+    <div class="shop" id="shop"></div>
+    <div class="stock" id="stock"></div>
+    <div class="shopbar"><button class="btn sm" id="unlockAll">Tout débloquer (test)</button><button class="btn sm" id="resetShop">Réinitialiser l'atelier</button></div>
+  </section>
+  <section id="tabImp" hidden>
+    <p class="lead" style="margin-top:12px">Jeu libre pour le jeu de rôle : pas de partition, pas de buff. Les 8 touches jouent la gamme du mode choisi. Dans le module, les joueurs autour de toi entendraient ton improvisation.</p>
+    <div class="grp"><div class="lbl">Instrument</div><div class="seg" id="impIns"></div></div>
+    <div class="grp"><div class="lbl">Mode</div><div class="seg" id="impMode"></div></div>
+    <label class="opt" for="impDrum"><input type="checkbox" id="impDrum"><span>Tambour d'accompagnement<small>pulsation douce à 84 BPM</small></span></label>
+    <div class="pads" id="pads"></div>
+    <p class="calc">Clavier : A S D F G H J K</p>
+    <div class="pcard"><h4>Composer</h4>
+      <p class="calc">Enregistre ton improvisation : elle devient une partition jouable dans ton carnet, que tu peux recopier sur parchemin et vendre. Le rythme est aligné sur une grille de croches à 84 BPM ; active le tambour pour t'aider.</p>
+      <div class="acts" style="margin-top:8px"><button class="btn" id="recBtn">● Enregistrer</button></div>
+      <p class="res" id="recInfo"></p>
+      <div id="recBox" hidden><input class="txt" id="recName" maxlength="40" aria-label="Titre de la composition"> <button class="btn main sm" id="recSave">Créer la partition</button></div>
+    </div>
+  </section>
+  <section id="tabProf" hidden>
+    <div class="pcard"><h4>Titres</h4><div id="profTitles"></div></div>
+    <div class="pcard"><h4>Spécialisation</h4><div id="profSpec"></div></div>
+    <div class="pcard"><h4>Instrument légendaire</h4><div id="profLeg"></div></div>
+  </section>
+</div>
+
+<div id="stage" hidden>
+  <div class="bar">
+    <button class="btn back" id="quit" aria-label="Retour au carnet">←</button>
+    <div class="nm" id="snm"></div>
+    <div class="st"><b id="sacc">100 %</b><br>combo <span id="scombo">0</span></div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div class="over" id="startOv"><div class="card">
+    <h3 id="pnm"></h3><p id="pinfo" class="calc"></p>
+    <div class="grp"><div class="lbl" id="insLbl">Instrument de la mélodie</div><div class="seg" id="insSeg"></div></div>
+    <div class="grp"><div class="lbl">Scène</div><div class="seg">
+      <input type="radio" name="scene" id="s-buff" value="buff" checked><label for="s-buff">Buff<small>pour le groupe</small></label>
+      <input type="radio" name="scene" id="s-conc" value="concert"><label for="s-conc">Concert<small>pourboires</small></label>
+      <input type="radio" name="scene" id="s-duel" value="duel"><label for="s-duel">Duel<small>contre un barde</small></label>
+    </div></div>
+    <div class="grp" id="lieuGrp" hidden><div class="lbl">Lieu</div><div class="seg">
+      <input type="radio" name="lieu" id="l-tav" value="taverne" checked><label for="l-tav">Taverne<small>5 à 9 spectateurs</small></label>
+      <input type="radio" name="lieu" id="l-camp" value="camp"><label for="l-camp">Camp de barde<small>dehors, +10 % de pourboires</small></label>
+    </div></div>
+    <div class="grp" id="oppGrp" hidden><div class="lbl">Adversaire</div><div class="seg">
+      <input type="radio" name="opp" id="o-0" value="0"><label for="o-0">Novice</label>
+      <input type="radio" name="opp" id="o-1" value="1" checked><label for="o-1">Habile</label>
+      <input type="radio" name="opp" id="o-2" value="2"><label for="o-2">Virtuose</label>
+    </div></div>
+    <div class="grp" id="modeGrp"><div class="lbl">Mode</div><div class="seg">
+      <input type="radio" name="mode" id="m-solo" value="solo" checked><label for="m-solo">Solo<small>buff modeste</small></label>
+      <input type="radio" name="mode" id="m-duo" value="duo"><label for="m-duo">Duo<small>2 bardes · ×1,6</small></label>
+      <input type="radio" name="mode" id="m-trio" value="trio"><label for="m-trio">Trio<small>3 bardes · ×2</small></label>
+    </div></div>
+    <div class="grp" id="roleGrp" hidden><div class="lbl">Ta partie</div><div class="seg">
+      <input type="radio" name="role" id="r-melo" value="melo" checked><label for="r-melo">Mélodie<small>l'air principal</small></label>
+      <input type="radio" name="role" id="r-ryth" value="ryth"><label for="r-ryth">Rythme<small>tambour</small></label>
+      <input type="radio" name="role" id="r-harm" value="harm"><label for="r-harm" id="harmLbl">Harmonie<small id="harmIns">vièle, à la quinte</small></label>
+    </div>
+    <div class="lbl" style="margin-top:12px">Instruments des invités</div><div class="seg" id="gSeg"></div></div>
+    <div class="grp"><div class="lbl">Défi (score du panneau)</div><div class="seg">
+      <input type="radio" name="defi" id="d-none" value="none" checked><label for="d-none">Aucun<small>×1</small></label>
+      <input type="radio" name="defi" id="d-filet" value="filet"><label for="d-filet">Sans filet<small>1 erreur = fin · ×1,5</small></label>
+      <input type="radio" name="defi" id="d-vite" value="vite"><label for="d-vite">Accéléré<small>tempo +25 % · ×1,3</small></label>
+      <input type="radio" name="defi" id="d-brume" value="brume"><label for="d-brume">Brouillard<small>notes tardives · ×1,4</small></label>
+    </div></div>
+    <p class="prev" id="prev"></p>
+    <div class="board" id="board"></div>
+    <label class="opt" for="train"><input type="checkbox" id="train"><span>Mode entraînement<small>Tempo réduit de 25 %, buff divisé par 2, sans défi ni record</small></span></label>
+    <label class="opt" for="amb"><input type="checkbox" id="amb" checked><span>Ambiance de taverne<small>Chopes, sifflets et applaudissements à la fin</small></span></label>
+    <div class="acts"><button class="btn main" id="go">Jouer</button></div>
+  </div></div>
+  <div class="over" id="endOv" hidden><div class="card" id="endCard"></div></div>
+</div>
+
+<script>
+// ---------- instruments = buffs (valeurs solo ; le duo multiplie par 1,6) ----------
+const INSTR=[
+ {id:"luth",nm:"Luth",k:"Ballade de clarté",fx:"mana toutes les 5 s",lo:1,hi:8,u:"",aura:"SPELL_AURA_MOD_POWER_REGEN (85)"},
+ {id:"harpe",nm:"Harpe",k:"Berceuse",fx:"PV toutes les 5 s",lo:2,hi:15,u:"",aura:"SPELL_AURA_MOD_REGEN (84)"},
+ {id:"flute",nm:"Flûte",k:"Marche",fx:"vitesse de déplacement",lo:2,hi:8,u:"%",aura:"SPELL_AURA_MOD_INCREASE_SPEED (31)"},
+ {id:"crom",nm:"Cromorne",k:"Chant de courage",fx:"dégâts infligés",lo:1,hi:4,u:"%",aura:"SPELL_AURA_MOD_DAMAGE_PERCENT_DONE (79)"},
+ {id:"viele",nm:"Vièle",k:"Hymne protecteur",fx:"armure",lo:40,hi:300,u:"",aura:"SPELL_AURA_MOD_RESISTANCE (22), école physique"},
+ {id:"psalt",nm:"Psaltérion",k:"Psaume de garde",fx:"résistance à toutes les magies",lo:5,hi:25,u:"",aura:"SPELL_AURA_MOD_RESISTANCE (22), masque 126"},
+ {id:"orgue",nm:"Orgue portatif",k:"Air du voyageur",fx:"expérience gagnée",lo:.5,hi:4,u:"%",aura:"SPELL_AURA_MOD_XP_PCT (200)"},
+ {id:"ocar",nm:"Ocarina",k:"Chant du chasseur",fx:"chances de coup critique",lo:.5,hi:2,u:"%",aura:"SPELL_AURA_MOD_CRIT_PCT (52)"},
+ {id:"tymp",nm:"Tympanon",k:"Gigue d'endurance",fx:"endurance",lo:3,hi:20,u:"",aura:"SPELL_AURA_MOD_STAT (29), endurance"}
+];
+const MULT={solo:1,duo:1.6,trio:2};
+const MALUS={luth:"Esprit troublé",harpe:"Nuit agitée",flute:"Pas de plomb",crom:"Courage brisé",viele:"Garde baissée",psalt:"Psaume maudit",orgue:"Mauvais présage",ocar:"Main tremblante",tymp:"Souffle court"};
+const SPECS={
+ guerre:{n:"Barde de guerre",d:"+10 % aux buffs de combat (dégâts, armure, critique, endurance, résistance). −10 % de pourboires.",ins:["crom","viele","ocar","tymp","psalt"],tips:.9},
+ cour:{n:"Ménestrel de cour",d:"+25 % de pourboires, 2 spectateurs de plus, applaudissements plafonnés à +30 % au lieu de +20 %.",tips:1.25,spect:2,clap:.3},
+ conteur:{n:"Conteur",d:"+10 % à Air du voyageur, Berceuse, Ballade de clarté et Marche. Bonne humeur doublée. Parchemins vendus 20 % plus cher.",ins:["orgue","harpe","luth","flute"],zone:2,parch:1.2}
+};
+const DEFI={none:{n:"Aucun",x:1},filet:{n:"Sans filet",x:1.5},vite:{n:"Accéléré",x:1.3},brume:{n:"Brouillard",x:1.4}};
+const MAST={t:[0,5,15,40],n:["","Bronze","Argent","Or"],b:[0,.01,.02,.03],c:["","#c8834a","#c9ccd6","#e5c04a"]};
+const NPCS=["Aldric le Rouge","Brunhild","Corwin Trois-Cordes","Daëlle","Eldrin","Fenna la Rousse","Gorm","Isolde","Jorund","Maëlis"];
+const SPECT=["Aldwin","Berthe","Cédric","Dagny","Ewald","Fiora","Gunnar","Hilda","Ivo","Jehanne","Kaelen","Liselle"];
+const PARTS={solo:["melo"],duo:["melo","ryth"],trio:["melo","ryth","harm"]};
+const PNAME={melo:"Mélodie",ryth:"Tambour",harm:"Harmonie"};
+const harmInsOf=id=>id==="viele"?"harpe":"viele";
+const TIERS=[
+ ["Apprenti","1–60","Airs lents et chantants."],
+ ["Compagnon","60–120","Danses de cour, notes tenues."],
+ ["Ménestrel","120–180","Saltarelle, gigue et accords à l'octave."],
+ ["Maître","180–240","Branle et gigues rapides."],
+ ["Grand barde","240–300","Versions virtuoses."]
+];
+// Notation : note+octave[:durée en temps] ; sans durée = valeur par défaut de l'air
+const P={
+ pavA:"A4:2 C5 B4 A4:2 E4:2 F4 G4 A4 B4 C5:2 B4:2 A4:2 G4 F4 E4:3 F4 G4:2 A4 G4 F4:2 E4:2 D4 E4 F4 D4 E4:4",
+ pavB:"C5:2 D5 E5 D5:2 C5 B4 C5 B4 A4 G4 A4:4 G4 A4 B4 G4 A4:4",
+ carA:"D4:1 F#4:.5 A4:1 F#4:.5 G4:1 B4:.5 A4:1.5 D5:1 C5:.5 B4:1 A4:.5 G4:1 E4:.5 F#4:1.5 D4:1 F#4:.5 A4:1 F#4:.5 G4:1 B4:.5 A4:1 D5:.5 C5:1 A4:.5 E4:1 F#4:.5 D4:3",
+ carB:"A4:1 A4:.5 D5:1 D5:.5 C5:1 A4:.5 G4:1.5 F#4:1 G4:.5 A4:1 B4:.5 A4:3 A4:1 A4:.5 D5:1 E5:.5 F#5:1 E5:.5 D5:1.5 C5:1 A4:.5 G4:1 E4:.5 D4:3",
+ laiA:"D4:2 F4 A4:2 G4 F4 E4 D4 E4:3 D4:2 F4 A4:2 C5 B4 A4 G4 A4:3",
+ laiB:"D5:2 C5 A4:2 G4 F4:1.5 G4:.5 A4 E4:3 F4 G4 A4 G4:2 F4 E4 C4 E4 D4:3",
+ ronA:"A4:1 C5:.5 B4:1 A4:.5 G4:1 A4:.5 B4:1.5 C5:1 D5:.5 E5:1 C5:.5 D5:1.5 B4:1.5 A4:1 C5:.5 B4:1 A4:.5 G4:1 E4:.5 G4:1.5 A4:1 B4:.5 G4:1 E4:.5 A4:3",
+ ronB:"E5:1 E5:.5 D5:1 C5:.5 D5:1 C5:.5 B4:1.5 C5:1 B4:.5 A4:1 G4:.5 A4:1.5 E4:1.5 E5:1 E5:.5 D5:1 C5:.5 D5:1 E5:.5 D5:1.5 C5:1 B4:.5 G4:1 B4:.5 A4:3",
+ grV1:"A4 C5:2 D5 E5:1.5 F5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:2 A4 A4:1.5 G#4:.5 A4 B4:2 G#4 E4:2",
+ grV2:"A4 C5:2 D5 E5:1.5 F5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:1.5 B4:.5 A4 G#4:1.5 F#4:.5 G#4 A4:3",
+ grC1:"G5:3 G5:1.5 F#5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:2 A4 A4:1.5 G#4:.5 A4 B4:2 G#4 E4:3",
+ grC2:"G5:3 G5:1.5 F#5:.5 E5 D5:2 B4 G4:1.5 A4:.5 B4 C5:1.5 B4:.5 A4 G#4:1.5 F#4:.5 G#4 A4:3",
+ ducA:"G4 G4:.5 A4:.5 B4 G4 C5 B4:.5 A4:.5 B4:2 D5 D5:.5 C5:.5 B4 A4 G4:1.5 A4:.5 F4:2 G4 G4:.5 A4:.5 B4 G4 C5 D5:.5 E5:.5 D5:2 C5:.5 B4:.5 A4:.5 B4:.5 C5 A4 G4:4",
+ ducB:"D5:1.5 E5:.5 F5 E5 D5 C5 D5:2 B4 C5:.5 D5:.5 C5 A4 B4:1.5 A4:.5 G4:2 D5:1.5 E5:.5 F5 E5 D5 C5:.5 B4:.5 A4:2 B4:.5 C5:.5 D5:.5 B4:.5 A4 F4 G4:4",
+ eP1:"D4:.5 E4:.5 F4:.5 G4:.5 A4 A4 C5:.5 B4:.5 A4:.5 G4:.5 A4 F4",
+ eP2:"A4:.5 B4:.5 C5:.5 D5:.5 E5 D5 C5:.5 D5:.5 C5:.5 A4:.5 B4 G4",
+ eP3:"D5 F5:.5 E5:.5 D5 C5 A4:.5 C5:.5 B4:.5 G4:.5 A4:2",
+ eOu:"G4:.5 F4:.5 E4:.5 D4:.5 E4:2",
+ eCl:"G4:.5 F4:.5 E4:.5 C4:.5 D4:2",
+ salA:"D5 A4 D5 E5 F5 E5 D5 C5 A4 C5:1.5 D5 A4 D5 E5 F5 G5 F5 E5 D5 E5:1.5 F5 E5 D5 C5 D5 A4 C5 A4 G4 A4:1.5 F4 G4 A4 C5 B4 G4 A4 G4 E4 D4:1.5",
+ salB:"A4 D5 D5 C5 D5 E5 F5 E5 D5 C5:1.5 A4 C5 C5 B4 C5 D5 E5 D5 C5 A4:1.5 D5 F5 E5 D5 C5 A4 G4 A4 C5 D5:1.5 C5 A4 G4 F4 G4 E4 D4:3",
+ torA:"E4 F4 G4 A4 B4:1 B4:1 C5 B4 A4 B4 G4:1 E4:1 E4 F4 G4 A4 B4 C5 D5 C5 B4:1 A4 G4 F4:1 E4:1 B4 C5 D5 E5 F5:1 E5:1 D5 C5 B4 C5 A4:1 B4:1 G4 A4 B4 C5 B4 A4 G4 F4 E4:1 B3:1 E4:2",
+ torB:"E5 E5 D5 E5 F5 E5 D5 C5 D5 D5 C5 D5 B4:2 C5 C5 B4 C5 A4 B4 C5 D5 B4:1 A4:1 G4:1 F4:1 E5 E5 D5 E5 F5 E5 D5 C5 D5 C5 B4 A4 G4:1 B4:1 A4 G4 F4 G4 A4 G4 F4 G4 E4:4",
+ kesh:"G4 A4 G4 G4 A4 B4 A4 B4 A4 A4 B4 D5 E5 D5 D5 G5 D5 D5 E5 D5 B4 D5 B4 A4 G4 A4 G4 G4 A4 B4 A4 B4 A4 A4 B4 D5 E5 D5 D5 G5 D5 B4 A4 G4 F#4 G4:1.5",
+ swA:"G4 E4 E4 B4 E4 E4 G4 E4 E4 B4 A4 G4 F#4 D4 D4 A4 D4 D4 D5 C#5 D5 A4 G4 F#4 G4 E4 E4 B4 E4 E4 G4 E4 E4 B4:1 C#5 D5 C#5 D5 A4 G4 F#4 G4 E4 E4 E4:1.5",
+ swB:"B4 C#5 D5 E5:1 F#5 E5:1 F#5 E5 D5 B4 B4 C#5 D5 E5:1 F#5 E5 D5 B4 D5:1.5 B4 C#5 D5 E5:1 F#5 E5:1 F#5 E5 D5 B4 D5 C#5 B4 A4 G4 F#4 G4 E4 E4 E4:1.5",
+ morr:"E4:1.5 B4:1.5 E4 B4 E4 A4 F#4 D4 E4 D4 E4 B4:1.5 D5 C#5 B4 A4 F#4 D4 E4:1.5 B4:1.5 E4 B4 E4 A4 F#4 D4 G4:1.5 F#4 G4 A4 D5 A4 G4 F#4 E4 D4",
+ maggie:"E4:1 B4 E4 D5 E4 B4 E4 E4:1 B4 E4 A4 F#4 D4 F#4 E4:1 B4 E4 D5 E4 B4 E4 B4 A4 B4 C#5 D5 A4 F#4 D4"
+};
+const EST=["eP1","eOu","eP1","eCl","eP2","eOu","eP2","eCl","eP3","eOu","eP3","eCl"];
+const TUNES=[
+ {n:"Lai du Chevalier perdu",o:"lai, mode de ré",tier:0,bpm:66,pulse:3,u:1,seq:["laiA","laiB"]},
+ {n:"Rondeau de la Fontaine",o:"rondeau, mode de la",tier:0,bpm:70,pulse:1.5,u:1,seq:["ronA","ronB","ronA"]},
+ {n:"Greensleeves",o:"lente, Angleterre XVIe s.",tier:0,bpm:66,pulse:3,pick:1,u:1,seq:["grV1","grV2"]},
+ {n:"Pavane des Brumes",o:"pavane, mode de la",tier:0,bpm:64,pulse:2,u:1,seq:["pavA","pavB"]},
+ {n:"Carole de la Moisson",o:"carole, mode de ré majeur",tier:1,bpm:92,pulse:1.5,u:1,seq:["carA","carB","carA"]},
+ {n:"Ductia du Forgeron",o:"ductia, mode de sol",tier:1,bpm:90,pulse:2,u:1,seq:["ducA","ducB","ducA"]},
+ {n:"Estampie des Trois Lunes",o:"estampie, mode de ré",tier:1,bpm:80,pulse:2,u:1,seq:EST},
+ {n:"Greensleeves",o:"complète",tier:1,bpm:84,pulse:3,pick:1,u:1,seq:["grV1","grV2","grC1","grC2"]},
+ {n:"Saltarelle du Pèlerin",o:"saltarelle, mode de ré",tier:2,bpm:88,pulse:1.5,u:.5,seq:["salA","salA","salB","salB"]},
+ {n:"The Kesh Jig",o:"gigue irlandaise",tier:2,bpm:96,pulse:1.5,u:.5,seq:["kesh","kesh"]},
+ {n:"Rondeau de la Fontaine",o:"vive, à l'octave",tier:2,bpm:104,pulse:1.5,u:1,chords:1,seq:["ronA","ronB","ronA","ronB"]},
+ {n:"Danse des Torches",o:"branle, mode de mi",tier:3,bpm:100,pulse:2,u:.5,seq:["torA","torB"]},
+ {n:"The Swallowtail Jig",o:"gigue irlandaise",tier:3,bpm:104,pulse:1.5,u:.5,seq:["swA","swB"]},
+ {n:"Morrison's Jig",o:"gigue irlandaise",tier:3,bpm:104,pulse:1.5,u:.5,seq:["morr","morr"],tail:"E4:1.5"},
+ {n:"Saltarelle du Pèlerin",o:"virtuose",tier:4,bpm:108,pulse:1.5,u:.5,chords:1,seq:["salA","salA","salB","salB"]},
+ {n:"Drowsy Maggie",o:"reel irlandais",tier:4,bpm:112,pulse:2,u:.5,seq:["maggie","maggie","maggie"],tail:"E4:2"},
+ {n:"Danse des Torches",o:"virtuose",tier:4,bpm:116,pulse:2,u:.5,chords:1,seq:["torA","torB","torA","torB"]}
+];
+// 23 airs supplémentaires composés à partir de règles médiévales : mode, cellules rythmiques,
+// motif répété en séquence, phrases ouvert/clos (comme l'estampie), cadence sur la finale du mode.
+const GEN=[
+ ["Ballade du Gué","3","re",0,68],["Complainte du Moine errant","4","la",0,64],["Ronde des Lanternes","6","fa",0,72],["Chanson de la Fileuse","3","sol",0,70],
+ ["Virelai des Hirondelles","3","fa",1,84],["Branle de la Tour aux Corbeaux","4","mi",1,86],["Gigue du Meunier","6","sol",1,90],["Marche des Pèlerins","4","re",1,88],
+ ["Estampie du Vieux Pont","4","re",2,94],["Ronde des Fées","6","la",2,98],["Ballade du Chevalier noir","3","mi",2,96],["Branle des Bergers","4","sol",2,100],["Carole des Moissonneurs","6","fa",2,100],
+ ["Estampie de la Reine morte","4","la",3,104],["Saltarelle des Marchands","6","re",3,108],["Danse de l'Ours","4","mi",3,106],["Gigue du Contrebandier","6","sol",3,110],["Virelai des Lunes jumelles","3","re",3,108],
+ ["Grande Estampie royale","4","re",4,112],["Saltarelle du Dragon","6","mi",4,116],["Branle des Flammes","4","la",4,114],["Gigue des Sept Tavernes","6","fa",4,118],["Ballade du Dernier Barde","3","la",4,108]
+];
+const MODES={re:{n:"mode de ré",t:62,s:[0,2,3,5,7,9,10],lo:-1,hi:9},la:{n:"mode de la",t:57,s:[0,2,3,5,7,8,10],lo:0,hi:10},
+ mi:{n:"mode de mi",t:64,s:[0,1,3,5,7,8,10],lo:-1,hi:8},sol:{n:"mode de sol",t:67,s:[0,2,4,5,7,9,10],lo:-3,hi:7},fa:{n:"mode de fa",t:65,s:[0,2,4,5,7,9,11],lo:-2,hi:8}};
+const KIND={"3":"ballade","4":"estampie","6":"ronde"};
+const CELLS={
+ "3":[[[2,1],0],[[1,1,1],0],[[3],0],[[1.5,.5,1],1],[[1,.5,.5,1],2],[[.5,.5,1,1],2],[[.5,.5,.5,.5,1],3]],
+ "6":[[[1,.5,1,.5],0],[[1.5,1.5],0],[[1,.5,1.5],0],[[.5,.5,.5,1.5],1],[[1.5,.5,.5,.5],1],[[.5,.5,.5,.5,.5,.5],2],[[1,.5,.5,.5,.5],2]],
+ "4":[[[1,1,1,1],0],[[2,1,1],0],[[1,1,2],0],[[2,2],0],[[1.5,.5,1,1],1],[[.5,.5,1,1,1],1],[[1,.5,.5,1,1],2],[[.5,.5,.5,.5,1,1],2],[[.5,.5,.5,.5,.5,.5,.5,.5],3]]
+};
+const CAD={"3":[[1,2],[3]],"6":[[1,.5,1.5],[1.5,1.5]],"4":[[1,1,2],[2,2],[1.5,.5,2]]};
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+function compose(name,meter,mode,T,seed){
+  let h=seed;for(const c of name)h=(h*31+c.charCodeAt(0))>>>0;const r=rng(h),M=MODES[mode];
+  const pick=a=>a[Math.floor(r()*a.length)];
+  const ok=CELLS[meter].filter(c=>c[1]<=T).map(c=>c[0]),top=Math.min(T,Math.max(...CELLS[meter].map(c=>c[1]))),dense=CELLS[meter].filter(c=>c[1]<=top&&c[1]>=top-1).map(c=>c[0]);
+  const cell=()=>T>=2&&r()<.6?pick(dense):pick(ok);
+  const cl=d=>Math.max(M.lo,Math.min(M.hi,d));
+  const midi=d=>{const o=Math.floor(d/7),i=((d%7)+7)%7;return M.t+12*o+M.s[i]};
+  const walk=(start,c,dir)=>{const o=[];let d=start;c.forEach((u,i)=>{if(i>0){let st=r()<.72?1:r()<.8?2:3;st*=dir&&r()<.65?dir:(r()<.5?1:-1);
+      if(d+st>M.hi||d+st<M.lo)st=-st;d=cl(d+st)}o.push({d,u})});return o};
+  const cad=(prev,tg)=>{const c=pick(CAD[meter]);if(c.length===1)return[{d:tg,u:c[0]}];
+    const nb=tg+(prev>=tg?1:-1);if(c.length===2)return[{d:nb,u:c[0]},{d:tg,u:c[1]}];
+    return[{d:cl(Math.round((prev+nb)/2)),u:c[0]},{d:nb,u:c[1]},{d:tg,u:c[2]}]};
+  function phrase(start,peak){
+    const b1=walk(start,cell(),0);
+    const sh=r()<.5?1:-1,b2=r()<.65?b1.map(n=>({d:cl(n.d+sh),u:n.u})):walk(b1[b1.length-1].d,cell(),0);
+    const b3=walk(b2[b2.length-1].d,cell(),peak>b2[b2.length-1].d?1:-1);
+    return [b1,b2,b3];
+  }
+  const A=phrase(r()<.5?0:2,4),B=phrase(r()<.5?4:5,7),out=[];
+  const emit=(bars,tg)=>{bars.forEach(b=>b.forEach(n=>out.push(n)));cad(bars[2][bars[2].length-1].d,tg).forEach(n=>out.push(n))};
+  const form=()=>{emit(A,r()<.5?1:4);emit(A,0);emit(B,4);emit(B,0)};
+  form();if(T>=4)form();
+  return out.map(n=>({m:midi(n.d),d:n.u}));
+}
+GEN.forEach(([n,meter,mode,T,bpm],k)=>TUNES.push({n,o:(n.startsWith("Grande")?"estampie":n.split(" ")[0].toLowerCase())+", "+MODES[mode].n,tier:T,bpm,pulse:meter==="4"?2:meter==="6"?1.5:3,
+  gen:()=>compose(n,meter,mode,T,k+7),chords:T>=4&&k%2===0?1:0}));
+TUNES.sort((a,b)=>a.tier-b.tier);
+const NOTE={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function parse(str,def){return str.trim().split(/\s+/).map(tok=>{
+  const [nm,d]=tok.split(":"),m=nm.match(/^([A-G])([#b]?)(\d)$/);
+  return {m:12*(+m[3]+1)+NOTE[m[1]]+(m[2]==="#"?1:m[2]==="b"?-1:0),d:d?+d:def}})}
+function makeSong(tu,i){
+  const spb=60/tu.bpm;
+  let seq=[];if(tu.gen)seq=tu.gen();else{tu.seq.forEach(k=>seq=seq.concat(parse(P[k],tu.u)));if(tu.tail)seq=seq.concat(parse(tu.tail,tu.u));}
+  const cnt={};seq.forEach(n=>cnt[n.m]=(cnt[n.m]||0)+1);
+  const uniq=Object.keys(cnt).map(Number).sort((a,b)=>a-b),LN={};let cum=0;
+  uniq.forEach(m=>{LN[m]=Math.min(3,Math.floor((cum+cnt[m]/2)/seq.length*4));cum+=cnt[m]});
+  if(new Set(Object.values(LN)).size<4&&uniq.length>=4)uniq.forEach((m,i)=>LN[m]=Math.min(3,Math.floor(i/uniq.length*4)));
+  const notes=[];let beat=0;
+  for(const n of seq){
+    const t=beat*spb,lane=LN[n.m],note={t,lane,p:n.m,dur:n.d*spb};
+    if(n.d>=1.5&&n.d*spb>=.8)note.end=t+n.d*spb*.8;
+    notes.push(note);
+    if(tu.chords&&n.d>=1&&Math.abs(beat-Math.round(beat))<1e-6&&n.m-12>=45)
+      notes.push({t,lane:lane>=2?lane-2:lane+2,p:n.m-12,dur:n.d*spb,ch:1});
+    beat+=n.d;
+  }
+  const s={id:i+1,name:tu.n,orig:tu.o,bpm:tu.bpm,notes,tier:tu.tier,lv:i%3,
+    holds:notes.filter(n=>n.end).length,travel:[1.8,1.7,1.6,1.55,1.5][tu.tier],
+    len:beat*spb,spb,pulse:tu.pulse,pick:tu.pick||0};
+  s.rhythm=makeRhythm(s);s.harmony=makeHarmony(s);
+  return s;
+}
+function makeRhythm(s){ // partie de tambour : 4 peaux, du grave à l'aigu
+  const six=s.pulse===1.5,bar=s.pulse===2?4:3,T=s.tier,out=[];
+  const nb=Math.floor((s.len/s.spb-s.pick)/bar+1e-6);
+  for(let b=0;b<nb;b++){
+    const base=s.pick+b*bar,fill=b%4===3&&T>=2;let pat;
+    if(six)pat=T<1?[[0,0],[1.5,1]]:T<2?[[0,0],[1,2],[1.5,1],[2.5,2]]:[[0,0],[1,2],[1.5,1],[2,3],[2.5,2]];
+    else if(bar===3)pat=T<1?[[0,0],[1,1],[2,1]]:T<2?[[0,0],[1,1],[2,2]]:[[0,0],[1,1],[1.5,3],[2,2]];
+    else pat=T<1?[[0,0],[2,1]]:T<2?[[0,0],[1,2],[2,1],[3,2]]:[[0,0],[1,2],[1.5,3],[2,1],[3,2],[3.5,3]];
+    if(fill)pat=bar===4?[[0,0],[1,1],[2,2],[2.5,3],[3,2],[3.5,1]]:[[0,0],[.5,1],[1,2],[1.5,3],[2,2],[2.5,1]];
+    if(T>=4&&!fill&&b%2===1)pat=pat.concat([[.5,3]]);
+    pat.forEach(([o,l])=>out.push({t:(base+o)*s.spb,lane:l,drum:1,dur:.2}));
+  }
+  out.push({t:(s.pick+nb*bar)*s.spb,lane:0,drum:1,dur:.2});
+  return out.filter(n=>n.t<s.len+.01).sort((a,b)=>a.t-b.t);
+}
+function makeHarmony(s){ // contre-chant à la quinte inférieure, tenu sur chaque pulsation
+  const mel=s.notes.filter(n=>!n.ch),step=(s.tier>=2&&s.pulse>=2?s.pulse/2:s.pulse)*s.spb,raw=[];
+  const at=t=>{let c=mel[0];for(const n of mel){if(n.t<=t+1e-6)c=n;else break}return c};
+  for(let t=s.pick*s.spb;t<s.len-.05;t+=step){let p=at(t).p-7;if(p<48)p+=12;
+    const last=raw[raw.length-1];
+    if(last&&last.p===p&&last.dur<step*2.5)last.dur+=step;else raw.push({t,p,dur:Math.min(step,s.len-t)});}
+  const cnt={};raw.forEach(n=>cnt[n.p]=(cnt[n.p]||0)+1);
+  const uniq=Object.keys(cnt).map(Number).sort((a,b)=>a-b),LN={};let cum=0;
+  uniq.forEach(m=>{LN[m]=Math.min(3,Math.floor((cum+cnt[m]/2)/raw.length*4));cum+=cnt[m]});
+  return raw.map(n=>{const o={t:n.t,lane:LN[n.p],p:n.p,dur:n.dur};if(n.dur>=.8)o.end=n.t+n.dur*.85;return o});
+}
+const SKMAX=300,TSTART=[1,60,120,180,240],TSPAN=[60,60,60,60,60];
+const SONGS=TUNES.map(makeSong);
+{const c={};SONGS.forEach(s=>{c[s.tier]=c[s.tier]||0;s.lv=c[s.tier]++;s.req=TSTART[s.tier]+Math.floor(s.lv*TSPAN[s.tier]/8)})}
+
+let best={};try{best=JSON.parse(localStorage.getItem("barde-best5")||"{}")}catch(e){}
+function saveBest(){try{localStorage.setItem("barde-best5",JSON.stringify(best))}catch(e){}}
+function defProg(){return{mast:{},tune:{},keys:3,camp:false,scores:{},stats:{},comps:[],parch:{},spec:null,title:"",leg:{type:"luth",done:{},forged:null},skill:1,first:{},chant:null,duelLog:{},concert:{}}}
+const COL={o:{n:"orange",c:"#ff8a3d",p:1},y:{n:"jaune",c:"#e8d24a",p:.75},g:{n:"vert",c:"#5ccf5c",p:.25},x:{n:"gris",c:"#8c8c8c",p:0}};
+const colorOf=req=>{const d=prog.skill-req;return d<20?COL.o:d<40?COL.y:d<60?COL.g:COL.x};
+const myTier=()=>TSTART.reduce((a,v,i)=>prog.skill>=v?i:a,0);
+const today=()=>new Date().toISOString().slice(0,10);
+function gainSkill(req,first){ // couleurs comme les recettes ; renvoie les points gagnés
+  if(prog.skill>=SKMAX)return 0;let g=Math.random()<colorOf(req).p?1:0;if(first)g++;prog.skill=Math.min(SKMAX,prog.skill+g);return g}
+let prog=defProg();try{const v=JSON.parse(localStorage.getItem("barde-prog")||"null");if(v)prog=Object.assign(defProg(),v)}catch(e){}
+function saveProg(){try{localStorage.setItem("barde-prog",JSON.stringify(prog))}catch(e){}}
+prog.skill=Math.min(prog.skill||1,SKMAX);
+const SP=()=>prog.spec?SPECS[prog.spec]:{};
+const specBuff=id=>(SP().ins||[]).includes(id)?1.1:1;
+const tuneOf=id=>prog.tune[id]==null?100:prog.tune[id];
+const tuneMult=t=>t>=50?1:.85+.15*t/50;
+const mastLevel=id=>{const c=prog.mast[id]||0;return c>=40?3:c>=15?2:c>=5?1:0};
+const money=c=>{c=Math.round(c);const g=Math.floor(c/10000),a=Math.floor(c%10000/100),b=c%100;return [g?g+" po":"",a?a+" pa":"",b||(!g&&!a)?b+" pc":""].filter(Boolean).join(" ")};
+const fmtN=n=>Math.round(n).toLocaleString("fr-FR");
+function simScore(notes,pp,pg,r){let sc=0,co=0;const add=b=>{sc+=b*(1+Math.floor(co/25)*.1);co++};
+  for(const n of notes){const x=r();if(x<pp)add(100);else if(x<pp+pg)add(50);else{co=0;continue}if(n.end)add(50)}return sc}
+function baseBuff(s,ins){const f=s.f!=null?s.f:(s.id-1)/(SONGS.length-1);return ins.lo+(ins.hi-ins.lo)*f}
+function compSong(c){const s=makeSong({n:c.name,o:"ta composition, "+MODES[c.mode].n,tier:c.tier,bpm:84,pulse:2,gen:()=>c.seq.map(x=>({...x}))},0);
+  s.id=c.id;s.f=c.tier/4*.85;s.comp=c;s.req=TSTART[c.tier];return s}
+function roundV(ins,v){return ins.u==="%"?Math.round(v*10)/10:Math.round(v)}
+function fmtV(ins,v){return (ins.u==="%"?"+"+String(roundV(ins,v)).replace(".",",")+" %":"+"+roundV(ins,v))+" "+ins.fx}
+
+function renderBook(){
+  const el=document.getElementById("tiers");el.innerHTML="";
+  TIERS.forEach(([nm,sk,nw],ti)=>{
+    const sec=document.createElement("section");sec.className="tier";
+    sec.innerHTML=`<h2>${nm} <small>compétence ${sk}</small></h2><p class="nw">${nw}</p><div class="list"></div>`;
+    const list=sec.querySelector(".list");
+    SONGS.filter(s=>s.tier===ti).forEach(s=>{
+      const bb=best[s.id];
+      const btn=document.createElement("button");btn.className="row";
+      const ml=mastLevel(s.id),rec=prog.scores[s.id];
+      const col=colorOf(s.req),lock=prog.skill<s.req;
+      btn.innerHTML=`<span class="t"><span style="color:${lock?"#e0707a":col.c}">${s.name}</span> <i>· ${s.orig} · ${lock?"requiert "+s.req:"compétence "+s.req}</i>${ml?`<span class="medal" style="color:${MAST.c[ml]}">◆ ${MAST.n[ml]}</span>`:""}</span>
+        <span class="m"><span class="pips">${"♪".repeat(s.tier+1)}</span> ${s.bpm} BPM · ${s.notes.length} notes${s.holds?` dont ${s.holds} tenues`:""}</span>
+        <span class="best">${bb?`<b>${Math.round(bb*100)} %</b>${rec?fmtN(rec)+" pts":"meilleur"}`:"jamais jouée"}</span>`;
+      btn.onclick=()=>openSong(s);list.appendChild(btn);
+    });
+    el.appendChild(sec);
+  });
+  renderComps();renderSkill();
+  const top=SONGS[SONGS.length-1];
+  const cell=(i,m)=>`<td>${fmtV(i,i.hi*m).split(" ")[0]}${i.u?" %":""}</td>`;
+  document.getElementById("itab").innerHTML=INSTR.map(i=>`<tr><td>${i.nm}</td><td>${i.k}<br><small>${i.fx}</small></td>${cell(i,1)}${cell(i,1.6)}${cell(i,2)}</tr>`).join("");
+}
+function renderSkill(){const sk=prog.skill,ch=prog.chant&&prog.chant.until>Date.now()?prog.chant:null;
+  document.getElementById("skillBox").innerHTML=`<h4>Compétence de barde : ${sk} / ${SKMAX} · ${TIERS[myTier()][0]}</h4>
+  <span class="tune" style="width:100%;height:8px;margin:6px 0"><i style="width:${sk/SKMAX*100}%;background:var(--brass)"></i></span>
+  <p class="calc">Couleur d'un air : <span style="color:${COL.o.c}">orange</span> +1 point garanti · <span style="color:${COL.y.c}">jaune</span> forte chance · <span style="color:${COL.g.c}">vert</span> faible chance · <span style="color:${COL.x.c}">gris</span> plus rien. 70 % de justesse minimum, +1 point bonus à la première réussite d'un air.</p>
+  <p class="calc">Chant actif : ${ch?`<b style="color:var(--ink)">${INSTR.find(x=>x.id===ch.type).k}</b> ${fmtV(INSTR.find(x=>x.id===ch.type),ch.v)} · encore ${Math.ceil((ch.until-Date.now())/60000)} min`:"aucun"}</p>`}
+function renderComps(){
+  const el=document.getElementById("comps");if(!prog.comps.length){el.innerHTML="";return}
+  const cs=prog.comps.map(compSong);
+  el.innerHTML=`<section class="tier"><h2>Mes compositions <small>créées en improvisation</small></h2><div class="shop" style="margin-top:0">${cs.map((s,k)=>{const n=prog.parch[s.id]||0,ml=mastLevel(s.id);
+    return `<div class="arow"><div class="own">${s.name}${ml?`<span class="medal" style="color:${MAST.c[ml]}">◆ ${MAST.n[ml]}</span>`:""} <small>· ${TIERS[s.tier][0]} · ${s.notes.length} notes · ${MODES[s.comp.mode].n}</small></div>
+      <div class="act"><button class="btn sm main" data-cplay="${k}">Jouer</button><button class="btn sm" data-ccopy="${k}">Copier sur parchemin</button><span class="calc">1 Parchemin léger · 1 Encre de lune</span></div>
+      <div class="act"><span>Parchemins : <b>${n}</b></span><select class="txt" id="cp-${k}" aria-label="Prix de vente">${[500,2000,5000,10000,30000].map(v=>`<option value="${v}"${v===2000?" selected":""}>${money(v)}</option>`).join("")}</select>
+        <button class="btn sm" data-csell="${k}"${n<1?" disabled":""}>Mettre à l'hôtel des ventes</button></div><div class="res" id="cres-${k}"></div></div>`}).join("")}</div></section>`;
+  el.querySelectorAll("[data-cplay]").forEach(b=>b.onclick=()=>openSong(cs[+b.dataset.cplay]));
+  el.querySelectorAll("[data-ccopy]").forEach(b=>b.onclick=()=>{const id=cs[+b.dataset.ccopy].id;prog.parch[id]=(prog.parch[id]||0)+1;saveProg();renderComps()});
+  el.querySelectorAll("[data-csell]").forEach(b=>b.onclick=()=>{const k=+b.dataset.csell,sg=cs[k],price=+document.getElementById("cp-"+k).value;
+    prog.parch[sg.id]--;saveProg();renderComps();const out=document.getElementById("cres-"+k);out.textContent=`En vente pour ${money(price)}…`;
+    const value=2000*(sg.tier+1)*(SP().parch||1),chance=Math.max(.05,Math.min(.95,1.3-price/value*.6));
+    setTimeout(()=>{const o=document.getElementById("cres-"+k);
+      if(Math.random()<chance){const net=Math.round(price*.95);prog.stats.parch=(prog.stats.parch||0)+net;prog.stats.sold=(prog.stats.sold||0)+1;saveProg();
+        if(o)o.innerHTML=`Vendu à ${SPECT[Math.floor(Math.random()*SPECT.length)]} : <b>${money(net)}</b> reçus par courrier (5 % pour l'hôtel des ventes).`}
+      else{prog.parch[sg.id]=(prog.parch[sg.id]||0)+1;saveProg();renderComps();const o2=document.getElementById("cres-"+k);if(o2)o2.textContent="Personne n'en a voulu à ce prix : le parchemin revient par courrier."}
+    },2000+Math.random()*3000)});
+}
+renderBook();
+document.getElementById("insSeg").innerHTML=INSTR.map((i,k)=>`<input type="radio" name="ins" id="i-${i.id}" value="${i.id}"${k===0?" checked":""}><label for="i-${i.id}">${i.nm}<small>${i.k}</small></label>`).join("");
+
+// ---------- atelier : fabrication des instruments ----------
+const TOOLS=[...INSTR.map(i=>({id:i.id,nm:i.nm})),{id:"tamb",nm:"Tambour"}];
+const MATS=[
+ {adj:"de cuivre",m:"2 Barres de cuivre · 2 Étoffes de lin · 1 Cuir léger",gem:"Malachite"},
+ {adj:"d'argent",m:"2 Barres d'argent · 2 Étoffes de laine · 2 Cuirs moyens",gem:"Jade"},
+ {adj:"de mithril",m:"3 Barres de mithril · 2 Étoffes de tisse-mage · 2 Cuirs épais",gem:"Citrine"},
+ {adj:"de thorium",m:"3 Barres de thorium · 3 Étoffes runiques · 2 Cuirs robustes",gem:"Rubis étoilé"},
+ {adj:"d'arcanite",m:"2 Barres d'arcanite · 4 Étoffes runiques · 4 Cuirs robustes",gem:"Diamant azur"}
+];
+const PART=["en boyau","en soie","en fil de mithril","en fil runique","en fil d'arcanite"];
+const WINDS=["flute","crom","ocar","orgue"];
+const QUAL=[{n:"Commun",c:"#d6d6d6",x:1},{n:"Inhabituel",c:"#3fdc5a",x:1.05},{n:"Rare",c:"#4a90ff",x:1.1},{n:"Épique",c:"#b77bff",x:1.15},{n:"Légendaire",c:"#ff8a1f",x:1.2}];
+const ODDS={base:[.6,.3,.1,0],gem:[.1,.5,.4,0],orb:[0,.25,.5,.25]};
+const itemName=(id,t)=>`${TOOLS.find(x=>x.id===id).nm} ${MATS[t].adj}`;
+const extra=(id,t)=>id==="tamb"?"1 Peau tannée":WINDS.includes(id)?"1 Anche de barde":`1 Jeu de cordes ${PART[t]}`;
+function defOwned(){const o={};TOOLS.forEach(x=>o[x.id]={t:0,q:0});return o}
+let owned=defOwned();try{const v=JSON.parse(localStorage.getItem("barde-atelier")||"null");if(v)owned=Object.assign(defOwned(),v)}catch(e){}
+function saveOwned(){try{localStorage.setItem("barde-atelier",JSON.stringify(owned))}catch(e){}}
+const legName=id=>`${TOOLS.find(x=>x.id===id).nm} des Mille Voix`;
+const qtag=(id)=>{const o=owned[id],q=QUAL[o.q];return `<span style="color:${q.c}">${o.q===4?legName(id):itemName(id,o.t)}</span>`};
+function renderShop(){
+  document.getElementById("qtab").innerHTML=QUAL.slice(0,4).map((q,i)=>`<tr><td style="color:${q.c};font-weight:700">${q.n}</td><td>×${String(q.x).replace(".",",")}</td><td>${Math.round(ODDS.base[i]*100)} %</td><td>${Math.round(ODDS.gem[i]*100)} %</td><td>${Math.round(ODDS.orb[i]*100)} %</td></tr>`).join("");
+  document.getElementById("shop").innerHTML=TOOLS.map(x=>{
+    const o=owned[x.id],nt=Math.min(4,o.t+1),max=o.t===4;
+    const tu=tuneOf(x.id);
+    return `<div class="arow"><div class="own">${qtag(x.id)} <small>· ${QUAL[o.q].n} · palier ${TIERS[o.t][0]}</small></div>
+      <div class="rec">Accord <span class="tune${tu<50?" low":""}"><i style="width:${tu}%"></i></span>${tu} %${tu<50?' <span class="warn">· sonne faux</span>':""} <button class="btn sm" data-tune="${x.id}"${tu>=100||prog.keys<1?" disabled":""}>Accorder (1 clé)</button></div>
+      <div class="rec">${max?"Refaire pour viser une meilleure qualité":`Prochain : <b style="color:var(--ink)">${itemName(x.id,nt)}</b> (${TIERS[nt][0]}, compétence ${TIERS[nt][1].split("–")[0]})`}<br>${MATS[nt].m} · ${extra(x.id,nt)}</div>
+      <div class="act"><label><input type="checkbox" id="gem-${x.id}"> + 1 ${MATS[nt].gem}</label>${nt===4?`<label><input type="checkbox" id="orb-${x.id}"> + 1 Cristal arcanique</label>`:""}
+      <button class="btn sm main" data-craft="${x.id}">Fabriquer</button></div><div class="res" id="res-${x.id}"></div></div>`}).join("");
+  document.querySelectorAll("[data-craft]").forEach(b=>b.onclick=()=>craft(b.dataset.craft));
+  document.querySelectorAll("[data-tune]").forEach(b=>b.onclick=()=>{if(prog.keys<1)return;prog.keys--;prog.tune[b.dataset.tune]=100;saveProg();renderShop()});
+  document.getElementById("stock").innerHTML=`<span>Clés d'accordage : <b>${prog.keys}</b></span><button class="btn sm" id="mkKeys">Fabriquer 5 clés</button><span class="calc">1 Barre de cuivre · 1 Bobine de fil grossier</span>
+    <span style="flex-basis:100%"></span><span>Camp de barde : <b>${prog.camp?"fabriqué":"aucun"}</b></span>${prog.camp?"":`<button class="btn sm" id="mkCamp">Fabriquer le camp</button>`}<span class="calc">4 Étoffes de laine · 2 Cuirs moyens · 1 Silex et amadou. Pose un feu de camp et deux bancs pendant 30 min (recharge 1 h).</span>`;
+  document.getElementById("mkKeys").onclick=()=>{prog.keys+=5;if(prog.skill<25&&Math.random()<.5)prog.skill++;saveProg();renderShop();renderBook()};
+  const mc=document.getElementById("mkCamp");if(mc)mc.onclick=()=>{prog.camp=true;saveProg();renderShop()};
+}
+function craft(id){
+  const o=owned[id],t=Math.min(4,o.t+1),gem=document.getElementById("gem-"+id).checked,orbEl=document.getElementById("orb-"+id),orb=orbEl&&orbEl.checked;
+  const odds=orb?ODDS.orb:gem?ODDS.gem:ODDS.base;let r=Math.random(),q=0;for(let i=0;i<4;i++){if(r<odds[i]){q=i;break}r-=odds[i]}
+  if(prog.skill<TSTART[t]){document.getElementById("res-"+id).innerHTML=`<span class="warn">Il faut ${TSTART[t]} en compétence pour fabriquer ${itemName(id,t)}.</span>`;return}
+  const better=t>o.t||q>o.q;if(better)owned[id]={t,q};const pts=gainSkill(TSTART[t],false);saveOwned();saveProg();renderShop();renderBook();
+  document.getElementById("res-"+id).innerHTML=`Fabriqué : <span style="color:${QUAL[q].c};font-weight:700">${itemName(id,t)} [${QUAL[q].n}]</span>${better?"":" · moins bon que le tien, gardé au sac"}${pts?` · +${pts} compétence (${prog.skill})`:""}`;
+}
+document.getElementById("unlockAll").onclick=()=>{prog.skill=SKMAX;renderBook();TOOLS.forEach(x=>owned[x.id]={t:4,q:2});prog.camp=true;prog.keys=Math.max(prog.keys,20);saveOwned();saveProg();renderShop()};
+document.getElementById("resetShop").onclick=()=>{owned=defOwned();prog.tune={};prog.keys=3;prog.camp=false;saveOwned();saveProg();renderShop()};
+function showTab(name){["songs","shop","imp","prof"].forEach(k=>{document.getElementById({songs:"tabSongs",shop:"tabShop",imp:"tabImp",prof:"tabProf"}[k]).hidden=k!==name;
+  document.getElementById("tb-"+k).setAttribute("aria-selected",k===name)});if(name==="shop")renderShop();if(name==="prof")renderProfile();if(name!=="imp")impStop()}
+document.getElementById("tb-prof").onclick=()=>showTab("prof");
+document.getElementById("tb-songs").onclick=()=>showTab("songs");document.getElementById("tb-shop").onclick=()=>showTab("shop");document.getElementById("tb-imp").onclick=()=>showTab("imp");
+renderShop();
+document.getElementById("gSeg").innerHTML=MATS.map((m,i)=>`<input type="radio" name="gtier" id="g-${i}" value="${i}"${i===4?" checked":""}><label for="g-${i}">${m.adj.replace(/^d['e] ?/,"").replace(/^./,c=>c.toUpperCase())}<small>${TIERS[i][0]}</small></label>`).join("");
+
+// ---------- audio ----------
+let ac=null,master=null,rev=null,run=null,noiseB=null;
+const ksCache=new Map();
+const PAN=[-.45,-.15,.15,.45];
+const mfreq=m=>440*Math.pow(2,(m-69)/12);
+function audio(){
+  if(!ac){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createDynamicsCompressor();master.threshold.value=-12;master.ratio.value=12;master.knee.value=6;master.attack.value=.003;master.release.value=.25;
+    const mg=ac.createGain();mg.gain.value=.55;master.connect(mg).connect(ac.destination);
+    rev=ac.createConvolver();rev.buffer=impulse(1.9,2.8);rev.connect(master);
+    noiseB=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);const nd=noiseB.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
+  }
+  if(ac.state==="suspended")ac.resume();return ac;
+}
+function impulse(sec,dec){
+  const sr=ac.sampleRate,len=Math.floor(sr*sec),b=ac.createBuffer(2,len,sr);
+  for(let c=0;c<2;c++){const d=b.getChannelData(c);
+    for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,dec)*(i<sr*.01?0:1);
+    for(let k=0;k<6;k++){const at=Math.floor(sr*(.012+Math.random()*.05));d[at]+=.6*(1-k/6)*(Math.random()<.5?-1:1)}}
+  return b;
+}
+let PARTNER=false,DETUNE=0;
+function newRun(){killRun();const g=ac.createGain(),pg=ac.createGain(),w=ac.createGain();pg.gain.value=.55;g.connect(master);pg.connect(master);w.connect(rev);run={g,pg,w,srcs:[]};}
+function killRun(){
+  if(!run||!ac)return;const t=ac.currentTime,r=run;run=null;
+  r.g.gain.setTargetAtTime(0,t,.12);r.pg.gain.setTargetAtTime(0,t,.12);r.w.gain.setTargetAtTime(0,t,.12);
+  setTimeout(()=>{r.srcs.forEach(s=>{try{s.stop()}catch(e){}});try{r.g.disconnect();r.pg.disconnect();r.w.disconnect()}catch(e){}},900);
+}
+function out(node,pan=0,wet=.25){
+  if(!run)return;const p=ac.createStereoPanner?ac.createStereoPanner():ac.createGain();if(p.pan)p.pan.value=pan;
+  node.connect(p);p.connect(PARTNER?run.pg:run.g);const s=ac.createGain();s.gain.value=wet;p.connect(s).connect(run.w);
+}
+function ks(f,bright=.55,dur=1.8,hl=.75){
+  const k=Math.round(f*10)+"_"+bright+"_"+hl;if(ksCache.has(k))return ksCache.get(k);
+  const sr=ac.sampleRate,N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*dur),b=ac.createBuffer(1,len,sr),y=b.getChannelData(0);
+  let lp=0;for(let i=0;i<N;i++){lp+=bright*((Math.random()*2-1)-lp);y[i]=lp}
+  const dec=Math.pow(.5,1/(f*hl));let pk=0;
+  for(let i=N;i<len;i++)y[i]=dec*.5*(y[i-N]+y[i-N+1]);
+  for(let i=0;i<len;i++)pk=Math.max(pk,Math.abs(y[i]));for(let i=0;i<len;i++)y[i]*=.8/pk;
+  ksCache.set(k,b);return b;
+}
+function cutter(g,lvl){return{cut(){const n=ac.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(lvl,n);g.gain.linearRampToValueAtTime(0,n+.07)}}}
+function lute(f,t,g=.45,pan=0,bright=.55){
+  const b1=ac.createBiquadFilter();b1.type="peaking";b1.frequency.value=230;b1.Q.value=1.2;b1.gain.value=3;
+  const b2=ac.createBiquadFilter();b2.type="peaking";b2.frequency.value=2600;b2.Q.value=1.5;b2.gain.value=1.5;
+  const hp=ac.createBiquadFilter();hp.type="highpass";hp.frequency.value=60;
+  const gn=ac.createGain();gn.gain.value=g;const buf=ks(f,bright);
+  [[1,0,1],[1.0035,.008,.4]].forEach(([rate,dl,v])=>{
+    const s=ac.createBufferSource();s.buffer=buf;s.playbackRate.value=rate;const sg=ac.createGain();sg.gain.value=v;
+    s.connect(sg).connect(b1);s.start(t+dl)});
+  b1.connect(b2).connect(hp).connect(gn);out(gn,pan,.28);return null;
+}
+function harp(f,t,pan){
+  const s=ac.createBufferSource();s.buffer=ks(f,.7,3,1.5);const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=5000;
+  const g=ac.createGain();g.gain.value=.5;s.connect(lp).connect(g);out(g,pan,.45);s.start(t);return null;
+}
+function flute(f,t,dur,pan){
+  const g=ac.createGain(),end=t+dur,vib=ac.createOscillator(),vg=ac.createGain();
+  vib.frequency.value=5;vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(f*.004,t+Math.min(.35,dur));vib.connect(vg);
+  [[1,1],[2,.12],[3,.04]].forEach(([m,v])=>{const o=ac.createOscillator(),og=ac.createGain();o.frequency.value=f*m;vg.connect(o.frequency);
+    og.gain.value=v;o.connect(og).connect(g);o.start(t);o.stop(end+.15)});
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.2,t+.035);g.gain.linearRampToValueAtTime(.15,t+.12);g.gain.setValueAtTime(.15,end);g.gain.linearRampToValueAtTime(0,end+.1);
+  out(g,pan,.4);vib.start(t);vib.stop(end+.15);return cutter(g,.15);
+}
+function crom(f,t,dur,pan){ // cromorne : anche douce, son de bourdon nasal mais rond
+  const g=ac.createGain(),end=t+dur,lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=Math.min(f*3.2,2400);lp.Q.value=.7;
+  const o=ac.createOscillator();o.type="square";o.frequency.value=f;o.connect(lp);o.start(t);o.stop(end+.1);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.025);g.gain.setValueAtTime(.07,end);g.gain.linearRampToValueAtTime(0,end+.06);
+  lp.connect(g);out(g,pan,.35);return cutter(g,.07);
+}
+function viele(f,t,dur,pan){
+  const g=ac.createGain(),lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=f*3;lp.Q.value=.7;
+  const pk=ac.createBiquadFilter();pk.type="peaking";pk.frequency.value=900;pk.gain.value=4;
+  const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=5.5;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(f*.004,t+.35);lfo.connect(lg);
+  const end=t+dur+.2;
+  [1,1.005].forEach(m=>{const o=ac.createOscillator();o.type="triangle";o.frequency.value=f*m;lg.connect(o.frequency);o.connect(lp);o.start(t);o.stop(end)});
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+.07);g.gain.setValueAtTime(.12,t+dur);g.gain.linearRampToValueAtTime(0,t+dur+.15);
+  lp.connect(pk).connect(g);out(g,pan,.35);lfo.start(t);lfo.stop(end);return cutter(g,.12);
+}
+function psalt(f,t,pan){ // psaltérion : cordes pincées claires, courtes
+  const s=ac.createBufferSource();s.buffer=ks(f,.85,1.6,.45);const hp=ac.createBiquadFilter();hp.type="highpass";hp.frequency.value=120;
+  const g=ac.createGain();g.gain.value=.45;s.connect(hp).connect(g);out(g,pan,.4);s.start(t);return null;
+}
+function tymp(f,t,pan){ // tympanon : cordes frappées doublées
+  const buf=ks(f,.75,2.4,1);[[1,0,.4],[1.004,.004,.3]].forEach(([r,dl,v])=>{const s=ac.createBufferSource();s.buffer=buf;s.playbackRate.value=r;
+    const g=ac.createGain();g.gain.value=v;s.connect(g);out(g,pan,.35);s.start(t+dl)});return null;
+}
+function organ(f,t,dur,pan){ // orgue portatif : tuyaux doux
+  const g=ac.createGain(),end=t+dur;
+  [[1,.5],[2,.35],[3,.14],[4,.07]].forEach(([m,v],k)=>{const o=ac.createOscillator(),og=ac.createGain();o.frequency.value=f*m*(k?1:1.001);og.gain.value=v;o.connect(og).connect(g);o.start(t);o.stop(end+.2)});
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.12,t+.05);g.gain.setValueAtTime(.12,end);g.gain.linearRampToValueAtTime(0,end+.12);
+  out(g,pan,.45);return cutter(g,.12);
+}
+function ocar(f,t,dur,pan){ // ocarina : souffle rond, presque pur
+  const g=ac.createGain(),end=t+dur,vib=ac.createOscillator(),vg=ac.createGain();vib.frequency.value=4.5;
+  vg.gain.setValueAtTime(0,t);vg.gain.linearRampToValueAtTime(f*.003,t+Math.min(.4,dur));vib.connect(vg);
+  [[1,1],[2,.05]].forEach(([m,v])=>{const o=ac.createOscillator(),og=ac.createGain();o.frequency.value=f*m;vg.connect(o.frequency);og.gain.value=v;o.connect(og).connect(g);o.start(t);o.stop(end+.15)});
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.2,t+.06);g.gain.setValueAtTime(.2,end);g.gain.linearRampToValueAtTime(0,end+.12);
+  out(g,pan,.45);vib.start(t);vib.stop(end+.15);return cutter(g,.2);
+}
+function warm(id,m){const f=mfreq(m);if(id==="luth")ks(f);else if(id==="harpe")ks(f,.7,3,1.5);else if(id==="psalt")ks(f,.85,1.6,.45);else if(id==="tymp")ks(f,.75,2.4,1)}
+function playInst(id,m,t,dur,pan){
+  const f=mfreq(m)*(!PARTNER&&DETUNE?1+(Math.random()-.5)*.035*DETUNE:1),d=Math.max(.18,dur);
+  if(id==="luth")return lute(f,t,.45,pan);
+  if(id==="harpe")return harp(f,t,pan);
+  if(id==="flute")return flute(f,t,d,pan);
+  if(id==="crom")return crom(f,t,d,pan);
+  if(id==="psalt")return psalt(f,t,pan);
+  if(id==="tymp")return tymp(f,t,pan);
+  if(id==="orgue")return organ(f,t,d,pan);
+  if(id==="ocar")return ocar(f,t,d,pan);
+  return viele(f,t,d,pan);
+}
+const DRUMS=[[150,78,.6,.3],[220,140,.5,.2],[310,215,.42,.15],[430,320,.34,.11]];
+function drumHit(l,t,v=1){const [f0,f1,g0,len]=DRUMS[l],o=ac.createOscillator(),o2=ac.createOscillator(),g=ac.createGain(),g2=ac.createGain();
+  o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+len*.5);
+  o2.type="triangle";o2.frequency.setValueAtTime(f0*2.3,t);o2.frequency.exponentialRampToValueAtTime(f1*2.3,t+.05); // attaque audible sur petit haut-parleur
+  g.gain.setValueAtTime(g0*v,t);g.gain.exponentialRampToValueAtTime(.001,t+len);
+  g2.gain.setValueAtTime(g0*.45*v,t);g2.gain.exponentialRampToValueAtTime(.001,t+.06);
+  o.connect(g);o2.connect(g2);out(g,PAN[l]*.5,.12);out(g2,PAN[l]*.5,.08);
+  o.start(t);o.stop(t+len+.05);o2.start(t);o2.stop(t+.08)}
+function deadString(lane){const f=mfreq(57+lane*5),g=ac.createGain(),s=ac.createBufferSource();s.buffer=ks(f,.2);
+  g.gain.setValueAtTime(.3,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.12);s.connect(g);out(g,PAN[lane],.15);s.start();s.stop(ac.currentTime+.15)}
+function noiseHit(t,freq,q,v,len,pan=0,wet=.2){const s=ac.createBufferSource();s.buffer=noiseB;s.playbackRate.value=.7+Math.random()*.6;
+  const bp=ac.createBiquadFilter();bp.type="bandpass";bp.frequency.value=freq;bp.Q.value=q;const g=ac.createGain();
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+len);s.connect(bp).connect(g);out(g,pan,wet);s.start(t,Math.random());s.stop(t+len+.02)}
+function crowd(t0){for(let t=t0+1;t<t0+150;t+=4+Math.random()*7)clink(t)}
+function clink(t){const f=2600+Math.random()*1600,pan=Math.random()*1.6-.8;
+  [[1,.03],[2.76,.012]].forEach(([m,v])=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f*m;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0005,t+.35);o.connect(g);out(g,pan,.5);o.start(t);o.stop(t+.4);run.srcs.push(o)})}
+function cheer(){if(!run)return;const t=ac.currentTime;
+  for(let k=0;k<2;k++){const o=ac.createOscillator(),og=ac.createGain(),tt=t+.1+k*.25;o.frequency.setValueAtTime(900,tt);o.frequency.exponentialRampToValueAtTime(1500,tt+.25);
+    og.gain.setValueAtTime(0,tt);og.gain.linearRampToValueAtTime(.02,tt+.05);og.gain.linearRampToValueAtTime(0,tt+.3);o.connect(og);out(og,k?.5:-.5,.5);o.start(tt);o.stop(tt+.35)}}
+function applause(amount){if(!run)return;const t=ac.currentTime,n=Math.round(20+90*amount);
+  for(let i=0;i<n;i++){const tt=t+Math.pow(Math.random(),1.6)*3;noiseHit(tt,1500+Math.random()*1200,1.2,.05+Math.random()*.04,.035,Math.random()*1.6-.8,.5)}
+  if(amount>.7)cheer();}
+function metronome(t0,rate){const spb=song.spb/rate,pl=song.pulse*spb,st=t0+song.pick*spb;
+  for(let k=2;k>=1;k--)drumHit(0,st-k*pl,.6);
+  for(let t=st;t<t0+state.len-.05;t+=pl)drumHit(0,t,.55);}
+
+// ---------- jeu ----------
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+let song=null,state=null,raf=0;
+const LANES=["--l0","--l1","--l2","--l3"].map(v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim());
+const KEYS={d:0,f:1,j:2,k:3};
+const val=n=>document.querySelector(`input[name="${n}"]:checked`).value;
+const insById=id=>INSTR.find(i=>i.id===id);
+
+const toolOf=(part,ins)=>part==="melo"?ins.id:part==="ryth"?"tamb":harmInsOf(ins.id);
+function groupCheck(mode,role,ins){ // chaque barde doit avoir un instrument du palier de l'air ; la qualité est moyennée
+  const gt=+val("gtier"),me=owned[toolOf(role,ins)],guests=PARTS[mode].filter(p=>p!==role);
+  const xs=[QUAL[me.q].x,...guests.map(()=>QUAL[0].x)];
+  return {gt,guests,meOk:me.t>=song.tier,gOk:gt>=song.tier,qx:xs.reduce((a,b)=>a+b,0)/xs.length,me};
+}
+let oppCache={};
+function oppName(){return NPCS[(song.id.toString().length*7+(+val("opp"))*3+(typeof song.id==="number"?song.id:0))%NPCS.length]}
+function oppScore(){const lv=+val("opp"),dk=val("defi"),key=song.id+"_"+lv;
+  if(!oppCache[key]){const pr=[[.45,.35],[.7,.22],[.88,.1]][lv];oppCache[key]=simScore(song.notes,pr[0],pr[1],rng(Date.now()%100000+lv*7))}
+  return Math.round(oppCache[key]*DEFI[dk].x)}
+function boardRows(){ // panneau de la taverne : bardes fictifs + ton record
+  const r=rng(song.id*97+5),max=simScore(song.notes,1,0,()=>0),rows=[],o0=Math.floor(r()*NPCS.length);
+  for(let i=0;i<4;i++){const d=r()<.35?1.3+r()*.2:1;rows.push({n:NPCS[(o0+i*3)%NPCS.length],sc:Math.round(max*(.55+r()*.4)*d)})}
+  if(prog.scores[song.id])rows.push({n:"Toi"+(prog.title?", "+prog.title:""),sc:prog.scores[song.id],me:1});
+  return rows.sort((a,b)=>b.sc-a.sc).slice(0,5);
+}
+function updatePrev(){
+  if(!song)return;const scene=val("scene"),buffScene=scene==="buff";
+  if(document.getElementById("train").checked&&val("defi")!=="none")document.getElementById("d-none").checked=true;
+  document.getElementById("modeGrp").hidden=!buffScene;document.getElementById("lieuGrp").hidden=buffScene;document.getElementById("oppGrp").hidden=scene!=="duel";
+  if(!buffScene)document.getElementById("m-solo").checked=true;
+  const mode=val("mode"),ins=insById(val("ins")),multi=mode!=="solo";
+  document.getElementById("roleGrp").hidden=!multi;
+  const hl=document.getElementById("harmLbl");hl.hidden=mode!=="trio";
+  if(mode!=="trio"&&val("role")==="harm")document.getElementById("r-melo").checked=true;
+  document.getElementById("harmIns").textContent=insById(harmInsOf(ins.id)).nm.toLowerCase()+", à la quinte";
+  document.getElementById("insLbl").textContent=multi&&val("role")!=="melo"?"Instrument de la mélodie (joué par un invité)":"Ton instrument (mélodie)";
+  const role=multi?val("role"):"melo",tool=toolOf(role,ins),o=owned[tool],okT=o.t>=song.tier;
+  const g=groupCheck(mode,role,ins),tu=tuneOf(tool),ml=mastLevel(song.id),campOk=buffScene||val("lieu")!=="camp"||prog.camp;
+  const skOk=prog.skill>=song.req;
+  document.getElementById("go").disabled=!okT||(multi&&!g.gOk)||!campOk||!skOk;
+  const extra=(specBuff(ins.id)>1?` × ${SP().n.toLowerCase()} 1,1`:"")+(tu<100?` × accord ${String(Math.round(tuneMult(tu)*100)/100).replace(".",",")}`:"")+(ml?` × maîtrise ${MAST.n[ml].toLowerCase()} +${MAST.b[ml]*100} %`:"");
+  const b=baseBuff(song,ins)*g.qx*tuneMult(tu)*(1+MAST.b[ml])*specBuff(ins.id),m=MULT[mode];
+  let top="";
+  if(buffScene)top=`${ins.k} · buff maximum en ${mode} : <b>${fmtV(ins,b*m)}</b><br><span class="calc">Solo ${fmtV(ins,b).split(" ")[0]} · duo ${fmtV(ins,b*1.6).split(" ")[0]} · trio ${fmtV(ins,b*2).split(" ")[0]}${ins.u?" %":""}. Durée ${10+song.tier*5} min.</span>`;
+  else if(scene==="concert")top=`Concert ${val("lieu")==="camp"?"au camp de barde":"à la taverne"} : une bourse est posée au sol, les spectateurs y déposent de l'or selon ta justesse.<br><span class="calc">Les auditeurs reçoivent <i>Bonne humeur</i> : ${fmtV(ins,b*.15)}, 10 min, sans groupe.</span>`;
+  else top=`Duel : <b>${oppName()}</b> a joué cet air${val("defi")!=="none"?" avec le même défi":""} et obtenu <b>${fmtN(oppScore())} points</b>. Le meilleur remporte la bourse des spectateurs, partagée en cas d'égalité.`;
+  const col=prog.skill<song.req?{n:"rouge (pas encore jouable)",c:"#e0707a"}:colorOf(song.req),ch=prog.chant&&prog.chant.until>Date.now()?prog.chant:null;
+  top+=`<br><span class="calc">Air <span style="color:${col.c}">${col.n}</span> pour ta compétence (${prog.skill})${ch&&buffScene?` · chant actif : ${insById(ch.type).k} ${fmtV(insById(ch.type),ch.v)}`:""}</span>${skOk?"":`<br><span class="warn">Compétence requise : ${song.req}. Monte ta compétence avec des airs plus simples.</span>`}`;
+  document.getElementById("prev").innerHTML=`${top}<br>Ton instrument : ${qtag(tool)} · ${QUAL[o.q].n}${extra?`<span class="calc">${extra}</span>`:""}${tu<50?`<br><span class="warn">Instrument désaccordé (${tu} %) : il sonne faux. Accorde-le à l'atelier.</span>`:""}${okT?"":`<br><span class="warn">Cet air demande au moins : ${itemName(tool,song.tier)}. Fabrique-le à l'atelier.</span>`}${campOk?"":`<br><span class="warn">Il te faut un camp de barde : fabrique-le à l'atelier.</span>`}${multi?`<br>Invités : ${g.guests.map(p=>itemName(toolOf(p,ins),g.gt)).join(", ")} (communs)${g.gOk?` · qualité du groupe ×${(Math.round(g.qx*1000)/1000).toString().replace(".",",")}`:`<br><span class="warn">Un invité n'a qu'un instrument ${MATS[g.gt].adj} : cet air de palier ${TIERS[song.tier][0]} est trop avancé pour lui. Le groupe ne peut jouer que les airs du palier de son membre le plus faible.</span>`}`:""}`;
+  const mc=prog.mast[song.id]||0,nx=MAST.t.find(x=>x>mc);
+  document.getElementById("board").innerHTML=`<b>Panneau de la taverne</b> · maîtrise ${ml?`<span style="color:${MAST.c[ml]}">${MAST.n[ml]}</span>`:"aucune"} (${mc}${nx?" / "+nx:""} réussites)<ol>${boardRows().map(r=>`<li${r.me?' class="me"':""}>${r.n} · ${fmtN(r.sc)} pts</li>`).join("")}</ol>`;
+}
+document.getElementById("train").addEventListener("change",updatePrev);
+document.querySelectorAll('#startOv input[type="radio"]').forEach(r=>r.addEventListener("change",updatePrev));
+const chartOf=part=>part==="melo"?song.notes:part==="ryth"?song.rhythm:song.harmony;
+
+function openSong(s){
+  cancelAnimationFrame(raf);killRun();
+  song=s;document.getElementById("book").hidden=true;document.getElementById("stage").hidden=false;
+  document.getElementById("snm").innerHTML=`${s.name}<small>${s.orig}</small>`;document.getElementById("pnm").textContent=s.name;
+  document.getElementById("pinfo").textContent=`${TIERS[s.tier][0]} · ${s.orig} · ${s.bpm} BPM · ${s.notes.length} notes de mélodie, ${s.rhythm.length} frappes, ${s.harmony.length} notes d'harmonie`;
+  document.getElementById("startOv").hidden=false;document.getElementById("endOv").hidden=true;
+  updatePrev();resize();state=null;draw(0);
+}
+function resize(){const r=cv.getBoundingClientRect(),dp=window.devicePixelRatio||1;cv.width=r.width*dp;cv.height=r.height*dp;ctx.setTransform(dp,0,0,dp,0,0)}
+addEventListener("resize",()=>{if(song)resize()});
+
+function start(){
+  const a=audio();document.getElementById("startOv").hidden=true;
+  const train=document.getElementById("train").checked,scene=val("scene"),defi=train?"none":val("defi"),rate=train?.75:defi==="vite"?1.25:1,mode=scene==="buff"?val("mode"):"solo";
+  const role=mode==="solo"?"melo":val("role"),ins=insById(val("ins")),hIns=harmInsOf(ins.id);
+  const t0=a.currentTime+Math.max(2,(2*song.pulse-song.pick)*song.spb/rate+.4);
+  const prep=c=>c.map(n=>({...n,t:n.t/rate,end:n.end?n.end/rate:0,dur:n.dur/rate,res:null,tail:null,holding:false}));
+  state={t0,train,mode,role,ins,hIns,len:song.len/rate,notes:prep(chartOf(role)),
+    perf:0,good:0,miss:0,combo:0,maxc:0,fx:[],held:[null,null,null,null],done:false,partners:[],
+    scene,defi,lieu:val("lieu"),score:0,purse:0,claps:0,events:[],nextTick:0,failed:false,opp:scene==="duel"?oppScore():0,spect:[]};
+  if(scene!=="buff"){const n=state.lieu==="camp"?3+Math.floor(Math.random()*4):5+Math.floor(Math.random()*5);
+    state.spect=[...SPECT].sort(()=>Math.random()-.5).slice(0,n+(SP().spect||0))}
+  state.oppLv=+val("opp");state.oppName=oppName();
+  const tu=tuneOf(toolOf(role,ins));DETUNE=tu<50?1-tu/50:0;
+  newRun();
+  song.notes.forEach(n=>warm(ins.id,n.p));song.harmony.forEach(n=>warm(hIns,n.p));
+  PARTNER=true; // les autres bardes jouent leurs parties, avec leurs propres erreurs, un peu moins fort
+  for(const part of PARTS[mode]){
+    if(part===role)continue;
+    const pn=prep(chartOf(part)),pt={part,perf:0,good:0,miss:0},side=part==="harm"?-1:1;
+    pn.forEach(n=>{const r=Math.random();
+      if(r<.07){pt.miss++;if(n.end)pt.miss++;return}
+      const good=r<.2;pt[good?"good":"perf"]++;if(n.end)pt.perf++;
+      const at=t0+n.t+(good?(Math.random()-.5)*.08:0),d=n.end?n.end-n.t+.1:n.dur*.9;
+      if(part==="ryth")drumHit(n.lane,at);else playInst(part==="melo"?ins.id:hIns,n.p,at,d,side*.35+PAN[n.lane]*.3);
+    });
+    pt.acc=(pt.perf+pt.good*.6)/(pt.perf+pt.good+pt.miss);state.partners.push(pt);
+  }
+  PARTNER=false;
+  if(!PARTS[mode].includes("ryth")||role==="ryth"){if(role!=="ryth")metronome(t0,rate)}
+  else for(let k=2;k>=1;k--)drumHit(0,t0+(song.pick-k*song.pulse)*song.spb/rate,.6);
+  if(role==="ryth")for(let k=2;k>=1;k--)drumHit(0,t0+(song.pick-k*song.pulse)*song.spb/rate,.6);
+  if(document.getElementById("amb").checked)crowd(a.currentTime);
+  cancelAnimationFrame(raf);hud();loop();
+}
+function now(){return audio().currentTime-state.t0}
+function addCombo(pts){state.score+=pts*(1+Math.floor(state.combo/25)*.1);state.combo++;state.maxc=Math.max(state.maxc,state.combo);
+  if(state.combo%25===0){if(document.getElementById("amb").checked)cheer();
+    if(state.scene!=="buff"){state.clapped=state.clapped||{};const who=state.spect.filter(n=>!state.clapped[n]&&Math.random()<.6);who.forEach(n=>state.clapped[n]=1);const k=who.length;state.claps+=k;if(k)state.events.push({t:now(),txt:`${k} spectateur${k>1?"s":""} applaudi${k>1?"ssent":"t"} (/applaudir)`})}}}
+function failCheck(){if(state.defi==="filet")state.failed=true}
+function hit(lane){
+  PRESSED[lane]=true;if(!state||state.done)return;const t=now();
+  let bn=null,bd=1;
+  for(const n of state.notes){if(n.res||n.lane!==lane)continue;const d=Math.abs(n.t-t);if(d<bd){bd=d;bn=n}if(n.t-t>.2)break}
+  state.fx.push({lane,t,kind:"tap"});
+  if(!bn||bd>.12){if(state.role!=="ryth")deadString(lane);else drumHit(lane,ac.currentTime,.3);return}
+  bn.res=bd<=.06?"perfect":"good";state[bd<=.06?"perf":"good"]++;addCombo(bd<=.06?100:50);
+  if(bn.drum)drumHit(lane,ac.currentTime);
+  else{const h=playInst(state.role==="harm"?state.hIns:state.ins.id,bn.p,ac.currentTime,bn.end?bn.end-t+.1:bn.dur*.9,PAN[lane]);
+    if(bn.end){bn.v=h;bn.holding=true;state.held[lane]=bn}}
+  state.fx.push({lane,t,kind:bn.res});hud();
+}
+function release(lane){
+  PRESSED[lane]=false;if(!state||state.done)return;const n=state.held[lane];if(!n)return;
+  state.held[lane]=null;n.holding=false;
+  if(n.tail)return;const t=now();
+  if(t<n.end-.15){n.v&&n.v.cut();n.tail="miss";state.miss++;state.combo=0;state.fx.push({lane,t,kind:"lâché"});failCheck()}
+  else{n.tail="perfect";state.perf++;addCombo(50)}
+  hud();
+}
+function hud(){const s=state,tot=s.perf+s.good+s.miss;
+  document.getElementById("sacc").textContent=(tot?Math.round(acc()*100):100)+" %";
+  document.getElementById("scombo").textContent=s.combo}
+function acc(){const s=state,tot=s.perf+s.good+s.miss;return tot?(s.perf+s.good*.6)/tot:1}
+function crescendo(){return Math.min(Math.floor(state.maxc/25)*.02,.12)}
+
+function loop(){
+  const t=now();
+  for(const n of state.notes){
+    if(!n.res&&t-n.t>.12){n.res="miss";state.miss++;state.combo=0;state.fx.push({lane:n.lane,t,kind:"miss"});failCheck();
+      if(n.end){n.tail="miss";state.miss++}hud()}
+    if(n.holding&&t>=n.end){n.tail="perfect";n.holding=false;state.held[n.lane]=null;state.perf++;addCombo(50);state.fx.push({lane:n.lane,t,kind:"perfect"});hud()}
+  }
+  if(state.scene!=="buff"&&t>0&&t>=state.nextTick){state.nextTick=t+1.5; // les spectateurs remplissent la bourse au sol
+    const a=acc();for(const nm of state.spect)if(Math.random()<.07*a*a*(1+Math.min(state.combo,50)/50)){
+      const c=Math.round((10+Math.random()*65)*(1+song.tier*.6));state.purse+=c;state.events.push({t,txt:`${nm} dépose ${money(c)}`})}}
+  if(state.failed){draw(t);finish();return}
+  draw(t);
+  if(t>state.len+1){finish();return}
+  raf=requestAnimationFrame(loop);
+}
+const PRESSED=[false,false,false,false];
+function hexA(hx,a){const n=parseInt(hx.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function shade(hx){const n=parseInt(hx.slice(1),16);return `rgb(${(n>>16&255)*.45|0},${(n>>8&255)*.45|0},${(n&255)*.45|0})`}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function draw(t){
+  const w=cv.clientWidth,h=cv.clientHeight,lw=w/4,hy=h-96,drum=state&&state.role==="ryth",R=Math.min(lw*.32,32);
+  ctx.clearRect(0,0,w,h);
+  const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,"#0d1020");bg.addColorStop(.75,"#1b1830");bg.addColorStop(1,"#2a1d16");ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle="rgba(217,164,65,.07)";ctx.lineWidth=1;
+  for(let k=0;k<5;k++){const y=h*.16+k*14;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()} // portée en filigrane
+  for(let i=0;i<4;i++){const x=i*lw,p=PRESSED[i]||(state&&state.held[i]);
+    const g=ctx.createLinearGradient(0,0,0,hy);g.addColorStop(0,"rgba(0,0,0,0)");g.addColorStop(1,hexA(LANES[i],p?.28:.07));ctx.fillStyle=g;ctx.fillRect(x,0,lw,hy);
+    if(i){ctx.strokeStyle="rgba(217,164,65,.2)";ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+    ctx.strokeStyle=hexA(LANES[i],.14);ctx.setLineDash([2,10]);ctx.beginPath();ctx.moveTo(x+lw/2,0);ctx.lineTo(x+lw/2,hy-R);ctx.stroke();ctx.setLineDash([])}
+  const wood=ctx.createLinearGradient(0,hy,0,h);wood.addColorStop(0,"#3c2815");wood.addColorStop(1,"#1c1209");ctx.fillStyle=wood;ctx.fillRect(0,hy,w,h-hy);
+  ctx.strokeStyle="rgba(0,0,0,.25)";for(let y=hy+14;y<h;y+=16){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+  ctx.save();ctx.shadowColor="#e0b04f";ctx.shadowBlur=18;ctx.fillStyle="#e8b85a";ctx.fillRect(0,hy-2,w,4);ctx.restore();
+  for(let i=0;i<4;i++){const cx=i*lw+lw/2,p=PRESSED[i]||(state&&state.held[i]);
+    ctx.save();ctx.translate(cx,hy);const sc=p?1.08:1;ctx.scale(sc,sc);
+    ctx.beginPath();ctx.arc(0,0,R+6,0,7);ctx.fillStyle="#1e1309";ctx.fill();
+    const ring=ctx.createLinearGradient(0,-R,0,R);ring.addColorStop(0,"#f6dc96");ring.addColorStop(.5,"#c99441");ring.addColorStop(1,"#6e4b20");
+    ctx.lineWidth=5;ctx.strokeStyle=ring;ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+    const cg=ctx.createRadialGradient(0,-R*.35,2,0,0,R);cg.addColorStop(0,p?"#fff7e0":hexA(LANES[i],.5));cg.addColorStop(1,p?LANES[i]:hexA(LANES[i],.12));
+    ctx.fillStyle=cg;ctx.beginPath();ctx.arc(0,0,R-3,0,7);ctx.fill();
+    for(let k=0;k<4;k++){const an=k*Math.PI/2+.785;ctx.fillStyle="#f6dc96";ctx.beginPath();ctx.arc(Math.cos(an)*R,Math.sin(an)*R,2,0,7);ctx.fill()} // rivets
+    if(p){ctx.shadowColor=LANES[i];ctx.shadowBlur=26;ctx.strokeStyle=LANES[i];ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,R+9,0,7);ctx.stroke();ctx.shadowBlur=0}
+    ctx.restore();
+    ctx.fillStyle=p?"#1a1408":"#efe6d2";ctx.font="800 15px Alegreya Sans, sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("DFJK"[i],cx,hy+1);ctx.textBaseline="alphabetic"}
+  if(!state)return;
+  ctx.fillStyle="rgba(255,255,255,.08)";ctx.fillRect(0,0,w,4);ctx.fillStyle="#d9a441";ctx.fillRect(0,0,w*Math.max(0,Math.min(1,t/state.len)),4);
+  if(state.combo>=10){ctx.fillStyle="rgba(243,207,125,.09)";ctx.font="140px Pirata One, Georgia, serif";ctx.textAlign="center";ctx.fillText(state.combo,w/2,h*.45)}
+  const tr=song.travel,Y=x=>hy-(x/tr)*hy;
+  for(const n of state.notes){
+    const dt=n.t-t;if(dt>tr)break;
+    const x=n.lane*lw+lw/2,r=Math.min(lw*.27,26),col=LANES[n.lane];
+    if(n.end&&n.end-t>-.1&&n.tail!=="perfect"){ // note tenue : barre simple, comme avant
+      const yTop=Math.max(Y(n.end-t),0),yBot=n.holding?hy:Math.min(Y(dt),hy+40);
+      ctx.globalAlpha=n.tail==="miss"||n.res==="miss"?.2:n.holding?.75:.45;ctx.fillStyle=col;
+      ctx.fillRect(x-r*.35,yTop,r*.7,yBot-yTop);ctx.globalAlpha=1;
+    }
+    if(n.res&&n.res!=="miss")continue;if(dt<-.3)continue;
+    const y=Y(dt),fog=state.defi==="brume"?Math.max(0,Math.min(1,(y-hy*.45)/(hy*.15))):1;if(fog<=0)continue;
+    ctx.save();ctx.translate(x,y);ctx.globalAlpha=(n.res==="miss"?.25:1)*fog;
+    if(drum){ // peau de tambour vue de dessus
+      const dg=ctx.createRadialGradient(-r*.2,-r*.2,1,0,0,r*1.1);dg.addColorStop(0,"#fff4dc");dg.addColorStop(.5,"#e6cfa2");dg.addColorStop(1,shade(col));
+      ctx.beginPath();ctx.ellipse(0,0,r*1.15,r*.6,0,0,7);ctx.fillStyle=dg;ctx.fill();ctx.lineWidth=4;ctx.strokeStyle=col;ctx.stroke();
+      ctx.lineWidth=1.5;ctx.strokeStyle="rgba(60,35,15,.6)";ctx.beginPath();ctx.ellipse(0,0,r*.55,r*.28,0,0,7);ctx.stroke()}
+    else{ // note simple et nette, comme avant
+      ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(0,0,r,r*.62,-.35,0,7);ctx.fill();
+      ctx.fillStyle="#141826";ctx.fillRect(r*.55,-r*2,3,r*2)}
+    ctx.restore();
+  }
+  state.fx=state.fx.filter(f=>t-f.t<.5);
+  for(const f of state.fx){const age=t-f.t,a=Math.max(0,1-age/.5),x=f.lane*lw+lw/2;
+    if(f.kind==="tap"){ctx.globalAlpha=a*.18;ctx.fillStyle="#ece6d6";ctx.fillRect(f.lane*lw,0,lw,hy)}
+    else{
+      if(f.kind==="perfect"||f.kind==="good"){ctx.globalAlpha=a;ctx.strokeStyle=f.kind==="perfect"?"#fff2c4":LANES[f.lane];ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,hy,R+age*110,0,7);ctx.stroke();
+        for(let k=0;k<(f.kind==="perfect"?10:6);k++){const an=k/(f.kind==="perfect"?10:6)*6.283+f.lane,dd=R*.6+age*170;
+          ctx.fillStyle=k%2?"#fff2c4":LANES[f.lane];ctx.beginPath();ctx.arc(x+Math.cos(an)*dd,hy+Math.sin(an)*dd*.55-age*60,2.5*a+1,0,7);ctx.fill()}}
+      const lbl={perfect:"Parfait",good:"Bon",miss:"Raté","lâché":"Lâché"}[f.kind],ty=hy-R-22-age*40;
+      ctx.globalAlpha=a;ctx.font="800 19px Alegreya Sans, sans-serif";ctx.textAlign="center";ctx.lineWidth=4;ctx.strokeStyle="rgba(0,0,0,.75)";ctx.strokeText(lbl,x,ty);
+      ctx.fillStyle=f.kind==="perfect"?"#9ff0c0":f.kind==="good"?"#a9c6ff":"#ff8f98";ctx.fillText(lbl,x,ty)}
+    ctx.globalAlpha=1}
+  ctx.textAlign="left";ctx.font="600 14px Alegreya Sans, sans-serif";ctx.fillStyle="#9a9fb8";
+  ctx.fillText((state.role==="melo"?state.ins.nm:state.role==="ryth"?"Tambour":"Harmonie · "+insById(state.hIns).nm)+" · "+state.mode,12,22);
+  const cr=crescendo();if(cr>0&&state.scene==="buff"){ctx.fillStyle="#d9a441";ctx.fillText("Crescendo +"+Math.round(cr*100)+" %",12,42)}
+  if(state.defi!=="none"){ctx.fillStyle="#9a9fb8";ctx.fillText("Défi : "+DEFI[state.defi].n,12,state.scene==="buff"?62:42)}
+  if(state.scene!=="buff"){ctx.fillStyle="#d9a441";ctx.fillText("Bourse : "+money(state.purse)+(state.claps?` · ${state.claps} applaudissements`:""),12,state.defi!=="none"?62:42);
+    ctx.fillText("Score : "+fmtN(state.score*DEFI[state.defi].x)+(state.scene==="duel"?" / adversaire "+fmtN(state.opp):""),12,state.defi!=="none"?82:62);
+    state.events=state.events.filter(e=>t-e.t<4);ctx.textAlign="right";ctx.fillStyle="#ece6d6";
+    state.events.slice(-4).forEach((e,i)=>{ctx.globalAlpha=Math.min(1,(4-(t-e.t))/1);ctx.fillText(e.txt,w-12,22+i*20)});ctx.globalAlpha=1;ctx.textAlign="left"}
+  if(t<0){ctx.fillStyle="#d9a441";ctx.font="64px Pirata One, Georgia, serif";ctx.textAlign="center";ctx.fillText(Math.ceil(-t),w/2,h/2)}
+}
+function finish(){
+  state.done=true;const s=state,a=acc(),cr=crescendo(),ins=s.ins,m=MULT[s.mode],tool=toolOf(s.role,ins);
+  const qx=groupCheck(s.mode,s.role,ins).qx,tm=tuneMult(tuneOf(tool)),ml=mastLevel(song.id),mb=MAST.b[ml];
+  const all=[a,...s.partners.map(p=>p.acc)],team=all.reduce((x,y)=>x+y,0)/all.length;
+  const pct=x=>Math.round(x*100)+" %",num=x=>String(Math.round(x*1000)/1000).replace(".",",");
+  const score=Math.round(s.score*DEFI[s.defi].x);
+  // usure de l'accord, maîtrise, panneau
+  const leg=owned[tool].q===4,dur=Math.round((10+song.tier*5)*(leg?1.5:1));
+  if(!leg)prog.tune[tool]=Math.max(0,tuneOf(tool)-(tool==="tamb"?3:4)); // un instrument légendaire ne se désaccorde jamais
+  let up="",rec=false,pts=0,chantMsg="";
+  if(!s.train&&!s.failed&&a>=.7){const first=!prog.first[song.id];prog.first[song.id]=1;pts=gainSkill(song.req,first)}
+  if(!s.train&&!s.failed&&a>=.5){prog.mast[song.id]=(prog.mast[song.id]||0)+1;const nl=mastLevel(song.id);if(nl>ml)up=MAST.n[nl]}
+  if(!s.train&&!s.failed&&score>(prog.scores[song.id]||0)){prog.scores[song.id]=score;rec=true}
+  if(!s.train&&(!best[song.id]||a>best[song.id])){best[song.id]=a;saveBest()}
+  const st=prog.stats;st.ok=st.ok||{};
+  if(!s.train&&!s.failed&&a>=.5&&!song.comp)st.ok[song.id]=1;
+  if(!s.train&&!s.failed&&s.defi==="filet"&&song.tier>=3&&a>=.5)st.filet=1;
+  if(!s.train&&!s.failed&&s.mode==="trio"&&song.tier===4&&team>=.9)st.trio=1;
+  saveProg();renderBook();
+  if(document.getElementById("amb").checked)applause(s.failed?0:Math.max(0,(team-.4)/.6));
+  const grade=s.failed?"Défi échoué":team>=.95?"Virtuose":team>=.85?"Superbe":team>=.7?"Belle prestation":team>=.5?"Correct":"Fausse note !";
+  const pl=s.partners.map(p=>`${PNAME[p.part]} (invité) : <b>${pct(p.acc)}</b>`).join(" · ");
+  const base=baseBuff(song,ins);
+  const malus=!s.failed&&team<.5?`<div class="buff"><p class="warn"><b>${MALUS[ins.id]}</b> frappe ${s.mode==="solo"?"le barde":"le groupe"} : ${fmtV(ins,base*.25).replace("+","−")}, 2 min.</p><p class="calc">Sous 50 % de justesse, la fausse note se retourne contre les musiciens.</p></div>`:"";
+  let body="";
+  if(s.scene==="buff"){
+    const sb=specBuff(ins.id),capV=base*m*(leg?1.3:1.2);let v=null,capped=false;if(team>=.5&&!s.failed){v=base*qx*tm*(1+mb)*sb*Math.pow(team,1.5)*(1+cr)*m;if(v>capV){v=capV;capped=true}if(s.train)v/=2}
+    if(v!==null){const ch=prog.chant&&prog.chant.until>Date.now()?prog.chant:null,until=Date.now()+dur*60000; // un seul chant par joueur
+      if(ch&&ch.type===ins.id&&ch.v>v+1e-9){chantMsg=`<p class="warn">Un chant plus puissant est déjà actif (${fmtV(ins,ch.v)}) : ce chant est refusé.</p>`}
+      else if(ch&&ch.type===ins.id&&Math.abs(ch.v-v)<1e-9){ch.until=until;chantMsg=`<p class="calc">Chant identique : durée rafraîchie.</p>`}
+      else{if(ch&&ch.type!==ins.id)chantMsg=`<p class="calc">Remplace ${insById(ch.type).k}.</p>`;prog.chant={type:ins.id,v,until}}}
+    body=v!==null?`<div class="buff"><p>${ins.k} accordé au groupe :</p><p class="v">${fmtV(ins,v)}</p>
+      <p class="calc">base ${roundV(ins,base)}${qx>1?` × qualité ${num(qx)}`:""}${tm<1?` × accord ${num(tm)}`:""}${mb?` × maîtrise ${num(1+mb)}`:""}${sb>1?` × ${SP().n.toLowerCase()} 1,1`:""} × justesse ${pct(team)}<sup>1,5</sup>${cr?` × crescendo +${Math.round(cr*100)} %`:""}${m>1?` × ${s.mode} ${num(m)}`:""}${s.train?" ÷ 2 (entraînement)":""}</p>
+      ${capped?`<p class="calc">Plafonné à ×${leg?"1,3":"1,2"} la valeur de base du ${s.mode}${leg?" (plafond relevé par l'instrument légendaire)":""}.</p>`:""}<p>Durée ${dur} min${leg?" (légendaire : +50 %)":""}, rayon 30 m</p><p class="aura">aura : ${ins.aura} · valeur ${roundV(ins,v)}</p>${chantMsg}</div>`:malus?"":`<div class="buff"><p>Pas de buff.</p></div>`;
+  } else {
+    const day=today();if(prog.concert.day!==day)prog.concert={day,sec:0};const tired=prog.concert.sec>7200;prog.concert.sec+=s.len;
+    const cap=SP().clap||.2,tm2=SP().tips||1,tips=s.purse*(1+Math.min(s.claps*.02,cap))*(s.lieu==="camp"?1.1:1)*tm2*(s.failed?.5:1)*(tired?.5:1);
+    const zone=a>=.5&&!s.failed?`<p class="calc">Les auditeurs reçoivent <i>Bonne humeur</i> : ${fmtV(ins,base*.15*qx*tm*(1+mb)*specBuff(ins.id)*(SP().zone||1)*Math.pow(a,1.5))}, 10 min.</p>`:"";
+    if(!s.train){if(s.scene==="concert")st.tips=(st.tips||0)+tips;
+      else{const tie=Math.abs(score-s.opp)/Math.max(score,s.opp,1)<.005,win=score>s.opp&&!tie;
+        if(!s.failed&&(win||tie))st.tips=(st.tips||0)+(tie?tips/2:tips);
+        if(!s.failed&&win){const L=prog.duelLog[day]=prog.duelLog[day]||{};if(L[s.oppName])s.dupWin=true;else{L[s.oppName]=1;st.duels=(st.duels||0)+1;if(s.oppLv===2)st.virt=(st.virt||0)+1}}}}
+    if(s.scene==="concert")body=`<div class="buff"><p>Bourse ramassée :</p><p class="v">${money(tips)}</p>
+      <p class="calc">${money(s.purse)} déposés par ${s.spect.length} spectateurs${s.claps?` · +${Math.round(Math.min(s.claps*.02,cap)*100)} % grâce à ${s.claps} applaudissements`:""}${tm2!==1?` · ${SP().n.toLowerCase()} ×${num(tm2)}`:""}${s.lieu==="camp"?" · +10 % au coin du feu":""}${s.failed?" · moitié perdue : défi échoué":""}${tired?" · moitié : plus de 2 h de concert aujourd'hui":""}</p>${zone}</div>`;
+    else{const diff=Math.abs(score-s.opp)/Math.max(score,s.opp,1),tie=diff<.005,win=score>s.opp;
+      body=`<div class="buff"><p>Toi : <b>${fmtN(score)}</b> · ${s.oppName} : <b>${fmtN(s.opp)}</b></p>${s.dupWin?`<p class="calc">Victoire déjà comptée aujourd'hui contre ${s.oppName} : pas de statistique en plus.</p>`:""}<p class="v">${s.failed?"Défi échoué : l'adversaire remporte la bourse":tie?"Égalité : la bourse est partagée 50/50":win?"Victoire !":"Défaite"}</p>
+      <p>Bourse : ${money(tips)} → ${s.failed||(!tie&&!win)?"0 pc pour toi":money(tie?tips/2:tips)+" pour toi"}</p>${zone}</div>`}
+  }
+  saveProg();const newT=TITLES.filter(t=>t.ok()&&!(prog.seenT||[]).includes(t.n));prog.seenT=[...(prog.seenT||[]),...newT.map(t=>t.n)];saveProg();
+  document.getElementById("endCard").innerHTML=`<h3>${grade}</h3>${newT.length?`<p style="color:var(--brass)">Titre débloqué : <b>${newT.map(t=>t.n).join(", ")}</b> (à choisir dans Profil)</p>`:""}
+    <p>Toi, ${PNAME[s.role].toLowerCase()} : <b>${pct(a)}</b> · combo max ${s.maxc} · score ${fmtN(score)}${s.defi!=="none"?` (défi ${DEFI[s.defi].n.toLowerCase()} ×${num(DEFI[s.defi].x)})`:""}${s.train?" · entraînement":""}</p>
+    ${pl?`<p>${pl}<br>Moyenne du groupe ${pct(team)}</p>`:""}
+    <div class="stats"><div style="color:var(--perfect)"><b>${s.perf}</b>parfait</div><div style="color:var(--good)"><b>${s.good}</b>bon</div><div style="color:var(--miss)"><b>${s.miss}</b>raté</div></div>
+    ${body}${malus}
+    <p class="calc">${pts?`<b style="color:var(--brass)">+${pts} compétence (${prog.skill})</b> · `:prog.skill<SKMAX&&!s.train&&!s.failed&&a<.7&&a>=.5?"Pas de point : 70 % de justesse requis · ":""}${rec?"Nouveau record au panneau · ":""}${up?`Maîtrise ${up} atteinte · `:""}Accord de l'instrument : ${tuneOf(tool)} %</p>
+    <div class="acts"><button class="btn" id="again">Rejouer</button><button class="btn main" id="tobook">Carnet</button></div>`;
+  document.getElementById("endOv").hidden=false;
+  document.getElementById("again").onclick=()=>openSong(song);
+  document.getElementById("tobook").onclick=quit;
+}
+function quit(){cancelAnimationFrame(raf);killRun();state=null;document.getElementById("stage").hidden=true;document.getElementById("book").hidden=false}
+
+document.getElementById("go").onclick=start;
+document.getElementById("quit").onclick=quit;
+const ptr={};
+cv.addEventListener("pointerdown",e=>{e.preventDefault();const r=cv.getBoundingClientRect(),l=Math.min(3,Math.max(0,Math.floor((e.clientX-r.left)/r.width*4)));
+  ptr[e.pointerId]=l;try{cv.setPointerCapture(e.pointerId)}catch(_){}hit(l)});
+["pointerup","pointercancel"].forEach(ev=>cv.addEventListener(ev,e=>{const l=ptr[e.pointerId];delete ptr[e.pointerId];if(l!==undefined)release(l)}));
+addEventListener("keydown",e=>{if(document.getElementById("stage").hidden)return;const l=KEYS[e.key.toLowerCase()];
+  if(l!==undefined&&state){e.preventDefault();if(!e.repeat)hit(l)}if(e.key==="Escape")quit()});
+addEventListener("keyup",e=>{const l=KEYS[e.key.toLowerCase()];if(l!==undefined)release(l)});
+// ---------- improvisation ----------
+const IMPK="asdfghjk";let impTimer=null;const impHeld={};
+document.getElementById("impIns").innerHTML=INSTR.map((i,k)=>`<input type="radio" name="iins" id="ii-${i.id}" value="${i.id}"${k===0?" checked":""}><label for="ii-${i.id}">${i.nm}</label>`).join("");
+document.getElementById("impMode").innerHTML=Object.entries(MODES).map(([k,m],i)=>`<input type="radio" name="imode" id="im-${k}" value="${k}"${i===0?" checked":""}><label for="im-${k}">${m.n.replace("mode ","")}</label>`).join("");
+const NN=["do","do♯","ré","mi♭","mi","fa","fa♯","sol","la♭","la","si♭","si"];
+function impMidi(i){const M=MODES[val("imode")],o=Math.floor(i/7);return M.t+12*o+M.s[i%7]}
+function renderPads(){document.getElementById("pads").innerHTML=[...Array(8)].map((_,i)=>`<button data-pad="${i}">${NN[impMidi(i)%12]}<small>${IMPK[i].toUpperCase()}</small></button>`).join("");
+  document.querySelectorAll("[data-pad]").forEach(b=>{const i=+b.dataset.pad;
+    b.addEventListener("pointerdown",e=>{e.preventDefault();padOn(i)});["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>padOff(i)))})}
+function impEnsure(){audio();if(!run)newRun()}
+let recState=null;
+function padOn(i){if(impHeld[i])return;impEnsure();if(recState)recState.notes.push({m:impMidi(i),t:performance.now()/1000});const h=playInst(val("iins"),impMidi(i),ac.currentTime,2.5,(i-3.5)/8);impHeld[i]={h};
+  const b=document.querySelector(`[data-pad="${i}"]`);b&&b.classList.add("on")}
+function padOff(i){const x=impHeld[i];if(!x)return;delete impHeld[i];x.h&&x.h.cut();const b=document.querySelector(`[data-pad="${i}"]`);b&&b.classList.remove("on")}
+function impStop(){clearInterval(impTimer);impTimer=null;document.getElementById("impDrum").checked=false;Object.keys(impHeld).forEach(padOff);if(document.getElementById("stage").hidden)killRun()}
+document.getElementById("impDrum").addEventListener("change",e=>{clearInterval(impTimer);impTimer=null;if(e.target.checked){impEnsure();let k=0;
+  impTimer=setInterval(()=>{if(run)drumHit(k++%2?1:0,ac.currentTime+.02,.7)},60000/84)}});
+document.querySelectorAll('input[name="imode"]').forEach(r=>r.addEventListener("change",renderPads));
+renderPads();
+addEventListener("keydown",e=>{if(document.getElementById("tabImp").hidden||!document.getElementById("stage").hidden||e.repeat)return;const i=IMPK.indexOf(e.key.toLowerCase());if(i>=0){e.preventDefault();padOn(i)}});
+addEventListener("keyup",e=>{const i=IMPK.indexOf(e.key.toLowerCase());if(i>=0)padOff(i)});
+
+
+// ---------- composition ----------
+let pendingComp=null;
+document.getElementById("recBtn").onclick=()=>{const b=document.getElementById("recBtn"),info=document.getElementById("recInfo");
+  if(!recState){recState={notes:[],mode:val("imode")};b.textContent="■ Arrêter";b.classList.add("rec-on");info.textContent="Enregistrement… joue ton air.";document.getElementById("recBox").hidden=true;return}
+  const r=recState;recState=null;b.textContent="● Enregistrer";b.classList.remove("rec-on");
+  if(r.notes.length<16){info.textContent="Trop court : joue au moins 16 notes.";return}
+  const grid=60/84/2,t0=r.notes[0].t,q=[];
+  r.notes.forEach(n=>{const b=Math.round((n.t-t0)/grid)/2;if(!q.length||b>q[q.length-1].b)q.push({b,m:n.m})});
+  if(prog.comps.length>=10){info.textContent="Tu as déjà 10 compositions : c'est le maximum par barde.";return}
+  if(q.length<16){info.textContent=`Trop court : ${q.length} notes, il en faut au moins 16 à des moments différents.`;return}
+  const seq=q.map((n,i)=>({m:n.m,d:i<q.length-1?Math.min(4,Math.max(.5,q[i+1].b-n.b)):2}));
+  const beats=seq.reduce((a,n)=>a+n.d,0),dens=seq.length/beats,tier=dens<.6?0:dens<.9?1:dens<1.2?2:dens<1.6?3:4;
+  if(beats*60/84<20){info.textContent=`Trop court : ${Math.round(beats*60/84)} s, il faut au moins 20 s.`;return}
+  const capT=Math.min(tier,myTier());
+  pendingComp={seq,mode:r.mode,tier:capT};
+  info.textContent=`${seq.length} notes, ${Math.round(beats*60/84)} s, ${MODES[r.mode].n} · palier ${TIERS[capT][0]}${capT<tier?` (limité à ton palier, la densité visait ${TIERS[tier][0]})`:" selon la densité"}. Donne-lui un titre :`;
+  document.getElementById("recName").value=`Air ${["du Vagabond","de l'Aube","des Cendres","du Ruisseau","de la Lanterne"][Math.floor(Math.random()*5)]}`;
+  document.getElementById("recBox").hidden=false};
+document.getElementById("recSave").onclick=()=>{if(!pendingComp)return;const name=(document.getElementById("recName").value||"Sans titre").trim().slice(0,40);
+  prog.comps.push({id:"c"+Date.now(),name,...pendingComp});pendingComp=null;saveProg();renderBook();
+  document.getElementById("recBox").hidden=true;document.getElementById("recInfo").textContent=`« ${name} » est dans ton carnet, onglet Partitions, section Mes compositions.`};
+
+// ---------- profil : titres, spécialisation, légendaire ----------
+const TITLES=[
+ {n:"le Ménestrel",d:"Réussir 10 airs différents",ok:()=>Object.keys(prog.stats.ok||{}).length>=10},
+ {n:"le Compositeur",d:"Créer une composition",ok:()=>prog.comps.length>0},
+ {n:"Voix d'or",d:"Gagner 5 po en concerts et duels",ok:()=>(prog.stats.tips||0)>=50000},
+ {n:"Roi de la taverne",d:"Gagner 10 duels",ok:()=>(prog.stats.duels||0)>=10},
+ {n:"Sans fausse note",d:"Réussir un défi Sans filet sur un air Maître ou Grand barde",ok:()=>!!prog.stats.filet},
+ {n:"Virtuose",d:"Obtenir la maîtrise or sur 3 airs",ok:()=>Object.keys(prog.mast).filter(k=>prog.mast[k]>=40).length>=3},
+ {n:"Barde légendaire",d:"Forger un instrument des Mille Voix",ok:()=>!!prog.leg.forged}
+];
+const LEG=[
+ {n:"La partition oubliée",d:"Obtenir la maîtrise argent sur un air de Grand barde.",ok:()=>SONGS.some(x=>x.tier===4&&mastLevel(x.id)>=2)},
+ {n:"Les cordes de l'aube",d:"Réunir 10 Barres d'arcanite, 5 Essences d'eau et 1 Noyau ardent.",ok:()=>false,gather:1},
+ {n:"L'écho du duel",d:"Battre un barde virtuose en duel.",ok:()=>(prog.stats.virt||0)>0},
+ {n:"Le chant des trois",d:"Réussir un air de Grand barde en trio avec au moins 90 % de moyenne.",ok:()=>!!prog.stats.trio},
+ {n:"La forge des Mille Voix",d:"Posséder la version épique de l'instrument choisi, palier arcanite, puis forger.",ok:()=>!!prog.leg.forged,forge:1}
+];
+const stepOk=i=>LEG[i].ok()||!!prog.leg.done[i];
+function renderProfile(){
+  const got=TITLES.filter(t=>t.ok());
+  document.getElementById("profTitles").innerHTML=`<p class="calc">Le titre choisi s'affiche sur le panneau de la taverne.</p>
+    <div class="seg" style="margin:8px 0"><input type="radio" name="ttl" id="t-none" value=""${!prog.title?" checked":""}><label for="t-none">Aucun</label>
+    ${got.map((t,i)=>`<input type="radio" name="ttl" id="t-${i}" value="${t.n}"${prog.title===t.n?" checked":""}><label for="t-${i}">${t.n}</label>`).join("")}</div>
+    <ul class="steps">${TITLES.map(t=>`<li><span class="ck">${t.ok()?"✓":""}</span><div>${t.n}<small>${t.d}</small></div></li>`).join("")}</ul>`;
+  document.querySelectorAll('input[name="ttl"]').forEach(r=>r.onchange=()=>{prog.title=r.value;saveProg()});
+  const unlocked=prog.skill>=180;
+  document.getElementById("profSpec").innerHTML=unlocked?`<p class="calc">Au palier Maître, choisis une voie. Dans le module, en changer coûterait 10 po, comme désapprendre une spécialité d'ingénieur.</p>
+    <ul class="steps">${Object.entries(SPECS).map(([k,v])=>`<li><input type="radio" name="spec" id="sp-${k}" value="${k}"${prog.spec===k?" checked":""} style="accent-color:var(--brass);margin-top:4px"><div><label for="sp-${k}"><b>${v.n}</b></label><small>${v.d}</small></div></li>`).join("")}</ul>`
+    :`<p class="calc">Se débloque au palier Maître, à 180 en compétence.</p>`;
+  document.querySelectorAll('input[name="spec"]').forEach(r=>r.onchange=()=>{prog.spec=r.value;saveProg()});
+  const L=prog.leg,typ=L.forged||L.type,o=owned[typ],ready=[0,1,2,3].every(stepOk),canForge=ready&&o.t===4&&o.q===3;
+  document.getElementById("profLeg").innerHTML=`${L.forged?`<p>Tu possèdes ${qtag(L.forged)} : qualité légendaire : ×1,2 sur le buff, plafond relevé, chants 50 % plus longs, jamais désaccordé.</p>`:`<p class="calc">Une longue quête pour forger un instrument des Mille Voix (qualité légendaire : ×1,2 sur le buff, plafond relevé, chants 50 % plus longs, jamais désaccordé). Choisis l'instrument :</p>
+    <select class="txt" id="legType" aria-label="Instrument légendaire">${TOOLS.map(x=>`<option value="${x.id}"${x.id===L.type?" selected":""}>${legName(x.id)}</option>`).join("")}</select>`}
+    <ul class="steps">${LEG.map((st,i)=>`<li><span class="ck">${stepOk(i)?"✓":""}</span><div>${i+1}. ${st.n}<small>${st.d}</small></div>
+      ${st.forge?(L.forged?"":`<button class="btn sm main" id="legForge"${canForge?"":" disabled"}>Forger</button>`):stepOk(i)?"":`<button class="btn sm" data-leg="${i}">${st.gather?"Réunir":"Valider (test)"}</button>`}</li>`).join("")}</ul>
+    ${!L.forged&&ready&&!canForge?`<p class="warn calc">Il te faut d'abord ${itemName(typ,4)} de qualité épique (atelier, gemme + Cristal arcanique).</p>`:""}`;
+  const lt=document.getElementById("legType");if(lt)lt.onchange=()=>{L.type=lt.value;saveProg();renderProfile()};
+  document.querySelectorAll("[data-leg]").forEach(b=>b.onclick=()=>{L.done[b.dataset.leg]=true;saveProg();renderProfile()});
+  const fb=document.getElementById("legForge");if(fb)fb.onclick=()=>{owned[typ]={t:4,q:4};L.forged=typ;saveOwned();saveProg();renderProfile();renderShop()};
+}
+</script>
+
+</body></html>

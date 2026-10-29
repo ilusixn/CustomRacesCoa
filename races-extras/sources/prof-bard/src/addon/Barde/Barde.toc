@@ -1,0 +1,16 @@
+## Interface: 30300
+## Title: Barde
+## Notes: Mini-jeu du métier de barde (module serveur mod-barde). /barde
+## Version: 0.3.0
+## SavedVariables: BardeDB
+
+Locale_data.lua
+Locale.lua
+Barde.lua
+Game.lua
+UI.lua
+Atelier.lua
+Improv.lua
+Help.lua
+Legend.lua
+Ensemble.lua

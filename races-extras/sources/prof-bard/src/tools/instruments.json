@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1, "key": "luth", "name": "Luth de cuivre", "item": 1950001, "display": 142067,
+    "chant": "Ballade de clarté", "malus": "Esprit troublé", "buff_spell": 1950101, "malus_spell": 1950102,
+    "effect": "mana toutes les 5 s", "unit": "", "auras": [[85, 0]], "min": 6, "max": 33,
+    "icon": 35123, "text": "Régénération de mana accrue.", "malus_text": "Une fausse note trouble votre esprit : régénération de mana réduite."
+  },
+  {
+    "id": 2, "key": "harpe", "name": "Harpe de cuivre", "item": 1950002, "display": 142068,
+    "chant": "Berceuse", "malus": "Nuit agitée", "buff_spell": 1950111, "malus_spell": 1950112,
+    "effect": "PV toutes les 5 s", "unit": "", "auras": [[84, 0]], "min": 10, "max": 45,
+    "icon": 64, "text": "Régénération de vie accrue.", "malus_text": "Une fausse note agite votre sommeil : régénération de vie réduite."
+  },
+  {
+    "id": 3, "key": "flute", "name": "Flûte de cuivre", "item": 1950003, "display": 142021,
+    "chant": "Marche", "malus": "Pas de plomb", "buff_spell": 1950121, "malus_spell": 1950122,
+    "effect": "de vitesse de déplacement", "unit": "%", "auras": [[31, 0]], "min": 5, "max": 12,
+    "icon": 1610, "text": "Vitesse de déplacement accrue.", "malus_text": "Une fausse note alourdit vos pas : vitesse de déplacement réduite."
+  },
+  {
+    "id": 4, "key": "crom", "name": "Cromorne de cuivre", "item": 1950004, "display": 142026,
+    "chant": "Chant de courage", "malus": "Courage brisé", "buff_spell": 1950131, "malus_spell": 1950132,
+    "effect": "de dégâts infligés", "unit": "%", "auras": [[79, 127]], "min": 2, "max": 5,
+    "icon": 456, "text": "Dégâts infligés accrus.", "malus_text": "Une fausse note brise votre courage : dégâts infligés réduits."
+  },
+  {
+    "id": 5, "key": "viele", "name": "Vièle de cuivre", "item": 1950005, "display": 142069,
+    "chant": "Hymne protecteur", "malus": "Garde baissée", "buff_spell": 1950141, "malus_spell": 1950142,
+    "effect": "d'armure", "unit": "", "auras": [[22, 1]], "min": 150, "max": 1200,
+    "icon": 291, "text": "Armure accrue.", "malus_text": "Une fausse note baisse votre garde : armure réduite."
+  },
+  {
+    "id": 6, "key": "piano", "name": "Piano de cuivre", "item": 1950006, "display": 57733,
+    "chant": "Psaume de garde", "malus": "Psaume maudit", "buff_spell": 1950151, "malus_spell": 1950152,
+    "effect": "de résistance aux magies", "unit": "", "auras": [[22, 126]], "min": 10, "max": 60,
+    "icon": 124, "text": "Résistance à toutes les magies accrue.", "malus_text": "Une fausse note attire la malédiction : résistance aux magies réduite."
+  },
+  {
+    "id": 7, "key": "orgue", "name": "Orgue portatif de cuivre", "item": 1950007, "display": 142028,
+    "chant": "Air entraînant", "malus": "Cadence brisée", "buff_spell": 1950161, "malus_spell": 1950162,
+    "effect": "de hâte (mêlée, distance et sorts)", "unit": "%", "auras": [[192, 0], [216, 0]], "min": 2, "max": 5,
+    "icon": 1294, "text": "Hâte accrue en mêlée, à distance et pour lancer des sorts.", "malus_text": "Une fausse note brise la cadence : hâte réduite."
+  },
+  {
+    "id": 8, "key": "ocar", "name": "Ocarina de cuivre", "item": 1950008, "display": 142020,
+    "chant": "Chant du chasseur", "malus": "Main tremblante", "buff_spell": 1950171, "malus_spell": 1950172,
+    "effect": "de chances de coup critique", "unit": "%", "auras": [[52, 0]], "min": 1, "max": 4,
+    "icon": 256, "text": "Chances de coup critique accrues.", "malus_text": "Une fausse note fait trembler votre main : chances de coup critique réduites."
+  },
+  {
+    "id": 9, "key": "tymp", "name": "Tympanon de cuivre", "item": 1950009, "display": 142035,
+    "chant": "Gigue d'endurance", "malus": "Souffle court", "buff_spell": 1950181, "malus_spell": 1950182,
+    "effect": "d'endurance", "unit": "", "auras": [[29, 2]], "min": 10, "max": 54,
+    "icon": 685, "text": "Endurance accrue.", "malus_text": "Une fausse note vous coupe le souffle : endurance réduite."
+    },
+  {
+    "id": 10, "key": "tamb", "name": "Tambour de cuivre", "item": 1950010, "display": 142036,
+    "chant": "Roulement de guerre", "malus": "Tempo perdu", "buff_spell": 1950191, "malus_spell": 1950192,
+    "effect": "de puissance d'attaque", "unit": "", "auras": [[99, 0], [124, 0]], "min": 40, "max": 250,
+    "icon": 298, "text": "Puissance d'attaque accrue en mêlée et à distance.", "malus_text": "Une fausse note casse le tempo : puissance d'attaque réduite."
+  }
+]
