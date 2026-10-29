@@ -1,0 +1,34 @@
+CoA Custom 1.9.4 (x64 client, test build) - Install guide
+=========================================================
+This is 1.9.2 plus the x64 client (CoA64.exe) with the Retail race adapter (Worgen and Dracthyr forms) and a new world server. This release is COMPLETE: nothing from earlier releases is needed.
+It is a TEST build: see the known issues in PATCH-NOTES-1.9.4.txt.
+Close the game first. The installer also dumps your characters.
+
+A) With the installer (recommended, Windows)
+--------------------------------------------
+1. Download ALL the zips from this release page into ONE folder:
+       CoA-Custom-1.9.4-Server.zip
+       CoA-Custom-1.9.4-Client-1.zip ... CoA-Custom-1.9.4-Client-9.zip      (ten zips)
+   Already on 1.9.2? You only need Server + Client-6 .. Client-9 (Client-1..5 are the same files as 1.9.2).
+2. Extract ALL TEN zips into THE SAME folder (next to Start_All_Server.bat; overwrite if asked).
+3. Run CoA-Custom\Install-Custom.bat. Point it at the repack folder and at the game folder (Ascension.exe + Data).
+4. Start the servers (Start_All_Server.bat, or CoA-Bots\Start_All_Bots.bat for bots).
+5. Start the game with CoA64.exe (in the game folder, next to Ascension.exe), not Ascension.exe.
+
+The Retail data of Worgen and Dracthyr (every look, both forms, animations) is included (Client-7 .. Client-9), so the client
+does not download anything from Blizzard for them.
+
+B) Manual install
+-----------------
+Server: CoA-Custom\files\worldserver.exe -> CoA-Bots\Core\worldserver.exe (keep the old one), files\dbc\*.dbc -> Data\dbc\,
+  run files\sql\*.sql in numeric order (0 ... 16), each ONCE (16_1.9.4_x64.sql can be repeated).
+Client, from Client-1..9:
+  files\client\*.MPQ -> <game>\Data\
+  files\client_root\* (keep the folder layout, it includes Data\Retail\...) -> next to Ascension.exe
+  files\addons\* -> <game>\Interface\AddOns\
+
+Troubleshooting
+---------------
+- Characters made before 1.9.3 have no saved Retail look: make a new Worgen / Dracthyr to test forms.
+- Crash on the character screen: send Errors\*.txt and Logs\RetailRace.log.
+- Switch back to the 32-bit client any time by starting Ascension.exe (the 1.9.2 files still work).

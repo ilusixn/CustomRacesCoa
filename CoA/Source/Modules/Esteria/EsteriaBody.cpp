@@ -22,7 +22,6 @@ namespace {
     std::time_t s_pendingTime = 0;
     bool s_loaded = false;
     std::string s_loadedFor;
-    std::time_t s_lastCheck = 0;
 
     std::string Pack(Slots const& slots) {
         std::ostringstream out;
@@ -136,7 +135,7 @@ namespace CoA::Esteria::BodySliders {
         Save();
     }
 
-    // Called every frame for the local player in the world, before the engine applies BodyShape::Local() to the model.
+    // Called every frame for the local player in the world, before the engine applies BodyShape::Local() to the model. Sliders are only written by SaveNow.
     void SyncPlayer() {
         const char* name = ClientServices::GetCharacterName();
 
@@ -164,23 +163,14 @@ namespace CoA::Esteria::BodySliders {
             }
         }
 
-        std::time_t now = std::time(nullptr);
+    }
 
-        if (now != s_lastCheck) {
-            s_lastCheck = now;
-            Slots current = NonZero();
-            Slots& stored = s_saved[key];
-
-            if (current != stored) {
-                if (current.empty()) {
-                    s_saved.erase(key);
-                } else {
-                    stored = current;
-                }
-
-                Save();
-            }
-        }
+    // The in-world Body panel closed without Save (or the creator closed): back to the last saved sliders.
+    void Revert() {
+        const char* name = ClientServices::GetCharacterName();
+        Load();
+        auto found = name && *name ? s_saved.find(KeyOf(name)) : s_saved.end();
+        BodyShape::Local().v = found != s_saved.end() ? found->second : Slots{};
     }
 
     // The in-world Body panel's Save button: write the current sliders for this character right away (they are also kept once a second).
