@@ -1,3 +1,5 @@
+#include "WoW/Source/Ui/BodyShapeScripts.h"
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "CharacterCreation.h"
 #include "CoA/Source/Modules/CharacterCreate.h"
 #include <cstdint>
@@ -302,7 +304,12 @@ static int32_t Script_GetSelectedClass(lua_State* L) {
 // VERIFY: 8c236267 manual
 // OFFSET: 0x004E0B50
 static int32_t Script_CycleCharCustomization(lua_State* L) {
-    if (!lua_isnumber(L, 1) || !lua_isnumber(L, 2)) {
+    // CoA: EsteriaCycle (orig table patch 0x00AC42BC): the Esteria "EA_*" commands take a string first argument.
+    if (!lua_isnumber(L, 1)) {
+        return CoA::Esteria::Cycle(L);
+    }
+
+    if (!lua_isnumber(L, 2)) {
         luaL_error(L, "Usage: CycleCharCustomization(index, delta)");
         return 0;
     }
@@ -595,6 +602,7 @@ static FrameScript_Method s_scriptFunctions[] = {
     { "PaidChange_GetName", &Script_PaidChange_GetName },
     { "IsRaceClassValid", &Script_IsRaceClassValid },
     { "IsRaceClassRestricted", &Script_IsRaceClassRestricted },
+    BODY_SHAPE_SCRIPT_ENTRIES
     { "GetCreateBackgroundModel", &Script_GetCreateBackgroundModel },
 };
 

@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -1326,6 +1327,8 @@ static int32_t CreateObject(CDataStore* msg, uint32_t time) {
         if (reenabled) {
             object->Reenable();
         }
+
+        CoA::Esteria::UnitExtra(object); // CoA: EsteriaUnitExtra (orig patch 0x4D6C86)
 
         return 1;
     }

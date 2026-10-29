@@ -28,6 +28,22 @@ extern "C" int start() {
 
 // OFFSET: 0x00406D70
 int main() {
+    // CoA: the client opens "Data\\..." relative to the working directory; start from the executable's folder so a shortcut or
+    // launcher with another start-in directory still finds the data.
+    {
+        wchar_t exePath[MAX_PATH];
+        DWORD length = GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+        if (length && length < MAX_PATH) {
+            wchar_t* slash = wcsrchr(exePath, L'\\');
+
+            if (slash) {
+                *slash = L'\0';
+                SetCurrentDirectoryW(exePath);
+            }
+        }
+    }
+
     _set_invalid_parameter_handler(InvalidParameterHandler);
     _clearfp();
     _control87(0x9001F & ~(_MCW_PC | _MCW_IC), _MCW_DN | _MCW_EM | _MCW_RC);

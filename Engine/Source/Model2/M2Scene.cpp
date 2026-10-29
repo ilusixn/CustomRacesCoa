@@ -1,3 +1,4 @@
+#include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
@@ -660,7 +661,8 @@ M2HitRec* CM2Scene::HitTestGeometry(const CM2Model* model, uint32_t pass, const 
             this->TransformHitTestVerticesBlend(model, skinData, section, pass, dir, d);
         }
 
-        const uint16_t* indices = &skinData->m_indices[section->m_indexStart];
+        // CoA: wide (> 65535 indices) sections keep their start's high bits in the section id (see EsteriaWideSource)
+        const uint16_t* indices = &skinData->m_indices[M2EsteriaWideSource(section, skinData)];
         best = this->IntersectHitTestTriangles(indices, indices + section->m_indexCount, section->m_vertexStart, start, pass, rec, t, best);
     }
 

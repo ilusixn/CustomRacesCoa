@@ -53,6 +53,7 @@ namespace CoA::Seasonal { void Init(); void Reset(); }
 namespace CoA::HighRisk { void Init(); }
 namespace CoA::Token { void Init(); }
 namespace CoA::Appearance { void Init(); }
+namespace CoA::Esteria { void Init(); }
 namespace CoA::SpellApi { void Init(); }
 namespace CoA::CA { void Init(); }
 namespace CoA::MysticEnchantPreset { void Init(); }

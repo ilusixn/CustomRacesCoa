@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstddef>
 #include <cstdint>
 #include "WoW/Common/ComponentCore/ComponentUtils.h"
@@ -89,6 +90,16 @@ int32_t ComponentGetNumVariations(st_race* lookup, int32_t raceID, int32_t sexID
 // VERIFY: 725a4a25 auto
 // OFFSET: 0x004F3B10
 int32_t ComponentGetNumColors(st_race* lookup, int32_t raceID, int32_t sexID, CHARTEXTUREVARIATIONS variation, int32_t variationIndex) {
+    // CoA: EsteriaSectionCount (orig patch 0x4F3B10)
+    {
+        unsigned arguments[5] = {0, static_cast<unsigned>(raceID), static_cast<unsigned>(sexID), static_cast<unsigned>(variation), static_cast<unsigned>(variationIndex)};
+        unsigned count = CoA::Esteria::SectionCount(arguments);
+
+        if (count != 0xFFFFFFFFu) {
+            return static_cast<int32_t>(count);
+        }
+    }
+
     CharVariationList& list = lookup[raceID * 2 + sexID].m_variation[variation];
 
     if (!list.m_variation || variationIndex >= list.m_numVariations || list.m_numVariations <= 0 || !list.m_variation[variationIndex].m_color) {
@@ -101,6 +112,14 @@ int32_t ComponentGetNumColors(st_race* lookup, int32_t raceID, int32_t sexID, CH
 // VERIFY: 387cd93c manual
 // OFFSET: 0x004F3B50
 bool ComponentValidateBase(st_race* lookup, int32_t raceID, int32_t sexID, CHARTEXTUREVARIATIONS variation, int32_t variationIndex, int32_t colorIndex) {
+    // CoA: EsteriaSectionArguments (orig patch 0x4F3B53) -- may replace the variation / colour index.
+    {
+        unsigned arguments[6] = {0, static_cast<unsigned>(raceID), static_cast<unsigned>(sexID), static_cast<unsigned>(variation), static_cast<unsigned>(variationIndex), static_cast<unsigned>(colorIndex)};
+        CoA::Esteria::SectionArguments(arguments);
+        variationIndex = static_cast<int32_t>(arguments[4]);
+        colorIndex = static_cast<int32_t>(arguments[5]);
+    }
+
     if (static_cast<uint32_t>(variation) >= CHARTEXTUREVARIATIONS_NUM || variationIndex < 0) {
         return false;
     }
@@ -119,6 +138,14 @@ bool ComponentValidateBase(st_race* lookup, int32_t raceID, int32_t sexID, CHART
 // VERIFY: 04a6cba3 manual
 // OFFSET: 0x004F3BA0
 CharSectionsRec* ComponentGetSectionsRecord(st_race* lookup, int32_t raceID, int32_t sexID, CHARTEXTUREVARIATIONS variation, int32_t variationIndex, int32_t colorIndex, bool* found) {
+    // CoA: EsteriaSectionArguments (orig patch 0x4F3BA3) -- may replace the variation / colour index.
+    {
+        unsigned arguments[6] = {0, static_cast<unsigned>(raceID), static_cast<unsigned>(sexID), static_cast<unsigned>(variation), static_cast<unsigned>(variationIndex), static_cast<unsigned>(colorIndex)};
+        CoA::Esteria::SectionArguments(arguments);
+        variationIndex = static_cast<int32_t>(arguments[4]);
+        colorIndex = static_cast<int32_t>(arguments[5]);
+    }
+
     if (static_cast<uint32_t>(variation) < CHARTEXTUREVARIATIONS_NUM && variationIndex >= 0) {
         CharVariationList& list = lookup[raceID * 2 + sexID].m_variation[variation];
 

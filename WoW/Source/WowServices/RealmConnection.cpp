@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include "RealmConnection.h"
 #include "Engine/Source/BlizzardCore/Source/Packages/Util/SHA1.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -119,6 +120,10 @@ int32_t RealmConnection::HandleCharEnum(uint32_t msgId, uint32_t time, CDataStor
 int32_t RealmConnection::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     RealmConnection* connection = static_cast<RealmConnection*>(param);
     int32_t result = 0;
+
+    if (msgId == SMSG_ENUM_CHARACTERS_RESULT) {
+        CoA::Esteria::EnumExtra(msg); // CoA: EsteriaEnumExtra (orig patch 0x464F89) -- strips the roster extension
+    }
 
     switch (msgId) {
         case SMSG_CHAR_CREATE:

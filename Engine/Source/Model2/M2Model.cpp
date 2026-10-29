@@ -1,3 +1,5 @@
+#include "Engine/Source/Model2/EsteriaHooks.h"
+#include "Engine/Source/Retail/BodyShape.h"
 #include <algorithm>
 #include <vector>
 #include <cfloat>
@@ -1945,6 +1947,186 @@ void CM2Model::SetBoneProceduralTransform(uint32_t boneId, const C44Matrix& matr
     *bone->m_proceduralTransform = matrix;
 }
 
+bool CM2Model::IsLoaded() const {
+    return (this->m_fFlags & 1) != 0;
+}
+
+uint32_t CM2Model::GetBoneCount() {
+    return this->IsLoaded() ? this->m_shared->m_data->m_bones.m_count : 0;
+}
+
+uint32_t CM2Model::FindBoneIndexByKey(uint32_t boneId) {
+    if (!this->IsLoaded()) {
+        return 0xFFFFFFFF;
+    }
+
+    M2Data* data = this->m_shared->m_data;
+
+    if (boneId >= data->m_boneIndicesById.m_count || data->m_boneIndicesById[boneId] >= data->m_bones.m_count) {
+        // CoA: stock 3.3.5 skeletons carry no key bones above the shoulders / spine / head, so the body sliders that rely on
+        // them fall back to the bone in the same place: root (54), chest (48 = waist or spine), neck (50 = the head's parent),
+        // hips (51 = the spine's parent).
+        // The key-bone lookup of a 3.3.5 skeleton stops around id 26, but the bones themselves carry their key id: look there first.
+        for (uint32_t i = 0; i < data->m_bones.m_count; i++) {
+            if (data->m_bones[i].m_boneId == boneId) {
+                return i;
+            }
+        }
+
+        auto keyed = [&](uint32_t key) -> uint32_t {
+            return key < data->m_boneIndicesById.m_count && data->m_boneIndicesById[key] < data->m_bones.m_count ? data->m_boneIndicesById[key] : 0xFFFFFFFFu;
+        };
+        auto parentOf = [&](uint32_t index) -> uint32_t {
+            uint16_t parent = data->m_bones[index].m_parentIndex;
+            return parent == 0xFFFF || parent >= data->m_bones.m_count ? 0xFFFFFFFFu : parent;
+        };
+
+        if (boneId == 54) {
+            for (uint32_t i = 0; i < data->m_bones.m_count; i++) {
+                if (data->m_bones[i].m_parentIndex == 0xFFFF) {
+                    return i;
+                }
+            }
+        } else if (boneId == 48) {
+            uint32_t waist = keyed(5);
+            return waist != 0xFFFFFFFFu ? waist : keyed(4);
+        } else if (boneId == 50) {
+            uint32_t head = keyed(6);
+            return head == 0xFFFFFFFFu ? head : parentOf(head);
+        } else if (boneId == 51) {
+            uint32_t spine = keyed(4);
+            return spine == 0xFFFFFFFFu ? spine : parentOf(spine);
+        }
+
+        return 0xFFFFFFFF;
+    }
+
+    return data->m_boneIndicesById[boneId];
+}
+
+bool CM2Model::GetBoneInfoByIndex(uint32_t index, int32_t& boneId, int32_t& parent, C3Vector& pivot) {
+    if (index >= this->GetBoneCount()) {
+        return false;
+    }
+
+    const M2CompBone& bone = this->m_shared->m_data->m_bones[index];
+    boneId = static_cast<int32_t>(bone.m_boneId);
+    parent = bone.m_parentIndex == 0xFFFF ? -1 : bone.m_parentIndex;
+    pivot = bone.m_pivot;
+    return true;
+}
+
+uint32_t CM2Model::GetBindVertexCount() {
+    return this->IsLoaded() ? this->m_shared->m_data->m_vertices.m_count : 0;
+}
+
+bool CM2Model::GetBindVertex(uint32_t index, C3Vector& position, C3Vector& normal) {
+    if (index >= this->GetBindVertexCount()) {
+        return false;
+    }
+
+    const M2Vertex& vertex = this->m_shared->m_data->m_vertices[index];
+    position = vertex.m_position;
+    normal = vertex.m_normal;
+    return true;
+}
+
+void CM2Model::SetBodyShapeVertices(float* vertices) {
+    this->ReleaseBodyShapeBuffer();
+    delete[] this->m_bodyShapeVertices;
+    this->m_bodyShapeVertices = vertices;
+}
+
+void CM2Model::ReleaseBodyShapeBuffer() {
+    if (!g_theGxDevicePtr) {
+        return;
+    }
+
+    if (this->m_bodyShapeBuf) {
+        g_theGxDevicePtr->BufDestroy(this->m_bodyShapeBuf);
+        this->m_bodyShapeBuf = nullptr;
+    }
+
+    if (this->m_bodyShapePool) {
+        g_theGxDevicePtr->PoolDestroy(this->m_bodyShapePool);
+        this->m_bodyShapePool = nullptr;
+    }
+}
+
+// Same layout CM2Shared::SetVertices builds for the shader renderer (instance 0), with the reshaped bind pose.
+int32_t CM2Model::BindBodyShapeVertices() {
+    if (!this->m_bodyShapeVertices || !this->IsLoaded()) {
+        return 0;
+    }
+
+    M2Data* data = this->m_shared->m_data;
+    M2SkinProfile* skin = this->m_shared->m_skinData;
+    uint32_t count = skin->m_vertices.m_count;
+
+    if (!this->m_bodyShapePool) {
+        this->m_bodyShapePool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Vertex, GxPoolUsage_Static, sizeof(M2Vertex) * count, GxPoolHintBit_Unk1, "BodyShape");
+        this->m_bodyShapeBuf = this->m_bodyShapePool ? g_theGxDevicePtr->BufCreate(this->m_bodyShapePool, sizeof(M2Vertex), count, 0) : nullptr;
+
+        if (!this->m_bodyShapePool || !this->m_bodyShapeBuf) {
+            this->ReleaseBodyShapeBuffer();
+            return 0;
+        }
+    }
+
+    if (!this->m_bodyShapeBuf->m_hasData || !this->m_bodyShapeBuf->m_valid) {
+        M2Vertex* vertices = reinterpret_cast<M2Vertex*>(g_theGxDevicePtr->BufLock(this->m_bodyShapeBuf));
+
+        if (!vertices) {
+            return 0;
+        }
+
+        for (uint32_t i = 0; i < skin->m_skinSections.m_count; i++) {
+            M2SkinSection* section = &skin->m_skinSections[i];
+            uint32_t end = section->m_vertexStart + section->m_vertexCount;
+
+            for (uint32_t j = section->m_vertexStart; j < end; j++) {
+                uint32_t source = skin->m_vertices[j];
+                const float* shaped = this->m_bodyShapeVertices + 6 * source;
+                memcpy(&vertices[j], &data->m_vertices[source], sizeof(M2Vertex));
+                vertices[j].m_position = C3Vector(shaped[0], shaped[1], shaped[2]);
+                vertices[j].m_normal = C3Vector(shaped[3], shaped[4], shaped[5]);
+                *reinterpret_cast<uint32_t*>(&vertices[j].m_indices) = *reinterpret_cast<uint32_t*>(&skin->m_bones[j]);
+            }
+        }
+
+        CGxBuf* buf = this->m_bodyShapeBuf;
+        g_theGxDevicePtr->BufUnlock(buf, 0);
+        buf->m_hasData = 1;
+    }
+
+    GxPrimVertexPtr(this->m_bodyShapeBuf, GxVBF_PBNT2);
+    return 1;
+}
+
+uint32_t CM2Model::GetBoneNameCrcByIndex(uint32_t index) {
+    return index < this->GetBoneCount() ? this->m_shared->m_data->m_bones[index].m_boneNameCRC : 0;
+}
+
+void CM2Model::SetBoneFlagsByIndex(uint32_t index, uint32_t flags, uint32_t mask) {
+    if (index < this->GetBoneCount()) {
+        this->m_bones[index].m_flags = (mask & flags) | (this->m_bones[index].m_flags & ~mask);
+    }
+}
+
+void CM2Model::SetBoneProceduralTransformByIndex(uint32_t index, const C44Matrix& matrix) {
+    if (index >= this->GetBoneCount()) {
+        return;
+    }
+
+    M2ModelBone* bone = &this->m_bones[index];
+
+    if (!bone->m_proceduralTransform) {
+        bone->m_proceduralTransform = static_cast<C44Matrix*>(SIMD::AllocA16(sizeof(C44Matrix), __FILE__, __LINE__));
+    }
+
+    *bone->m_proceduralTransform = matrix;
+}
+
 // VERIFY: 9445f766 auto
 // OFFSET: 0x008273D0
 int32_t CM2Model::HasAttachment(uint32_t id) {
@@ -2697,7 +2879,7 @@ int32_t CM2Model::SetIndices() {
         }
 
         for (uint32_t i = 0; i < this->m_optGeo->m_skinSectionCount; i++) {
-            M2BatchRange* range = &this->m_optGeo->m_batchRanges[this->m_optGeo->m_skinSections[i].m_skinSectionId];
+            M2BatchRange* range = &this->m_optGeo->m_batchRanges[this->m_optGeo->m_skinSections[i].m_skinSectionId & 0xFFFF];
             uint16_t vertexBase = 0;
 
             for (uint32_t b = range->m_first; b <= range->m_last; b++) {
@@ -2709,11 +2891,14 @@ int32_t CM2Model::SetIndices() {
 
                 M2SkinSection* section = &skin->m_skinSections[sectionIndex];
 
+                // CoA: EsteriaWideSource (orig patches 0x829091 / 0x8290BC) -- the index start of a wide (> 65535 indices) section.
+                uint32_t indexStart = M2EsteriaWideSource(section, skin);
+
                 if (copyIndices || singleBone) {
-                    memcpy(indices, &skin->m_indices[section->m_indexStart], section->m_indexCount * sizeof(uint16_t));
+                    memcpy(indices, &skin->m_indices[indexStart], section->m_indexCount * sizeof(uint16_t));
                 } else {
                     for (uint32_t j = 0; j < section->m_indexCount; j++) {
-                        indices[j] = vertexBase + skin->m_indices[j + section->m_indexStart] - section->m_vertexStart;
+                        indices[j] = vertexBase + skin->m_indices[j + indexStart] - section->m_vertexStart;
                     }
                 }
 
@@ -2743,7 +2928,7 @@ int32_t CM2Model::SetVertices(int32_t optimized, M2SkinSection* section, int32_t
 
     if (optimized) {
         M2SkinProfile* skin = this->m_shared->m_skinData;
-        M2BatchRange* range = &this->m_optGeo->m_batchRanges[section->m_skinSectionId];
+        M2BatchRange* range = &this->m_optGeo->m_batchRanges[section->m_skinSectionId & 0xFFFF];
 
         for (uint32_t b = range->m_first; b <= range->m_last; b++) {
             uint16_t sectionIndex = skin->m_batches[b].m_skinSectionIndex;
@@ -2929,7 +3114,7 @@ void CM2Model::RenderModelBatchesForProjectedTexture() {
 
             CGxBatch gxBatch;
             gxBatch.m_primType = GxPrim_Triangles;
-            gxBatch.m_start = section->m_indexStart;
+            gxBatch.m_start = M2EsteriaDrawStart(section, this); // CoA: wide-index sections (projected-texture / shadow passes)
             gxBatch.m_count = section->m_indexCount;
             gxBatch.m_minIndex = 0;
             gxBatch.m_maxIndex = this->m_shared->m_skinData->m_vertices.m_count - 1;
@@ -2978,7 +3163,7 @@ void CM2Model::RenderBatchShadowMap(int32_t untextured, M2Batch* batch, const CM
 
     CGxBatch gxBatch;
     gxBatch.m_primType = GxPrim_Triangles;
-    gxBatch.m_start = section->m_indexStart;
+    gxBatch.m_start = M2EsteriaDrawStart(section, this); // CoA: wide-index sections (projected-texture / shadow passes)
     gxBatch.m_count = 0;
     gxBatch.m_minIndex = 0;
     gxBatch.m_maxIndex = 0;
@@ -4080,7 +4265,7 @@ void CM2Model::SetGeometryVisible(uint32_t first, uint32_t last, int32_t visible
         int32_t changed = 0;
 
         for (uint32_t i = 0; i < skin->m_skinSections.m_count; i++) {
-            uint32_t id = skin->m_skinSections[i].m_skinSectionId;
+            uint32_t id = skin->m_skinSections[i].m_skinSectionId & 0xFFFF; // CoA: orig patch 0x82C7ED -- Esteria keeps wide index bits in the high word
 
             if (first <= id && id <= last) {
                 uint32_t* section = &this->m_skinSections[i];
@@ -4290,11 +4475,16 @@ void CM2Model::OptimizeVisibleGeometry() {
             int32_t indexStart = indexStarts[batch->m_skinSectionIndex];
 
             if (indexStart < 0) {
-                indexStart = static_cast<uint16_t>(indexCount);
+                indexStart = indexCount;
                 indexStarts[batch->m_skinSectionIndex] = indexCount;
             }
 
-            target->m_indexStart = indexStart;
+            target->m_indexStart = static_cast<uint16_t>(indexStart);
+            // CoA: wide (> 65535 indices) models -- the start's high 16 bits live in the high word of the section id
+            // (see M2EsteriaWideSource); without them every section past index 65535 drew from the wrong place.
+            if (!EsteriaOff("optgeo")) {
+                reinterpret_cast<uint16_t*>(target)[1] = static_cast<uint16_t>(static_cast<uint32_t>(indexStart) >> 16);
+            }
 
             if (!keepVertices) {
                 target->m_vertexStart = 0;
@@ -4558,7 +4748,7 @@ int32_t CM2Model::SetVerticesMultiSample(int32_t optimized, M2SkinSection* secti
 
     if (optimized) {
         M2SkinProfile* skin = this->m_shared->m_skinData;
-        M2BatchRange* range = &this->m_optGeo->m_batchRanges[section->m_skinSectionId];
+        M2BatchRange* range = &this->m_optGeo->m_batchRanges[section->m_skinSectionId & 0xFFFF];
 
         for (uint32_t b = range->m_first; b <= range->m_last; b++) {
             uint16_t sectionIndex = skin->m_batches[b].m_skinSectionIndex;
@@ -4789,7 +4979,7 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
         this->m_loops[i] = time;
     }
 
-    this->m_matrixF4 = this->m_worldTransform * *view;
+    this->m_matrixF4 = M2BodyWorld(this) * *view; // CoA: body sliders
 
     CM2Model* attachParent = this->m_attachParent;
 
@@ -5150,7 +5340,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
         this->m_loops[i] = time;
     }
 
-    this->m_matrixF4 = this->m_worldTransform * *view;
+    this->m_matrixF4 = M2BodyWorld(this) * *view; // CoA: body sliders
 
     CM2Model* attachParent = this->m_attachParent;
 
@@ -5451,7 +5641,22 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
             }
 
             if ((boneFlags & 0x80) && bone->m_proceduralTransform) {
-                local *= *bone->m_proceduralTransform;
+                const C44Matrix& procedural = *bone->m_proceduralTransform;
+
+                if (boneFlags & 0x100) {
+                    // Body shape: apply the linear part before the animation so a limb scales along its own
+                    // bind axes at any pose; the translation stays in model space.
+                    C44Matrix linear = procedural;
+                    linear.d0 = 0.0f;
+                    linear.d1 = 0.0f;
+                    linear.d2 = 0.0f;
+                    local = linear * local;
+                    local.d0 += procedural.d0;
+                    local.d1 += procedural.d1;
+                    local.d2 += procedural.d2;
+                } else {
+                    local *= procedural;
+                }
             }
 
             C3Vector offset = boneData->m_pivot;
@@ -5943,7 +6148,7 @@ void CM2Model::Animate() {
     if (this->m_attachParent) {
         this->m_matrixF4 = this->m_attachParent->m_matrixF4;
     } else {
-        this->m_matrixF4 = this->m_worldTransform * scene->m_view;
+        this->m_matrixF4 = M2BodyWorld(this) * scene->m_view; // CoA: body sliders
     }
 }
 
@@ -6253,7 +6458,7 @@ void CM2Model::AnimateSM() {
         return;
     }
 
-    *this->m_boneMatrices = this->m_worldTransform * scene->m_view;
+    *this->m_boneMatrices = M2BodyWorld(this) * scene->m_view; // CoA: body sliders
     this->m_alpha = this->m_baseAlpha * this->m_fadeAlpha;
 
     M2Data* data = this->m_shared->m_data;
@@ -6637,6 +6842,9 @@ void CM2Model::ProcessCallbacksRecursive() {
 // VERIFY: d96ccadd manual
 // OFFSET: 0x00832640
 CM2Model::~CM2Model() {
+    BodyShape::Forget(this); // CoA: body sliders
+    this->ReleaseBodyShapeBuffer();
+    delete[] this->m_bodyShapeVertices;
     CM2Model* model30 = this->m_model30;
 
     if (model30 && model30->m_refCount-- == 1) {

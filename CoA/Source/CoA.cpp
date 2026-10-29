@@ -88,6 +88,7 @@ static const CoA::Module s_modules[] = {
     { "CA", CoA::CA::Init },
     { "SpellApi", CoA::SpellApi::Init },
     { "Appearance", CoA::Appearance::Init },
+    { "Esteria", CoA::Esteria::Init },
     { "ObjectAddon", CoA::ObjectAddon::Init },
     { "AuraAmounts", CoA::AuraAmounts::Init },
     { "GameMode", CoA::GameMode::Init },

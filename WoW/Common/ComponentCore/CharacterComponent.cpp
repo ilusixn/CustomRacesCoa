@@ -1,3 +1,5 @@
+#include "Engine/Source/Model2/EsteriaHooks.h"
+#include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
@@ -1078,14 +1080,20 @@ void CCharacterComponent::PasteTransparent8Bit(HTEXTURECACHE texture, const BlpP
 
     for (uint32_t mip = srcMipLevel; mip < srcInfo.m_mipCount; mip++) {
         const uint8_t* src = static_cast<const uint8_t*>(TextureCacheGetMip(texture, mip));
-        const uint8_t* end = src + srcWidth * height;
-        const uint8_t* alpha = end;
+        // CoA: from the Esteria fork -- a mip holds srcWidth x mipHeight palette indices followed by the same-sized alpha
+        // plane; the alpha plane starts after the whole mip, not after the pasted rows, and nothing is read past it.
+        const uint32_t mipHeight = (srcInfo.m_height >> mip) ? srcInfo.m_height >> mip : 1;
+        const bool legacy = EsteriaOff("paste");
+        const uint32_t rows = legacy ? height : (height < mipHeight ? height : mipHeight);
+        const uint32_t columns = legacy ? width : (width < srcWidth ? width : srcWidth);
+        const uint8_t* end = src + srcWidth * rows;
+        const uint8_t* alpha = legacy ? end : src + srcWidth * mipHeight;
         uint8_t* dst = reinterpret_cast<uint8_t*>(dstMips->m_mip[mip + dstMipOffset]) + dstStride * dstPos.y + 4 * dstPos.x;
 
         for (; src < end; src += srcWidth, alpha += srcWidth, dst += dstStride) {
             uint8_t* pixel = dst;
 
-            for (uint32_t x = 0; x < width; x++, pixel += 4) {
+            for (uint32_t x = 0; x < columns; x++, pixel += 4) {
                 const BlpPalPixel& color = pal[src[x]];
                 uint32_t a = alpha[x];
                 pixel[3] = 0xFF;
@@ -1728,6 +1736,13 @@ static int32_t GetConditionalGeoset(CharacterPreferences* prefs) {
 // VERIFY: 4a5d8b79 manual
 // OFFSET: 0x004EA0B0
 void CCharacterComponent::ReplaceExtraSkinTexture(const char* debug) {
+    // CoA: EsteriaDirectSection (orig patch 0x4EA0B0)
+    unsigned noArguments[1] = {0};
+
+    if (CoA::Esteria::DirectSection(this, 0, noArguments)) {
+        return;
+    }
+
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_SKIN, 0, this->m_data.m_preferences.m_skinID)) {
         return;
     }
@@ -1750,6 +1765,15 @@ void CCharacterComponent::ReplaceExtraSkinTexture(const char* debug) {
 // VERIFY: d35306aa manual
 // OFFSET: 0x004EA150
 void CCharacterComponent::ReplaceHairTexture(int32_t hairStyleID, const char* debug) {
+    // CoA: EsteriaDirectSection (orig patch 0x4EA150)
+    {
+        unsigned arguments[1] = {static_cast<unsigned>(hairStyleID)};
+
+        if (CoA::Esteria::DirectSection(this, 1, arguments)) {
+            return;
+        }
+    }
+
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_HAIR, hairStyleID, this->m_data.m_preferences.m_hairColorId)) {
         return;
     }
@@ -1772,6 +1796,15 @@ void CCharacterComponent::ReplaceHairTexture(int32_t hairStyleID, const char* de
 // VERIFY: 88329d82 manual
 // OFFSET: 0x004EA1F0
 void CCharacterComponent::LoadBaseVariation(CHARTEXTUREVARIATIONS variation, int32_t textureIndex, int32_t variationIndex, int32_t colorIndex, COMPONENT_SECTIONS section, const char* debug) {
+    // CoA: EsteriaDirectSection (orig patch 0x4EA1F0)
+    {
+        unsigned arguments[5] = {static_cast<unsigned>(variation), static_cast<unsigned>(textureIndex), static_cast<unsigned>(variationIndex), static_cast<unsigned>(colorIndex), static_cast<unsigned>(section)};
+
+        if (CoA::Esteria::DirectSection(this, 2, arguments)) {
+            return;
+        }
+    }
+
     HTEXTURECACHE& texture = this->m_baseVariation[variation].m_texture[textureIndex];
 
     if (texture) {
@@ -1800,6 +1833,8 @@ void CCharacterComponent::LoadBaseVariation(CHARTEXTUREVARIATIONS variation, int
 // VERIFY: 63815769 auto
 // OFFSET: 0x004EA2F0
 void CCharacterComponent::SetHairColor(int32_t hairColorID, bool loadHair, const char* debug) {
+    CoA::Esteria::AppearanceContext(this); // CoA: EsteriaAppearanceContext (orig patches 0x4EA2F0 / 0x4EA490 / 0x4EA6B0 / 0x4F1FC0)
+
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_HAIR, this->m_data.m_preferences.m_hairStyleId, hairColorID)) {
         return;
     }
@@ -1849,6 +1884,8 @@ void CCharacterComponent::SetHairStyle(int32_t hairStyleID, const char* debug) {
 // VERIFY: 901d909d auto
 // OFFSET: 0x004EA490
 void CCharacterComponent::SetFace(int32_t faceID, bool loadHair, const char* debug) {
+    CoA::Esteria::AppearanceContext(this); // CoA: EsteriaAppearanceContext (orig patches 0x4EA2F0 / 0x4EA490 / 0x4EA6B0 / 0x4F1FC0)
+
     if (this->m_data.m_flags & 0x1) {
         return;
     }
@@ -1914,6 +1951,8 @@ void CCharacterComponent::SetBeardStyle(int32_t facialHairID, bool loadVariation
 // VERIFY: 3c40af57 auto
 // OFFSET: 0x004EA6B0
 void CCharacterComponent::SetSkinColor(int32_t skinID, bool loadHair, bool renderAll, const char* debug) {
+    CoA::Esteria::AppearanceContext(this); // CoA: EsteriaAppearanceContext (orig patches 0x4EA2F0 / 0x4EA490 / 0x4EA6B0 / 0x4F1FC0)
+
     this->m_data.m_preferences.m_skinID = skinID;
 
     if ((this->m_data.m_flags & 0x1) || !ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_SKIN, 0, skinID)) {
@@ -3429,6 +3468,8 @@ static bool __stdcall ItemDisplayHasGeosetGroup(uint32_t displayID, int32_t grou
 // VERIFY: 197cf0f7 manual
 // OFFSET: 0x004ED900
 void CCharacterComponent::GeosRenderPrep() {
+    CoA::Esteria::Geometry(this); // CoA: EsteriaGeometry (orig patch 0x4ED945)
+
     bool eyeGlow = false;
 
     if (this->m_data.m_preferences.m_classId == 6) {
@@ -5168,6 +5209,8 @@ bool CCharacterComponent::RenderPrep(int32_t wait) {
 // VERIFY: 3d69252b auto
 // OFFSET: 0x004F16C0
 void CCharacterComponent::FreeComponent(CCharacterComponent* component) {
+    CoA::Esteria::ForgetCharacter(component); // CoA: EsteriaForgetCharacter (orig patch 0x4F16C0)
+
     uint32_t* heap = s_componentHeap;
     component->~CCharacterComponent();
     ObjectFree(*heap, component->m_heapIndex);
@@ -5378,6 +5421,8 @@ void CCharacterComponent::ThreadDestroy() {
 // VERIFY: e9017855 manual
 // OFFSET: 0x004F1FC0
 bool CCharacterComponent::SkinNpc(const char* debug) {
+    CoA::Esteria::AppearanceContext(this); // CoA: EsteriaAppearanceContext (orig patches 0x4EA2F0 / 0x4EA490 / 0x4EA6B0 / 0x4F1FC0)
+
     this->m_data.m_flags &= ~0x1;
 
     if (!this->m_data.m_npcSkinTexture[0]) {

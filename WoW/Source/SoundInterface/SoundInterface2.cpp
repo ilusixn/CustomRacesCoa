@@ -1495,7 +1495,12 @@ int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, 
 void SI2::DK_GetPlayerFilterName(CGUnit_C* unit, char* name, uint32_t size) {
     uint8_t race = unit->m_unit->m_unitFieldBytes0[0];
     // CoA: AscAttachPatches.cpp:RaceTables (FUN_10a5e020, orig hook 0x4CDA43) -- the DLL's 32-entry table.
-    SStrPrintf(name, size, "Death Knight %s %s", CoA::AttachPatches::kRaceFileNames[race], unit->m_unit->m_unitFieldBytes0[2] ? "Female" : "Male");
+    // CoA: custom races (ids above 31) use the sound set of the stock race their id wraps to ((id - 1) & 31 + 1, the mask twin).
+    uint32_t soundRace = race < 32 ? race : ((race - 1) & 31) + 1;
+    if (soundRace > 31) {
+        soundRace = 1;
+    }
+    SStrPrintf(name, size, "Death Knight %s %s", CoA::AttachPatches::kRaceFileNames[soundRace], unit->m_unit->m_unitFieldBytes0[2] ? "Female" : "Male");
 }
 
 // VERIFY: 8858e33e auto

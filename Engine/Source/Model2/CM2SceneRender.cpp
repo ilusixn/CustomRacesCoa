@@ -1,3 +1,4 @@
+#include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cmath>
 #include <cstdint>
 #include "Engine/Source/Model2/CM2SceneRender.h"
@@ -173,8 +174,14 @@ void CM2SceneRender::SetBatchVertices(int32_t sharedVertices) {
     }
 
     if (CShaderEffect::s_enableShaders) {
-        if (this->m_curType != this->m_prevType || this->m_curShared != this->m_prevShared) {
-            this->m_curShared->SetVertices(0);
+        // CoA (Esteria fork): a model with a reshaped body (body sliders) skins from its own buffer; rebind whenever one is involved.
+        bool shaped = this->m_curModel && this->m_curModel->m_bodyShapeVertices;
+        bool wasShaped = this->m_prevModel && this->m_prevModel->m_bodyShapeVertices;
+
+        if (this->m_curType != this->m_prevType || this->m_curShared != this->m_prevShared || shaped || wasShaped) {
+            if (!(shaped && this->m_curModel->BindBodyShapeVertices())) {
+                this->m_curShared->SetVertices(0);
+            }
         }
 
         return;
@@ -469,7 +476,7 @@ void CM2SceneRender::DrawBatch() {
 
     CGxBatch batch;
     batch.m_primType = GxPrim_Triangles;
-    batch.m_start = this->m_curSkinSection->m_indexStart;
+    batch.m_start = M2EsteriaDrawStart(this->m_curSkinSection, this->m_curModel); // CoA: EsteriaDrawStart (orig patches 0x8205DD..0x820B9C)
     batch.m_count = this->m_curSkinSection->m_indexCount;
 
     if (CShaderEffect::s_enableShaders) {
@@ -619,7 +626,7 @@ void CM2SceneRender::DrawBatchDoodad(M2Element* elements, uint32_t* indices) {
 
     CGxBatch batch;
     batch.m_primType = GxPrim_Triangles;
-    batch.m_start = this->m_curSkinSection->m_indexStart;
+    batch.m_start = M2EsteriaDrawStart(this->m_curSkinSection, this->m_curModel); // CoA: EsteriaDrawStart (orig patches 0x8205DD..0x820B9C)
     batch.m_count = 0;
     batch.m_minIndex = 0;
     batch.m_maxIndex = 0;
