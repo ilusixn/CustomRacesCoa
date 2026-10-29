@@ -27,6 +27,7 @@ enum SFILE_TYPE : uint32_t {
     SFILE_OLD_SFILE = 3,
     SFILE_ZIP_FILE = 4,
     SFILE_MEMORY = 5,
+    SFILE_RETAIL = 6,
 };
 
 namespace System_SFile {

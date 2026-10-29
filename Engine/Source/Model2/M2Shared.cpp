@@ -25,6 +25,12 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Os/OsMemory.h"
+#include "WoW/Source/Extension/ExtensionMgr.h"
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+#include "Engine/Source/Retail/CascSource.h"
+#include "Engine/Source/Retail/RetailShader.h"
+#include "Engine/Source/Retail/RetailModel.h"
+#endif
 
 // Out of range / 0xFFFF coordinate combo indices (newer or converted models) read as coordinate set 0.
 static uint16_t SafeCoordCombo(const M2Data* data, uint32_t index) {
@@ -53,6 +59,20 @@ static uint8_t* s_sequenceData;
 
 // STATIC: 0x00D4125C
 static uint32_t s_sequenceSize;
+
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+static uint8_t* s_sequenceBoneData;
+static uint8_t* s_sequenceAttachmentData;
+
+class SequenceDataScope {
+    uint8_t* saved;
+public:
+    explicit SequenceDataScope(uint8_t* payload) : saved(s_sequenceData) {
+        if (payload) s_sequenceData = payload;
+    }
+    ~SequenceDataScope() { s_sequenceData = saved; }
+};
+#endif
 
 // VERIFY: eb5cb8e9 auto
 // OFFSET: 0x00835950
@@ -487,6 +507,14 @@ CShaderEffect* CM2Shared::GetEffect(uint32_t textureCount, uint16_t shader, uint
         } else {
             vertexShader = "Diffuse_T2";
 
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+            // Retail batches carry no coordinate combo (0xFFFF); their 0x4000 bit selects the second UV set.
+            if (Retail::SourceForPath(this->m_fileName).Handles(this->m_fileName)) {
+                if (!(shader & 0x4000)) {
+                    vertexShader = "Diffuse_T1";
+                }
+            } else
+#endif
             if (!SafeCoordCombo(this->m_data, textureCoordComboIndex)) {
                 vertexShader = "Diffuse_T1";
             }
@@ -732,6 +760,45 @@ int32_t M2Init<M2Texture>(uint8_t* base, uint32_t size, const M2Data& data, M2Ar
 // OFFSET: 0x00836C90
 CShaderEffect* CM2Shared::GetEffect(M2Batch* batch) {
     CShaderEffect* effect;
+
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    if (Retail::SourceForPath(this->m_fileName).Handles(this->m_fileName) && batch->m_shader == 0x8010) {
+        const char* name = "Retail_Opaque_Reflection_Glow";
+        if (auto* existing = CShaderEffectManager::GetEffect(name)) return existing;
+        effect = CShaderEffectManager::CreateEffect(name);
+        effect->InitEffect("Diffuse_T1_Env", "Combiners_Opaque_Mod2xNA_Alpha");
+        for (unsigned i = 0; i < 16; ++i) {
+            auto* original = effect->m_pixelShaders[i];
+            std::vector<uint8_t> input(original->m_code.m_data, original->m_code.m_data + original->m_code.m_count), code;
+            std::string error;
+            if (!Retail::AddGlowLayer(input, code, error)) {
+                DebugLog("Retail material: %s", error.c_str()); return nullptr;
+            }
+            char shaderName[80]; std::snprintf(shaderName, sizeof(shaderName), "%s:%u", name, i);
+            auto* shader = g_theGxDevicePtr->m_shaderList[GxSh_Pixel].New(shaderName, 0, 0);
+            shader->m_refCount = 1; shader->m_target = GxSh_Pixel;
+            shader->m_code.SetCount(uint32_t(code.size()));
+            std::memcpy(shader->m_code.m_data, code.data(), code.size());
+            g_theGxDevicePtr->ShaderDestroy(effect->m_pixelShaders[i]);
+            effect->m_pixelShaders[i] = shader;
+        }
+        return effect;
+    }
+    if (Retail::SourceForPath(this->m_fileName).Handles(this->m_fileName) && batch->m_shader == 0x8012) {
+        const char* name = "Retail_Mod_Mod_T1_T2";
+        if (auto* existing = CShaderEffectManager::GetEffect(name)) return existing;
+        effect = CShaderEffectManager::CreateEffect(name);
+        effect->InitEffect("Diffuse_T1_T2", "Combiners_Mod_Mod");
+        return effect;
+    }
+    if (Retail::SourceForPath(this->m_fileName).Handles(this->m_fileName) && batch->m_shader == 0x8011) {
+        const char* name = "Retail_Mod_Mod2x_T1_T2";
+        if (auto* existing = CShaderEffectManager::GetEffect(name)) return existing;
+        effect = CShaderEffectManager::CreateEffect(name);
+        effect->InitEffect("Diffuse_T1_T2", "Combiners_Mod_Mod2x");
+        return effect;
+    }
+#endif
 
     if (!(batch->m_shader & 0x8000)) {
         effect = this->GetEffect(batch->m_textureCount, batch->m_shader, batch->m_textureCoordComboIndex);
@@ -1195,8 +1262,16 @@ int32_t CM2Shared::InitializeSkinProfile() {
         memset(this->m_effects, 0, sizeof(CShaderEffect*) * this->m_skinData->m_batches.m_count);
     }
 
-    this->SubstituteSimpleShaders();
-    this->SubstituteSpecializedShaders();
+    // Retail's adapter has already resolved shader IDs and texture table runs.
+    // Legacy specialization packs pairs into one word and cannot preserve a
+    // three-layer material, so it must not process these native batches again.
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    if (!Retail::SourceForPath(this->m_fileName).Handles(this->m_fileName))
+#endif
+    {
+        this->SubstituteSimpleShaders();
+        this->SubstituteSpecializedShaders();
+    }
 
     if (this->m_skinData->m_indices.m_count) {
         for (uint32_t i = 0; i < this->m_skinData->m_batches.m_count; i++) {
@@ -1362,6 +1437,9 @@ int32_t CM2Shared::FinishLoadingSkinProfile(uint32_t size) {
 // OFFSET: 0x008385A0
 template <>
 int32_t M2Init<M2CompBone>(uint8_t* base, uint32_t size, const M2Data& data, M2Array<M2CompBone>& array) {
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    SequenceDataScope source(s_sequenceBoneData);
+#endif
     if (s_sequenceIndex == 0xFFFFFFFF) {
         if (array.m_offset > size || array.m_offset + sizeof(M2CompBone) * array.m_count > size) {
             return 0;
@@ -1408,6 +1486,9 @@ int32_t M2Init<M2TextureTransform>(uint8_t* base, uint32_t size, const M2Data& d
 // OFFSET: 0x00839080
 template <>
 int32_t M2Init<M2Attachment>(uint8_t* base, uint32_t size, const M2Data& data, M2Array<M2Attachment>& array) {
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    SequenceDataScope source(s_sequenceAttachmentData);
+#endif
     if (s_sequenceIndex == 0xFFFFFFFF) {
         if (array.m_offset > size || array.m_offset + sizeof(M2Attachment) * array.m_count > size) {
             return 0;
@@ -1576,8 +1657,27 @@ int32_t M2Init(uint8_t* base, uint32_t size, M2Data& data) {
 // VERIFY: 8000b812 manual
 // OFFSET: 0x0083C6E0
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint8_t* buffer, uint32_t size) {
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    Retail::AnimationLayout layout;
+    const bool retail = Retail::IsCdnPath(this->m_fileName);
+    if (retail) {
+        std::string error;
+        if (!Retail::InspectAnimation(buffer, size, layout, error)) {
+            DebugLog("Invalid Retail sequence chunks: %s (%d): %s", this->m_fileName, sequenceIndex, error.c_str());
+            return 0;
+        }
+    }
+#endif
     s_sequenceIndex = sequenceIndex;
     s_sequenceData = buffer;
+    s_sequenceSize = size;
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    if (retail && layout.chunked) {
+        if (layout.model.present) s_sequenceData = buffer + layout.model.offset;
+        if (layout.bones.present) s_sequenceBoneData = buffer + layout.bones.offset;
+        if (layout.attachments.present) s_sequenceAttachmentData = buffer + layout.attachments.offset;
+    }
+#endif
 
     int32_t result = M2Init(reinterpret_cast<uint8_t*>(this->m_data), this->m_fileSize, *this->m_data);
     M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
@@ -1585,6 +1685,10 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint
     s_sequenceIndex = 0xFFFFFFFF;
     s_sequenceData = nullptr;
     s_sequenceSize = 0;
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    s_sequenceBoneData = nullptr;
+    s_sequenceAttachmentData = nullptr;
+#endif
 
     if (!result) {
         DebugLog("Corrupt model sequence data: %s (%d)", this->m_fileName, sequenceIndex);
@@ -1960,6 +2064,10 @@ CM2Shared::~CM2Shared() {
     if (!pending) {
         SIMD::FreeA16(this->m_data);
     }
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    // Drop the validation copy when the last native cache using this model lets go.
+    Retail::SourceForPath(this->m_fileName).ReleaseModel(this->m_fileName);
+#endif
 }
 
 // VERIFY: aeff737a manual

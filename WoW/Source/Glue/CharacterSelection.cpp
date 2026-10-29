@@ -1,5 +1,6 @@
 #include "CoA/Source/Modules/EsteriaRaces.h"
 #include "CharacterSelection.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
 #include "CoA/Source/Modules/CVarHooks.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -318,6 +319,7 @@ CharacterSelectionDisplay* CCharacterSelection::GetCharacterDisplay(uint32_t ind
 // VERIFY: 68f0d05a auto
 // OFFSET: 0x004E2F10
 int32_t CCharacterSelection::Idle(const void* data, void* param) {
+    RetailFormCommitTick();
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
         CGlueLoading::Idle(nullptr);
         return 1;
@@ -407,6 +409,80 @@ void CCharacterSelection::SetBackgroundModel(const char* modelName) {
 
 // VERIFY: fcc3bd5f auto
 // OFFSET: 0x004E3CA0
+// Equips a character select model with the character's gear (also used for the second Two Forms model).
+void CCharacterSelection::DressComponent(const CHARACTER_INFO& info, CCharacterComponent* component) {
+    for (uint32_t slot = 0; slot < 23; slot++) {
+        int32_t displayID = info.m_inventoryItemDisplayID[slot];
+        int32_t itemVisual = info.m_inventoryItemVisualID[slot];
+
+        if (!displayID) {
+            continue;
+        }
+
+        bool hunter = info.m_classID == 3;
+
+        if (hunter) {
+            if (slot == INVSLOT_MAINHAND || slot == INVSLOT_OFFHAND) {
+                continue;
+            }
+        } else if (slot == INVSLOT_RANGED) {
+            continue;
+        }
+
+        uint32_t flags = info.m_flags;
+
+        if ((flags & 0x400) && slot == INVSLOT_HEAD) {
+            continue;
+        }
+
+        if ((flags & 0x800) && slot == INVSLOT_BACK) {
+            continue;
+        }
+
+        ItemDisplayInfoRec itemRec;
+        int32_t found = g_itemDisplayInfoDB.GetRecord(displayID, &itemRec);
+        int32_t visual = found && g_itemVisualsDB.GetRecord(itemRec.m_itemVisual) ? 0 : itemVisual;
+
+        if (slot == INVSLOT_MAINHAND || slot == INVSLOT_OFFHAND || (slot == INVSLOT_RANGED && hunter)) {
+            if (found) {
+                GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(component->m_data.m_model, &itemRec, static_cast<INVENTORY_SLOTS>(slot), SHEATHE_NONE, false, info.m_inventoryItemType[slot] == INVTYPE_SHIELD, false, visual);
+
+                if (slot == INVSLOT_RANGED) {
+                    if (info.m_inventoryItemType[INVSLOT_RANGED] == INVTYPE_RANGED) {
+                        for (CM2Model* attached = component->m_data.m_model->m_attachList; attached; attached = attached->m_attachNext) {
+                            if (attached->m_attachmentId == static_cast<uint32_t>(link)) {
+                                attached->SetLoadedCallback(&CCharacterSelection::ModelLoadedCallback, nullptr);
+                                break;
+                            }
+                        }
+                    }
+
+                    continue;
+                }
+            }
+        } else if (static_cast<int32_t>(slot) >= 19 && static_cast<int32_t>(slot) <= 22) {
+            if (*itemRec.m_modelName[0]) {
+                component->AddItem(ITEMSLOT_11, &itemRec, 0);
+            }
+        } else {
+            component->AddItemBySlot(static_cast<INVENTORY_SLOTS>(slot), displayID, visual);
+        }
+
+        if (slot == INVSLOT_TABARD && found && (itemRec.m_flags & 0x1)) {
+            int32_t emblemStyle;
+            int32_t emblemColor;
+            int32_t borderStyle;
+            int32_t borderColor;
+            int32_t background;
+            const CHARACTER_INFO& tabardInfo = info;
+
+            if (GuildGetGuildTabard(tabardInfo.m_guid, tabardInfo.m_guildID, &CCharacterSelection::GuildCallback, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
+                component->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
+            }
+        }
+    }
+}
+
 void CCharacterSelection::EnumerateCharactersCallback(CHARACTER_INFO& info, void* param) {
     memcpy(&CCharacterSelection::s_characterList.New()->m_characterInfo, &info, sizeof(info));
     LoadAddOnEnableState(info.m_name);
@@ -458,7 +534,9 @@ void CCharacterSelection::ShowCharacter() {
         data.m_preferences.m_hairStyleId = info.m_hairStyleID;
         data.m_preferences.m_hairColorId = info.m_hairColorID;
         data.m_preferences.m_facialHairId = info.m_facialHairStyleID;
-        data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(playerRec->m_modelName, 0);
+        char retailPath[260];
+        const bool retailModel = RetailRaceModelPath(info.m_raceID, info.m_sexID, retailPath, sizeof(retailPath), RetailRaceLookForm(info.m_guid.m_guid));
+        data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(retailModel ? retailPath : playerRec->m_modelName, 0);
         data.m_flags |= 0x2;
 
         CoA::Esteria::SelectExtra(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component); // CoA: EsteriaSelectExtra (orig patch 0x4E3E74)
@@ -470,76 +548,7 @@ void CCharacterSelection::ShowCharacter() {
 
         CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
 
-        for (uint32_t slot = 0; slot < 23; slot++) {
-            int32_t displayID = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_inventoryItemDisplayID[slot];
-            int32_t itemVisual = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_inventoryItemVisualID[slot];
-
-            if (!displayID) {
-                continue;
-            }
-
-            bool hunter = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_classID == 3;
-
-            if (hunter) {
-                if (slot == INVSLOT_MAINHAND || slot == INVSLOT_OFFHAND) {
-                    continue;
-                }
-            } else if (slot == INVSLOT_RANGED) {
-                continue;
-            }
-
-            uint32_t flags = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_flags;
-
-            if ((flags & 0x400) && slot == INVSLOT_HEAD) {
-                continue;
-            }
-
-            if ((flags & 0x800) && slot == INVSLOT_BACK) {
-                continue;
-            }
-
-            ItemDisplayInfoRec itemRec;
-            int32_t found = g_itemDisplayInfoDB.GetRecord(displayID, &itemRec);
-            int32_t visual = found && g_itemVisualsDB.GetRecord(itemRec.m_itemVisual) ? 0 : itemVisual;
-
-            if (slot == INVSLOT_MAINHAND || slot == INVSLOT_OFFHAND || (slot == INVSLOT_RANGED && hunter)) {
-                if (found) {
-                    GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model, &itemRec, static_cast<INVENTORY_SLOTS>(slot), SHEATHE_NONE, false, CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_inventoryItemType[slot] == INVTYPE_SHIELD, false, visual);
-
-                    if (slot == INVSLOT_RANGED) {
-                        if (CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_inventoryItemType[INVSLOT_RANGED] == INVTYPE_RANGED) {
-                            for (CM2Model* attached = data.m_model->m_attachList; attached; attached = attached->m_attachNext) {
-                                if (attached->m_attachmentId == static_cast<uint32_t>(link)) {
-                                    attached->SetLoadedCallback(&CCharacterSelection::ModelLoadedCallback, nullptr);
-                                    break;
-                                }
-                            }
-                        }
-
-                        continue;
-                    }
-                }
-            } else if (static_cast<int32_t>(slot) >= 19 && static_cast<int32_t>(slot) <= 22) {
-                if (*itemRec.m_modelName[0]) {
-                    CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->AddItem(ITEMSLOT_11, &itemRec, 0);
-                }
-            } else {
-                CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->AddItemBySlot(static_cast<INVENTORY_SLOTS>(slot), displayID, visual);
-            }
-
-            if (slot == INVSLOT_TABARD && found && (itemRec.m_flags & 0x1)) {
-                int32_t emblemStyle;
-                int32_t emblemColor;
-                int32_t borderStyle;
-                int32_t borderColor;
-                int32_t background;
-                CHARACTER_INFO& tabardInfo = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo;
-
-                if (GuildGetGuildTabard(tabardInfo.m_guid, tabardInfo.m_guildID, &CCharacterSelection::GuildCallback, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
-                    CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
-                }
-            }
-        }
+        CCharacterSelection::DressComponent(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo, CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component);
 
         if (CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo.m_flags & 0x2000) {
             CGlueMgr::AttachCharacterSelectVisuals(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model);

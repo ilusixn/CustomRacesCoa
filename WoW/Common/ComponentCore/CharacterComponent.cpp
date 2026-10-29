@@ -13,6 +13,8 @@
 #include <alloca.h>
 #endif
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
+#include "Engine/Source/Retail/RacePolicy.h"
 #include "CoA/Source/Modules/ItemCollections.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -53,6 +55,10 @@
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/DB/Rec/ParticleColorRec.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+#include "Engine/Source/Retail/CascSource.h"
+#include "Engine/Source/Retail/RetailModel.h"
+#endif
 
 // STATIC: 0x009F6A00
 static int32_t s_itemPriority[NUM_ITEM_SLOTS][NUM_COMPONENT_SECTIONS] = {
@@ -483,6 +489,7 @@ int32_t CCharacterComponent::ComposeHelmModelFilePath(const ChrRacesRec* raceRec
     }
 
     *ext = '_';
+    if (const auto* donor = g_chrRacesDB.GetRecord(RetailRaceHelmetRace(this->m_data.m_preferences.m_raceID))) raceRec = donor;
     strcpy(ext + 1, raceRec->m_clientPrefix);
     strcat(path, s_fileDecorations[this->m_data.m_preferences.m_sexID]);
     strcat(path, ".mdx");
@@ -1743,6 +1750,10 @@ void CCharacterComponent::ReplaceExtraSkinTexture(const char* debug) {
         return;
     }
 
+    if (RetailRaceActive(this)) {
+        return; // the Retail compositor owns the body sheet
+    }
+
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_SKIN, 0, this->m_data.m_preferences.m_skinID)) {
         return;
     }
@@ -1772,6 +1783,10 @@ void CCharacterComponent::ReplaceHairTexture(int32_t hairStyleID, const char* de
         if (CoA::Esteria::DirectSection(this, 1, arguments)) {
             return;
         }
+    }
+
+    if (RetailRaceActive(this)) {
+        return;
     }
 
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_HAIR, hairStyleID, this->m_data.m_preferences.m_hairColorId)) {
@@ -1810,6 +1825,12 @@ void CCharacterComponent::LoadBaseVariation(CHARTEXTUREVARIATIONS variation, int
     if (texture) {
         TextureCacheDestroyTexture(texture);
         texture = nullptr;
+    }
+
+    // Retail races compose their skin from Retail data, not CharSections.dbc.
+    if (RetailRaceActive(this)) {
+        this->SetDirtySections(1 << section);
+        return;
     }
 
     if (!ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, variation, variationIndex, colorIndex)) {
@@ -2202,6 +2223,21 @@ GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDi
     if (model->IsLoaded(0, 0) && !model->HasAttachment(link)) {
         return ATTACH_NONE;
     }
+
+    // Keep the normal hand/sheath links, finger pose, item visuals and scale.
+    // Only the model and object-skin texture filenames come from Retail.
+#if defined(WOWDECOMP_RETAIL_ASSETS)
+    {
+        Retail::SourceScope retailEquipment(Retail::SourceKind::Retail);
+        Retail::HandItemAppearance retail;
+        if (Retail::Source().HandItem(displayRec->m_id, retail, invSlot == INVSLOT_MAINHAND)) {
+            const auto modelPath = Retail::FileName(retail.modelId, ".m2");
+            const auto texturePath = Retail::FileName(retail.textureId, ".blp");
+            CCharacterComponent::AddLink(model, link, modelPath.c_str(), texturePath.c_str(), itemVisual ? itemVisual : displayRec->m_itemVisual, displayRec);
+            return link;
+        }
+    }
+#endif
 
     strcpy(s_buffer, folder);
     strcat(s_buffer, displayRec->m_modelName[0]);
@@ -3485,6 +3521,7 @@ void CCharacterComponent::GeosRenderPrep() {
     CM2Model* model = this->m_data.m_model;
     model->SetGeometryVisible(0, 2000, 0);
     model->SetGeometryVisible(0, 0, 1);
+    RetailRaceGeometry(this);
 
     for (int32_t i = 0; i < NUM_CHARGEOSETS; i++) {
         if (i == CHARGEOSET_EYEEFFECTS && eyeGlow) {
@@ -3583,6 +3620,7 @@ void CCharacterComponent::GeosRenderPrep() {
         this->m_data.m_model->SetGeometryVisible(rec.m_geosetGroup[0] + 1801, rec.m_geosetGroup[0] + 1801, 1);
     }
 
+    RetailRaceEquipment(this);
     this->m_data.m_model->OptimizeVisibleGeometry();
     this->m_flags &= ~0x4;
 }
@@ -3665,6 +3703,7 @@ void CCharacterComponent::RenderPrepAll() {
 
     this->m_flags &= ~0x1;
     this->m_dirtySections = 0;
+    RetailRaceBody(this);
     this->DestroyRenderTextures();
     this->m_link.Unlink();
 }
@@ -3913,7 +3952,7 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
         return;
     }
 
-    uint32_t raceMask = 1 << this->m_data.m_preferences.m_raceID;
+    uint32_t raceMask = RetailRaceHelmetMask(this->m_data.m_preferences.m_raceID);
 
     if (raceMask & visRec->m_hideGeoset[0]) {
         this->m_data.m_geosets[CHARGEOSET_HAIR] = 1;
@@ -4370,7 +4409,9 @@ void CCharacterComponent::CreateBaseTexture() {
     }
 
     this->m_baseSkinTexture = TextureCreate(s_textureSize, s_textureSize, this->m_gxTexFormat, dataFormat, flags, this, &CCharacterComponent::UpdateBaseTexture, "CharacterBaseSkin", 1);
-    this->m_data.m_model->ReplaceTexture(M2TEX_SKIN, this->m_baseSkinTexture);
+    if (!RetailRaceActive(this)) {
+        this->m_data.m_model->ReplaceTexture(M2TEX_SKIN, this->m_baseSkinTexture);
+    }
 }
 
 // VERIFY: 51c5a21d manual
@@ -4974,6 +5015,7 @@ void CCharacterComponent::ProcessFinishedRequest() {
     }
 
     this->UpdateSections();
+    RetailRaceBody(this);
     this->m_request->m_flags &= ~0x1;
     this->m_flags &= ~0x1;
     this->m_request = nullptr;
@@ -5150,6 +5192,7 @@ void CCharacterComponent::RenderPrepSections() {
     }
 
     this->PrepSections();
+    RetailRaceBody(this);
     this->m_flags &= ~0x1;
     this->m_dirtySections = 0;
     this->DestroyRenderTextures();
@@ -5210,6 +5253,7 @@ bool CCharacterComponent::RenderPrep(int32_t wait) {
 // OFFSET: 0x004F16C0
 void CCharacterComponent::FreeComponent(CCharacterComponent* component) {
     CoA::Esteria::ForgetCharacter(component); // CoA: EsteriaForgetCharacter (orig patch 0x4F16C0)
+    RetailRaceForget(component);
 
     uint32_t* heap = s_componentHeap;
     component->~CCharacterComponent();
@@ -5273,6 +5317,8 @@ void CCharacterComponent::DestroyComponentFreeLists() {
 // VERIFY: 0f866952 manual
 // OFFSET: 0x004F18F0
 int32_t CCharacterComponent::Update(const void* data, void* param) {
+    RetailRaceTick();
+
     int32_t hasContext = g_theGxDevicePtr ? g_theGxDevicePtr->CapsHasContext(-1) : 0;
 
     for (CCharacterComponent* component = CCharacterComponent::s_queue.Head(); component;) {
@@ -5576,7 +5622,9 @@ bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
     this->m_handItemDisplayID[1] = 0;
     this->m_handItemDisplayID[2] = 0;
 
-    if (static_cast<int32_t>(data->m_preferences.m_raceID) < 0 || static_cast<int32_t>(data->m_preferences.m_raceID) > g_chrRacesDB.m_maxID || !ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_SKIN, 0, this->m_data.m_preferences.m_skinID)) {
+    if (static_cast<int32_t>(data->m_preferences.m_raceID) < 0 || static_cast<int32_t>(data->m_preferences.m_raceID) > g_chrRacesDB.m_maxID ||
+        (!RetailRaceOwns(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID) &&
+         !ComponentValidateBase(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, CHARTEXTUREVAR_SKIN, 0, this->m_data.m_preferences.m_skinID))) {
         return false;
     }
 
@@ -5596,7 +5644,7 @@ bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
     }
 
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(this->m_data.m_preferences.m_raceID);
-    this->m_flags = (this->m_flags & ~0x10) | (((raceRec->m_flags & 0x2) != 0) << 4);
+    this->m_flags = (this->m_flags & ~0x10) | (Retail::BareFeet(this->m_data.m_preferences.m_raceID, raceRec->m_flags) << 4);
 
     if (dataFlags & 0x1) {
         this->SkinNpc(debug);
@@ -5620,6 +5668,9 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
     });
     this->m_flags |= 0x4;
     this->m_itemDisplayID[itemSlot] = displayRec->m_id;
+
+    // Weapon/shield models use AddHandItem separately; keep all equipped item state for the other form.
+    if (RetailRaceHidesArmor(this)) return;
 
     switch (itemSlot) {
         case ITEMSLOT_HEAD:

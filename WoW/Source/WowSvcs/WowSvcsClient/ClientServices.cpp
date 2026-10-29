@@ -1,4 +1,5 @@
 #include "CoA/Source/Modules/EsteriaRaces.h"
+#include "WoW/Common/ComponentCore/RetailRace.h"
 #include <cstdint>
 #include "CoA/Source/Modules/CVarHooks.h"
 #include <cstring>
@@ -1357,6 +1358,7 @@ const char* ClientServices::GetCharacterName() {
 // VERIFY: f259cd0a auto
 // OFFSET: 0x006B15C0
 void ClientConnection::HandleCharacterCreate(uint8_t result) {
+    RetailFormCommitCreateResult(result == CHAR_CREATE_SUCCESS);
     this->Complete(result == CHAR_CREATE_SUCCESS, result);
 }
 
@@ -1382,6 +1384,10 @@ void ClientConnection::RequestCharacterCreate(const CHARACTER_CREATE_INFO& info)
     msg.Put(info.m_hairColorID);
     msg.Put(info.m_facialHairStyleID);
     msg.Put(info.m_outfitID);
+    RetailRaceCreateEyeEffects(&msg);
+    BodyShapeCreateFooter(&msg, false);
+    RetailLookCreateFooter(&msg);
+    RetailFormCommitPrepare(info.m_name, info.m_raceID, info.m_sexID);
     msg.Finalize();
     CoA::Esteria::CreateExtra(&msg); // CoA: EsteriaCreateExtra (orig patch 0x6B174C)
     this->Send(&msg);

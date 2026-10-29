@@ -138,6 +138,7 @@ int32_t TextureCanUpdate(CTexture* texture);
 void TextureComputeLoadProgress(CTexture* texture, int64_t& loaded, int64_t& total);
 CTexture* TextureCreate(const char* fileName, CGxTexFlags texFlags, CStatus* status, uint32_t flags);
 CTexture* TextureCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter);
+CTexture* TextureCreateFromBlpData(const char* name, CGxTexFlags texFlags, void* blpData);
 CTexture* TextureCreate(uint32_t width, uint32_t height, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags texFlags, void* userArg, GxTexUserFunc userFunc, const char* name, int32_t defaultFilter);
 CTexture* TextureCreateBlob(char* fileName, CGxTexFlags texFlags, CStatus* status, int32_t defaultFilter);
 SFileImpl* TextureCreateOpenFile(const char* fileName, int32_t flags);

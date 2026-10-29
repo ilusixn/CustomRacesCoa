@@ -21,6 +21,7 @@ class CCharacterSelection {
     static uint32_t s_raceRestrictions[10];
 
     static void ClearCharacterList();
+    static void DressComponent(const CHARACTER_INFO& info, CCharacterComponent* component);
     static void EnumerateCharactersCallback(CHARACTER_INFO& info, void* param);
     static void GenericLightingCallback(CM2Model* model, CM2Lighting* lighting, void* arg);
     static CharacterSelectionDisplay* GetCharacterDisplay(uint32_t index);
