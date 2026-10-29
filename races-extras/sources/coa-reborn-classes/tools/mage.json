@@ -1,0 +1,79 @@
+{
+ "out": "gera_mage.py",
+ "label": "Mage",
+ "classtype": 39,
+ "chrspecs_class": "MAGE",
+ "essence_class": 8,
+ "new_base": 141400,
+ "tabs": [
+  [
+   11,
+   "Arcane"
+  ],
+  [
+   13,
+   "Fire"
+  ],
+  [
+   12,
+   "Frost"
+  ]
+ ],
+ "templates": {
+  "Arcane": "Vizier",
+  "Fire": "Venom",
+  "Frost": "Stalking"
+ },
+ "keystones": {
+  "Arcane": [
+   "Arcane Blast",
+   "Evocation",
+   "Touch of the Magi",
+   "Mirror Image"
+  ],
+  "Fire": [
+   "Flamestrike",
+   "Fire Ward",
+   "Scorch",
+   "Molten Armor"
+  ],
+  "Frost": [
+   "Blizzard",
+   "Cone of Cold",
+   "Ice Lance",
+   "Frostfire Bolt"
+  ]
+ },
+ "dup": [],
+ "signature": {
+  "Arcane": 1144425,
+  "Fire": 1111366,
+  "Frost": 1131687
+ },
+ "examples": {
+  "Arcane": [
+   1105143,
+   1112042,
+   1112043
+  ],
+  "Fire": [
+   1100133,
+   1144457,
+   1111129
+  ],
+  "Frost": [
+   1100116,
+   1111426,
+   1112472
+  ]
+ },
+ "desc": {
+  "Arcane": "Manipulate raw arcane energy, bending time and space to overwhelm foes with relentless magic.",
+  "Fire": "Hurl flames that ignite your enemies, building to explosive critical blows that burn everything in sight.",
+  "Frost": "Freeze your foes in place and shatter them with ice, controlling the battlefield with chilling magic."
+ },
+ "baseline": [
+  "Frost Armor",
+  "Fireball"
+ ]
+}

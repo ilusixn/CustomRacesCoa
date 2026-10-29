@@ -1,0 +1,91 @@
+From 7904a290e1d5b56206c8615fbdca9b590f2144e2 Mon Sep 17 00:00:00 2001
+From: CoA Reborn Classes contributors <noreply@example.invalid>
+Date: Sat, 10 Oct 2026 22:00:27 +0900
+Subject: [PATCH 1/4] feat(CoA): CoA.ClassModel accepts a list of models ("coa
+ wcr") so Conquest of Azeroth and Warcraft Reborn classes share one realm
+
+---
+ src/server/coa/AscensionCompat.cpp      |  8 ++++----
+ src/server/coa/AscensionFreepick.cpp    | 12 +++++++++---
+ src/server/coa/AscensionFreepickRules.h |  1 +
+ src/server/coa/conf/coa.conf.dist       |  2 ++
+ 4 files changed, 16 insertions(+), 7 deletions(-)
+
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index cb1a86d47d..f63ab864fc 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -6691,10 +6691,10 @@ public:
+ 
+     std::string const model = ascensionCompatConfig.GetConfigValue<std::string>(
+         AscensionCompatConfig::CLASS_MODEL);
+-    if (model == "coa")
+-      flags[REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH] = 1;
+-    else if (model == "wcr")
+-      flags[REALM_CREATION_FLAG_WARCRAFT_REBORN] = 1;
++    for (std::string_view entry : Acore::Tokenize(model, ' ', false)) {
++      if (entry == "coa")      flags[REALM_CREATION_FLAG_CONQUEST_OF_AZEROTH] = 1;
++      else if (entry == "wcr") flags[REALM_CREATION_FLAG_WARCRAFT_REBORN] = 1;
++    }
+ 
+     uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+     uint32 const ruleset = maxLevel <= 60 ? EXPANSION_CLASSIC
+diff --git a/src/server/coa/AscensionFreepick.cpp b/src/server/coa/AscensionFreepick.cpp
+index ab379189d5..21212d8852 100644
+--- a/src/server/coa/AscensionFreepick.cpp
++++ b/src/server/coa/AscensionFreepick.cpp
+@@ -40,9 +40,15 @@ Realm ReadRealm()
+     }
+     if (!realm.Live && !realm.Seasonal && !realm.League && !realm.Ptr && !realm.Development)
+         realm.Live = true;
++    // CoA.ClassModel accepts one model or a space-separated list ("coa wcr" serves
++    // the Conquest of Azeroth classes and the Warcraft Reborn classes on one realm).
+     std::string const model = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa");
+-    realm.ConquestOfAzeroth = model == "coa";
+-    realm.WarcraftReborn = model == "wcr";
++    for (std::string_view entry : Acore::Tokenize(model, ' ', false))
++    {
++        realm.ConquestOfAzeroth = realm.ConquestOfAzeroth || entry == "coa";
++        realm.WarcraftReborn = realm.WarcraftReborn || entry == "wcr";
++        realm.Classless = realm.Classless || entry == "hero";
++    }
+     uint32 const maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+     realm.Ruleset = maxLevel <= 60 ? 0 : maxLevel <= 70 ? 1 : 2;
+     return realm;
+@@ -448,7 +454,7 @@ public:
+     void OnStartup() override
+     {
+         CurrentRealm = ReadRealm();
+-        Classless = sConfigMgr->GetOption<std::string>("CoA.ClassModel", "coa") == "hero";
++        Classless = CurrentRealm.Classless;
+         Reborn = CurrentRealm.WarcraftReborn;
+         MysticAltars = (Classless || Reborn) &&
+             !AscensionWildcard::PlaysWildcard(sConfigMgr->GetOption<std::string>("CoAChallenges.GameModes.Realm", ""));
+diff --git a/src/server/coa/AscensionFreepickRules.h b/src/server/coa/AscensionFreepickRules.h
+index 5658119b3e..78dfb69cec 100644
+--- a/src/server/coa/AscensionFreepickRules.h
++++ b/src/server/coa/AscensionFreepickRules.h
+@@ -160,6 +160,7 @@ struct Realm
+     bool Development = false;
+     bool ConquestOfAzeroth = false;
+     bool WarcraftReborn = false;
++    bool Classless = false;
+     std::uint32_t Ruleset = 2;
+ };
+ 
+diff --git a/src/server/coa/conf/coa.conf.dist b/src/server/coa/conf/coa.conf.dist
+index 6dcc46c17a..888d93a87e 100644
+--- a/src/server/coa/conf/coa.conf.dist
++++ b/src/server/coa/conf/coa.conf.dist
+@@ -188,6 +188,8 @@ CoA.RealmType = "live"
+ #                     "coa"  - Conquest of Azeroth classes. Default.
+ #                     "wcr"  - Warcraft Reborn (classic) classes.
+ #                     "hero" - free-pick Hero.
++#                     A space-separated list serves several models on one realm,
++#                     e.g. "coa wcr" (Conquest of Azeroth + Warcraft Reborn classes).
+ #        Default:     "coa"
+ #
+ 
+-- 
+2.39.5
+

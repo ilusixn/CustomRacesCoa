@@ -1,0 +1,11 @@
+--- a/Interface/FrameXML/Util/GlobalOverwrites.lua
++++ b/Interface/FrameXML/Util/GlobalOverwrites.lua
+@@ -472,7 +472,7 @@
+ local _LoadAddOn = LoadAddOn
+ function LoadAddOn(name)
+ 	if name == "Ascension_CharacterAdvancement" then
+-		if IsCustomClass() then
++		if IsCustomClass() or IsDefaultClass() then -- unified Character Advancement: classic classes too
+ 			return _LoadAddOn("Ascension_CoATalents")
+ 		end
+ 		

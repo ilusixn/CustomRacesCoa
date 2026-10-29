@@ -1,0 +1,433 @@
+diff --git a/modules/mod-spellbook/conf/spellbook.conf.dist b/modules/mod-spellbook/conf/spellbook.conf.dist
+index e867a5c22d..4ba365fcf3 100644
+--- a/modules/mod-spellbook/conf/spellbook.conf.dist
++++ b/modules/mod-spellbook/conf/spellbook.conf.dist
+@@ -48,3 +48,12 @@ Spellbook.Notify.OnClientReady = 0
+ #
+ Spellbook.Cost.Enable = 1
+ Spellbook.Cost.Multiplier = 1.0
++
++#        Spellbook.Classic.MaxLevel: the last level at which a classic class (Warrior..Druid)
++#                                    can still train at a book. Past it the guide answers with
++#                                    its page and sells nothing - window and purchase are both
++#                                    refused server side - and the class trainers take over.
++#                                    The Ascension classes are never affected: their window is
++#                                    the module's own. 0 (Default) serves every level.
++#
++Spellbook.Classic.MaxLevel = 0
+diff --git a/modules/mod-spellbook/src/spellbook.cpp b/modules/mod-spellbook/src/spellbook.cpp
+index 8ec9ed4102..cb16926fb1 100644
+--- a/modules/mod-spellbook/src/spellbook.cpp
++++ b/modules/mod-spellbook/src/spellbook.cpp
+@@ -76,6 +76,7 @@ namespace
+     constexpr char const *NOTIFY_ON_READY_KEY = "Spellbook.Notify.OnClientReady";
+     constexpr char const *COST_ENABLE_KEY = "Spellbook.Cost.Enable";
+     constexpr char const *COST_MULTIPLIER_KEY = "Spellbook.Cost.Multiplier";
++    constexpr char const *CLASSIC_MAX_LEVEL_KEY = "Spellbook.Classic.MaxLevel";
+ 
+     /// The client telling the server its extension module has registered its handlers,
+     /// which is the first moment the announcement push can be answered at all. The compat
+@@ -144,6 +145,36 @@ namespace
+         return creature && creature->GetScriptName() == BOOK_SCRIPT;
+     }
+ 
++    /// The book stays with the character for life, but as a classic class's portable trainer it
++    /// only teaches the first levels: past the configured one the guide still answers with its
++    /// page, and the class's own trainers take over. 0 serves every level, and the Ascension
++    /// classes never pass through here - their window is the module's own.
++    bool ClassicTrainingLocked(Player const *player)
++    {
++        if (!player || IsAscensionClass(player->getClass()))
++            return false;
++
++        uint32 const maxLevel = sConfigMgr->GetOption<uint32>(CLASSIC_MAX_LEVEL_KEY, 0);
++        return maxLevel && player->GetLevel() > maxLevel;
++    }
++
++    /// A locked classic class asking a book for the trainer window or a purchase: the request
++    /// is consumed so the core's trainer never answers it - the server-side half of the gate
++    /// whose visible half is the gossip page OnGossipHello serves instead of the window.
++    bool ClassicBookRequestBlocked(Player *player, WorldPacket const &packet)
++    {
++        if (!player || !ClassicTrainingLocked(player))
++            return false;
++
++        WorldPacket copy(packet);
++        ObjectGuid guid;
++        copy >> guid;
++        if (!guid)
++            return false;
++
++        return IsBook(player->GetNPCIfCanInteractWith(guid, 0));
++    }
++
+     /// The skill line a spell is filed under, which is what the client groups the window by.
+     /// It is a label only: nothing here gates on skill values, because these spells are not
+     /// in the DBC tables the core's skill checks consult.
+@@ -707,10 +738,14 @@ namespace
+             if (!Enabled())
+                 return true;
+ 
+-            // Any other class trains at the book what its realm's class trainers teach it.
++            // Any other class trains at the book what its realm's class trainers teach it,
++            // until the configured level: past it the guide keeps its page but sells nothing.
+             if (!IsAscensionClass(player->getClass()))
+             {
+-                player->GetSession()->SendTrainerList(book);
++                if (ClassicTrainingLocked(player))
++                    SendGossipMenuFor(player, BookGossipText(book), book->GetGUID());
++                else
++                    player->GetSession()->SendTrainerList(book);
+                 return true;
+             }
+ 
+@@ -767,10 +802,12 @@ namespace
+ 
+             uint16 const opcode = packet.GetOpcode();
+             if (opcode == CMSG_TRAINER_BUY_SPELL)
+-                return !HandlePurchase(session->GetPlayer(), packet);
++                return !ClassicBookRequestBlocked(session->GetPlayer(), packet) &&
++                       !HandlePurchase(session->GetPlayer(), packet);
+ 
+             if (opcode == CMSG_TRAINER_LIST)
+-                return !HandleTrainerListRequest(session->GetPlayer(), packet);
++                return !ClassicBookRequestBlocked(session->GetPlayer(), packet) &&
++                       !HandleTrainerListRequest(session->GetPlayer(), packet);
+ 
+             if (opcode == CMSG_EXTENSION_INITIALIZED)
+                 PushWindowTags(session->GetPlayer());
+diff --git a/src/server/coa/AscensionCoATalentState.cpp b/src/server/coa/AscensionCoATalentState.cpp
+index ff3d151f10..7f9e44b21a 100644
+--- a/src/server/coa/AscensionCoATalentState.cpp
++++ b/src/server/coa/AscensionCoATalentState.cpp
+@@ -66,7 +66,7 @@ std::vector<std::uint32_t> SpecializationSlotRecord(SpecializationSlot const& sl
+ 
+ bool ParseSpecializationSlot(std::vector<std::uint32_t> const& record, SpecializationSlot& slot)
+ {
+-    if (record.size() < 5 || record[0] != 1 || record[1] < 12 || record[1] > 32 ||
++    if (record.size() < 5 || record[0] != 1 || record[1] < 1 || record[1] > 32 || record[1] == 10 || // [SLOTS-CLASSICAS] 1-9,11 + CoA 12-32
+         record[3] > (record.size() - 5) / 2)
+         return false;
+ 
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index ed5afa47bf..43fad2d03a 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -766,7 +766,16 @@ public:
+ 
+   uint32 SynchronizeProgression(Player *player, bool explicitRequest = false) {
+     if (!IsAscensionCustomClass(player))
+-      return 0;
++      // Unified realms: a classic class buys its abilities at the trainers, but the talent
++      // web's automatic entries (the free basics and the identity column) arrive by level
++      // the way the CoA classes' do - the same grant, leaving every paid or choice row alone.
++      {
++        if (!IsCharacterAdvancementClass(player))
++          return 0;
++        uint32 const classicSpec = GetActiveSpecialization(player);
++        return SynchronizeAutomaticTalents(player, classicSpec) +
++               SynchronizeClassicSupport(player, classicSpec);
++      }
+ 
+     uint32 const activeSpec = GetActiveSpecialization(player);
+     AscensionClassTuning::Synchronize(player, activeSpec, true);
+@@ -1435,6 +1444,10 @@ public:
+       SynchronizeProficiencies(player);
+       RepairStarterKit(player, false);
+     }
++    else if (IsCharacterAdvancementClass(player))
++      // Unified realms: the classic classes also synchronize at login, so the talent web's
++      // automatic entries and the Support skill line arrive without waiting for a save.
++      SynchronizeProgression(player);
+     QueueCharacterAdvancementState(player);
+ 
+     CharacterDatabasePreparedStatement* actionsStmt =
+@@ -2192,6 +2205,25 @@ public:
+     {
+       LOG_INFO("coa", "Refused known-entries upload of {} record(s) from {}: {} {} {}",
+                upload.size(), player->GetName(), refusal.Result, refusal.Learn, refusal.Detail);
++      {
++        // [DIAG-RECUSA] what exactly was refused: entry:rank(spec,AE/TE,identity)
++        std::string dump;
++        for (AscensionCoATalentState::KnownEntry const& item : upload)
++        {
++          auto const& all = AscensionCompatData::CoATalentEntries;
++          auto const found = std::find_if(all.begin(), all.end(),
++              [&item](AscensionCompatData::CoATalentEntry const& e) { return e.EntryId == item.EntryId; });
++          AscensionCompatData::CoATalentEntry const* entry = found == all.end() ? nullptr : &*found;
++          bool const identity = std::any_of(AscensionCompatData::CoASpecializations.begin(),
++              AscensionCompatData::CoASpecializations.end(),
++              [&item](AscensionCompatData::CoASpecialization const& sp) { return sp.IdentityEntryId == item.EntryId; });
++          dump += Acore::StringFormat(" {}:{}({},{}/{}{})", item.EntryId, item.Rank,
++              entry ? uint32(entry->SpecId) : 0u, entry ? uint32(entry->AECost) : 0u,
++              entry ? uint32(entry->TECost) : 0u, identity ? ",id" : "");
++        }
++        LOG_INFO("coa", "Refused upload detail from {} (active spec {}):{}", player->GetName(),
++                 GetActiveSpecialization(player), dump);
++      }
+       if (refusal.Announce)
+         ChatHandler(player->GetSession()).SendSysMessage(refusal.Detail);
+     }
+@@ -2721,6 +2753,61 @@ public:
+     }
+ 
+ private:
++    // Classic Support specializations: the exclusive skill line and the spells bought at the
++    // book follow the active specialization. While Support is active the skill exists and the
++    // previously bought spells are restored; while another specialization is active the spells
++    // are parked in a player setting (one bit per spell) and the skill is removed, so nothing
++    // is lost and nothing needs a second purchase. Prototype scope: Paladin only.
++    struct ClassicSupportSpec
++    {
++      uint8 ClassId;
++      uint32 SpecId;
++      uint32 SkillId;
++      std::array<uint32, 12> Spells;
++      char const* Setting;
++    };
++    static constexpr std::array<ClassicSupportSpec, 1> ClassicSupportSpecs{ {
++        { CLASS_PALADIN, 102, 11901, { 2600000u }, "coa.support.paladin" },
++    } };
++
++    static uint32 SynchronizeClassicSupport(Player* player, uint32 activeSpec)
++    {
++      uint32 changed = 0;
++      for (ClassicSupportSpec const& spec : ClassicSupportSpecs)
++      {
++        if (player->getClass() != spec.ClassId)
++          continue;
++        if (activeSpec == spec.SpecId)
++        {
++          if (!player->HasSkill(spec.SkillId))
++            player->LearnDefaultSkill(spec.SkillId, 0);
++          uint32 const owned = uint32(player->GetPlayerSetting(spec.Setting, 0).value);
++          for (std::size_t index = 0; index < spec.Spells.size(); ++index)
++            if (spec.Spells[index] && (owned & (1u << index)) && !player->HasSpell(spec.Spells[index]) &&
++                sSpellMgr->GetSpellInfo(spec.Spells[index]))
++            {
++              player->learnSpell(spec.Spells[index], false);
++              ++changed;
++            }
++        }
++        else if (player->HasSkill(spec.SkillId))
++        {
++          uint32 owned = uint32(player->GetPlayerSetting(spec.Setting, 0).value);
++          for (std::size_t index = 0; index < spec.Spells.size(); ++index)
++            if (spec.Spells[index] && player->HasSpell(spec.Spells[index]))
++            {
++              owned |= (1u << index);
++              player->removeSpell(spec.Spells[index], SPEC_MASK_ALL, false);
++              ++changed;
++            }
++          player->UpdatePlayerSetting(spec.Setting, 0, owned);
++          // the skill line itself stays: the Support tab remains part of the book, only the
++          // exclusive spells are parked while another specialization is active.
++        }
++      }
++      return changed;
++    }
++
+     static uint32 SynchronizeAutomaticTalents(Player* player, uint32 specializationId)
+     {
+         if (player->GetLevel() == 1)
+@@ -8106,8 +8193,9 @@ public:
+   }
+ 
+   void OnPlayerLearnSpell(Player *player, uint32 spellId) override {
++    // [SLOTS-CLASSICAS]
+     if (ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) &&
+-        IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
++        IsCharacterAdvancementClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
+         std::find(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.begin(),
+                   AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.end(), spellId) !=
+             AscensionWildcard::SPECIALIZATION_SWAP_SPELLS.end())
+@@ -9047,8 +9135,9 @@ class spell_ascension_specialization_slot : public SpellScript
+         Player* player = GetCaster()->ToPlayer();
+         auto const& spells = AscensionWildcard::SPECIALIZATION_SWAP_SPELLS;
+         auto const found = std::find(spells.begin(), spells.end(), GetSpellInfo()->Id);
++        // [SLOTS-CLASSICAS] unified realms: the classic classes use the CoA slots too.
+         if (!player || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
+-            !IsAscensionCustomClass(player) || AscensionWildcard::IsWildcardHero(player) || found == spells.end())
++            !IsCharacterAdvancementClass(player) || AscensionWildcard::IsWildcardHero(player) || found == spells.end())
+             return false;
+         _slot = uint32(found - spells.begin());
+         return true;
+diff --git a/src/server/coa/CoAScriptLoader.cpp b/src/server/coa/CoAScriptLoader.cpp
+index 0afc6426a5..ca7eaabec2 100644
+--- a/src/server/coa/CoAScriptLoader.cpp
++++ b/src/server/coa/CoAScriptLoader.cpp
+@@ -38,6 +38,7 @@ void AddSC_AscensionClosestResurrection();
+ void AddSC_AscensionDungeonRelease();
+ void AddSC_AscensionRaidRelease();
+ void AddSC_AscensionThreatRedirect();
++void AddSC_AscensionSupportPaladin(); // [SUPPORT-V2]
+ void AddSC_AscensionTalentDataProcs();
+ void AddSC_AscensionTreeOfLife();
+ void AddSC_CoALfgStartPoint();
+@@ -681,6 +682,7 @@ void AddCoAScripts()
+     AddSC_AscensionDungeonRelease();
+     AddSC_AscensionRaidRelease();
+     AddSC_AscensionThreatRedirect();
++    AddSC_AscensionSupportPaladin(); // [SUPPORT-V2]
+     AddSC_AscensionTalentDataProcs();
+     AddSC_AscensionTreeOfLife();
+     AddSC_CoALfgStartPoint();
+diff --git a/src/server/coa/AscensionSupportPaladin.cpp b/src/server/coa/AscensionSupportPaladin.cpp
+new file mode 100644
+index 0000000000..3aebc466cb
+--- /dev/null
++++ b/src/server/coa/AscensionSupportPaladin.cpp
+@@ -0,0 +1,153 @@
++/* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
++
++// [SUPPORT-V2] Paladin Support: Beacon of Virtue (1277680) had only dummy effects and no script.
++// Cast: the target and up to 4 injured allies (5 with Beacon Mastery) within 30 yards get the
++// Beacon of Virtue mark (1277682) from the paladin. While marked, the paladin's Holy Light and
++// Flash of Light also heal every other marked ally for 25% (1277684) through 1277681.
++
++#include "CellImpl.h"
++#include "GridNotifiers.h"
++#include "GridNotifiersImpl.h"
++#include "Group.h"
++#include "Player.h"
++#include "ScriptMgr.h"
++#include "SpellAuras.h"
++#include "SpellInfo.h"
++#include "SpellMgr.h"
++#include "SpellScript.h"
++
++namespace
++{
++enum SupportPaladinSpells : uint32
++{
++    SPELL_BEACON_OF_VIRTUE        = 1277680,
++    SPELL_BEACON_OF_VIRTUE_HEAL   = 1277681,
++    SPELL_BEACON_OF_VIRTUE_MARK   = 1277682,
++    SPELL_BEACON_OF_VIRTUE_AMOUNT = 1277684,
++    SPELL_BEACON_MASTERY          = 2600009
++};
++
++constexpr float BEACON_ALLY_RADIUS = 30.0f;
++constexpr float BEACON_HEAL_RANGE = 60.0f;
++constexpr uint32 BEACON_EXTRA_ALLIES = 4;
++constexpr int32 BEACON_MASTERY_BONUS_MS = 10000;
++
++std::vector<Unit*> MarkedAllies(Player* paladin, float range)
++{
++    std::list<Unit*> nearby;
++    Acore::AnyFriendlyUnitInObjectRangeCheck check(paladin, paladin, range);
++    Acore::UnitListSearcher<Acore::AnyFriendlyUnitInObjectRangeCheck> searcher(paladin, nearby, check);
++    Cell::VisitObjects(paladin, searcher, range);
++    nearby.push_back(paladin);
++
++    std::vector<Unit*> marked;
++    for (Unit* unit : nearby)
++        if (unit && unit->IsAlive() && unit->HasAura(SPELL_BEACON_OF_VIRTUE_MARK, paladin->GetGUID()) &&
++            std::find(marked.begin(), marked.end(), unit) == marked.end())
++            marked.push_back(unit);
++    return marked;
++}
++
++class spell_coa_beacon_of_virtue : public SpellScript
++{
++    PrepareSpellScript(spell_coa_beacon_of_virtue);
++
++    bool Validate(SpellInfo const* /*spellInfo*/) override
++    {
++        return ValidateSpellInfo({ SPELL_BEACON_OF_VIRTUE_HEAL, SPELL_BEACON_OF_VIRTUE_MARK, SPELL_BEACON_OF_VIRTUE_AMOUNT });
++    }
++
++    void ClearDefaultAura()
++    {
++        // The stock dummy aura (effect 1) carries no behaviour; the mark below is the real beacon.
++        if (Aura* aura = GetHitAura())
++            aura->Remove();
++    }
++
++    void ApplyBeacons()
++    {
++        Player* paladin = GetCaster() ? GetCaster()->ToPlayer() : nullptr;
++        Unit* target = GetExplTargetUnit();
++        if (!paladin || !target)
++            return;
++
++        for (Unit* previous : MarkedAllies(paladin, BEACON_HEAL_RANGE))
++            previous->RemoveAurasDueToSpell(SPELL_BEACON_OF_VIRTUE_MARK, paladin->GetGUID());
++
++        bool const mastery = paladin->HasAura(SPELL_BEACON_MASTERY);
++        uint32 const extra = BEACON_EXTRA_ALLIES + (mastery ? 1 : 0);
++
++        std::vector<Unit*> allies;
++        if (Group* group = paladin->GetGroup())
++        {
++            for (GroupReference* ref = group->GetFirstMember(); ref; ref = ref->next())
++                if (Player* member = ref->GetSource())
++                    if (member != target && member->IsInMap(target) && member->IsAlive() &&
++                        member->IsWithinDistInMap(target, BEACON_ALLY_RADIUS) && member->IsFullHealth() == false)
++                        allies.push_back(member);
++        }
++        else if (paladin != target && paladin->IsWithinDistInMap(target, BEACON_ALLY_RADIUS) && !paladin->IsFullHealth())
++            allies.push_back(paladin);
++
++        std::sort(allies.begin(), allies.end(), [](Unit const* left, Unit const* right)
++        {
++            return left->GetHealthPct() < right->GetHealthPct();
++        });
++        if (allies.size() > extra)
++            allies.resize(extra);
++        allies.insert(allies.begin(), target);
++
++        for (Unit* ally : allies)
++            if (Aura* mark = paladin->AddAura(SPELL_BEACON_OF_VIRTUE_MARK, ally))
++                if (mastery)
++                {
++                    mark->SetMaxDuration(mark->GetMaxDuration() + BEACON_MASTERY_BONUS_MS);
++                    mark->SetDuration(mark->GetMaxDuration());
++                }
++    }
++
++    void Register() override
++    {
++        AfterHit += SpellHitFn(spell_coa_beacon_of_virtue::ClearDefaultAura);
++        AfterCast += SpellCastFn(spell_coa_beacon_of_virtue::ApplyBeacons);
++    }
++};
++
++bool CopiesToBeacons(SpellInfo const* info)
++{
++    if (!info || info->SpellFamilyName != SPELLFAMILY_PALADIN || !info->SpellName[0])
++        return false;
++    std::string_view const name = info->SpellName[0];
++    return name == "Holy Light" || name == "Flash of Light";
++}
++
++class coa_beacon_of_virtue_transfer : public UnitScript
++{
++public:
++    coa_beacon_of_virtue_transfer() : UnitScript("coa_beacon_of_virtue_transfer", true, { UNITHOOK_MODIFY_HEAL_RECEIVED }) { }
++
++    // Unit::HealBySpell calls this as (caster, heal target, heal, spell).
++    void ModifyHealReceived(Unit* caster, Unit* healed, uint32& heal, SpellInfo const* spellInfo) override
++    {
++        Player* paladin = caster ? caster->ToPlayer() : nullptr;
++        if (!paladin || !healed || !heal || paladin->getClass() != CLASS_PALADIN || !CopiesToBeacons(spellInfo))
++            return;
++
++        SpellInfo const* amountInfo = sSpellMgr->GetSpellInfo(SPELL_BEACON_OF_VIRTUE_AMOUNT);
++        int32 const pct = amountInfo ? amountInfo->Effects[EFFECT_0].CalcValue() : 25;
++        int32 const copy = int32(CalculatePct(heal, pct));
++        if (copy <= 0)
++            return;
++
++        for (Unit* beacon : MarkedAllies(paladin, BEACON_HEAL_RANGE))
++            if (beacon != healed)
++                paladin->CastCustomSpell(SPELL_BEACON_OF_VIRTUE_HEAL, SPELLVALUE_BASE_POINT0, copy, beacon, true);
++    }
++};
++}
++
++void AddSC_AscensionSupportPaladin()
++{
++    RegisterSpellScript(spell_coa_beacon_of_virtue);
++    new coa_beacon_of_virtue_transfer();
++}

@@ -1,0 +1,19 @@
+--- a/Interface/FrameXML/MainMenuBarMicroButtons.lua
++++ b/Interface/FrameXML/MainMenuBarMicroButtons.lua
+@@ -60,9 +60,6 @@
+ end
+ 
+ function CheckUnspentEssences()
+-	if C_Player:IsDefaultClass() then
+-		return
+-	end
+ 	if TalentMicroButton.pulseOn == nil and not Collections:IsShown() then
+ 		if GetItemCount(ItemData.TALENT_ESSENCE) > 1 then
+ 			SetButtonPulse(TalentMicroButton, nil, 1)
+@@ -260,4 +257,4 @@
+ 	if ( event == "UPDATE_BINDINGS" ) then
+ 		self.tooltipText =  MicroButtonTooltipText(TALENTS_BUTTON, "TOGGLETALENTS");
+ 	end
+-end
++end
+\ No newline at end of file

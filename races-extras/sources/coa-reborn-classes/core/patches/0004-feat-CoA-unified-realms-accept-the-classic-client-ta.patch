@@ -1,0 +1,55 @@
+From 5eb7eae5984b05e9d8848d1db13bfce2b9dc917b Mon Sep 17 00:00:00 2001
+From: CoA Reborn Classes contributors <noreply@example.invalid>
+Date: Sun, 11 Oct 2026 10:51:34 +0900
+Subject: [PATCH 4/4] feat(CoA): unified realms accept the classic client
+ talent upload (automatic entries of every spec are ignored, not refused);
+ custom races get class-restricted starting weapon skills; Paladin tree
+ generator v6 + link tidy + residue audit
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+---
+ src/server/coa/AscensionCompat.cpp    | 9 +++++++++
+ src/server/game/Globals/ObjectMgr.cpp | 7 ++++++-
+ 2 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index d48443076c..ed5afa47bf 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -1956,6 +1956,15 @@ public:
+       }
+       if (item.Rank && entry->SpecId && entry->SpecId != targetSpec)
+       {
++        // Unified realms: the classic-class client treats its three talent tabs as one tree and uploads the
++        // level-granted automatic entries of every specialization. They cost nothing and are never stored
++        // (only the active specialization's ones are granted), so they are ignored instead of refusing the build.
++        if (UnifiedClassAdvancement() && !IsAscensionCustomClass(player) && !entry->AECost && !entry->TECost &&
++            !GetSelectableFreeGroup(entry->EntryId) &&
++            std::none_of(AscensionCompatData::CoASpecializations.begin(), AscensionCompatData::CoASpecializations.end(),
++                [entry](AscensionCompatData::CoASpecialization const& specialization)
++                { return specialization.IdentityEntryId == entry->EntryId; }))
++          continue;
+         refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "CA_LEARN_WRONG_CLASS", item.EntryId, item.Rank,
+                     "The uploaded build includes an entry of another specialization." };
+         return false;
+diff --git a/src/server/game/Globals/ObjectMgr.cpp b/src/server/game/Globals/ObjectMgr.cpp
+index b503e6359d..0782f47494 100644
+--- a/src/server/game/Globals/ObjectMgr.cpp
++++ b/src/server/game/Globals/ObjectMgr.cpp
+@@ -4633,7 +4633,12 @@ void ObjectMgr::LoadPlayerInfo()
+ 
+                 for (uint32 raceIndex = RACE_HUMAN; raceIndex < sRaceMgr->GetMaxRaces(); ++raceIndex)
+                 {
+-                    if (raceMask == 0 || ((1u << ((raceIndex - 1) & 31)) & raceMask))
++                    // CoA Custom races (any id outside the ten Wrath races) carry no racial weapon tradition: a skill row
++                    // restricted by class AND race (starting weapon skills) applies to them whatever its race mask says.
++                    // Race-only rows (languages, racials) keep the mask, and the Wrath races are not affected.
++                    bool const stockRace = raceIndex >= RACE_HUMAN && raceIndex <= RACE_DRAENEI && raceIndex != 9; // 9 = Goblin, a CoA Custom race
++                    bool const customRaceClassSkill = !stockRace && raceMask != 0 && classMask != 0;
++                    if (raceMask == 0 || customRaceClassSkill || ((1u << ((raceIndex - 1) & 31)) & raceMask))
+                     {
+                         for (uint32 classIndex = CLASS_WARRIOR; classIndex < MAX_CLASSES; ++classIndex)
+                         {
+-- 
+2.39.5
+

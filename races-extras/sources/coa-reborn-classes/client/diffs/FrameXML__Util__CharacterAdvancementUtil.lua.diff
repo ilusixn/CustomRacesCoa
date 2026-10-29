@@ -1,0 +1,21 @@
+--- a/Interface/FrameXML/Util/CharacterAdvancementUtil.lua
++++ b/Interface/FrameXML/Util/CharacterAdvancementUtil.lua
+@@ -708,6 +708,13 @@
+     if Enum.Class[classFile] and Enum.Class[classFile] >= Enum.Class.CustomStart then
+         return entry.PositionX, entry.PositionY
+     end
++
++    -- Local server (unified Character Advancement): classic classes use the CoA tree layout when
++    -- the entry carries one; entries without a layout keep the classic column/row grid.
++    local x, y = entry.PositionX, entry.PositionY
++    if x and y and (x ~= 0 or y ~= 0) then
++        return x, y
++    end
+     
+     return entry.Column, entry.Row
+ end
+@@ -1007,3 +1014,4 @@
+ 
+ ClassConversions.ClassFileToDBC = table.invert(ClassConversions.ClassDBCToFile)
+ ClassConversions.SpecFileToDBC = table.invert(ClassConversions.SpecDBCToFile)
++

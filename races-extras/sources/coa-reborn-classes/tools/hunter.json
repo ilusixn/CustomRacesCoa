@@ -1,0 +1,104 @@
+{
+ "out": "gera_hunter.py",
+ "label": "Hunter",
+ "classtype": 36,
+ "chrspecs_class": "HUNTER",
+ "essence_class": 3,
+ "new_base": 140400,
+ "tabs": [
+  [
+   4,
+   "BeastMastery"
+  ],
+  [
+   3,
+   "Marksmanship"
+  ],
+  [
+   2,
+   "Survival"
+  ]
+ ],
+ "display": {
+  "BeastMastery": "Beast Mastery"
+ },
+ "templates": {
+  "BeastMastery": "Venom",
+  "Marksmanship": "Stalking",
+  "Survival": "Vizier"
+ },
+ "keystones": {
+  "BeastMastery": [
+   "Scare Beast",
+   "Kill Command",
+   "Aspect of the Wild",
+   "Master's Call"
+  ],
+  "Marksmanship": [
+   "Rapid Fire",
+   "Steady Shot",
+   "Volley",
+   "Tranquilizing Shot"
+  ],
+  "Survival": [
+   "Mongoose Bite",
+   "Freezing Arrow",
+   "Snake Trap",
+   "Deterrence"
+  ]
+ },
+ "auto_deps": {
+  "Track Humanoids": "Track Beasts",
+  "Track Undead": "Track Beasts",
+  "Track Hidden": "Track Beasts",
+  "Track Elementals": "Track Beasts",
+  "Track Demons": "Track Beasts",
+  "Track Giants": "Track Beasts",
+  "Track Dragonkin": "Track Beasts",
+  "Launch Immolation Trap": "Immolation Trap",
+  "Trap Launcher: Immolation Trap": "Immolation Trap",
+  "Launch Explosive Trap": "Explosive Trap",
+  "Trap Launcher: Explosive Trap": "Explosive Trap"
+ },
+ "signature": {
+  "BeastMastery": 1153270,
+  "Marksmanship": 1153209,
+  "Survival": 1153301
+ },
+ "examples": {
+  "BeastMastery": [
+   1100883,
+   1134026,
+   1100136
+  ],
+  "Marksmanship": [
+   1119434,
+   1103044,
+   1134490
+  ],
+  "Survival": [
+   1103674,
+   1119386,
+   1119306
+  ]
+ },
+ "desc": {
+  "BeastMastery": "Bond with a loyal beast companion and fight side by side, growing stronger together in every battle.",
+  "Marksmanship": "A deadly archer who strikes from afar with precise, powerful shots that cut down foes before they close in.",
+  "Survival": "A cunning hunter who lays traps and fights with stings and explosives, surviving in any wilderness."
+ },
+ "baseline": [
+  "Auto Shot",
+  "Raptor Strike"
+ ],
+ "auto_deps_spell": {},
+ "trainer_only": [
+  "Tame Beast",
+  "Call Pet",
+  "Mend Pet",
+  "Dismiss Pet",
+  "Revive Pet",
+  "Eyes of the Beast",
+  "Call Stabled Pet"
+ ]
+}

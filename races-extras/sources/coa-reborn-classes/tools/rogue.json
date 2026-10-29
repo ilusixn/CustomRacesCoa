@@ -1,0 +1,79 @@
+{
+ "out": "gera_rogue.py",
+ "label": "Rogue",
+ "classtype": 38,
+ "chrspecs_class": "ROGUE",
+ "essence_class": 4,
+ "new_base": 140600,
+ "tabs": [
+  [
+   10,
+   "Assassination"
+  ],
+  [
+   8,
+   "Combat"
+  ],
+  [
+   9,
+   "Subtlety"
+  ]
+ ],
+ "templates": {
+  "Assassination": "Stalking",
+  "Combat": "Venom",
+  "Subtlety": "Fortitude"
+ },
+ "keystones": {
+  "Assassination": [
+   "Rupture",
+   "Deadly Poison",
+   "Envenom",
+   "Deadly Throw"
+  ],
+  "Combat": [
+   "Dismantle",
+   "Fan of Knives",
+   "Saber Slash",
+   "Shiv"
+  ],
+  "Subtlety": [
+   "Distract",
+   "Blind",
+   "Cloak of Shadows",
+   "Tricks of the Trade"
+  ]
+ },
+ "dup": [],
+ "signature": {
+  "Assassination": 1101329,
+  "Combat": 1151690,
+  "Subtlety": 1151713
+ },
+ "examples": {
+  "Assassination": [
+   1132645,
+   1151662,
+   1101943
+  ],
+  "Combat": [
+   1101752,
+   1151723,
+   1587522
+  ],
+  "Subtlety": [
+   1116511,
+   1136554,
+   1108676
+  ]
+ },
+ "desc": {
+  "Assassination": "A deadly master of poisons who strikes from the shadows, finishing weakened foes with lethal precision.",
+  "Combat": "A swashbuckler who relies on agility and relentless blows, outlasting any opponent in a straight fight.",
+  "Subtlety": "A master of stealth and deception who dances in the shadows, striking before the enemy can react."
+ },
+ "baseline": [
+  "Sinister Strike",
+  "Eviscerate"
+ ]
+}

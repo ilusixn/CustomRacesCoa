@@ -1,0 +1,215 @@
+From 4a289c1a5da7c421fab32318233305bba7a55f06 Mon Sep 17 00:00:00 2001
+From: CoA Reborn Classes contributors <noreply@example.invalid>
+Date: Sun, 11 Oct 2026 07:32:23 +0900
+Subject: [PATCH 2/4] =?UTF-8?q?feat(CoA):=20unified=20Character=20Advancem?=
+ =?UTF-8?q?ent=20=E2=80=94=20stock=20classes=20use=20the=20CoA=20talent=20?=
+ =?UTF-8?q?path=20on=20"coa=20wcr"=20realms=20(fase=201)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ src/server/coa/AscensionCoATalentData.cpp | 21 ++++++++---
+ src/server/coa/AscensionCompat.cpp        | 43 +++++++++++++++++------
+ src/server/coa/AscensionFreepick.cpp      |  4 +++
+ 3 files changed, 54 insertions(+), 14 deletions(-)
+
+diff --git a/src/server/coa/AscensionCoATalentData.cpp b/src/server/coa/AscensionCoATalentData.cpp
+index 224abfba0c..20412c1cdd 100644
+--- a/src/server/coa/AscensionCoATalentData.cpp
++++ b/src/server/coa/AscensionCoATalentData.cpp
+@@ -1,6 +1,7 @@
+ /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+ 
+ #include "AscensionCoATalentData.h"
++#include "AscensionFreepick.h"
+ #include "ClientDBC.h"
+ #include "DBCStores.h"
+ #include "ItemTemplate.h"
+@@ -113,6 +114,7 @@ struct AdvancementClassType
+ {
+     uint32 ClassId;
+     bool IsCustomClass;
++    bool IsStockClass;
+ };
+ }
+ 
+@@ -142,6 +144,10 @@ bool LoadCoATalentData()
+     CoASpecializations.clear();
+     CoATalentBudgets.clear();
+ 
++    // Unified Character Advancement: "coa wcr" realms load the stock classes too.
++    AscensionFreepick::Realm const classRealm = AscensionFreepick::ReadRealm();
++    bool const unified = classRealm.ConquestOfAzeroth && classRealm.WarcraftReborn;
++
+     ClientDBC classes, classTypes, tabTypes, specs, advancement, essence;
+     if (!classes.Load(GetClientDBCPath("ChrClasses.dbc"), 56) ||
+         !classTypes.Load(GetClientDBCPath("CharacterAdvancementClassTypes.dbc"), 5) ||
+@@ -156,7 +162,8 @@ bool LoadCoATalentData()
+         ClientDBC::Record record = essence.GetRecord(row);
+         uint32 const key = record.GetUInt32(ESSENCE_KEY);
+         uint32 const level = record.GetUInt32(ESSENCE_LEVEL);
+-        if (key < 12 || key > 32 || !level || level > 255)
++        bool const stockKey = key >= 1 && key <= 11 && key != 10;
++        if ((key < 12 || key > 32) && !(stockKey && unified) || !level || level > 255)
+             continue;
+         if (record.GetUInt32(ESSENCE_FLAGS) || record.GetUInt32(ESSENCE_FLAGS + 1) ||
+             record.GetUInt32(ESSENCE_FLAGS + 2) || record.GetUInt32(ESSENCE_FLAGS + 3))
+@@ -180,7 +187,8 @@ bool LoadCoATalentData()
+     for (uint32 row = 0; row < classTypes.GetRecordCount(); ++row)
+     {
+         ClientDBC::Record record = classTypes.GetRecord(row);
+-        classTypeById[record.GetUInt32(0)] = { record.GetUInt32(2), record.GetUInt32(4) != 0 };
++        classTypeById[record.GetUInt32(0)] = { record.GetUInt32(2), record.GetUInt32(4) != 0,
++            record.GetUInt32(5) != 0 };
+     }
+ 
+     std::unordered_map<uint32, std::string> tabTokens;
+@@ -210,8 +218,13 @@ bool LoadCoATalentData()
+         ClientDBC::Record record = advancement.GetRecord(row);
+         uint32 const entryId = record.GetUInt32(ADVANCEMENT_ID);
+         auto classType = classTypeById.find(record.GetUInt32(ADVANCEMENT_CLASS_TYPE));
+-        if (classType == classTypeById.end() || !classType->second.IsCustomClass ||
+-            classType->second.ClassId < 12 || classType->second.ClassId > 32)
++        if (classType == classTypeById.end())
++            continue;
++        bool const customType = classType->second.IsCustomClass &&
++            classType->second.ClassId >= 12 && classType->second.ClassId <= 32;
++        bool const stockType = unified && classType->second.IsStockClass &&
++            classType->second.ClassId >= 1 && classType->second.ClassId <= 11 && classType->second.ClassId != 10;
++        if (!customType && !stockType)
+             continue;
+ 
+         uint32 const classId = classType->second.ClassId;
+diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
+index f63ab864fc..d48443076c 100644
+--- a/src/server/coa/AscensionCompat.cpp
++++ b/src/server/coa/AscensionCompat.cpp
+@@ -592,6 +592,25 @@ bool IsAscensionCustomClass(Player const *player) {
+   return playerClass >= CLASS_BARBARIAN && playerClass <= CLASS_SPIRIT_MAGE;
+ }
+ 
++// Unified Character Advancement: when CoA.ClassModel lists both "coa" and "wcr", the
++// stock classes (1-9, 11) use the Conquest of Azeroth talent path (specializations,
++// slots, known-entry uploads) instead of the free-pick build of a Warcraft Reborn realm.
++bool UnifiedClassAdvancement() {
++  static bool const unified = [] {
++    AscensionFreepick::Realm const classRealm = AscensionFreepick::ReadRealm();
++    return classRealm.ConquestOfAzeroth && classRealm.WarcraftReborn;
++  }();
++  return unified;
++}
++
++bool IsCharacterAdvancementClass(Player const *player) {
++  if (IsAscensionCustomClass(player))
++    return true;
++  uint8 const playerClass = player->getClass();
++  return UnifiedClassAdvancement() && playerClass >= CLASS_WARRIOR && playerClass <= CLASS_DRUID &&
++         playerClass != CLASS_HERO;
++}
++
+ bool ReceivesClientRequests(Player const *player) {
+   return !player->GetSession()->IsBot();
+ }
+@@ -1392,11 +1411,12 @@ public:
+   }
+ 
+   void OnPlayerLogin(Player *player) {
+-    if (!IsAscensionCustomClass(player))
++    if (!IsCharacterAdvancementClass(player))
+     {
+       QueueCharacterAdvancementState(player);
+       return;
+     }
++    bool const customClass = IsAscensionCustomClass(player);
+ 
+     uint32 const specializationId = player->GetPlayerSetting(ASCENSION_ACTIVE_SPEC_SETTING, 0).value;
+     if (specializationId)
+@@ -1409,9 +1429,12 @@ public:
+         stored && stored->size() > 1 && (*stored)[0].value && (*stored)[1].value != player->getClass())
+       ClearSlots(player);
+     player->learnSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[0]);
+-    SynchronizeProgression(player);
+-    SynchronizeProficiencies(player);
+-    RepairStarterKit(player, false);
++    if (customClass)
++    {
++      SynchronizeProgression(player);
++      SynchronizeProficiencies(player);
++      RepairStarterKit(player, false);
++    }
+     QueueCharacterAdvancementState(player);
+ 
+     CharacterDatabasePreparedStatement* actionsStmt =
+@@ -1585,7 +1608,7 @@ public:
+     WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_ACTIVE_SPEC, sizeof(uint32) * 2);
+     bool const wildcard = AscensionWildcard::IsWildcardHero(player);
+     packet << (wildcard ? AscensionWildcard::ActiveSpec(player) : ActiveSlot(player))
+-           << uint32(wildcard || IsAscensionCustomClass(player) || AscensionFreepick::IsFreepickHero(player) ?
++           << uint32(wildcard || IsCharacterAdvancementClass(player) || AscensionFreepick::IsFreepickHero(player) ?
+         AscensionWildcard::SPECIALIZATION_COUNT : 1);
+     player->GetSession()->SendPacket(&packet);
+ 
+@@ -2115,7 +2138,7 @@ public:
+       _pendingTalentRequests.erase(itr);
+     }
+ 
+-    if (!IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
++    if (!IsCharacterAdvancementClass(player) && !AscensionWildcard::IsWildcardHero(player) &&
+         !AscensionFreepick::HasFreepickBuild(player))
+       return;
+     for (TalentRequest const& request : requests)
+@@ -2337,7 +2360,7 @@ public:
+   bool SwitchSpecialization(Player* player, uint32 specializationId, std::string* refusal = nullptr,
+                             bool restoreStoredBuild = true)
+   {
+-    if (!IsAscensionCustomClass(player) || (!specializationId && restoreStoredBuild))
++    if (!IsCharacterAdvancementClass(player) || (!specializationId && restoreStoredBuild))
+       return false;
+ 
+     bool validSpecialization = std::any_of(
+@@ -2469,7 +2492,7 @@ public:
+ 
+     void SaveSlot(Player* player)
+     {
+-        if (IsAscensionCustomClass(player) && !AscensionWildcard::IsWildcardHero(player))
++        if (IsCharacterAdvancementClass(player) && !AscensionWildcard::IsWildcardHero(player))
+             StoreSlot(player, ActiveSlot(player), LiveSlot(player, GetActiveSpecialization(player)));
+     }
+ 
+@@ -2512,7 +2535,7 @@ public:
+ 
+     bool SwitchSlot(Player* player, uint32 index, std::string& error)
+     {
+-        if (!IsAscensionCustomClass(player) || AscensionWildcard::IsWildcardHero(player) ||
++        if (!IsCharacterAdvancementClass(player) || AscensionWildcard::IsWildcardHero(player) ||
+             index >= AscensionWildcard::SPECIALIZATION_COUNT ||
+             !player->HasSpell(AscensionWildcard::SPECIALIZATION_SWAP_SPELLS[index]))
+         {
+@@ -9507,7 +9530,7 @@ bool IsAscensionPrimalistWeaponsEligible(Player const* player, bool allowUnconfi
+ 
+ uint32 GetAscensionActiveSpecialization(Player const* player)
+ {
+-    if (!player || !IsAscensionCustomClass(player))
++    if (!player || !IsCharacterAdvancementClass(player))
+         return 0;
+ 
+     if (uint32 const active = AscensionClassService::Instance().GetActiveSpecialization(player))
+diff --git a/src/server/coa/AscensionFreepick.cpp b/src/server/coa/AscensionFreepick.cpp
+index 21212d8852..409a8b06ca 100644
+--- a/src/server/coa/AscensionFreepick.cpp
++++ b/src/server/coa/AscensionFreepick.cpp
+@@ -259,6 +259,10 @@ bool IsFreepickHero(Player const* player)
+ 
+ bool IsRebornCharacter(Player const* player)
+ {
++    // On a realm that serves both models ("coa wcr") the stock classes use the Conquest
++    // of Azeroth Character Advancement path, not the free-pick build of a Reborn realm.
++    if (CurrentRealm.ConquestOfAzeroth)
++        return false;
+     uint8 const classId = player->getClass();
+     return Reborn && classId >= CLASS_WARRIOR && classId <= CLASS_DRUID && classId != CLASS_HERO;
+ }
+-- 
+2.39.5
+

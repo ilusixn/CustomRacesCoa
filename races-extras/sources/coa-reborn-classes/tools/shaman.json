@@ -1,0 +1,89 @@
+{
+ "out": "gera_shaman.py",
+ "label": "Shaman",
+ "classtype": 43,
+ "chrspecs_class": "SHAMAN",
+ "essence_class": 7,
+ "new_base": 141200,
+ "tabs": [
+  [
+   23,
+   "Elemental"
+  ],
+  [
+   24,
+   "Enhancement"
+  ],
+  [
+   20,
+   "Restoration"
+  ]
+ ],
+ "templates": {
+  "Elemental": "Venom",
+  "Enhancement": "Stalking",
+  "Restoration": "Vizier"
+ },
+ "keystones": {
+  "Elemental": [
+   "Chain Lightning",
+   "Magma Totem",
+   "Lava Burst",
+   "Fire Elemental Totem"
+  ],
+  "Enhancement": [
+   "Windfury Weapon",
+   "Windfury Totem",
+   "Wind Lash",
+   "Earth Elemental Totem"
+  ],
+  "Restoration": [
+   "Lesser Healing Wave",
+   "Mana Spring Totem",
+   "Earthliving Weapon",
+   "Chain Heal"
+  ]
+ },
+ "auto_deps": {
+  "Call of the Ancestors": "Call of the Elements",
+  "Call of the Spirits": "Call of the Elements",
+  "Fire Resistance Totem": "Frost Resistance Totem",
+  "Nature Resistance Totem": "Frost Resistance Totem",
+  "Heroism": "Bloodlust",
+  "Water Walking": "Water Breathing",
+  "Totemic Projection": "Totemic Recall",
+  "Frostbrand Weapon": "Flametongue Weapon",
+  "Stoneclaw Totem": "Stoneskin Totem"
+ },
+ "signature": {
+  "Elemental": 1151490,
+  "Enhancement": 1151533,
+  "Restoration": 1161295
+ },
+ "examples": {
+  "Elemental": [
+   1100403,
+   1108050,
+   1130706
+  ],
+  "Enhancement": [
+   1160103,
+   1130823,
+   1108232
+  ],
+  "Restoration": [
+   1100974,
+   1100331,
+   1101064
+  ]
+ },
+ "desc": {
+  "Elemental": "Command the fury of the elements, calling down lightning and lava to scorch and shatter your enemies.",
+  "Enhancement": "Channel elemental power into your weapons, striking with storm-charged blows alongside spirit wolves.",
+  "Restoration": "Heal allies with the soothing waters of life, guarding them with shields of earth and healing totems."
+ },
+ "baseline": [
+  "Healing Wave",
+  "Lightning Bolt"
+ ]
+}
