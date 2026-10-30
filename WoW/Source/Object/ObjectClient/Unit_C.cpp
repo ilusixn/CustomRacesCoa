@@ -4124,7 +4124,7 @@ namespace KyrianFlightAnimation {
 
 bool CGUnit_C::UsesNativeKyrianFlightModel(CM2Model* model) const {
     CM2Model* body = this->GetObjectModel();
-    return (this->m_obj->m_type & TYPE_PLAYER) && this->m_unit->m_unitFieldBytes0[0] == 60 &&
+    return (this->m_obj->m_type & TYPE_PLAYER) && this->m_unit->m_unitFieldBytes0[0] == 107 && // Kyrian
         this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid &&
         !this->IsMounted() && !(this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) &&
         body && (!model || model == body) && body->IsLoaded(0, 0);
@@ -4280,7 +4280,7 @@ void CGUnit_C::UpdateKyrianTakeoffLift(uint32_t time) {
 
 bool CGUnit_C::UsesNativeVenthyrHoverModel(CM2Model* model) const {
     CM2Model* body = this->GetObjectModel();
-    return (this->m_obj->m_type & TYPE_PLAYER) && this->m_unit->m_unitFieldBytes0[0] == 61 &&
+    return (this->m_obj->m_type & TYPE_PLAYER) && this->m_unit->m_unitFieldBytes0[0] == 101 && // Venthyr
         this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid &&
         !this->IsMounted() && !(this->m_vehiclePassenger && this->m_vehiclePassenger->m_state) &&
         body && (!model || model == body) && body->IsLoaded(0, 0);
@@ -4327,7 +4327,7 @@ uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
     // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7177F9) -- 506 is the loaded AnimationData row count.
     CM2Model* venthyrModel = model ? model : this->GetObjectModel();
     const bool venthyrPlayer = (this->m_obj->m_type & TYPE_PLAYER)
-        && this->m_unit->m_unitFieldBytes0[0] == 61 && !this->IsMounted()
+        && this->m_unit->m_unitFieldBytes0[0] == 101 && !this->IsMounted()
         && !(this->m_vehiclePassenger && this->m_vehiclePassenger->m_state);
     if (this->UsesNativeVenthyrHoverModel(venthyrModel)
         && this->HasAuraBySpellId(111207)
@@ -4936,7 +4936,7 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         // displacement would accelerate their run to 1.68x at normal speed.
         // Use player world speed for cadence without compensating body scale.
         const auto race = this->m_unit->m_unitFieldBytes0[0];
-        if ((this->m_obj->m_type & TYPE_PLAYER) && (race == 60 || race == 61) &&
+        if ((this->m_obj->m_type & TYPE_PLAYER) && (race == 107 || race == 101) &&
             this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid &&
             (anim == ANIM_RUN || anim == ANIM_WALK))
             speed = this->m_movementData.GetBaseSpeed(0) / (anim == ANIM_RUN ? 7.0f : 2.5f) * (anim == ANIM_RUN ? 0.8f : 1.0f);

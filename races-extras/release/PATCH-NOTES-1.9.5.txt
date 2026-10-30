@@ -1,0 +1,45 @@
+CoA Custom 1.9.5 (x64 client, test build)
+=========================================
+Complete package: this release alone is enough (Server + Client-1 .. Client-9). Nothing from 1.9.2 / 1.9.3 is needed.
+
+CHANGED SINCE 1.9.4
+- Slime Giant: only the chest piece shows (upper torso, shoulders, upper arms, now the whole torso); no other armor slot is drawn.
+- Gnoll: new active racial "Scavenger" (a Cannibalize copy, with the eating animation). The old passive Scavenger (+5 Skinning)
+  is renamed "Skinner" (also in the creator tooltip).
+- Gnoll Savage Bite plays Rip; Kyrian / Venthyr flight and hover use the new race ids (107 / 101), so Ascended Hover animates.
+- Racials that had no cast animation or effect now have the matching stock one (Cannibalize, Ingest Minerals, Echo of the Naaru,
+  Draconic / Ascendant Charge, Embrace of the Loa, Crimson Thirst).
+- Dracthyr / Worgen: the form look saved by the player is shown on the character screen, also in the non-default form.
+- Body shape: bones outside the model are skipped (heap-overrun guard).
+- Server: worldserver.exe has the Gnoll Scavenger; SQL 16_1.9.5_x64.sql (idempotent) includes everything from 1.9.4.
+
+FIXED (1.9.4)
+- Worgen "Two Forms" and Dracthyr "Visage" now switch form in the world. The look / form / body-shape packets used opcodes
+  the client dropped; they are now 0x575 - 0x577 (client and server both changed).
+- Dracthyr / Worgen keep their creator customisation and the Dracthyr armour comes back (same cause).
+- Clicking a Worgen or Dracthyr on the character screen no longer corrupts the heap (a raw 32-bit resize command ran on the
+  selected character; the stage scale is now applied natively for every race).
+- Oversized races (Centaur, Vrykul, Faceless One, Dracthyr, Venthyr, Kyrian) are scaled to fit the creator, the character
+  screen and the enter-world screen, without zooming the camera.
+- Tuskarr male: the model had animation tracks that pointed past its .anim files and crashed the client. The earlier model is back
+  (patch-ZZZZE.MPQ); the sheathing animation of that rebuild is gone.
+- Ranged weapons no longer need ammo on the client either (the server already ignored it): Starcaller and every other class can shoot.
+- Body sliders: closing the in-world Body panel without Save restores the saved sliders (the one-second auto-save is gone);
+  leaving the creator drops them; a character created with sliders keeps them.
+- The client no longer crashes on exit (archive close guarded) and ignores textures with an invalid format.
+
+NEW
+- No more "Retail: acquiring missing data": every Retail file the Worgen and Dracthyr need (both forms, every customisation
+  choice, their animations) is shipped in Client-7 .. Client-9 (Data\Retail\Cache). No download from Blizzard's CDN for these races.
+- Tool: CdnAssetDownload (Tools/RetailAssets) prefetches a retail race's files into that cache.
+- Tool in the repo (not shipped): tools/crashcatch.cpp runs the game under a debugger and writes the stack of a crash to CrashCatch.txt.
+
+KNOWN ISSUES (test build)
+- The client can still crash sometimes in the creator (heap corruption); CrashCatch is there to find it.
+- Barber shop, customize and faction change do not save the Retail look yet (creation does).
+- Saberon bots: white armor. Alpha Worgen has no Retail mapping yet. Arakkoa male look is being checked.
+
+CREDITS
+Jealous-Sound, AzerothCore, SQUID / Zyth45, Corfirean, Kalibros (Wardens of Wen), Dex, Westen, Uncle Snowzo, Yami, FrolickingFauns,
+Furioz / Eunoia, Furioz420, Dokman / WXL, Medviten, Project Reforged, Sirus, romaindnd89-cmd, Project Ascension, ilusixn.
+Details: CREDITS.md in the CoA64 repo.

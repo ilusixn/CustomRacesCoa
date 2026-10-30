@@ -541,6 +541,8 @@ void CCharacterSelection::ShowCharacter() {
 
         CoA::Esteria::SelectExtra(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component); // CoA: EsteriaSelectExtra (orig patch 0x4E3E74)
         CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->Init(&data, nullptr);
+        // The first apply (SelectExtra, above) runs before the component has a model; a saved look, including the form the character logged out in, needs one.
+        if (retailModel) RetailRaceApplyLookTo(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component, info.m_guid.m_guid, true);
 
         CM2Model* characterModel = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model;
         characterModel->m_lightingCallback = &CCharacterSelection::GenericLightingCallback;
