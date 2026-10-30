@@ -1940,6 +1940,7 @@ bool ApplyLook(CCharacterComponent* character, const CharacterRetailLook::Look& 
         g_form[character] = look.form;
         ResetGeosets(character);
     }
+    Log("apply look: component %p race %u sex %u form %u options %u", static_cast<void*>(character), unsigned(prefs.m_raceID), unsigned(prefs.m_sexID), unsigned(look.form), unsigned(look.count));
     const std::vector<OptionInfo>& options = OptionsFor(retail, prefs.m_sexID, look.form);
     std::vector<uint32_t>& state = g_state[character];
     state.resize(options.size(), UINT32_MAX);

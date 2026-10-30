@@ -5671,6 +5671,8 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
 
     // Weapon/shield models use AddHandItem separately; keep all equipped item state for the other form.
     if (RetailRaceHidesArmor(this)) return;
+    // CoA: the Slime Giant (race 104) only wears a chest piece; helm, shoulders, shirt, belt, legs, boots, bracers, gloves, tabard and cape stay bare.
+    if (this->m_data.m_preferences.m_raceID == 104 && itemSlot != ITEMSLOT_CHEST) return;
 
     switch (itemSlot) {
         case ITEMSLOT_HEAD:
@@ -5721,6 +5723,11 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
             }
 
             for (int32_t section = 0; section < 8; section++) {
+                // CoA: the Slime Giant (race 104) shows armor on the whole torso and the shoulder / upper arm only (sections 3, 4 and 0).
+                if (this->m_data.m_preferences.m_raceID == 104 && section != 0 && section != 3 && section != 4) {
+                    continue;
+                }
+
                 if (*displayRec->m_texture[section] && s_itemPriority[itemSlot][section] != -1) {
                     (this->*CCharacterComponent::m_itemFunc[section])(itemSlot, displayRec, true);
                 }

@@ -606,6 +606,9 @@ inline void Apply(CM2Model* model, const Values& vals, const bool twistSet[2], c
                 flags = ProcedurallyDriven;
             }
         }
+        if (index >= model->GetBoneCount()) {
+            continue; // an index of another model's bones must never reach this one
+        }
         model->SetBoneProceduralTransformByIndex(index, matrix);
         model->SetBoneFlagsByIndex(index, flags, ProcedurallyDriven | BindAxisScale);
         s.applied.insert(index);
@@ -616,6 +619,10 @@ inline void Apply(CM2Model* model, const Values& vals, const bool twistSet[2], c
         auto w = wanted.find(*it);
         if (w != wanted.end() && !Neutral(w->second)) {
             ++it;
+            continue;
+        }
+        if (*it >= model->GetBoneCount()) {
+            it = s.applied.erase(it);
             continue;
         }
         bool twisted = (*it == twistIndex[0] && twistSet[0]) || (*it == twistIndex[1] && twistSet[1]);
