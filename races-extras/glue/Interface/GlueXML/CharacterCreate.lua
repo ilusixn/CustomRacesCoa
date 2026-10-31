@@ -4423,9 +4423,9 @@ do
 		b:SetSize(110, 30)
 		b:SetFrameLevel((CharacterCreateFrame or CharacterCreate):GetFrameLevel() + 5)
 		b:SetPoint("TOP", CharacterCreateFrame or CharacterCreate, "TOP", x, -56)
-		b:SetNormalTexture("Interface\Buttons\UI-DialogBox-Button-Up")
-		b:SetPushedTexture("Interface\Buttons\UI-DialogBox-Button-Down")
-		b:SetHighlightTexture("Interface\Buttons\UI-Common-MouseHilight", "ADD")
+		b:SetNormalTexture("Interface\\Buttons\\UI-DialogBox-Button-Up")
+		b:SetPushedTexture("Interface\\Buttons\\UI-DialogBox-Button-Down")
+		b:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
 		b.label = b:CreateFontString(nil, "ARTWORK", "GlueFontNormalSmall")
 		b.label:SetPoint("CENTER", b, "CENTER", 0, 2)
 		b:SetScript("OnClick", function() PlaySound("gsCharacterCreationLook") onClick() end)
@@ -4446,6 +4446,7 @@ do
 			both = Tab("CoAFormBoth", "TOP", 120, function()
 				local _, on = pcall(CycleCharCustomization, "EA_FORM_DUAL", 2)
 				pcall(CycleCharCustomization, "EA_FORM_DUAL", on == 1 and 0 or 1)
+				pcall(Update)
 			end)
 			both.label:SetText("BOTH")
 		end
@@ -4461,7 +4462,13 @@ do
 				tabs[index]:Hide()
 			end
 		end
-		if show then both:Show() else both:Hide() end
+		if show then
+			local _, on = pcall(CycleCharCustomization, "EA_FORM_DUAL", 2)
+			if on == 1 then both.label:SetTextColor(1, 1, 1) else both.label:SetTextColor(1, 0.82, 0) end
+			both:Show()
+		else
+			both:Hide()
+		end
 	end
 	local refresh = COA_EsteriaRefresh
 	function COA_EsteriaRefresh(...)
@@ -4769,6 +4776,10 @@ do
 		end
 		loaded = true
 		ParseHidden(ReadCVar(CVAR1)..ReadCVar(CVAR2), saved)
+		local okFile, fileText = pcall(CycleCharCustomization, "EA_HIDE_RACES", 1)   -- CoAHiddenRaces.txt: survives a restart
+		if okFile then
+			ParseHidden(fileText, saved)
+		end
 		if C_Config and C_Config.GetStringConfig then
 			local ok, extra = pcall(C_Config.GetStringConfig, CVAR1)
 			if ok then
@@ -4814,6 +4825,7 @@ do
 			if s ~= '' then s = s..'|' end
 			s = s..table.concat(names, '|')
 		end
+		pcall(CycleCharCustomization, "EA_HIDE_RACES", 0, s)
 		WriteCVar(CVAR1, s:sub(1, 240))
 		WriteCVar(CVAR2, s:sub(241, 480))
 	end

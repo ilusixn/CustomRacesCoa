@@ -532,6 +532,34 @@ int EsteriaCycle(void* state)
         pushNumber(state, row[0x17A]);
         return 2;
     }
+    if (std::strcmp(command, "EA_HIDE_RACES") == 0)
+    {
+        // The creator's "Hide Races" list lives in a text file (a CVar made in the glue Lua is not written to Config.wtf).
+        // EA_HIDE_RACES(1): returns the saved text; EA_HIDE_RACES(0, text): stores it.
+        auto const* path = "CoAHiddenRaces.txt";
+        if (number(state, 2) == 0)
+        {
+            char const* text = getTop(state) >= 3 ? string(state, 3, nullptr) : nullptr;
+            if (FILE* file = std::fopen(path, "wb"))
+            {
+                if (text)
+                    std::fwrite(text, 1, std::strlen(text), file);
+                std::fclose(file);
+            }
+            return 0;
+        }
+        std::string text;
+        if (FILE* file = std::fopen(path, "rb"))
+        {
+            char buffer[512];
+            size_t count;
+            while ((count = std::fread(buffer, 1, sizeof(buffer), file)) > 0 && text.size() < 4096)
+                text.append(buffer, count);
+            std::fclose(file);
+        }
+        lua_pushstring(static_cast<lua_State*>(state), text.c_str());
+        return 1;
+    }
     if (std::strcmp(command, "EA_BODY_SAVE") == 0)
     {
         CoA::Esteria::BodySliders::SavePending();
@@ -1636,6 +1664,12 @@ namespace
             KvBansheeBind(character);
         if (RaceOf(CC<unsigned>(character, 0x18)) == 78)
             KvFacelessBind(character);
+        // Sylvari: a robe is only paint on the legs; the skirt mesh (geoset 1302) never shows.
+        if (RaceOf(CC<unsigned>(character, 0x18)) == 74)
+        {
+            CC<unsigned>(character, 0x144 + 13 * 4) = 1301;
+            N_82C7C0(instance, 1302, 1302, 0);
+        }
         // Some source-hidden groups have no customization selector. Apply their hide after all selections.
         for (unsigned group = 0; group < 52; ++group)
             if (helmetGroups & (std::uint64_t{1} << group))

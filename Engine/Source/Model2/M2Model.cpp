@@ -72,6 +72,8 @@ struct AttachmentFrame {
     float scale;
 };
 std::map<const CM2Model*, AttachmentFrame> s_attachmentFrames;
+struct AttachmentRoll { float angle; int axis; };
+std::map<const CM2Model*, AttachmentRoll> s_attachmentRolls;   // attachment child -> extra turn (radians) about the socket's forward axis
 
 void ClearSkinParents(CM2Model* model) {
     std::lock_guard<std::mutex> lock(s_skinParentMutex);
@@ -79,6 +81,7 @@ void ClearSkinParents(CM2Model* model) {
         if (it->first == model || it->second.parent == model) it = s_skinParents.erase(it);
         else ++it;
     }
+    s_attachmentRolls.erase(model);
     for (auto it = s_attachmentFrames.begin(); it != s_attachmentFrames.end();) {
         if (it->first == model || it->second.parent == model) it = s_attachmentFrames.erase(it);
         else ++it;
@@ -5190,6 +5193,15 @@ void CM2Model::AnimateAttachmentsMT() {
             M2Attachment* attachment = &this->m_shared->m_data->m_attachments[child->m_attachmentIndex];
             matrix = this->m_boneMatrices[attachment->m_bone];
             matrix.Translate(attachment->m_position);
+            {
+                std::lock_guard<std::mutex> lock(s_skinParentMutex);
+                const auto roll = s_attachmentRolls.find(child);
+                if (roll != s_attachmentRolls.end()) {
+                    if (roll->second.axis == 0) matrix.RotateAroundX(roll->second.angle);
+                    else if (roll->second.axis == 1) matrix.RotateAroundY(roll->second.angle);
+                    else matrix.RotateAroundZ(roll->second.angle);
+                }
+            }
         }
 
         ApplyAttachmentFrame(child, this, matrix);
@@ -8390,6 +8402,11 @@ bool CM2Model::CopyAttachmentFrameFrom(const CM2Model* source) {
         frame = found->second;
     }
     return this->SetAttachmentFrame(frame.bone, frame.position, frame.scale);
+}
+
+void M2SetAttachmentRoll(CM2Model* child, float radians, int axis) {
+    std::lock_guard<std::mutex> lock(s_skinParentMutex);
+    s_attachmentRolls[child] = AttachmentRoll{radians, axis};
 }
 
 bool CM2Model::SetAttachmentFrame(uint32_t bone, const C3Vector& position, float scale) {
