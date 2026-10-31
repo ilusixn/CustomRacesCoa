@@ -1,3 +1,10 @@
+PACKAGE REFRESHED 2026-10-31 01:55 (same version 1.9.5: Server and Client-6 replaced, Client-1..5 and 7..9 unchanged;
+re-download Server + Client-6 if you installed 1.9.5 before this time)
+- Creator: the Both button of the Two Forms row lights up when on; the form buttons got their images back.
+- Creator: the Hide Races list is kept in CoAHiddenRaces.txt, so it survives a restart.
+- Sylvari: a robe is only paint on the legs, the skirt mesh is hidden.
+- Kyrian right shoulder armor still hangs upside down (a fix is being tried; Kyrian_shoulder.txt next to CoA64.exe is read for it).
+
 CoA Custom 1.9.5 (x64 client, test build)
 =========================================
 Complete package: this release alone is enough (Server + Client-1 .. Client-9). Nothing from 1.9.2 / 1.9.3 is needed.

@@ -64,6 +64,8 @@
 
 namespace app = Retail::Db2::appearance;
 
+void M2SetAttachmentRoll(CM2Model* child, float radians, int axis);   // M2Model.cpp
+
 namespace {
 
 // Diagnostics: Logs\RetailRace.log, one line per notable step with a millisecond tick.
@@ -1072,6 +1074,20 @@ void FitLegacyHelmet(CCharacterComponent* character) {
         donorPath, crown.x, crown.y, crown.z);
 }
 
+// The Kyrian's right shoulder socket (attachment 5) is mirrored in the model, so its pauldron hangs upside down: turn it over.
+void FitKyrianShoulders(CCharacterComponent* character) {
+    if (character->m_data.m_preferences.m_raceID != 107) return;
+    CM2Model* parent = character->m_data.m_model;
+    if (!parent) return;
+    // Kyrian_shoulder.txt next to the exe: "<attachment 5|6> <axis x|y|z> <degrees>" (default 5 x 180), to try turns without a rebuild.
+    int id = 5, axis = 0; float deg = 180.f;
+    if (FILE* f = fopen("Kyrian_shoulder.txt", "r")) { char a = 'x'; if (fscanf(f, "%d %c %f", &id, &a, &deg) == 3) axis = a == 'y' ? 1 : a == 'z' ? 2 : 0; fclose(f); }
+    for (CM2Model* child = parent->m_attachList; child; child = child->m_attachNext)
+        Log("kyrian attach child id %u index %u (turning id %d axis %d deg %.0f)", unsigned(child->m_attachmentId), unsigned(child->m_attachmentIndex), id, axis, deg);
+    for (CM2Model* child = parent->m_attachList; child; child = child->m_attachNext)
+        if (child->m_attachmentId == id) M2SetAttachmentRoll(child, deg * 3.14159265f / 180.f, axis);
+}
+
 void FitCentaurShoulders(CCharacterComponent* character) {
     if (!Retail::Centaur::Race(character->m_data.m_preferences.m_raceID)) return;
     CM2Model* parent = character->m_data.m_model;
@@ -1493,6 +1509,7 @@ void RetailRaceEquipment(CCharacterComponent* character) {
     Retail::ApplyRaceEyeGeometry(*model, RetailRaceEyeLightning(character));
     FitLegacyHelmet(character);
     FitCentaurShoulders(character);
+    FitKyrianShoulders(character);
     if (Retail::SlimeGiant::Race(character->m_data.m_preferences.m_raceID) ||
         Retail::Centaur::Race(character->m_data.m_preferences.m_raceID) ||
         Retail::Ethereal::Race(character->m_data.m_preferences.m_raceID)) FinishCollections(character, true);
@@ -2061,6 +2078,7 @@ void RetailRaceTick() {
         if (SyncBodyModel(character) || lookChanged) Refresh(character);
         FitLegacyHelmet(character);
         FitCentaurShoulders(character);
+        FitKyrianShoulders(character);
         FinishCollections(character);
         if (inWorld) character->Prep();
     }
