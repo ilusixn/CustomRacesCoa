@@ -1,4 +1,4 @@
-> ## CoA Custom: extra races, vanilla classes, more incarnations (x64 client)
+> ## CoA Custom: extra races, vanilla classes, more incarnations
 > This is the x64 build of **CoA Custom** for the Jealous-Sound CoA repack updated to CoA Bots: extra playable races
 > including Murloc, every race x every class, the classic classes next to the CoA classes, more Wardrobe incarnations,
 > and random bots that play the extra races too. This repo adds the x64 client (`CoA64.exe`) with Retail Worgen and
