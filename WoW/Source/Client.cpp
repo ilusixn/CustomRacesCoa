@@ -1414,8 +1414,9 @@ static void OpenArchives() {
 
     int32_t priority = 64;
     uint32_t slot = 0;
-    // CoA: Ascension.exe patch 0x405E2F (and the chunk clamp in 0x5D0040) -- room for 127 archive handles
-    s_archiveHandles.SetCount(127);
+    // CoA: Ascension.exe patch 0x405E2F (and the chunk clamp in 0x5D0040). 1.9.6 opens the HD archives plus
+    // patch-ZZZZS/T/W; 127 handles were no longer enough and overflowed the array during startup.
+    s_archiveHandles.SetCount(512);
 
     for (uint32_t i = patches.m_files.Count(); i; i--) {
         if (SFile::OpenArchive(patches.m_files[i - 1], priority, 0xC00, &s_archiveHandles[slot])) {
