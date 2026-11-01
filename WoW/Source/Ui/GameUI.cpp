@@ -3576,7 +3576,7 @@ void OnItemPushResult(WOWGUID guid, uint8_t bag, uint32_t slot, uint32_t itemId,
             }
         }
 
-        uint32_t slots = s_inventoryTypeSlots[stats->m_inventoryType];
+        uint32_t slots = InventoryTypeSlotMask(stats->m_inventoryType);
 
         for (uint32_t i = 0; i < 23; i++) {
             if (((1 << i) & slots) && IsTutorialFlagged(55)) {
