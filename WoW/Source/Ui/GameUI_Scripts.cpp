@@ -2711,7 +2711,7 @@ static int32_t Script_GetItemInfo(lua_State* L) {
     }
 
     lua_pushnumber(L, stats->m_stackable);
-    lua_pushstring(L, s_inventoryTypeTokens[stats->m_inventoryType]);
+    lua_pushstring(L, stats->m_inventoryType >= 0 && stats->m_inventoryType < 29 ? s_inventoryTypeTokens[stats->m_inventoryType] : "");
     const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     const char* separator = *path ? "\\" : "";
     char texture[260];

@@ -220,6 +220,10 @@ static const char* s_colorStrings[4] = { "|cffffffff", "|cff808080", "|cffff2020
 // STATIC: 0x00AC7FD8
 const char* s_inventoryTypeTokens[29] = { "", "INVTYPE_HEAD", "INVTYPE_NECK", "INVTYPE_SHOULDER", "INVTYPE_BODY", "INVTYPE_CHEST", "INVTYPE_WAIST", "INVTYPE_LEGS", "INVTYPE_FEET", "INVTYPE_WRIST", "INVTYPE_HAND", "INVTYPE_FINGER", "INVTYPE_TRINKET", "INVTYPE_WEAPON", "INVTYPE_SHIELD", "INVTYPE_RANGED", "INVTYPE_CLOAK", "INVTYPE_2HWEAPON", "INVTYPE_BAG", "INVTYPE_TABARD", "INVTYPE_ROBE", "INVTYPE_WEAPONMAINHAND", "INVTYPE_WEAPONOFFHAND", "INVTYPE_HOLDABLE", "INVTYPE_AMMO", "INVTYPE_THROWN", "INVTYPE_RANGEDRIGHT", "INVTYPE_QUIVER", "INVTYPE_RELIC" };
 
+static const char* InventoryTypeToken(int32_t type) {
+    return type >= 0 && type < 29 ? s_inventoryTypeTokens[type] : "";
+}
+
 // STATIC: 0x00AD6640
 const char* s_itemModTokens[49] = { "ITEM_MOD_MANA", "ITEM_MOD_HEALTH", "", "ITEM_MOD_AGILITY", "ITEM_MOD_STRENGTH", "ITEM_MOD_INTELLECT", "ITEM_MOD_SPIRIT", "ITEM_MOD_STAMINA", "", "", "", "", "ITEM_MOD_DEFENSE_SKILL_RATING", "ITEM_MOD_DODGE_RATING", "ITEM_MOD_PARRY_RATING", "ITEM_MOD_BLOCK_RATING", "ITEM_MOD_HIT_MELEE_RATING", "ITEM_MOD_HIT_RANGED_RATING", "ITEM_MOD_HIT_SPELL_RATING", "ITEM_MOD_CRIT_MELEE_RATING", "ITEM_MOD_CRIT_RANGED_RATING", "ITEM_MOD_CRIT_SPELL_RATING", "ITEM_MOD_HIT_TAKEN_MELEE_RATING", "ITEM_MOD_HIT_TAKEN_RANGED_RATING", "ITEM_MOD_HIT_TAKEN_SPELL_RATING", "ITEM_MOD_CRIT_TAKEN_MELEE_RATING", "ITEM_MOD_CRIT_TAKEN_RANGED_RATING", "ITEM_MOD_CRIT_TAKEN_SPELL_RATING", "ITEM_MOD_HASTE_MELEE_RATING", "ITEM_MOD_HASTE_RANGED_RATING", "ITEM_MOD_HASTE_SPELL_RATING", "ITEM_MOD_HIT_RATING", "ITEM_MOD_CRIT_RATING", "ITEM_MOD_HIT_TAKEN_RATING", "ITEM_MOD_CRIT_TAKEN_RATING", "ITEM_MOD_RESILIENCE_RATING", "ITEM_MOD_HASTE_RATING", "ITEM_MOD_EXPERTISE_RATING", "ITEM_MOD_ATTACK_POWER", "ITEM_MOD_RANGED_ATTACK_POWER", "", "ITEM_MOD_SPELL_HEALING_DONE", "ITEM_MOD_SPELL_DAMAGE_DONE", "ITEM_MOD_MANA_REGENERATION", "ITEM_MOD_ARMOR_PENETRATION_RATING", "ITEM_MOD_SPELL_POWER", "ITEM_MOD_HEALTH_REGEN", "ITEM_MOD_SPELL_PENETRATION", "ITEM_MOD_BLOCK_VALUE" };
 
@@ -3592,7 +3596,7 @@ int32_t GetFeralAttackPower(const ItemStats_C* stats, float damage) {
         return coaPower;
     }
 
-    if (stats->m_class == 2 && (s_inventoryTypeSlots[stats->m_inventoryType] & 0x8000)) {
+    if (stats->m_class == 2 && (InventoryTypeSlotMask(stats->m_inventoryType) & 0x8000)) {
         double dps = damage / (stats->m_delay * 0.001f);
 
         if (dps > 54.81f) {
@@ -4520,7 +4524,7 @@ static void AddItemTypeLines(CGTooltip* tooltip, const ItemStats_C* stats, CGPla
     }
 
     if (stats->m_class != 6) {
-        const char* text = FrameScript_GetText(s_inventoryTypeTokens[stats->m_inventoryType], -1, GENDER_NOT_APPLICABLE);
+        const char* text = FrameScript_GetText(InventoryTypeToken(stats->m_inventoryType), -1, GENDER_NOT_APPLICABLE);
         SStrCopy(slot, text, sizeof(slot));
 
         if (!*text) {
@@ -7245,7 +7249,7 @@ int32_t SetCompareItem(CGTooltip* tooltip, uint32_t itemId, int32_t offset, int3
         return 0;
     }
 
-    uint32_t slots = s_inventoryTypeSlots[stats->m_inventoryType];
+    uint32_t slots = InventoryTypeSlotMask(stats->m_inventoryType);
 
     if (offset == 2) {
         if (stats->m_scalingStatValue && CGMerchantInfo::m_merchant && !shift) {
