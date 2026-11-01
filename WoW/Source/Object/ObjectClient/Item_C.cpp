@@ -1823,7 +1823,7 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
             return 0;
         }
 
-        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+        return (InventoryTypeSlotMask(rec->m_inventoryType) & (1 << slot)) != 0;
     }
 
     if ((slot != 15 && slot != 16) || rec->m_classID != 2) {
@@ -1831,15 +1831,15 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
             return 1;
         }
 
-        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+        return (InventoryTypeSlotMask(rec->m_inventoryType) & (1 << slot)) != 0;
     }
 
     if (slot == 16) {
         if (rec->m_inventoryType != 17 && rec->m_inventoryType != 21) {
-            return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+            return (InventoryTypeSlotMask(rec->m_inventoryType) & (1 << slot)) != 0;
         }
     } else if (rec->m_inventoryType != 22) {
-        return (s_inventoryTypeSlots[rec->m_inventoryType] & (1 << slot)) != 0;
+        return (InventoryTypeSlotMask(rec->m_inventoryType) & (1 << slot)) != 0;
     }
 
     if ((stats->m_flags[0] & 0x40000000) || rec->m_subclassID == 13) {
@@ -1858,7 +1858,7 @@ int32_t CGItem_C::CanGoInSlot(int32_t itemId, uint32_t slot, int32_t bypass) {
         bool found = false;
 
         for (int32_t invType = 0; invType < 29; invType++) {
-            if (((1 << invType) & spell.m_equippedItemInvTypes) && (s_inventoryTypeSlots[invType] & (1 << slot))) {
+            if (((1 << invType) & spell.m_equippedItemInvTypes) && (InventoryTypeSlotMask(invType) & (1 << slot))) {
                 found = true;
             }
         }
