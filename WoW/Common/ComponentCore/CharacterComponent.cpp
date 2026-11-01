@@ -3621,6 +3621,7 @@ void CCharacterComponent::GeosRenderPrep() {
     }
 
     RetailRaceEquipment(this);
+    RetailRaceKyrianShoulders(this);
     this->m_data.m_model->OptimizeVisibleGeometry();
     this->m_flags &= ~0x4;
 }
@@ -4135,8 +4136,6 @@ int32_t CCharacterComponent::AreShoulderModelsCorrect() {
     return 1;
 }
 
-void M2SetAttachmentRoll(CM2Model* child, float radians, int axis);   // M2Model.cpp
-
 // VERIFY: fb7d3f74 auto
 // OFFSET: 0x004EF840
 void CCharacterComponent::AddShoulders(int32_t itemVisual) {
@@ -4161,24 +4160,8 @@ void CCharacterComponent::AddShoulders(int32_t itemVisual) {
         CCharacterComponent::AddLink(this->m_data.m_model, static_cast<GEOCOMPONENTLINKS>(5), rightModel, rightTexture, itemVisual, displayRec);
     }
 
-    // CoA: the Kyrian's right shoulder socket is mirrored in its model, so the pauldron hangs upside down; Kyrian_shoulder.txt
-    // ("<attachment> <axis x|y|z> <degrees>") lets the turn be tried without a rebuild.
-    if (this->m_data.m_preferences.m_raceID == 107 && this->m_data.m_model) {
-        int id = 5, axis = 0;
-        float degrees = 180.f;
-        if (FILE* f = fopen("Kyrian_shoulder.txt", "r")) {
-            char a = 'x';
-            if (fscanf(f, "%d %c %f", &id, &a, &degrees) == 3) {
-                axis = a == 'y' ? 1 : a == 'z' ? 2 : 0;
-            }
-            fclose(f);
-        }
-        for (CM2Model* child = this->m_data.m_model->m_attachList; child; child = child->m_attachNext) {
-            if (child->m_attachmentId == id) {
-                M2SetAttachmentRoll(child, degrees * 3.14159265f / 180.f, axis);
-            }
-        }
-    }
+    // CoA: Kyrian pauldrons are seated on the clavicle bones (Shotboom12's fit).
+    RetailRaceKyrianShoulders(this);
 }
 
 // VERIFY: 181a9fc1 auto

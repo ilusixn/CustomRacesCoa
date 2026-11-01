@@ -1664,12 +1664,6 @@ namespace
             KvBansheeBind(character);
         if (RaceOf(CC<unsigned>(character, 0x18)) == 78)
             KvFacelessBind(character);
-        // Sylvari: a robe is only paint on the legs; the skirt mesh (geoset 1302) never shows.
-        if (RaceOf(CC<unsigned>(character, 0x18)) == 74)
-        {
-            CC<unsigned>(character, 0x144 + 13 * 4) = 1301;
-            N_82C7C0(instance, 1302, 1302, 0);
-        }
         // Some source-hidden groups have no customization selector. Apply their hide after all selections.
         for (unsigned group = 0; group < 52; ++group)
             if (helmetGroups & (std::uint64_t{1} << group))

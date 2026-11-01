@@ -56,6 +56,7 @@ void RetailFormCommitListDone();
 void RetailFormCommitAck(uint64_t guid, uint32_t revision, uint32_t result);
 void RetailFormCommitTick();
 bool RetailRaceFormDual(CCharacterComponent* main);
+void RetailRaceKyrianShoulders(CCharacterComponent* character);
 bool RetailRaceFormOffset(CCharacterComponent* character, float& x, float& y);
 uint32_t RetailRaceMirrorSetup(CCharacterComponent* mirror, CCharacterComponent* main, CharacterPreferences& prefs);
 
