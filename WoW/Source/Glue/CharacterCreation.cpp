@@ -3,6 +3,8 @@
 #include "CharacterCreation.h"
 #include "CoA/Source/Modules/CharacterCreate.h"
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include "Engine/Source/Event/Event.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -80,6 +82,27 @@ CNameGen CCharacterCreation::m_nameGen;
 
 CCharacterComponent* CCharacterCreation::m_formMirror = nullptr;
 
+// The Twins (mod-subclass race 96) show a copy of the player beside them in the creator.
+namespace {
+constexpr uint32_t kTwinsRace = 96;
+
+struct TwinLook {
+    uint32_t race = 0, sex = 0, classId = 0, skin = 0, face = 0, hairStyle = 0, hairColor = 0, facialHair = 0;
+    const void* model = nullptr;
+    bool operator==(const TwinLook& o) const { return std::memcmp(this, &o, sizeof(TwinLook)) == 0; }
+};
+
+TwinLook TwinLookOf(CCharacterComponent* c) {
+    TwinLook look;
+    std::memset(&look, 0, sizeof(look));
+    const CharacterPreferences& p = c->m_data.m_preferences;
+    look.race = p.m_raceID; look.sex = p.m_sexID; look.classId = p.m_classId; look.skin = p.m_skinID; look.face = p.m_faceId;
+    look.hairStyle = p.m_hairStyleId; look.hairColor = p.m_hairColorId; look.facialHair = p.m_facialHairId;
+    look.model = c->m_data.m_model;
+    return look;
+}
+}
+
 // CoA: Esteria's pan / zoom creator camera is not ported; the retail form preview only needs the reset hook.
 void CCharacterCreation::ResetZoomCamera() {}
 
@@ -147,6 +170,18 @@ void CCharacterCreation::Shutdown() {
 // OFFSET: 0x004DFA50
 int32_t CCharacterCreation::Idle(const void* data, void* param) {
     CGlueLoading::Idle(CCharacterCreation::m_character);
+
+    // The Twins: the second twin copies the player, so it is rebuilt whenever the player's look changes.
+    if (CCharacterComponent* main = CCharacterCreation::m_character) {
+        static TwinLook seen;
+        const TwinLook now = TwinLookOf(main);
+        if (now.race == kTwinsRace && main->m_data.m_model && !(now == seen)) {
+            seen = now;
+            CCharacterCreation::SyncFormMirror();
+        } else if (now.race != kTwinsRace) {
+            seen = TwinLook();
+        }
+    }
 
     // CoA (Esteria fork): body sliders from the creator's Body page, shown on the preview model.
     if (CCharacterCreation::m_character && CCharacterCreation::m_character->m_data.m_model) {
@@ -231,6 +266,13 @@ void CCharacterCreation::SetCharacterFacing(float facing) {
         if (character && character->m_data.m_model) {
             C3Vector position(0.0f, 0.0f, 0.0f);
             RetailRaceFormOffset(character, position.x, position.y);
+            if (character == CCharacterCreation::m_formMirror && character->m_data.m_preferences.m_raceID == kTwinsRace) {
+                // WOW_TWIN_DEPTH / WOW_TWIN_SIDE tune where the second twin stands (depth: negative is farther from the camera).
+                const char* depth = std::getenv("WOW_TWIN_DEPTH");
+                const char* side = std::getenv("WOW_TWIN_SIDE");
+                position.x = depth ? float(std::atof(depth)) : -1.0f;
+                position.y = side ? float(std::atof(side)) : 0.9f;
+            }
             character->m_data.m_model->SetWorldTransform(position, facing,
                 RetailRacePreviewScale(character->m_data.m_preferences.m_raceID));
         }
@@ -670,7 +712,9 @@ void CCharacterCreation::ClearFormMirror() {
 void CCharacterCreation::SyncFormMirror() {
     CCharacterCreation::ClearFormMirror();
     CCharacterComponent* main = CCharacterCreation::m_character;
-    if (!main || !main->m_data.m_model || !CCharacterCreation::m_charCustomizeFrame || !RetailRaceFormDual(main)) return;
+    if (!main || !main->m_data.m_model || !CCharacterCreation::m_charCustomizeFrame) return;
+    const bool twin = main->m_data.m_preferences.m_raceID == kTwinsRace;
+    if (!twin && !RetailRaceFormDual(main)) return;
 
     ComponentData data;
     data.m_preferences.m_raceID = main->m_data.m_preferences.m_raceID;
@@ -678,11 +722,27 @@ void CCharacterCreation::SyncFormMirror() {
     data.m_preferences.m_classId = main->m_data.m_preferences.m_classId;
     CCharacterComponent* mirror = CCharacterComponent::AllocComponent();
     if (!mirror) return;
-    const uint32_t form = RetailRaceMirrorSetup(mirror, main, data.m_preferences);
     char path[260];
-    if (!form || !RetailRaceModelPath(data.m_preferences.m_raceID, data.m_preferences.m_sexID, path, sizeof(path), form)) {
-        CCharacterComponent::FreeComponent(mirror);
-        return;
+    if (twin) {
+        // The Twins: the second twin is a copy of the player's own look, on the same model.
+        const CharacterPreferences& look = main->m_data.m_preferences;
+        data.m_preferences.m_skinID = look.m_skinID;
+        data.m_preferences.m_faceId = look.m_faceId;
+        data.m_preferences.m_hairStyleId = look.m_hairStyleId;
+        data.m_preferences.m_hairColorId = look.m_hairColorId;
+        data.m_preferences.m_facialHairId = look.m_facialHairId;
+        CreatureModelDataRec* modelRec = GetModelDataRec(data.m_preferences.m_raceID, data.m_preferences.m_sexID);
+        if (!modelRec || !*modelRec->m_modelName) {
+            CCharacterComponent::FreeComponent(mirror);
+            return;
+        }
+        std::snprintf(path, sizeof(path), "%s", modelRec->m_modelName);
+    } else {
+        const uint32_t form = RetailRaceMirrorSetup(mirror, main, data.m_preferences);
+        if (!form || !RetailRaceModelPath(data.m_preferences.m_raceID, data.m_preferences.m_sexID, path, sizeof(path), form)) {
+            CCharacterComponent::FreeComponent(mirror);
+            return;
+        }
     }
     data.m_model = CCharacterCreation::m_charCustomizeFrame->GetScene()->CreateModel(path, 0);
     if (!data.m_model) {
