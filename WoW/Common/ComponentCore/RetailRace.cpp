@@ -1078,14 +1078,22 @@ void FitLegacyHelmet(CCharacterComponent* character) {
 void FitKyrianShoulders(CCharacterComponent* character) {
     if (character->m_data.m_preferences.m_raceID != 107) return;
     CM2Model* parent = character->m_data.m_model;
-    if (!parent) return;
-    // Kyrian_shoulder.txt next to the exe: "<attachment 5|6> <axis x|y|z> <degrees>" (default 5 x 180), to try turns without a rebuild.
-    int id = 5, axis = 0; float deg = 180.f;
-    if (FILE* f = fopen("Kyrian_shoulder.txt", "r")) { char a = 'x'; if (fscanf(f, "%d %c %f", &id, &a, &deg) == 3) axis = a == 'y' ? 1 : a == 'z' ? 2 : 0; fclose(f); }
-    for (CM2Model* child = parent->m_attachList; child; child = child->m_attachNext)
-        Log("kyrian attach child id %u index %u (turning id %d axis %d deg %.0f)", unsigned(child->m_attachmentId), unsigned(child->m_attachmentIndex), id, axis, deg);
-    for (CM2Model* child = parent->m_attachList; child; child = child->m_attachNext)
-        if (child->m_attachmentId == id) M2SetAttachmentRoll(child, deg * 3.14159265f / 180.f, axis);
+    if (!parent || !(parent->m_fFlags & 1) || !parent->m_shared || !parent->m_shared->m_data) return;
+    const auto* data = parent->m_shared->m_data;
+    // Shotboom12's fit (aetheria-client, FitNativePlayerShoulders): seat each pauldron on its clavicle bone, with the same anatomical
+    // offset on both sides, instead of the mirrored cosmetic socket. It is made for the 251-bone Kyrian skeleton.
+    Log("kyrian shoulders: %u bones", unsigned(data->m_bones.m_count));
+    if (data->m_bones.m_count != 251) return;
+    const float scale = data->m_bones[29].m_pivot.z / 1.8430222f;
+    for (CM2Model* pad = parent->m_attachList; pad; pad = pad->m_attachNext) {
+        if (pad->m_attachmentId != 5 && pad->m_attachmentId != 6) continue;
+        const bool left = pad->m_attachmentId == 6;
+        C3Vector position = data->m_bones[left ? 25 : 28].m_pivot;
+        position.x += .020f * scale;
+        position.y -= (left ? 1.f : -1.f) * .068f * scale;
+        position.z += .065f * scale;
+        pad->SetAttachmentFrame(left ? 17 : 19, position, character->m_data.m_preferences.m_sexID ? 1.59f : 1.80f);
+    }
 }
 
 void FitCentaurShoulders(CCharacterComponent* character) {
@@ -1107,6 +1115,35 @@ void FitCentaurShoulders(CCharacterComponent* character) {
     }
 }
 
+}
+
+namespace {
+// Faceless One (race 87): a 4.4 unit tall creature body (118 bones) whose shoulder sockets sit on the arm bones; the human pauldrons
+// came out huge. Faceless_shoulder.txt next to the exe ("<scale> <dx> <dy> <dz>") tunes the fit without a rebuild.
+void FitFacelessShoulders(CCharacterComponent* character) {
+    if (character->m_data.m_preferences.m_raceID != 87) return;
+    CM2Model* parent = character->m_data.m_model;
+    if (!parent || !(parent->m_fFlags & 1) || !parent->m_shared || !parent->m_shared->m_data) return;
+    const auto* data = parent->m_shared->m_data;
+    if (data->m_bones.m_count != 118) return;
+    float scale = 0.5f, dx = 0.f, dy = 0.f, dz = 0.f;
+    if (FILE* f = fopen("Faceless_shoulder.txt", "r")) { fscanf(f, "%f %f %f %f", &scale, &dx, &dy, &dz); fclose(f); }
+    for (CM2Model* pad = parent->m_attachList; pad; pad = pad->m_attachNext) {
+        if (pad->m_attachmentId != 5 && pad->m_attachmentId != 6) continue;
+        const bool left = pad->m_attachmentId == 6;
+        const uint32_t bone = left ? 14 : 12;                  // the upper-arm bones the sockets hang from
+        C3Vector position = data->m_bones[left ? 117 : 116].m_pivot;
+        position.x += dx;
+        position.y += left ? -dy : dy;
+        position.z += dz;
+        pad->SetAttachmentFrame(bone, position, scale);
+    }
+}
+}
+
+void RetailRaceKyrianShoulders(CCharacterComponent* character) {
+    FitKyrianShoulders(character);
+    FitFacelessShoulders(character);
 }
 
 bool RetailRaceMapped(uint32_t race) {

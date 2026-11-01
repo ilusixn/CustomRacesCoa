@@ -1240,14 +1240,6 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
 bool KvHozenBind(void* character) { return KvNativeBind(character, 73, 18, 11, true); }
 bool KvVorkaiBind(void* character)
 {
-    // Sylvari: a robe is only paint on the legs, like trousers; the long skirt mesh (geoset 1302) stays off.
-    if (RaceOf(CC<unsigned>(character, 0x18)) == 74)
-        if (void* instance = CC<void*>(character, 0x38))
-        {
-            CC<unsigned>(character, 0x144 + 13 * 4) = 1301;
-            N_82C7C0(instance, 1302, 1302, 0);
-            N_82C7C0(instance, 1301, 1301, 1);
-        }
     return KvNativeBind(character, 74, 8, 0, false);
 }
 bool KvMantidBind(void* character) { return KvNativeBind(character, 75, 8, 0, true); }
