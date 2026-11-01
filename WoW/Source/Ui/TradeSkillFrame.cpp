@@ -508,7 +508,7 @@ void CGTradeSkillInfo::RefreshList(int32_t full) {
                 info->m_itemClass = stats->m_class;
                 info->m_itemSubClass = stats->m_subClass;
                 info->m_itemLevel = stats->m_itemLevel;
-                info->m_invTypeMask = s_inventoryTypeSlots[stats->m_inventoryType];
+                info->m_invTypeMask = InventoryTypeSlotMask(stats->m_inventoryType);
 
                 if (stats->m_inventoryType == 18) {
                     info->m_invTypeMask = 0x80000;

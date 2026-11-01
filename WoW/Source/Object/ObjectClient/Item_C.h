@@ -26,6 +26,12 @@ int32_t GetItemIDByName(const char* name);
 
 extern const uint32_t s_inventoryTypeSlots[29];
 
+// Item.dbc's m_inventoryType is signed. A missing/invalid row can contain -1;
+// indexing the 29-entry slot table with it reads far outside the array.
+inline uint32_t InventoryTypeSlotMask(int32_t type) {
+    return type >= 0 && type < 29 ? s_inventoryTypeSlots[type] : 0u;
+}
+
 class CGItem_C : public CGObject_C, public CGItem {
     public:
     static void Initialize();
