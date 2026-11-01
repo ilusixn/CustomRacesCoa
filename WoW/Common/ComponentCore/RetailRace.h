@@ -52,6 +52,8 @@ void RetailRaceFormClearMemory();
 void RetailFormCommitPrepare(const char* name, uint32_t race, uint32_t sex);
 void RetailFormCommitCreateResult(bool success);
 bool RetailFormCommitOffer(const char* name, uint32_t race, uint32_t sex, uint64_t guid);
+// A customize, race change or faction change reply: the character keeps its guid, so the commit goes out at once.
+void RetailFormCommitChangeResult(bool success, uint64_t guid);
 void RetailFormCommitListDone();
 void RetailFormCommitAck(uint64_t guid, uint32_t revision, uint32_t result);
 void RetailFormCommitTick();
