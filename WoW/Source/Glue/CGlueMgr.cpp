@@ -2329,6 +2329,7 @@ void CGlueMgr::CustomizeCharacter(WOWGUID guid, const CHARACTER_CREATE_INFO* inf
     RetailRaceCreateEyeEffects(&msg);
     BodyShapeCreateFooter(&msg, true);
     RetailLookCreateFooter(&msg);
+    RetailFormCommitPrepare(info->m_name, info->m_raceID, info->m_sexID); // CoA: both Two Forms looks
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
@@ -2357,6 +2358,7 @@ void CGlueMgr::FactionChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
     RetailRaceCreateEyeEffects(&msg);
     BodyShapeCreateFooter(&msg, true);
     RetailLookCreateFooter(&msg);
+    RetailFormCommitPrepare(info->m_name, info->m_raceID, info->m_sexID); // CoA: both Two Forms looks
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
@@ -2385,6 +2387,7 @@ void CGlueMgr::RaceChange(WOWGUID guid, const CHARACTER_CREATE_INFO* info) {
     RetailRaceCreateEyeEffects(&msg);
     BodyShapeCreateFooter(&msg, true);
     RetailLookCreateFooter(&msg);
+    RetailFormCommitPrepare(info->m_name, info->m_raceID, info->m_sexID); // CoA: both Two Forms looks
     msg.Finalize();
     ClientServices::Send2(&msg);
 }
@@ -2470,6 +2473,8 @@ int32_t CGlueMgr::OnCharCustomizeResult(void* param, NETMESSAGE msgId, uint32_t 
         msg->Get(facialHairStyleID);
     }
 
+    RetailFormCommitChangeResult(result == 0, guid.m_guid); // CoA: send both Two Forms looks
+
     if (result) {
         const char* text = FrameScript_GetText(result == 50 ? ClientServices::GetErrorToken(50) : "CHAR_CUSTOMIZE_FAILED", -1, GENDER_NOT_APPLICABLE);
         FrameScript_SignalEvent(GLUE_EVENT_OPEN_STATUS_DIALOG, "%s%s", "OKAY", text);
@@ -2511,6 +2516,8 @@ int32_t CGlueMgr::OnCharFactionChangeResult(void* param, NETMESSAGE msgId, uint3
         msg->Get(facialHairStyleID);
         msg->Get(raceID);
     }
+
+    RetailFormCommitChangeResult(result == 0, guid.m_guid); // CoA: send both Two Forms looks
 
     const char* text;
 
