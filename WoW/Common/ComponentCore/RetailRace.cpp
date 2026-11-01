@@ -1318,6 +1318,24 @@ bool RetailFormCommitOffer(const char* name, uint32_t race, uint32_t sex, uint64
     return true;
 }
 
+// CoA: a customize, race change or faction change keeps the character's guid, and the character screen does not ask for
+// a new list after it, so the commit is sent with the reply. Without it a character changed to Dracthyr or Worgen kept
+// the server's default looks for its second form. The looks are shown at once on the character screen as well.
+void RetailFormCommitChangeResult(bool success, uint64_t guid) {
+    if (g_commit.state != PendingCommit::AwaitCreate) return;
+    if (!success || !guid) {
+        g_commit = PendingCommit();
+        return;
+    }
+    CharacterRetailLook::Look active, parked;
+    if (CharacterRetailLook::ReadPayload(g_commit.active.data(), CharacterRetailLook::PayloadSize, active)) RetailRaceSetLook(guid, active);
+    if (CharacterRetailLook::ReadPayload(g_commit.parked.data(), CharacterRetailLook::PayloadSize, parked)) RetailRaceSetParkedLook(guid, parked);
+    g_commit.guid = guid;
+    g_commit.state = PendingCommit::Sent;
+    g_commit.attempts = 0;
+    SendCommit();
+}
+
 // The list that follows a create names the character, or the commit is dropped.
 void RetailFormCommitListDone() {
     if (g_commit.state == PendingCommit::AwaitList) {
@@ -2126,6 +2144,7 @@ void RetailRaceFormClearMemory() {}
 void RetailFormCommitPrepare(const char*, uint32_t, uint32_t) {}
 void RetailFormCommitCreateResult(bool) {}
 bool RetailFormCommitOffer(const char*, uint32_t, uint32_t, uint64_t) { return false; }
+void RetailFormCommitChangeResult(bool, uint64_t) {}
 void RetailFormCommitListDone() {}
 void RetailFormCommitAck(uint64_t, uint32_t, uint32_t) {}
 void RetailFormCommitTick() {}
