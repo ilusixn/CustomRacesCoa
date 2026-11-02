@@ -25,6 +25,8 @@ namespace CoA::RealmData {
     bool NeedsSwitch(const std::string& path);
     // DAT_10be357d: Data\patch-Q.MPQ was opened.
     bool HdPatchLoaded();
+    // CoA64: a Data\patch-*-HD.MPQ archive carries HD models and opens only when HD does.
+    bool IsHdOnlyArchive(const char* name);
 
     // The switch state (0x10BCC0A8..0x10BCC0F0), driven by RealmDataClient.cpp.
     struct State {
