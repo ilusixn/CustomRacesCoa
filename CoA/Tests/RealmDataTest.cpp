@@ -48,3 +48,13 @@ COA_TEST(RealmData_SwitchOnlyForNewPath) {
     CHECK(CoA::RealmData::NeedsSwitch(""));
     CoA::RealmData::ResetState("");
 }
+
+COA_TEST(RealmData_HdOnlyArchiveNames) {
+    CHECK(CoA::RealmData::IsHdOnlyArchive("Data\\patch-ZZZZZ-HD.MPQ"));
+    CHECK(CoA::RealmData::IsHdOnlyArchive("data\\PATCH-zzzzz-hd.mpq"));
+    CHECK(!CoA::RealmData::IsHdOnlyArchive("Data\\patch-ZZZZY.MPQ"));
+    CHECK(!CoA::RealmData::IsHdOnlyArchive("Data\\patch-Q.MPQ"));
+    CHECK(!CoA::RealmData::IsHdOnlyArchive("Data\\area-52\\patch-D-HD.MPQ"));
+    CHECK(!CoA::RealmData::IsHdOnlyArchive("Data\\patch--HD.MPQ"));
+    CHECK(!CoA::RealmData::IsHdOnlyArchive(nullptr));
+}

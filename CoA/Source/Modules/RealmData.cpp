@@ -1,5 +1,6 @@
 #include "CoA/Source/Modules/RealmData.h"
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 
 namespace {
@@ -49,6 +50,20 @@ bool CoA::RealmData::NeedsSwitch(const std::string& path) {
 
 bool CoA::RealmData::HdPatchLoaded() {
     return s_state.hdPatch;
+}
+
+bool CoA::RealmData::IsHdOnlyArchive(const char* name) {
+    static const char prefix[] = "Data\\patch-";
+    static const char suffix[] = "-HD.MPQ";
+    const size_t prefixLength = sizeof(prefix) - 1;
+    const size_t suffixLength = sizeof(suffix) - 1;
+    const size_t length = name ? strlen(name) : 0;
+
+    if (length <= prefixLength + suffixLength) {
+        return false;
+    }
+
+    return _strnicmp(name, prefix, prefixLength) == 0 && _stricmp(name + length - suffixLength, suffix) == 0;
 }
 
 CoA::RealmData::State& CoA::RealmData::GetState() {

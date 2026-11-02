@@ -336,6 +336,11 @@ namespace {
                     return false;
                 }
             }
+
+            // Custom patch-*-HD.MPQ archives replace HD models and must not pair them with SD skins.
+            if (CoA::RealmData::IsHdOnlyArchive(name)) {
+                return false;
+            }
         }
 
         if (SStrCmpI(name, "Data\\patch-Q.MPQ", STORM_MAX_STR) == 0) {
