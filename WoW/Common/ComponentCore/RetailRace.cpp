@@ -43,6 +43,7 @@
 #include "WoW/Source/Extension/ExtensionMgr.h"
 #include <cstdarg>
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -1141,6 +1142,14 @@ void FitFacelessShoulders(CCharacterComponent* character) {
 }
 }
 
+// Retail "collection" pieces live in item\objectcomponents\collections\, whatever their own file name starts with.
+static bool IsCollectionPiece(const CM2Model* piece) {
+    if (!piece || !piece->m_shared) return false;
+    std::string name = piece->m_shared->m_fileName;
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+    return name.find("collections") != std::string::npos;
+}
+
 // Knee (7, 8), hip (9, 10) and belt buckle (53) pieces: on tall or custom skeletons they came out far above the body (Nightborne, Void
 // Elf). Seat each on its own socket bone at the socket position, scaled with the body height like the helm socket.
 void FitLowerAttachments(CCharacterComponent* character) {
@@ -1160,8 +1169,7 @@ void FitLowerAttachments(CCharacterComponent* character) {
     // sockets 47/48 did not move them): the boots are already drawn by the body geometry, so drop the floating piece.
     for (CM2Model* foot = parent->m_attachList, *after = nullptr; foot; foot = after) {
         after = foot->m_attachNext;
-        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !foot->m_shared) continue;
-        if (!std::strstr(foot->m_shared->m_fileName, "collections_")) continue;   // retail collection pieces only
+        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !IsCollectionPiece(foot)) continue;
         const uint16_t socket = foot->m_attachmentId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[foot->m_attachmentId] : 0xffff;
         if (socket < data->m_attachments.m_count && data->m_attachments[socket].m_position.z < 1.f) continue;
         Log("foot piece %s race %u: removed (socket %u at head height)", foot->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID), unsigned(foot->m_attachmentId));
@@ -1189,6 +1197,13 @@ void FitLowerAttachments(CCharacterComponent* character) {
         next = piece->m_attachNext;
         const uint32_t id = piece->m_attachmentId;
         if (id != 7 && id != 8 && id != 9 && id != 10 && id != 53) continue;
+        // Native skeletons draw legs and gloves with body geometry; a retail collection piece on 53 floats by the neck there.
+        if (id == 53 && IsCollectionPiece(piece) && !RetailRaceMapped(character->m_data.m_preferences.m_raceID)) {
+            Log("lower attachment %u race %u: collection piece %s removed", id, unsigned(character->m_data.m_preferences.m_raceID),
+                piece->m_shared->m_fileName);
+            piece->DetachFromParent();
+            continue;
+        }
         const uint16_t socket = id < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[id] : 0xffff;
         // A model without that socket (the Void Elf has no hip sockets) leaves the piece at the origin, floating by the head: drop it.
         if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) {
