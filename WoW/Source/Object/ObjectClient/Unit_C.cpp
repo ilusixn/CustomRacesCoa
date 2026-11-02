@@ -1,4 +1,6 @@
 #include "CoA/Source/Modules/EsteriaRaces.h"
+#include <map>
+#include <cstdio>
 #include "Engine/Source/Retail/BodyShape.h"
 #include "WoW/Source/Magic/Types.h"
 #include "CoA/Source/Modules/CrashContext.h"
@@ -882,6 +884,14 @@ void CGUnit_C::UpdateDisplay(uint32_t time) {
     }
 
     if (this->m_missiles) {
+        static int s_waitLog = 0;
+        if (s_waitLog < 400 && (s_waitLog++ % 10) == 0) {
+            if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+                fprintf(f, "updatedisplay with missile: spell %d animEvent %d sinceCast %d specialIdle %d\n", this->m_missiles->m_spellID,
+                    (this->m_clientFlags & 0x80000000) != 0, static_cast<int>(time - this->m_lastMissileTime), static_cast<int>(this->m_specialIdleAnim));
+                fclose(f);
+            }
+        }
         if (this->m_clientFlags & 0x80000000) {
             this->ReleaseMissiles(this->m_animEventPosition);
         }
@@ -19128,6 +19138,10 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
 // OFFSET: 0x0072DF00
 void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
     if (this->m_missiles) {
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "release called: spell %d\n", this->m_missiles->m_spellID);
+            fclose(f);
+        }
         this->CancelRangedMode();
     }
 
@@ -19138,8 +19152,24 @@ void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
 
         if (model) {
             if (!model->IsLoaded(0, 0)) {
-                this->m_clientFlags |= 0x800;
-                break;
+                // CoA: a big retail effect model can stay "not loaded" for good, which kept its missile hidden for ever; release it after ~2 s
+                static std::map<CM2Model*, uint32_t> s_waitingMissiles;
+                uint32_t& waited = s_waitingMissiles[model];
+                waited++;
+
+                if (waited == 1 || waited == 120) {
+                    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+                        fprintf(f, "missile model not loaded: spell %d waited %u\n", this->m_missiles->m_spellID, waited);
+                        fclose(f);
+                    }
+                }
+
+                if (waited < 120) {
+                    this->m_clientFlags |= 0x800;
+                    break;
+                }
+
+                s_waitingMissiles.erase(model);
             }
 
             this->m_missiles->m_model->m_fadeAlpha = 1.0f;
@@ -19152,7 +19182,15 @@ void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
         PendingSpellCast* cast = Spell_C_GetDelayedTrajectoryCast();
 
         if (cast && this->m_missiles->m_castID == cast->m_data.m_castCount) {
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "release: delayed trajectory cast for spell %d\n", this->m_missiles->m_spellID);
+            fclose(f);
+        }
             if (!Spell_C_SendDelayedMissileTrajectoryCast(this)) {
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "release: delayed trajectory send failed, missile deleted for spell %d\n", this->m_missiles->m_spellID);
+            fclose(f);
+        }
                 if (!this->m_missiles) {
                     break;
                 }
@@ -19211,6 +19249,10 @@ void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
         }
 
         C3Vector overridePosition = C3Vector();
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "release: firing spell %d\n", this->m_missiles->m_spellID);
+            fclose(f);
+        }
 
         if (this->OverrideMissileFirePos(&overridePosition, &spell)) {
             this->m_missiles->FireMissiles(&overridePosition);
@@ -19837,7 +19879,16 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
     AnimationDataRec* animation = g_animationDataDB.GetRecord(this->GetCurrentTorsoAnimId());
 
     if (animation && (animation->m_behaviorID == 49 || animation->m_behaviorID == 106 || animation->m_behaviorID == 110)) {
-        model->m_fadeAlpha = 0.0f;
+        // CoA: the release event of these cast animations never fires on the custom race models, which left the missile hidden; show it at once
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "missile hide skipped: spell %d anim behavior %d\n", spell.m_id, static_cast<int>(animation->m_behaviorID));
+            fclose(f);
+        }
+    }
+
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "missile created: spell %d model %p visual %d missileModel %d speed %d\n", spell.m_id, static_cast<void*>(model), visual->m_id, visual->m_missileModel, static_cast<int>(spell.m_speed));
+        fclose(f);
     }
 
     CMissile* missile = CMissile::NewMissile();
@@ -19926,15 +19977,23 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
             missile->m_impactPos = data->m_sourcePos;
             missile->m_transportGuid = data->m_sourceTarget;
         } else {
-            if (!targets->m_count) {
+            // CoA: a spell go without a hit list (custom server spells) used to delete the missile here although the cast names a target
+            WOWGUID missileTarget = targets->m_count ? targets->m_data[0] : data->m_objectTarget;
+
+            if (!missileTarget.m_guid) {
+                if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+                    fprintf(f, "missile deleted, no target: spell %d\n", spellId);
+                    fclose(f);
+                }
+
                 missile->DeleteSelf();
                 return;
             }
 
-            missile->m_targetGuid = targets->m_data[0];
+            missile->m_targetGuid = missileTarget;
             missile->m_attachmentID = attachment;
             missile->m_attachOffset = offset;
-            CGObject_C* object = ClntObjMgrObjectPtr(targets->m_data[0], TYPE_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(missileTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (object) {
                 missile->m_impactPos = object->GetPosition();
@@ -20097,7 +20156,11 @@ void CGUnit_C::CreateMissile(const SpellCastTargetPoint* point, PendingSpellCast
     AnimationDataRec* animation = g_animationDataDB.GetRecord(this->GetCurrentTorsoAnimId());
 
     if (animation && (animation->m_behaviorID == 49 || animation->m_behaviorID == 106 || animation->m_behaviorID == 110)) {
-        model->m_fadeAlpha = 0.0f;
+        // CoA: the release event of these cast animations never fires on the custom race models, which left the missile hidden; show it at once
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "missile hide skipped: spell %d anim behavior %d\n", spell.m_id, static_cast<int>(animation->m_behaviorID));
+            fclose(f);
+        }
     }
 
     CMissile* missile = CMissile::NewMissile();
@@ -20286,7 +20349,11 @@ void CGUnit_C::CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, P
     AnimationDataRec* animation = g_animationDataDB.GetRecord(this->GetCurrentTorsoAnimId());
 
     if (animation && (animation->m_behaviorID == 49 || animation->m_behaviorID == 106 || animation->m_behaviorID == 110)) {
-        model->m_fadeAlpha = 0.0f;
+        // CoA: the release event of these cast animations never fires on the custom race models, which left the missile hidden; show it at once
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "missile hide skipped: spell %d anim behavior %d\n", spell.m_id, static_cast<int>(animation->m_behaviorID));
+            fclose(f);
+        }
     }
 
     CMissile* missile = CMissile::NewMissile();

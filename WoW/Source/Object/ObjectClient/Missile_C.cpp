@@ -1,4 +1,7 @@
 #include "Missile_C.h"
+#include <cstdio>
+
+static void MissileTrace(const char* what, const CMissile* m, float a, float b, float c);
 #include "CoA/Source/Modules/SpellVisualsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <cfloat>
@@ -1571,6 +1574,7 @@ void CMissile::HitTarget(CGUnit_C* target, const SpellRec* spell, const SpellVis
 // VERIFY: f4431d3e manual
 // OFFSET: 0x00703410
 void CMissile::ReachedTarget(CGUnit_C* target, const C3Vector* direction) {
+    MissileTrace("missile reached target", this, this->m_progress, this->m_initialDistance, target ? 1.0f : 0.0f);
     this->m_progress = 1.0f;
     this->m_horizontalProgress = 1.0f;
     this->m_position = this->TransformPositionByTransport();
@@ -1968,6 +1972,15 @@ void CMissile::MissedTarget(CGUnit_C* target, const C3Vector* direction) {
     }
 }
 
+static void MissileTrace(const char* what, const CMissile* m, float a, float b, float c) {   // diagnostic: Logs\SpellVisual.log (off)
+    return;
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "%s: spell %d speed %.1f dist %.2f/%.2f/%.2f alpha %.2f attach %d\n", what, static_cast<int>(m->m_spellID), m->m_speed, a, b, c,
+            m->m_model ? m->m_model->m_fadeAlpha : -1.0f, static_cast<int>(m->m_attachmentID));
+        fclose(f);
+    }
+}
+
 // VERIFY: d0f1a70e manual
 // OFFSET: 0x007022D0
 void CMissile::FireMissiles(const C3Vector* position) {
@@ -2126,6 +2139,9 @@ void CMissile::FireMissiles(const C3Vector* position) {
             }
         }
     }
+
+    MissileTrace("missile fired initialDist/duration/loaded", this, this->m_initialDistance, static_cast<float>(this->m_duration),
+        this->m_model ? static_cast<float>(this->m_model->IsLoaded(0, 0)) : -1.0f);
 
     this->ClearTargetingEffects();
 

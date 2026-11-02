@@ -878,6 +878,14 @@ void ClearSpellCastState(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec*
     unit->StopUpdatingMissileTrajectory(cast->m_data.m_spellId);
 }
 
+static void SpellVisualTrace(const char* what, int a, int b, int c, int d) {   // diagnostic: Logs\SpellVisual.log (off)
+    return;
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "%s: %d %d %d %d\n", what, a, b, c, d);
+        fclose(f);
+    }
+}
+
 // VERIFY: 4345f843 manual
 // OFFSET: 0x007FA2E0
 void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, const SpellRec* spell) {
@@ -900,6 +908,8 @@ void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, con
 
     SpellVisualRec visualRec;
     const SpellVisualRec* visual = unit->GetAppropriateSpellVisual(spell, visualRec, 0, 0);
+    SpellVisualTrace("caststart spell/visual/precastKit/kitFound", spell->m_id, spell->m_spellVisualID[0], visual ? visual->m_precastKit : -1,
+        visual ? (g_spellVisualKitDB.GetRecord(visual->m_precastKit) != nullptr) : -1);
 
     if (visual) {
         if (visual->m_hasMissile && visual->m_missileModel && (visual->m_missileModel == -1 || visual->m_missileModel == -2)) {
@@ -2162,6 +2172,14 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
 
         if (spell.m_speed <= 0.0f) {
             PlayImpactVisual(&spell, hits, unit, visual);
+
+            // CoA: custom server spells can come without a hit list although the cast names its target; show the impact on that target
+            if (!hits.m_count && !missCount && (this->m_data.m_targetFlags & 0x2) && this->m_data.m_objectTarget.m_guid
+                && this->m_data.m_objectTarget.m_guid != this->m_data.m_caster.m_guid) {
+                WOWGUID single = this->m_data.m_objectTarget;
+                TSStackArray<WOWGUID> fallback(&single, 1, 1);
+                PlayImpactVisual(&spell, fallback, unit, visual);
+            }
 
             if (unit) {
                 for (uint32_t i = 0; i < missCount; i++) {
@@ -9331,6 +9349,8 @@ void Spell_C_PlayDestLocVisualsWithoutCaster(NotifyDestLocSpellCastData* data) {
                 scale = effectName->m_scale;
             }
         }
+
+        SpellVisualTrace("missile spell/model/modelOk/speed*100", data->m_spellId, visual->m_missileModel, model != nullptr, static_cast<int>(spell.m_speed * 100));
 
         if (!model) {
             model = World::s_m2Scene->CreateModel("Spells\\ErrorCube.mdx", 0);
