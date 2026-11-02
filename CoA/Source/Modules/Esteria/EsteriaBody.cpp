@@ -20,6 +20,7 @@ namespace {
     std::map<std::string, Slots> s_saved;
     Slots s_pending;
     std::time_t s_pendingTime = 0;
+    std::string s_pendingFor;     // set when the creator was customizing an existing character (.character customize): it gets these sliders
     bool s_loaded = false;
     std::string s_loadedFor;
 
@@ -57,7 +58,7 @@ namespace {
         }
 
         if (!s_pending.empty() && s_pendingTime) {
-            fprintf(file, "*pending %lld%s\n", static_cast<long long>(s_pendingTime), Pack(s_pending).c_str());
+            fprintf(file, "*pending%s%s %lld%s\n", s_pendingFor.empty() ? "" : ":", s_pendingFor.c_str(), static_cast<long long>(s_pendingTime), Pack(s_pending).c_str());
         }
 
         for (auto const& entry : s_saved) {
@@ -90,7 +91,8 @@ namespace {
             std::getline(in, rest);
             Slots slots = Unpack(rest);
 
-            if (name == "*pending") {
+            if (name.compare(0, 8, "*pending") == 0) {
+                s_pendingFor = name.size() > 9 ? name.substr(9) : std::string();
                 s_pending = slots;
                 s_pendingTime = static_cast<std::time_t>(when);
             } else if (!name.empty()) {
@@ -132,6 +134,8 @@ namespace CoA::Esteria::BodySliders {
         Load();
         s_pending = NonZero();
         s_pendingTime = s_pending.empty() ? 0 : std::time(nullptr);
+        const char* customizing = ClientServices::GetCharacterName();
+        s_pendingFor = customizing && *customizing ? KeyOf(customizing) : std::string();
         Save();
     }
 
@@ -150,13 +154,22 @@ namespace CoA::Esteria::BodySliders {
             s_loadedFor = key;
             auto found = s_saved.find(key);
 
-            if (found != s_saved.end()) {
+            if (found != s_saved.end() && !s_pending.empty() && s_pendingTime && s_pendingFor == key
+                && std::time(nullptr) - s_pendingTime < 6 * 3600) {
+                BodyShape::Local().v = s_pending;      // customized in the creator: the new sliders replace the old ones
+                s_saved[key] = s_pending;
+                s_pending.clear();
+                s_pendingTime = 0;
+                s_pendingFor.clear();
+                Save();
+            } else if (found != s_saved.end()) {
                 BodyShape::Local().v = found->second;
             } else if (!s_pending.empty() && s_pendingTime && std::time(nullptr) - s_pendingTime < 6 * 3600) {
                 BodyShape::Local().v = s_pending;      // a character made right after the sliders were set
                 s_saved[key] = s_pending;
                 s_pending.clear();
                 s_pendingTime = 0;
+                s_pendingFor.clear();
                 Save();
             } else {
                 BodyShape::Local().v.clear();         // an existing character without saved sliders
@@ -188,6 +201,11 @@ namespace CoA::Esteria::BodySliders {
             s_saved[key] = current;
         }
         Save();
+    }
+
+    // Leaving the world (teleport to another map, relog) clears the live sliders: restore them again on the next frame in the world.
+    void ForgetLoaded() {
+        s_loadedFor.clear();
     }
 
     void Init() {}

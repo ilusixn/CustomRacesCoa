@@ -37,6 +37,7 @@ namespace CoA::Esteria {
         void Revert();        // back to the last saved sliders
         void SaveNow();       // the in-world Body panel's Save button
         void SyncPlayer();    // the local player in the world: restore / persist the sliders by character name
+        void ForgetLoaded();  // the world was left: the next SyncPlayer restores the saved sliders
         void Init();
     }
 }
