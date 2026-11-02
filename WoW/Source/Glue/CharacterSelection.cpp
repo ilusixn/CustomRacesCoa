@@ -75,6 +75,7 @@ void CCharacterSelection::Initialize() {
 // VERIFY: cead22db auto
 // OFFSET: 0x004E38F0
 void CCharacterSelection::Shutdown() {
+    CharacterSelectionDisplay::ClearFormMirror();
     LoadingScreenMiniDisable();
 
     if (CCharacterComponent::m_activePlayerComponent) {
@@ -326,6 +327,7 @@ int32_t CCharacterSelection::Idle(const void* data, void* param) {
     }
 
     CGlueLoading::Idle(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component);
+    CharacterSelectionDisplay::KeepTwinMirror(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex]);
     return 1;
 }
 
@@ -494,6 +496,7 @@ void CCharacterSelection::ShowCharacter() {
     // CoA: AscGeosets.cpp:0x101A12F0 (orig hook 0x4E3CD0) -- after every return the selected entry's pet model takes its
     // display's geoset overrides.
     auto geosets = CoA::ClientHooks::OnScopeExit([] { CoA::GeosetsClient::AfterShowCharacter(); });
+    CharacterSelectionDisplay::ClearFormMirror();
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
         return;
     }
@@ -629,6 +632,7 @@ void CCharacterSelection::ShowCharacter() {
     }
 
     CGlueLoading::StartLoad(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component, newComponent);
+    CharacterSelectionDisplay::ShowTwinMirror(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex]);
 }
 
 // VERIFY: eafa3254 manual
