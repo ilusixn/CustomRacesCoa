@@ -1,6 +1,7 @@
 #include "Effect_C.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include <cstring>
+#include <cstdio>
 #include <cmath>
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Model2/M2Data.h"
@@ -362,10 +363,13 @@ void CEffect::InitFromUnit(C3Vector position, uint32_t time, int32_t spellId, co
     this->LinkTo(&unit->m_effectList);
 }
 
+static void EffectTrace(const char* what, int spell, int effect, const char* path, int extra);
+
 // VERIFY: 2e373253 auto
 // OFFSET: 0x006F7680
 void CEffect::CreateModelFromEffect(CM2Model* model, void* arg) {
     CEffect* effect = static_cast<CEffect*>(arg);
+    EffectTrace("loaded", effect->m_spellId, effect->m_effectNameRec ? effect->m_effectNameRec->m_id : -1, effect->m_effectNameRec ? effect->m_effectNameRec->m_fileName : "-", 0);
 
     if (effect->m_flags & 0x400000) {
         effect->SetEmissionRateIgnoresDistance(1);
@@ -411,6 +415,14 @@ void CEffect::EffectEvent(CM2Model* model, uint32_t boneId, uint32_t eventId, ui
     }
 }
 
+static void EffectTrace(const char* what, int spell, int effect, const char* path, int extra) {   // diagnostic: Logs\SpellVisual.log (off)
+    return;
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "%s: spell %d effect %d %s %d\n", what, spell, effect, path ? path : "-", extra);
+        fclose(f);
+    }
+}
+
 // VERIFY: ac84d6f6 manual
 // OFFSET: 0x006F94C0
 void CEffect::AddEffect(int32_t attachType, int32_t spellId, const SpellVisualKitRec* kit, const SpellVisualEffectNameRec* effectName, const WOWGUID* target, const WOWGUID* source, uint32_t flags, void (*callback)(CM2Model*, uint32_t, uint32_t, int32_t, uint32_t, uint64_t), const C3Vector* position, uint32_t a10, const SpellVisualKitModelAttachRec* attach) {
@@ -443,6 +455,7 @@ void CEffect::AddEffect(int32_t attachType, int32_t spellId, const SpellVisualKi
     }
 
     this->m_model = World::s_m2Scene->CreateModel(effectName->m_fileName, 0);
+    EffectTrace("addeffect", spellId, effectName->m_id, effectName->m_fileName, this->m_model != nullptr);
 
     if (this->m_model) {
         this->m_refCount++;

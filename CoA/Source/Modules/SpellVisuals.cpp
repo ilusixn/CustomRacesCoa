@@ -9,6 +9,7 @@
 #include "CoA/Source/Runtime/Packets.h"
 #include "CoA/Source/Runtime/Read.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include <cstdio>
 #include <cstring>
 #include <unordered_map>
 
@@ -203,7 +204,16 @@ uint32_t CoA::SpellVisuals::AppropriateVisual(void* object, uint32_t spell) {
         return 0;
     }
 
-    return Resolve(o.type, o.guid, spell);
+    const uint32_t result = Resolve(o.type, o.guid, spell);
+
+    if (result != 0 && o.guid == ActiveGuid()) {   // diagnostic: a visual replaced or hidden for our own casts
+        if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+            fprintf(f, "own cast: spell %u -> visual %u\n", spell, result);
+            fclose(f);
+        }
+    }
+
+    return result;
 }
 
 uint32_t CoA::SpellVisuals::MissileHitVisual(uint64_t caster, uint32_t spell) {

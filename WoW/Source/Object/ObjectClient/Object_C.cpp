@@ -1,4 +1,5 @@
 #include "Object_C.h"
+#include <cstdio>
 #include "CoA/Source/Runtime/ClientHooksClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixesClient.h"
@@ -1553,6 +1554,14 @@ void CGObject_C::PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId
     *flags = (*flags & ~0x411) | 0x400;
 }
 
+static void KitTrace(const char* what, int spell, int kitType, int kit, int head, int chest, int base, int world) {   // diagnostic: Logs\SpellVisual.log (off)
+    return;
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "%s: spell %d type %d kit %d head %d chest %d base %d world %d\n", what, spell, kitType, kit, head, chest, base, world);
+        fclose(f);
+    }
+}
+
 // VERIFY: 3b7cacb6 manual
 // OFFSET: 0x00745230
 void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
@@ -1563,6 +1572,10 @@ void CGObject_C::PlaySpellVisualKit(const PlaySpellVisuaKitData& data) {
     if (data.m_spellRec) {
         spellId = data.m_spellRec->m_id;
     }
+
+    KitTrace("playkit", spellId, data.m_kitType, data.m_impactVisualKit ? data.m_impactVisualKit->m_id : -1,
+        data.m_impactVisualKit ? data.m_impactVisualKit->m_headEffect : 0, data.m_impactVisualKit ? data.m_impactVisualKit->m_chestEffect : 0,
+        data.m_impactVisualKit ? data.m_impactVisualKit->m_baseEffect : 0, data.m_impactVisualKit ? data.m_impactVisualKit->m_worldEffect : 0);
 
     if (!data.m_impactVisualKit) {
         return;
