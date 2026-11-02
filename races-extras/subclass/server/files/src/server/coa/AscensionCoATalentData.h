@@ -1,0 +1,82 @@
+#ifndef ASCENSION_COA_TALENT_DATA_H
+#define ASCENSION_COA_TALENT_DATA_H
+
+#include <array>
+#include <cstdint>
+#include <vector>
+
+namespace AscensionCompatData
+{
+constexpr std::uint8_t CoABorrowOnlyClassBase = 100;
+
+constexpr std::uint8_t CoABorrowOnlyClassOf(std::uint8_t classId)
+{
+    return std::uint8_t(CoABorrowOnlyClassBase + classId);
+}
+
+constexpr bool IsCoABorrowOnlyClass(std::uint8_t catalogClassId)
+{
+    return catalogClassId > CoABorrowOnlyClassBase;
+}
+
+constexpr std::size_t CoATalentMaxRanks = 5;
+
+struct CoATalentEntry
+{
+    std::uint32_t EntryId;
+    std::uint8_t ClassId;
+    std::uint16_t SpecId;
+    std::uint8_t SpellCount;
+    std::uint8_t AECost;
+    std::uint8_t TECost;
+    std::uint8_t RequiredLevel;
+    std::array<std::uint32_t, CoATalentMaxRanks> SpellIds;
+    bool Talent = false;
+    bool FreeUnlearn = false;
+    std::array<std::uint32_t, 3> RequiredEntryIds{};
+    std::uint8_t TabAEInvestment = 0;
+    std::uint8_t TabTEInvestment = 0;
+};
+
+struct CoASelectableFreeEntry
+{
+    std::uint32_t EntryId;
+    std::uint32_t GroupId;
+};
+
+struct CoAAutomaticDependency
+{
+    std::uint32_t EntryId;
+    std::array<std::uint32_t, 2> RequiredEntryIds;
+};
+
+struct CoASpecialization
+{
+    std::uint16_t SpecId;
+    std::uint8_t ClassId;
+    std::uint32_t IdentityEntryId;
+    std::uint32_t SignatureEntryId;
+    std::array<std::uint8_t, 3> PrimaryStats{};
+};
+
+struct CoATalentBudget
+{
+    std::uint8_t ClassId;
+    std::uint8_t Level;
+    std::uint8_t AE;
+    std::uint8_t TE;
+};
+
+extern std::vector<CoATalentEntry> CoATalentEntries;
+extern bool CoAStockClassesNative;
+extern std::vector<CoASelectableFreeEntry> CoASelectableFreeEntries;
+extern std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
+extern std::vector<CoASpecialization> CoASpecializations;
+extern std::vector<CoATalentBudget> CoATalentBudgets;
+
+bool GetCoATalentBudget(std::uint8_t classId, std::uint8_t level, std::uint32_t& ae, std::uint32_t& te);
+
+bool LoadCoATalentData();
+}
+
+#endif
