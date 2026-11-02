@@ -14592,6 +14592,12 @@ int32_t CGUnit_C::InitializeExtendedDisplay(CGPlayer_C* player, int32_t hasDispl
     data.m_flags ^= (data.m_flags ^ (static_cast<uint32_t>(this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) << 1)) & 0x2;
     data.m_model->m_refCount++;
 
+    unsigned savedSex;
+    if (player && (this->m_obj->m_type & TYPE_PLAYER) && CoA::Esteria::SavedGender(this, &savedSex)) {
+        // CoA: the unit's sex byte is not what the Esteria race was built with; keep the sex of the component the form freed
+        data.m_preferences.m_sexID = savedSex;
+    }
+
     if (player && RetailRaceMapped(data.m_preferences.m_raceID)) {
         // Retail options go beyond the stock CharSections ranges; keep the server's values.
     } else if (player) {
@@ -14628,6 +14634,10 @@ int32_t CGUnit_C::InitializeComponent() {
 
     this->m_clientFlags &= ~0x400000;
 
+    if (this->m_obj->m_type & TYPE_PLAYER)
+        CoA::Esteria::Trace("initcomp", this->m_unit->m_unitFieldBytes0[0], this->m_unit->m_unitFieldBytes0[2], this->m_displayInfoExtra ? 1 : 0,
+            this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid, static_cast<CGPlayer_C*>(this)->m_player->m_playerBytes[0]);
+
     if (this->m_characterComponent) {
         CCharacterComponent::FreeComponent(this->m_characterComponent);
         this->m_characterComponent = nullptr;
@@ -14644,6 +14654,10 @@ int32_t CGUnit_C::InitializeComponent() {
 
     if (this->HasBakedNpcTexture()) {
         this->InitializeExtendedDisplay(static_cast<CGPlayer_C*>(this), 1);
+    } else if (this->m_displayInfoExtra && (this->m_obj->m_type & TYPE_PLAYER) &&
+               this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid && CoA::Esteria::IsNativeRace(this->m_unit->m_unitFieldBytes0[0])) {
+        // CoA: the native display record of an Esteria race carries another sex / skin than the character; build from the player data
+        this->InitializeExtendedDisplay(static_cast<CGPlayer_C*>(this), 0);
     } else if (this->m_displayInfoExtra) {
         int32_t result = this->InitializeExtendedDisplay(nullptr, 1);
 
@@ -14661,6 +14675,31 @@ int32_t CGUnit_C::InitializeComponent() {
         this->m_characterComponent->m_dirtySections = 0xFFFFFFFF;
         RetailRaceGeometry(this->m_characterComponent);
         RetailRaceBody(this->m_characterComponent);
+    }
+
+    // CoA: coming back from a shapeshift (druid form ...) builds a fresh component; the Esteria races lose their packed look with the old one
+    // (face, horns, colours). Capture it again and rebuild every section before the items go on.
+    if (this->m_characterComponent && (this->m_obj->m_type & TYPE_PLAYER) &&
+        this->m_unit->m_unitFieldDisplayid == this->m_unit->m_unitFieldNativedisplayid) {
+        // The component was built from a leftover display-info record of the form (wrong sex / look): take race, sex and the look
+        // from the unit and the player data, as the first component of the login did.
+        {
+            auto& prefs = this->m_characterComponent->m_data.m_preferences;
+            auto* player = static_cast<CGPlayer_C*>(this);
+            prefs.m_skinID = player->m_player->m_playerBytes[0];
+            prefs.m_faceId = player->m_player->m_playerBytes[1];
+            prefs.m_hairStyleId = player->m_player->m_playerBytes[2];
+            prefs.m_hairColorId = player->m_player->m_playerBytes[3];
+            prefs.m_facialHairId = player->m_player->m_playerBytes2[0];
+        }
+        unsigned char look[5];
+        auto& restored = this->m_characterComponent->m_data.m_preferences;
+        if (CoA::Esteria::RestoreUnitLook(this, look)) {
+            restored.m_skinID = look[0]; restored.m_faceId = look[1]; restored.m_hairStyleId = look[2];
+            restored.m_hairColorId = look[3]; restored.m_facialHairId = look[4];
+        }
+        this->m_characterComponent->m_flags |= 0x4;
+        this->m_characterComponent->m_dirtySections = 0xFFFFFFFF;
     }
 
     if (!(this->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(this)->RefreshVisibleItems()) {
