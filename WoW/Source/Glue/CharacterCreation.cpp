@@ -175,7 +175,7 @@ int32_t CCharacterCreation::Idle(const void* data, void* param) {
     if (CCharacterComponent* main = CCharacterCreation::m_character) {
         static TwinLook seen;
         const TwinLook now = TwinLookOf(main);
-        if (now.race == kTwinsRace && main->m_data.m_model && !(now == seen)) {
+        if (now.race == kTwinsRace && main->m_data.m_model && (!(now == seen) || !CCharacterCreation::m_formMirror)) {
             seen = now;
             CCharacterCreation::SyncFormMirror();
         } else if (now.race != kTwinsRace) {
