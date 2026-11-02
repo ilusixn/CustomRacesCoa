@@ -1141,9 +1141,72 @@ void FitFacelessShoulders(CCharacterComponent* character) {
 }
 }
 
+// Knee (7, 8), hip (9, 10) and belt buckle (53) pieces: on tall or custom skeletons they came out far above the body (Nightborne, Void
+// Elf). Seat each on its own socket bone at the socket position, scaled with the body height like the helm socket.
+void FitLowerAttachments(CCharacterComponent* character) {
+    CM2Model* parent = character->m_data.m_model;
+    if (!parent || !(parent->m_fFlags & 1) || !parent->m_shared || !parent->m_shared->m_data) return;
+    const auto* data = parent->m_shared->m_data;
+    float scale = 1.f;
+    if (data->m_attachmentIndicesById.m_count > ATTACH_HELM) {
+        const uint16_t helm = data->m_attachmentIndicesById[ATTACH_HELM];
+        if (helm < data->m_attachments.m_count) scale = std::clamp(data->m_attachments[helm].m_position.z / 1.9f, .8f, 1.6f);
+    }
+    for (CM2Model* any = parent->m_attachList; any; any = any->m_attachNext)
+        Log("attached piece race %u id %u index %u flags %x model %s", unsigned(character->m_data.m_preferences.m_raceID),
+            unsigned(any->m_attachmentId), unsigned(any->m_attachmentIndex), unsigned(any->m_fFlags),
+            any->m_shared ? any->m_shared->m_fileName : "?");
+    // Retail "collection" foot pieces name attachment 54/55, which sits at head height on these skeletons (re-seating them on the foot
+    // sockets 47/48 did not move them): the boots are already drawn by the body geometry, so drop the floating piece.
+    for (CM2Model* foot = parent->m_attachList, *after = nullptr; foot; foot = after) {
+        after = foot->m_attachNext;
+        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !foot->m_shared) continue;
+        if (!std::strstr(foot->m_shared->m_fileName, "collections_")) continue;   // retail collection pieces only
+        const uint16_t socket = foot->m_attachmentId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[foot->m_attachmentId] : 0xffff;
+        if (socket < data->m_attachments.m_count && data->m_attachments[socket].m_position.z < 1.f) continue;
+        Log("foot piece %s race %u: removed (socket %u at head height)", foot->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID), unsigned(foot->m_attachmentId));
+        foot->DetachFromParent();
+    }
+    for (CM2Model* any = parent->m_attachList; any; any = any->m_attachNext)
+        Log("attached piece race %u id %u index %u flags %x model %s", unsigned(character->m_data.m_preferences.m_raceID),
+            unsigned(any->m_attachmentId), unsigned(any->m_attachmentIndex), unsigned(any->m_fFlags),
+            any->m_shared ? any->m_shared->m_fileName : "?");
+    // Retail "collection" foot pieces name attachment 54/55, which sits at the head on these skeletons; the feet sockets are 47 (left)
+    // and 48 (right).
+    for (CM2Model* foot = parent->m_attachList; foot; foot = foot->m_attachNext) {
+        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !foot->m_shared) continue;
+        const bool left = std::strstr(foot->m_shared->m_fileName, "feet_left") != nullptr;
+        if (!left && !std::strstr(foot->m_shared->m_fileName, "feet_right")) continue;
+        const uint32_t id = left ? 47 : 48;
+        const uint16_t socket = id < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[id] : 0xffff;
+        if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) continue;
+        const auto& attachment = data->m_attachments[socket];
+        const bool fitted = foot->SetAttachmentFrame(attachment.m_bone, attachment.m_position, 1.f);
+        Log("foot piece %s race %u: socket %u bone %u %s", foot->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID),
+            id, unsigned(attachment.m_bone), fitted ? "fitted" : "not fitted");
+    }
+    for (CM2Model* piece = parent->m_attachList, *next = nullptr; piece; piece = next) {
+        next = piece->m_attachNext;
+        const uint32_t id = piece->m_attachmentId;
+        if (id != 7 && id != 8 && id != 9 && id != 10 && id != 53) continue;
+        const uint16_t socket = id < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[id] : 0xffff;
+        // A model without that socket (the Void Elf has no hip sockets) leaves the piece at the origin, floating by the head: drop it.
+        if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) {
+            Log("lower attachment %u race %u: no socket, piece removed", id, unsigned(character->m_data.m_preferences.m_raceID));
+            piece->DetachFromParent();
+            continue;
+        }
+        const auto& attachment = data->m_attachments[socket];
+        const bool fitted = piece->SetAttachmentFrame(attachment.m_bone, attachment.m_position, scale);
+        Log("lower attachment %u race %u: bone %u scale %.2f %s", id, unsigned(character->m_data.m_preferences.m_raceID),
+            unsigned(attachment.m_bone), scale, fitted ? "fitted" : "no socket");
+    }
+}
+
 void RetailRaceKyrianShoulders(CCharacterComponent* character) {
     FitKyrianShoulders(character);
     FitFacelessShoulders(character);
+    FitLowerAttachments(character);
 }
 
 bool RetailRaceMapped(uint32_t race) {

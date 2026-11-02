@@ -89,6 +89,7 @@ void LeaveWorld() {
     BodyShape::Units().clear();
     RetailRaceClearLooks();
     BodyShape::Local() = BodyShape::Values();
+    CoA::Esteria::BodySliders::ForgetLoaded();
 }
 }
 
