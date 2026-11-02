@@ -155,7 +155,7 @@ bool ComposeHaranir(void* character, Options const& options, HaranirImages& imag
     }
     unsigned gender = CC<unsigned>(character, 0x1C);
     unsigned race = RaceOf(CC<unsigned>(character, 0x18));
-    if (race == 58 || race == 59)
+    if (true)
         KvLog("compose: race %u gender %u fields %u,%u,%u,%u,%u", race, gender, fields[0], fields[1], fields[2], fields[3], fields[4]);
     if (!ValidateExtended(race, gender, fields))
     {

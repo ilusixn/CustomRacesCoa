@@ -829,6 +829,7 @@ namespace
                 : EarthenAppearance::Validate(gender, legacy));
     }
 
+    void KvLog(char const* format, ...);
     std::unordered_map<void*, std::array<std::uint8_t, 13>> earthenNetworkAppearance;
 
     void CaptureEarthenAppearance(void* character, unsigned char const* network, std::uint64_t extra)
@@ -844,6 +845,7 @@ namespace
                 : static_cast<std::uint8_t>(extra >> (i * 8));
         if (race == 60) // network bytes are the wire layout; the renderer works on logical fields
             values = CreatureAppearance::DecodeKyrian(CC<unsigned>(character, 0x1C), values);
+        KvLog("capture: race %u component %p bytes %u,%u,%u,%u,%u extra %llx valid %d", race, character, unsigned(values[0]), unsigned(values[1]), unsigned(values[2]), unsigned(values[3]), unsigned(values[4]), static_cast<unsigned long long>(extra), ValidateExtended(race, CC<unsigned>(character, 0x1C), values) ? 1 : 0);
         if (!ValidateExtended(race, CC<unsigned>(character, 0x1C), values))
             return;
         earthenNetworkAppearance[character] = values;
@@ -1908,6 +1910,12 @@ void EsteriaSelectExtra(void* character)
     }
 }
 
+namespace
+{
+    struct SavedLook { unsigned race, gender; std::array<std::uint8_t, 13> fields; };
+    std::unordered_map<void*, SavedLook> savedLooks;      // by unit: the look of the component that was just freed (shapeshift)
+}
+
 void EsteriaUnitExtra(void* unit)
 {
     if (!unit || (UnitTypeId(unit) != 3 && UnitTypeId(unit) != 4))
@@ -1927,7 +1935,32 @@ void EsteriaUnitExtra(void* unit)
         if (playerData)
             CaptureEarthenAppearance(character, playerData + 0x14, highmountainExtra[character]);
     }
+    KvLog("unit extra: race %u type %u network %d extra %llx", race, UnitTypeId(unit), earthenNetworkAppearance.count(character) ? 1 : 0, static_cast<unsigned long long>(highmountainExtra[character]));
     HighmountainGeometry(character);
+}
+
+// The component of this unit was just rebuilt after a shapeshift: put its real look back.
+bool EsteriaRestoreUnitLook(void* unit, unsigned char* out)
+{
+    auto saved = savedLooks.find(unit);
+    void* character = unit ? UnitComponent(unit) : nullptr;
+    KvLog("restore check: unit %p component %p saved %d", unit, character, saved != savedLooks.end() ? 1 : 0);
+    if (saved == savedLooks.end() || !character)
+        return false;
+    SavedLook look = saved->second;
+    savedLooks.erase(saved);
+    if (RaceOf(CC<unsigned>(character, 0x18)) != look.race || CC<unsigned>(character, 0x1C) != look.gender)
+    {
+        KvLog("restore mismatch: saved race %u gender %u, component race %u gender %u", look.race, look.gender, RaceOf(CC<unsigned>(character, 0x18)), CC<unsigned>(character, 0x1C));
+        return false;
+    }
+    std::copy_n(look.fields.begin(), 5, out);
+    earthenNetworkAppearance[character] = look.fields;
+    SetHighmountainFields(character, look.fields);
+    KvLog("restore look: race %u fields %u,%u,%u,%u,%u", look.race, unsigned(look.fields[0]), unsigned(look.fields[1]),
+        unsigned(look.fields[2]), unsigned(look.fields[3]), unsigned(look.fields[4]));
+    HighmountainGeometry(character);
+    return true;
 }
 
 void EsteriaRegisterExtra()
@@ -1938,6 +1971,24 @@ void EsteriaRegisterExtra()
 
 void EsteriaForgetCharacter(void* character)
 {
+    // A shapeshift frees the component; the player data the client keeps is clamped to the ordinary DBC counts, so remember the
+    // real look by unit and give it back to the component built when the form ends.
+    if (ClntObjMgrGetCurrent() && ExtendedRace(RaceOf(CC<unsigned>(character, 0x18))))
+    {
+        OwnerSearch search{character, nullptr};
+        ClntObjMgrEnumVisibleObjects(FindOwner, &search);
+        KvLog("forget: component %p race %u owner %p", character, RaceOf(CC<unsigned>(character, 0x18)), search.unit);
+        if (search.unit)
+        {
+            auto network = earthenNetworkAppearance.find(character);
+            auto fields = network != earthenNetworkAppearance.end() ? network->second : HighmountainFields(character);
+            unsigned race = RaceOf(CC<unsigned>(character, 0x18));
+            unsigned gender = CC<unsigned>(character, 0x1C);
+            KvLog("forget save: race %u gender %u fields %u,%u,%u,%u,%u valid %d", race, gender, unsigned(fields[0]), unsigned(fields[1]), unsigned(fields[2]), unsigned(fields[3]), unsigned(fields[4]), ValidateExtended(race, gender, fields) ? 1 : 0);
+            if (ValidateExtended(race, gender, fields))
+                savedLooks[search.unit] = {race, gender, fields};
+        }
+    }
     ForgetCosmeticWing(character);
     cosmeticWingSelections.erase(character);
     haranirImages.erase(character);
@@ -2123,6 +2174,17 @@ namespace CoA::Esteria {
     void EnumExtra(void* packet) { EsteriaEnumExtra(packet); }
     void SelectExtra(void* character) { EsteriaSelectExtra(character); }
     void UnitExtra(void* unit) { EsteriaUnitExtra(unit); }
+    bool RestoreUnitLook(void* unit, unsigned char* out) { return EsteriaRestoreUnitLook(unit, out); }
+    void Trace(char const* tag, unsigned a, unsigned b, unsigned c, unsigned d, unsigned e) { KvLog("%s: %u %u %u %u %u", tag, a, b, c, d, e); }
+    bool SavedGender(void* unit, unsigned* gender)
+    {
+        auto saved = savedLooks.find(unit);
+        if (saved == savedLooks.end())
+            return false;
+        *gender = saved->second.gender;
+        return true;
+    }
+    bool IsNativeRace(unsigned race) { return ExtendedRace(RaceOf(race)); }
     void ForgetCharacter(void* character) { EsteriaForgetCharacter(character); }
     void AppearanceContext(void* character) { EsteriaAppearanceContext(character); }
     void SectionArguments(unsigned* arguments) { EsteriaSectionArguments(arguments); }
