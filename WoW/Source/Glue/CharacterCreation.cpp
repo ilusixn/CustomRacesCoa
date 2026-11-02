@@ -536,9 +536,9 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
                 int32_t visual = found && g_itemVisualsDB.GetRecord(itemRec.m_itemVisual) ? 0 : itemVisual;
 
                 if (slot != INVSLOT_MAINHAND && slot != INVSLOT_OFFHAND && slot != INVSLOT_RANGED) {
-                    CCharacterCreation::m_character->AddItemBySlot(static_cast<INVENTORY_SLOTS>(slot), displayID, visual);
+                    target->AddItemBySlot(static_cast<INVENTORY_SLOTS>(slot), displayID, visual);
                 } else if (found) {
-                    CCharacterComponent::AddHandItem(CCharacterCreation::m_character->m_data.m_model, &itemRec, static_cast<INVENTORY_SLOTS>(slot), SHEATHE_NONE, false, display->m_characterInfo.m_inventoryItemType[slot] == INVTYPE_SHIELD, false, visual);
+                    CCharacterComponent::AddHandItem(target->m_data.m_model, &itemRec, static_cast<INVENTORY_SLOTS>(slot), SHEATHE_NONE, false, display->m_characterInfo.m_inventoryItemType[slot] == INVTYPE_SHIELD, false, visual);
                 }
 
                 if (slot == INVSLOT_TABARD && found && (itemRec.m_flags & 0x1)) {
@@ -549,7 +549,7 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
                     int32_t background;
 
                     if (GuildGetGuildTabard(display->m_characterInfo.m_guid, display->m_characterInfo.m_guildID, nullptr, nullptr, emblemStyle, emblemColor, borderStyle, borderColor, background)) {
-                        CCharacterCreation::m_character->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
+                        target->ApplyGuildColor(emblemStyle, emblemColor, borderStyle, borderColor, background);
                     }
                 }
             }
@@ -559,18 +559,18 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
     }
 
     for (uint32_t i = 0; i < NUM_ITEM_SLOTS; i++) {
-        CCharacterCreation::m_character->RemoveItem(static_cast<ITEM_SLOT>(i));
+        target->RemoveItem(static_cast<ITEM_SLOT>(i));
     }
 
-    CCharacterComponent::RemoveHandItem(CCharacterCreation::m_character->m_data.m_model, INVSLOT_MAINHAND, SHEATHE_NONE, false);
-    CCharacterComponent::RemoveHandItem(CCharacterCreation::m_character->m_data.m_model, INVSLOT_OFFHAND, SHEATHE_NONE, false);
-    CCharacterComponent::RemoveHandItem(CCharacterCreation::m_character->m_data.m_model, INVSLOT_OFFHAND, SHEATHE_NONE, true);
-    CCharacterComponent::RemoveHandItem(CCharacterCreation::m_character->m_data.m_model, INVSLOT_RANGED, SHEATHE_NONE, false);
+    CCharacterComponent::RemoveHandItem(target->m_data.m_model, INVSLOT_MAINHAND, SHEATHE_NONE, false);
+    CCharacterComponent::RemoveHandItem(target->m_data.m_model, INVSLOT_OFFHAND, SHEATHE_NONE, false);
+    CCharacterComponent::RemoveHandItem(target->m_data.m_model, INVSLOT_OFFHAND, SHEATHE_NONE, true);
+    CCharacterComponent::RemoveHandItem(target->m_data.m_model, INVSLOT_RANGED, SHEATHE_NONE, false);
 
     for (int32_t i = 0; i < g_charStartOutfitDB.m_numRecords; i++) {
         CharStartOutfitRec* outfit = i >= 0 && i < g_charStartOutfitDB.m_numRecords ? &g_charStartOutfitDB.m_records[i] : nullptr;
 
-        if (static_cast<uint8_t>(outfit->m_raceID) != CCharacterCreation::m_character->m_data.m_preferences.m_raceID || static_cast<uint8_t>(outfit->m_classID) != CCharacterCreation::m_selectedClassID || static_cast<uint8_t>(outfit->m_sexID) != CCharacterCreation::m_character->m_data.m_preferences.m_sexID) {
+        if (static_cast<uint8_t>(outfit->m_raceID) != target->m_data.m_preferences.m_raceID || static_cast<uint8_t>(outfit->m_classID) != CCharacterCreation::m_selectedClassID || static_cast<uint8_t>(outfit->m_sexID) != target->m_data.m_preferences.m_sexID) {
             continue;
         }
 
@@ -597,10 +597,10 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
                         ItemDisplayInfoRec itemRec;
 
                         if (g_itemDisplayInfoDB.GetRecord(displayID, &itemRec)) {
-                            GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(CCharacterCreation::m_character->m_data.m_model, &itemRec, INVSLOT_RANGED, SHEATHE_NONE, false, false, mainHand, 0);
+                            GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(target->m_data.m_model, &itemRec, INVSLOT_RANGED, SHEATHE_NONE, false, false, mainHand, 0);
 
                             if (type == INVTYPE_RANGED) {
-                                for (CM2Model* attached = CCharacterCreation::m_character->m_data.m_model->m_attachList; attached; attached = attached->m_attachNext) {
+                                for (CM2Model* attached = target->m_data.m_model->m_attachList; attached; attached = attached->m_attachNext) {
                                     if (attached->m_attachmentId == static_cast<uint32_t>(link)) {
                                         attached->SetLoadedCallback(&CCharacterSelection::ModelLoadedCallback, nullptr);
                                         break;
@@ -616,7 +616,7 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
                         ItemDisplayInfoRec itemRec;
 
                         if (g_itemDisplayInfoDB.GetRecord(displayID, &itemRec) && *itemRec.m_modelName[0]) {
-                            CCharacterCreation::m_character->AddItem(ITEMSLOT_11, &itemRec, 0);
+                            target->AddItem(ITEMSLOT_11, &itemRec, 0);
                         }
 
                         break;
@@ -628,7 +628,7 @@ void CCharacterCreation::Dress(CCharacterComponent* target) {
                 }
             }
 
-            CCharacterCreation::m_character->AddItemByType(static_cast<INVENTORY_TYPES>(type), displayID);
+            target->AddItemByType(static_cast<INVENTORY_TYPES>(type), displayID);
         }
 
         return;

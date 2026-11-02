@@ -29,6 +29,8 @@ struct lua_State;
 namespace CoA::Json {
     // FUN_1025a6c0.
     void Set(const std::string& category, uint32_t id, const std::string& payload);
+    // The cached payload, "" when none.
+    std::string Get(const std::string& category, uint32_t id);
     // FUN_100a4580: the value as Lua (a table for objects and arrays).
     void Push(lua_State* L, const nlohmann::json& value);
 

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "WoW/Source/WowServices/RealmConnection.h"
 
@@ -23,6 +24,11 @@ class CharacterSelectionDisplay {
     static CCharacterComponent* m_formMirror;
     static void ClearFormMirror();
     static void ShowFormMirror(CharacterSelectionDisplay& display);
+    // The Twins (mod-subclass race 96): the brother beside the selected character, in his own gear when the server
+    // sent it (MISC_PLAYER_DATA_PAYLOAD id 'TWNS'), otherwise in the character's.
+    static bool m_formMirrorIsTwin;
+    static void ShowTwinMirror(CharacterSelectionDisplay& display);
+    static void KeepTwinMirror(CharacterSelectionDisplay& display);
     static int32_t SetSelectedCharacterInfo(CHARACTER_INFO* info);
 
     CharacterSelectionDisplay();

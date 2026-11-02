@@ -281,6 +281,15 @@ void CoA::Json::Set(const std::string& category, uint32_t id, const std::string&
     }
 }
 
+std::string CoA::Json::Get(const std::string& category, uint32_t id) {
+    auto c = s_cache.find(category);
+    if (c == s_cache.end()) {
+        return {};
+    }
+    auto e = c->second.find(id);
+    return e == c->second.end() ? std::string() : e->second;
+}
+
 // FUN_10259430 (0x77B: no id) and the five {u32 id, cstring} payload handlers.
 int32_t CoA::Json::OnPayload(void* param, uint32_t opcode, uint32_t time, CDataStore* msg) {
     const char* category = CategoryFor(opcode);
