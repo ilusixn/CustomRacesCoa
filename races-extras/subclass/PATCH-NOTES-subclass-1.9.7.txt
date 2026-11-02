@@ -1,0 +1,38 @@
+Subclass races (stefanw1337) - changes since 1.9.6 - 2026-11-02
+================================================================
+Server: build from stefanw1337/azerothcore-wotlk-coa, branch ilusixn-195-server (c1d22382), or see README.md here.
+Client: the models and tables below are in our patch-ZZZZY.MPQ (the only client patch of ours from now on).
+
+WITCH HUNTER VAULT
+- Vault no longer plays a plain jump. Each original race vaults its own way: handsprings (Human, Troll, Draenei),
+  three small springs (Gnome), a flip without hands (Night Elf), side flips (Undead, Blood Elf), and a dive roll that
+  ends in a shoulder charge (Tauren, Orc, Dwarf). Backing up flips backwards. Distance and speed are unchanged.
+- Two-Headed Ogre: she leaps, lands on her butt, bounces off it and lands on her feet.
+- The Twins: the brother bends over right in front of you and you leapfrog over his back, then carry on to the end of
+  the Vault. If he rides piggyback he hops off first. Works with Witch Hunter as main class or subclass.
+
+THE TWINS
+- Hair under hats: short, half-long and long hair stay as chosen with only the top cut away; bald stays bald. The
+  brother's hat does the same for him.
+- The brother's forms follow the spell rules: taking one pays its cost and starts its cooldown, and timed forms such as
+  Accursed Form end when their time runs out. A brother at range no longer swings his melee weapon.
+- Play easy, cowboy: the brother leaves a spent timed form when none of its rage spenders or builders can be used.
+  Tank forms are kept.
+- Melee-and-caster specializations keep the brother at range; in a Bloodmage cursed form he wears the incarnation chosen
+  in the wardrobe and fights up close.
+- Your own mana bar no longer flickers while a shared mana pool fills up.
+
+TWO-HEADED OGRE
+- Her cast now holds a bent arm up with the fist before the face on both heads, instead of a straight arm thrown
+  forward.
+
+SUBCLASSING
+- The subclass name shows only on the Character tab of the character window, not on Pets, Reputation, Skills or
+  Currency.
+- Dual Wield shows once in the spellbook, whichever class teaches it.
+- The subclass addon learns the race from the server, so the twin's wardrobe button, the Two-Thins tab and the Ogre's
+  looks keep working under any race name (such as "The Twins").
+
+TOOLS
+- tools/mkmergepatch.py merges our client patches into one patch-ZZZZY.MPQ (plain Python, runs on Windows).
+- tools/mkvault.py builds the Ogre and Twins Vault into their models and adds the animation and visual kit rows.
