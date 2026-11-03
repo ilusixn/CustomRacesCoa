@@ -271,7 +271,7 @@ void CCharacterCreation::SetCharacterFacing(float facing) {
                 const char* depth = std::getenv("WOW_TWIN_DEPTH");
                 const char* side = std::getenv("WOW_TWIN_SIDE");
                 position.x = depth ? float(std::atof(depth)) : -1.0f;
-                position.y = side ? float(std::atof(side)) : 0.9f;
+                position.y = side ? float(std::atof(side)) : -0.9f;
             }
             character->m_data.m_model->SetWorldTransform(position, facing,
                 RetailRacePreviewScale(character->m_data.m_preferences.m_raceID));

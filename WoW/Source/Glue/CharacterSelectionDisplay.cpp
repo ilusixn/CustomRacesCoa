@@ -63,7 +63,7 @@ void TwinMirrorOffset(float& x, float& y) {
     const char* depth = std::getenv("WOW_TWIN_SELECT_DEPTH");
     const char* side = std::getenv("WOW_TWIN_SELECT_SIDE");
     x = depth ? static_cast<float>(std::atof(depth)) : -1.0f;
-    y = side ? static_cast<float>(std::atof(side)) : 0.9f;
+    y = side ? static_cast<float>(std::atof(side)) : -0.9f;
 }
 }
 
