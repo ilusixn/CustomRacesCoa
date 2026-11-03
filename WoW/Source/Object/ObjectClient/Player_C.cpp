@@ -1100,6 +1100,21 @@ CreatureModelDataRec* GetModelDataRec(uint32_t race, uint32_t gender) {
     return modelRec;
 }
 
+CreatureModelDataRec* GetTwinModelDataRec(uint32_t race, uint32_t gender) {
+    constexpr uint32_t kTwinsRace = 96;
+    constexpr uint32_t kMirrorTwinDisplay = 977602;
+
+    if (race == kTwinsRace) {
+        if (CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(kMirrorTwinDisplay)) {
+            if (CreatureModelDataRec* modelRec = g_creatureModelDataDB.GetRecord(displayRec->m_modelID)) {
+                return modelRec;
+            }
+        }
+    }
+
+    return GetModelDataRec(race, gender);
+}
+
 // VERIFY: e9fe3eb9 manual
 // OFFSET: 0x006D7AA0
 bool CGPlayer_C::VehicleAllowsInteraction() const {

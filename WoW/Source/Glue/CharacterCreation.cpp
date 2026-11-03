@@ -724,14 +724,14 @@ void CCharacterCreation::SyncFormMirror() {
     if (!mirror) return;
     char path[260];
     if (twin) {
-        // The Twins: the second twin is a copy of the player's own look, on the same model.
+        // The Twins: the second twin is a copy of the player's own look, on his mirror-image model.
         const CharacterPreferences& look = main->m_data.m_preferences;
         data.m_preferences.m_skinID = look.m_skinID;
         data.m_preferences.m_faceId = look.m_faceId;
         data.m_preferences.m_hairStyleId = look.m_hairStyleId;
         data.m_preferences.m_hairColorId = look.m_hairColorId;
         data.m_preferences.m_facialHairId = look.m_facialHairId;
-        CreatureModelDataRec* modelRec = GetModelDataRec(data.m_preferences.m_raceID, data.m_preferences.m_sexID);
+        CreatureModelDataRec* modelRec = GetTwinModelDataRec(data.m_preferences.m_raceID, data.m_preferences.m_sexID);
         if (!modelRec || !*modelRec->m_modelName) {
             CCharacterComponent::FreeComponent(mirror);
             return;

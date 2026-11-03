@@ -148,7 +148,7 @@ void CharacterSelectionDisplay::ShowTwinMirror(CharacterSelectionDisplay& displa
         return;
     }
 
-    CreatureModelDataRec* modelRec = GetModelDataRec(info.m_raceID, info.m_sexID);
+    CreatureModelDataRec* modelRec = GetTwinModelDataRec(info.m_raceID, info.m_sexID);
     if (!modelRec || !*modelRec->m_modelName) {
         return;
     }

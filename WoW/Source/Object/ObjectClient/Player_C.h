@@ -467,6 +467,8 @@ int32_t ClientPlaySpellVisualHandler(WOWGUID guid, void* param);
 void EnumVisibleForAuraEffect(const SpellRec* spell, int32_t display, int32_t flags);
 uint32_t GetDisplayIdFromRaceAndGender(uint32_t race, uint32_t gender);
 CreatureModelDataRec* GetModelDataRec(uint32_t race, uint32_t gender);
+// The Twins' brother: his mirror-image model (display 977602) when the client has it, else the race's own.
+CreatureModelDataRec* GetTwinModelDataRec(uint32_t race, uint32_t gender);
 int32_t OnArenaCurrencyChanged(WOWGUID guid, uint32_t offset, uint32_t count, const void* value);
 int32_t OnHonorCurrencyChanged(WOWGUID guid, uint32_t offset, uint32_t count, const void* value);
 int32_t OnSummonCancel(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg);
