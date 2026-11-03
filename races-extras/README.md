@@ -16,5 +16,11 @@ Not included: models, textures, DBC files, MPQs (large, and many are other autho
   64-bit client opens `patch-*-HD.MPQ` only when HD is on, so HD-off clients keep matching skins and animations.
   Both need the Vault rows in AnimationData.dbc (1792-1795) and SpellVisualKit.dbc (3455900, 3455901). Rebuild them
   on another client with `tools/build_vault_patches.py` in stefanw1337/azerothcore-wotlk-coa.
+- The Thin Twins brother is the player's mirror image: display 977602 / model 901402,
+  `custom\thinhuman\native\male\thinhumanmirrormale.m2`. `modules/mod-subclass/tools/mkmirror.py --client <Data>
+  <EsteriaAppearanceGeometry.bin>` (stefanw1337/azerothcore-wotlk-coa) builds the model from the client's own Thin
+  Twins model, adds both table rows and the geometry entry and merges them into patch-ZZZZY.MPQ; `mkraces.py` adds the
+  rows to the server tables. The glue shows the mirrored twin at character select and creation when display 977602
+  exists. The server option is `Subclass.ThinTwins.MirrorDisplay` (0 = the player's own model).
 - `assets/faun_fix_patch/`  the source tree packed into patch-ZZZZA.
 Not included: the generated intermediates (about 1.7 GB), third-party race source packs, and the server runtime/database.
