@@ -59,6 +59,30 @@ void ApplyTwinGear(CHARACTER_INFO& twin, const std::string& payload) {
     twin.m_flags &= ~(0x400u | 0x800u);
 }
 
+// "<name>#look" holds the brother's own [face, hair style, facial hair]; 255 keeps the player's.
+void ApplyTwinLook(ComponentData& data, const std::string& name, const std::string& payload) {
+    if (payload.empty()) {
+        return;
+    }
+    nlohmann::json root = nlohmann::json::parse(payload, nullptr, false);
+    if (root.is_discarded() || !root.is_object()) {
+        return;
+    }
+    auto found = root.find(name + "#look");
+    if (found == root.end() || !found->is_array() || found->size() != 3) {
+        return;
+    }
+    auto feature = [&](size_t index, auto& field) {
+        const auto& value = (*found)[index];
+        if (value.is_number_unsigned() && value.get<uint32_t>() < 255) {
+            field = value.get<uint32_t>();
+        }
+    };
+    feature(0, data.m_preferences.m_faceId);
+    feature(1, data.m_preferences.m_hairStyleId);
+    feature(2, data.m_preferences.m_facialHairId);
+}
+
 void TwinMirrorOffset(float& x, float& y) {
     const char* depth = std::getenv("WOW_TWIN_SELECT_DEPTH");
     const char* side = std::getenv("WOW_TWIN_SELECT_SIDE");
@@ -162,6 +186,7 @@ void CharacterSelectionDisplay::ShowTwinMirror(CharacterSelectionDisplay& displa
     data.m_preferences.m_hairStyleId = info.m_hairStyleID;
     data.m_preferences.m_hairColorId = info.m_hairColorID;
     data.m_preferences.m_facialHairId = info.m_facialHairStyleID;
+    ApplyTwinLook(data, info.m_name, s_twinPayload);
     data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(modelRec->m_modelName, 0);
     if (!data.m_model) {
         return;
