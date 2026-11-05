@@ -46,6 +46,10 @@ void PutContext(uint32_t nextWakeTime, uint32_t newSmoothWeight, EvtContext* con
 uint32_t STORMAPI SchedulerThreadProc(void* mainThread);
 int32_t SchedulerThreadProcProcess(uint32_t hThread, int32_t* watchdogStarted);
 void SynthesizeDestroy(EvtContext* context);
+// CoA: render pipeline stage 4 (SlFrameClient) -- the start of a game frame (idle) and of its render (paint).
+extern void (*g_idleHook)();
+extern void (*g_paintHook)();
+
 void SynthesizeIdle(EvtContext* context, uint32_t currTime, float elapsedSec);
 int32_t SynthesizeInitialize(EvtContext* context);
 void SynthesizePaint(EvtContext* context);

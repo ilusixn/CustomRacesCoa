@@ -289,13 +289,12 @@ COA_TEST(ZoneLight_PatchPacket) {
     CoA::ZoneLight::Rebuild();
     CHECK(ZoneOf(5) && ZoneOf(5)->map == 3 && ZoneOf(5)->light == 88 && ZoneOf(5)->transition == 30.0f);
     CHECK(ZoneOf(5) && ZoneOf(5)->zMin == -5.0f && ZoneOf(5)->zMax == 5.0f);
-    // A new id past the table's last one: inserted -- and, as the DLL's FUN_10133ac0 does (kept, Plan 13 ledger), the old
-    // last row drops out of the grown index.
+    // A new id past the table's last one is inserted, and the old last row stays.
     CoATest::Bytes c;
     c.U32(9).Str("New").U32(1).U32(99).F32(5.0f).F32(0.0f).F32(10.0f);
     CoATest::Deliver(CoA::ZoneLight::OnPatchZoneLight, 0x680, c);
     CoA::ZoneLight::Rebuild();
     CHECK(ZoneOf(9) && ZoneOf(9)->light == 99 && ZoneOf(9)->zMax == 10.0f);
-    CHECK(ZoneOf(5) == nullptr);
+    CHECK(ZoneOf(5) && ZoneOf(5)->light == 88);
     Stop();
 }

@@ -253,6 +253,34 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     /* 3C44 */ uint32_t m_texCacheSize;
     /* 3C48 */ uint32_t m_deviceStates [DeviceStates_Last];
     /* 3F20 */ bool m_texEnabled [8];
+    // CoA64: render pipeline world target (see WorldTargetBegin). The textures and their level-0 surfaces hold one
+    // reference each; while begun, m_defColorSurface / m_defDepthSurface alias the world surfaces (no extra
+    // reference) and the original defaults (with their references) are parked in m_worldSaved*Surface.
+    LPDIRECT3DTEXTURE9 m_worldColorTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldDepthTexture = nullptr;
+    LPDIRECT3DSURFACE9 m_worldColorSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldDepthSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldSavedColorSurface = nullptr;
+    LPDIRECT3DSURFACE9 m_worldSavedDepthSurface = nullptr;
+    uint32_t m_worldTargetWidth = 0;
+    uint32_t m_worldTargetHeight = 0;
+    int32_t m_worldTargetBegun = 0;
+    // CoA64: WorldTargetSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
+    int32_t m_worldTargetSupported = -1;
+    // CoA64: render pipeline motion targets (see WorldMotionTargetsEnsure): motion (G16R16F), translucency mask
+    // (A8R8G8B8) and opaque snapshot (colour format) render-target textures at the world target size. Each holds one
+    // reference; all three exist or none do. Freed in WorldTargetRelease.
+    LPDIRECT3DTEXTURE9 m_worldMotionTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldMaskTexture = nullptr;
+    LPDIRECT3DTEXTURE9 m_worldSnapshotTexture = nullptr;
+    uint32_t m_worldMotionWidth = 0;
+    uint32_t m_worldMotionHeight = 0;
+    // CoA64: WorldMotionSupported's answer for the current device (-1: not asked yet); reset in IReleaseD3dResources.
+    int32_t m_worldMotionSupported = -1;
+    // CoA64: WorldLodBiasSet's D3DSAMP_MIPMAPLODBIAS value (float bits, 0 = no bias) and what each sampler holds (D3D9
+    // default 0; IStateSetD3DDefaults resets the record with the device).
+    uint32_t m_worldLodBias = 0;
+    uint32_t m_samplerLodBias[16] = {};
 
     virtual void ITexMarkAsUpdated(CGxTex* texId);
     virtual void IRsSendToHw(EGxRenderState which);
@@ -314,6 +342,22 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     virtual void DeviceUnk81(uint32_t a, uint32_t b);
     virtual void DeviceUnk82();
     virtual void DeviceUnk83(uint32_t a, uint32_t b);
+    virtual bool WorldTargetSupported();
+    virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
+    virtual bool WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual void* WorldDepthTexture();
+    virtual void* WorldColorTexture();
+    virtual void WorldTargetRelease();
+    virtual bool WorldMotionSupported();
+    virtual bool WorldMotionTargetsEnsure();
+    virtual void* WorldMotionTexture();
+    virtual void* WorldMaskTexture();
+    virtual void* WorldSnapshotTexture();
+    virtual bool WorldSnapshotOpaque();
+    virtual void WorldLodBiasSet(float bias);
+    virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
+    virtual void* D3dDevice();
+    virtual bool WorldTargetEndWith(void* texture);
 
     static const D3DFORMAT s_GxFormatToD3dFormat[CGxFormat::Formats_Last];
     static const D3DFORMAT s_GxTexFmtToD3dFmt[GxTexFormats_Last];
@@ -401,6 +445,10 @@ class CGxDeviceD3d9Ex : public CGxDevice {
     void IXformSetTex(uint32_t tmu);
     void IXformSetViewport();
     void IXformSetWorld();
+    void IWorldTargetApply();
+    void IWorldTargetFree();
+    void IWorldTargetRestore(bool rebind = true);
+    void IWorldMotionTargetsFree();
 };
 
 CGxDevice* CreateCGxDeviceD3d9Ex();

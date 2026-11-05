@@ -19,3 +19,8 @@ target_link_libraries(CoATests
 )
 
 add_test(NAME CoATests COMMAND CoATests)
+
+# x64: the Streamline SDK headers (sl_consts.h) for the DLSS frame-blob layout test (DlssFrame.h).
+if (TARGET streamline_headers)
+    target_link_libraries(CoATests PRIVATE streamline_headers)
+endif ()

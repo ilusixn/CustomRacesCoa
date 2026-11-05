@@ -115,6 +115,9 @@ COA_TEST(Cursor_TableAndDrawTexture) {
     s_mode = 3;
     CHECK(CoA::Cursor::DrawTexture() == CoA::Cursor::Slot(3, 2));
     CHECK(CoA::Cursor::Width() == 64.0f / 1000.0f && CoA::Cursor::Height() == 64 / 500.0f);
+    CoA::Cursor::Dependencies().screenWidth = [] { return 1920.0f; };
+    CHECK(CoA::Cursor::Width() == 64.0f / 1920.0f);
+    CoA::Cursor::Dependencies().screenWidth = [] { return 1000.0f; };
     CoA::Cursor::OnGxCursor("0");
     CoA::Cursor::CursorVisible(0);
     CHECK(CoA::Cursor::DrawTexture() == nullptr);

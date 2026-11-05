@@ -3,15 +3,8 @@
 
 #include <cstdint>
 
-// AscTemplates.cpp: GetQuestTemplate (0x1021EA50) / GetCreatureTemplate (0x1021B200) / GetCreatureModelData (0x100B0EF0) /
-// GetCreatureDisplayInfo (0x100B0D70) / GetCreatureDisplayInfoExtra (0x100B0E30). Each reads luaL_checknumber(L, 1),
-// looks the record up (the client quest / creature caches with no callback, or the client DBC container), builds a
-// nlohmann::json object from it (FUN_1021ecb0, FUN_1021b2d0, FUN_100b39f0, FUN_100b2d20, FUN_100b3350) and pushes it
-// through FUN_100a4580 (CoA::Json::Push); a missing record returns nothing. Checked against the genuine DLL.
-//
-// FUN_1021ecb0 reads the quest record at the offsets of a larger record than this client's QuestCache (0x28E4 bytes):
-// ObjectiveText is 4 x 0x200 from +0x1C94 (the client's is 4 x 0x100), and RewardTitleId .. Unknown sit 0x400 further
-// on (+0x2494 .. +0x2CE0). Read here against the client's record as the original does; bytes past its end read 0.
+// AscTemplates.cpp: the quest / creature template and creature DBC readers.
+// Quest record offsets and the original's over-read: docs/2026-10-29-coa-module-notes.md.
 namespace CoA::Templates {
     struct Creature {   // CreatureStats_C (x86 offsets)
         uint32_t id = 0;                 // +0x6C (the cache node's key after the record)

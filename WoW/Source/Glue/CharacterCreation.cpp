@@ -160,7 +160,9 @@ void CCharacterCreation::Shutdown() {
 
     for (uint32_t i = 0; i < CCharacterCreation::MAX_RACES; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            delete CCharacterCreation::m_charPreferences[i][j];
+            if (CCharacterCreation::m_charPreferences[i][j]) {
+                SMemFree(CCharacterCreation::m_charPreferences[i][j], __FILE__, __LINE__, 0);
+            }
             CCharacterCreation::m_charPreferences[i][j] = nullptr;
         }
     }
@@ -462,14 +464,14 @@ int32_t CCharacterCreation::GetExistingClassIndex() {
 // OFFSET: 0x004E0F50
 int32_t CCharacterCreation::GetRandomClassID() {
     // CoA: Ascension.exe patch 0x4E0F55 -- room for 30 classes (0x78 bytes) instead of 10
-    int32_t classes[30];
+    int32_t classes[64];
     int32_t count = 0;
     uint8_t expansion = ClientServices::Connection()->m_accountExpansion;
 
     for (uint32_t i = 0; i < CCharacterCreation::m_classes.Count(); i++) {
         ChrClassesRec* rec = CCharacterCreation::m_classes.m_data[i];
 
-        if (expansion >= rec->m_requiredExpansion) {
+        if (expansion >= rec->m_requiredExpansion && count < 64) {
             classes[count++] = rec->m_id;
         }
     }

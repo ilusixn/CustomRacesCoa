@@ -48,7 +48,18 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 - **Early fixes taken from the reconstruction.** Quest log ids are read as 32 bits (the original's low word never
   matched custom quests above 65535). `GameTooltip:InsertLine` / `InsertLines` hide the font strings past
   `NumLines()` while they run (`TooltipInsertFixClient`), so keystone tooltips keep every Dungeon Modifier; temporary,
-  until patch-B's `Tooltip.lua` carries the fix.
+  until patch-B's `Tooltip.lua` carries the fix. `GetQuestTemplate` reads the quest record at the client's offsets
+  (reconstruction `0fa250b`): the original read `ObjectiveText` at a 0x200 stride and `RewardTitleId` .. `Unknown`
+  0x400 past the record, so those keys returned other fields' bytes (the Callboard's `RewardArenaPoints`). SMSG `0x693`
+  marks the item appearance index stale for its next reader (reconstruction `ecdd916`): the original rebuilt the whole
+  index per row, which froze login on a streamed catalog.
+- **New rows in the DLL's tables.** `Dbc::Table::Upsert` fixes two defects of the original's insert (FUN_10133ac0), which
+  the reconstruction keeps: growing the index no longer loses the row that held the old maximum id, and a new row joins
+  file-order walks (`Count`, `RowAt`) after the file's rows, so indexes built by walking see server-added rows. The
+  client tables' own insert (`ClientDbcPatch::Insert`) keeps the old maximum too.
+- **Not ported from the reconstruction.** `AscDbcStream` (its `ASCENSION_DBC_STREAM` build, default off; SMSG
+  `0x8F3`-`0x8F5` streamed GameObjectDisplayInfo / Map / MapDifficulty rows, not in the original) and
+  `AscMinimapTargetKeep` (a workaround for a 32-bit-only indoor minimap defect CoA64 does not show).
 - **Character advancement `0x726` handler order.** As in the reconstruction: unit parameters are synchronized before
   listeners run.
 - **World headers.** The reconstruction's plaintext-header stub (`0x466BF0`) is disabled there and not ported.
@@ -56,6 +67,35 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
   ProcessMessage's bound at `0x63200D`), reading and writing neighbouring memory. No server sends them; CoA64 treats
   them as unhandled and ignores registrations for them (`CoA::Packets::InGap`).
 - **Warden.** Unchanged from wowdecomp's x64 client: Warden data is received and dropped. To be revisited.
+- **Render pipeline (CoA64 addition).** The world can render to an off-screen colour target plus an INTZ depth texture
+  and be copied back to the back buffer, pixel-identical to the direct path (checked with `Tools/coa/imgdiff.py`).
+  Console-only, all default 0: `coaRenderPipeline`, `coaRenderDebug`, `coaRenderJitter`. Active only without MSAA, with
+  INTZ, a 24-bit depth format and shaders; otherwise the direct path runs. Groundwork for DLSS
+  (`docs/superpowers/specs/2026-10-26-streamline-rendering-design.md`).
+  `coaRenderMotion` (default 0, needs `coaRenderPipeline 1`) adds per-pixel motion vectors (static geometry from depth
+  and the camera; animated models redrawn with own shaders from this and last frame's bones) and a translucency mask,
+  written to their own textures only — the colour image is unchanged. `coaRenderDebug` 3/4/5/6 = motion view, mask,
+  model-pass coverage, motion ×16.
+- **NVIDIA DLSS (CoA64 addition).** DLSS Super Resolution / DLAA through NVIDIA Streamline (MIT, v2.14.16), running
+  inside DXVK. On the Video options' Display page (DLSS, Frame Generation, NVIDIA Reflex dropdowns, added at runtime;
+  greyed out with the reason where unsupported; DLSS saves Multisampling 1x) and as console CVars, default off: `coaDlssMode` 0 off / 1 DLAA / 2 Quality / 3 Balanced / 4 Performance /
+  5 Ultra Performance. Streamline is loaded only when `coaDlssMode` is non-zero at start-up, so turning it on from 0
+  needs a restart; switching between non-zero modes is live. With 0 nothing of Streamline is loaded. It needs the
+  DXVK renderer, an NVIDIA RTX GPU and driver, and the NVIDIA-signed `sl.interposer.dll`, `sl.common.dll`,
+  `sl.dlss.dll` and `nvngx_dlss.dll` beside `d3d9.dll` in `x64\`; otherwise the log names why it stays off. A mode
+  turns on the render pipeline and motion vectors itself, renders the world at a lower size (the UI stays at window
+  size) and lets DLSS scale it up. While Streamline is active DXVK uses descriptor buffers instead of the descriptor
+  heap (NGX rendered black with the heap). Developer CVars: `coaRenderScale` (world size without DLSS),
+  `coaDlssMvecSign`, `coaDlssJitterSign` (default 1).
+- **NVIDIA Frame Generation and Reflex (CoA64 addition).** Dropdowns on the Display page and console CVars, default off: `coaFrameGen` 0 off / 1 = 2x /
+  2 = 3x / 3 = 4x (capped at what the GPU supports; RTX 40 for 2x, RTX 50 for more), `coaReflex` 0 off / 1 on /
+  2 on + boost (at least on while Frame Generation runs). Streamline loads when any of `coaDlssMode`, `coaFrameGen`,
+  `coaReflex` is non-zero at start-up (same restart rule). Frame Generation also works without DLSS (the world then
+  renders at window size); it is off outside the world (loading screens, character select) and for the frame of a
+  resize. Needs `sl.dlss_g.dll`, `nvngx_dlssg.dll`, `sl.reflex.dll`, `sl.pcl.dll` and `NvLowLatencyVk.dll` in `x64\`.
+  **Frame Generation is currently always off** (the log says why): NVIDIA presents the client's Vulkan window by a
+  composed copy, not flip model, and DLSS-G's pacer then deadlocks in the present's device flush
+  (`docs/2026-10-29-render-pipeline-notes.md`, "Frame Generation hang"). Reflex and DLSS are unaffected.
 
 ## Forced by x64
 

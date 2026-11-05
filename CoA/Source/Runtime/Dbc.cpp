@@ -220,12 +220,22 @@ const uint8_t* CoA::Dbc::Table::Row(uint32_t id) {
 
 uint32_t CoA::Dbc::Table::Count() {
     this->Load();
-    return this->m_ok ? this->m_count : 0;
+    return this->m_ok ? this->m_count + static_cast<uint32_t>(this->m_patched.size()) : 0;
 }
 
 const uint8_t* CoA::Dbc::Table::RowAt(uint32_t index) {
     this->Load();
-    return (this->m_ok && index < this->m_count) ? &this->m_rows[static_cast<size_t>(index) * this->m_rowSize] : nullptr;
+
+    if (!this->m_ok) {
+        return nullptr;
+    }
+
+    if (index < this->m_count) {
+        return &this->m_rows[static_cast<size_t>(index) * this->m_rowSize];
+    }
+
+    const size_t inserted = index - this->m_count;
+    return inserted < this->m_patched.size() ? this->m_patched[inserted]->data() : nullptr;
 }
 
 uint32_t CoA::Dbc::Table::MinId() {
@@ -260,9 +270,8 @@ uint32_t CoA::Dbc::Table::AddString(const char* s) {
     return offset;
 }
 
-// The original's patch handlers copy over an existing row where it lies (so file-order walks see the change) and
-// insert a new one through FUN_10133ac0, which only touches the index. Growing the index there copies ids
-// min..max-1: the row that held the old maximum is dropped (an original defect, kept).
+// An existing row is overwritten where it lies. Unlike FUN_10133ac0 (see DIFFERENCES.md), a new row joins file-order
+// walks after the file's rows and index growth keeps the old maximum.
 void CoA::Dbc::Table::Upsert(uint32_t id, const std::vector<uint8_t>& row) {
     this->Load();
 
@@ -303,7 +312,7 @@ void CoA::Dbc::Table::Upsert(uint32_t id, const std::vector<uint8_t>& row) {
         uint32_t hi = id > this->m_max ? id : this->m_max;
         std::vector<const uint8_t*> grown(static_cast<size_t>(hi - lo) + 1, nullptr);
 
-        for (uint32_t i = this->m_min; i < this->m_max; ++i) {
+        for (uint32_t i = this->m_min; i <= this->m_max; ++i) {
             grown[i - lo] = this->m_index[i - this->m_min];
         }
 

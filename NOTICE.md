@@ -45,4 +45,5 @@ Each keeps its own license; see the license file in its folder or upstream proje
 | zlib | zlib License (upstream) |
 | lgLcd, DivxDecoder | their vendors' terms |
 | DXVK (fetched at build time, Raz0r1337/dxvk) | zlib/libpng License (upstream) |
-| NVIDIA Streamline SDK and DLSS binaries (fetched at build time) | NVIDIA's licenses (upstream) |
+| NVIDIA Streamline SDK (fetched at build time; `sl.interposer.dll`, `sl.common.dll`, `sl.dlss.dll`, `sl.dlss_g.dll`, `sl.reflex.dll`, `sl.pcl.dll`) | MIT License, Copyright (c) 2023 NVIDIA CORPORATION (upstream `license.txt`) |
+| NVIDIA DLSS / Frame Generation / Reflex runtimes (`nvngx_dlss.dll`, `nvngx_dlssg.dll`, `NvLowLatencyVk.dll`, shipped in the Streamline SDK) | NVIDIA's terms (upstream) |

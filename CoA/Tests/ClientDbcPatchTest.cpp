@@ -57,9 +57,8 @@ COA_TEST(ClientDbcPatch_ReadValues) {
     CHECK(msg.m_read == msg.m_size);
 }
 
-// A new id inside the index replaces the slot; outside it the index grows to cover it -- and, as in the original, the
-// old maximum's row is not copied across.
-COA_TEST(ClientDbcPatch_InsertGrowsIndexDroppingOldMax) {
+// A new id inside the index replaces the slot; outside it the index grows to cover it, keeping every old row.
+COA_TEST(ClientDbcPatch_InsertGrowsIndexKeepingOldMax) {
     int a = 1;
     int b = 2;
     int c = 3;
@@ -78,13 +77,25 @@ COA_TEST(ClientDbcPatch_InsertGrowsIndexDroppingOldMax) {
     CoA::ClientDbcPatch::Insert(db, 15, &d, Alloc, Free);
     CHECK(db.m_minID == 10 && db.m_maxID == 15);
     CHECK(db.m_recordsById[0] == &a && db.m_recordsById[1] == &c);
-    CHECK(db.m_recordsById[2] == nullptr);   // id 12, the old maximum: lost
+    CHECK(db.m_recordsById[2] == &b);   // id 12, the old maximum
     CHECK(db.m_recordsById[5] == &d);
 
     CoA::ClientDbcPatch::Insert(db, 8, &b, Alloc, Free);
     CHECK(db.m_minID == 8 && db.m_maxID == 15);
     CHECK(db.m_recordsById[0] == &b && db.m_recordsById[2] == &a && db.m_recordsById[3] == &c);
-    CHECK(db.m_recordsById[7] == nullptr);   // id 15, the old maximum again
+    CHECK(db.m_recordsById[7] == &d);   // id 15, the old maximum again
+    Free(db.m_recordsById);
+}
+
+// A table with no rows yet has no index to copy from.
+COA_TEST(ClientDbcPatch_InsertIntoEmptyTable) {
+    int a = 1;
+    FakeDb db;
+    db.m_minID = 0;
+    db.m_maxID = 0;
+    db.m_recordsById = nullptr;
+    CoA::ClientDbcPatch::Insert(db, 3, &a, Alloc, Free);
+    CHECK(db.m_minID == 0 && db.m_maxID == 3 && db.m_recordsById[3] == &a);
     Free(db.m_recordsById);
 }
 

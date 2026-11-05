@@ -87,9 +87,35 @@ COA_TEST(Dbc_UpsertAddsAndPatchesInPlace) {
     memcpy(row.data(), &id, 4);
     table.Upsert(20, row);
     CHECK(table.Row(20) != nullptr);
-    // The original's index growth copies min..max-1: the old maximum (3) is dropped.
-    CHECK(table.Row(3) == nullptr);
+    CHECK(table.Row(3) && CoA::Dbc::Table::U32(table.Row(3), 4) == 555);
     CHECK(table.Row(2) != nullptr);
+
+    CoA::Dbc::SetFileReader(nullptr);
+}
+
+// Ascending inserts keep every earlier row, and file-order walks see inserted rows after the file's.
+COA_TEST(Dbc_UpsertedRowsJoinWalks) {
+    s_file = MakeWdbc({ 2, 3 });
+    CoA::Dbc::SetFileReader(ReadFake);
+    CoA::Dbc::Table table("DBFilesClient\Fake.dbc");
+    std::vector<uint8_t> row(12, 0);
+
+    for (uint32_t id : { 20u, 21u, 1u }) {
+        memcpy(row.data(), &id, 4);
+        table.Upsert(id, row);
+    }
+
+    CHECK(table.Count() == 5);
+    CHECK(table.RowAt(1) == table.Row(3));
+    CHECK(table.RowAt(2) == table.Row(20));
+    CHECK(table.RowAt(3) == table.Row(21));
+    CHECK(table.RowAt(4) == table.Row(1));
+    CHECK(table.RowAt(5) == nullptr);
+    CHECK(table.Row(20) != nullptr);
+
+    // An overwrite of an inserted row stays one row.
+    table.Upsert(20, row);
+    CHECK(table.Count() == 5);
 
     CoA::Dbc::SetFileReader(nullptr);
 }

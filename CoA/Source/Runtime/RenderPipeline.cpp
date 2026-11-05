@@ -1,0 +1,200 @@
+#include "CoA/Source/Runtime/RenderPipeline.h"
+#include "CoA/Source/Runtime/CVars.h"
+#include <cmath>
+
+namespace CoA::RenderPipeline {
+    namespace {
+        Frame s_frame;
+
+        float RadicalInverse(uint32_t index, uint32_t base) {
+            double result = 0.0;
+            double f = 1.0 / base;
+            while (index > 0) {
+                result += f * (index % base);
+                index /= base;
+                f /= base;
+            }
+            return static_cast<float>(result);
+        }
+    }
+
+    Inactive WhyInactive(const ActivationInput& in) {
+        if (!in.cvarOn) {
+            return Inactive::CVarOff;
+        }
+        if (in.msaaSamples > 1) {
+            return Inactive::Multisample;
+        }
+        if (!in.intzSupported) {
+            return Inactive::NoIntz;
+        }
+        if (!in.shadersEnabled) {
+            return Inactive::NoShaders;
+        }
+        return Inactive::None;
+    }
+
+    void BeginFrame(const Camera& cam, bool forceReset, float depthMin, float depthMax) {
+        const bool first = s_frame.index == 0;
+        bool reset = first || forceReset;
+        if (!first) {
+            const float dx = cam.pos[0] - s_frame.cur.pos[0];
+            const float dy = cam.pos[1] - s_frame.cur.pos[1];
+            const float dz = cam.pos[2] - s_frame.cur.pos[2];
+            if (dx * dx + dy * dy + dz * dz > kTeleportDistance * kTeleportDistance) {
+                reset = true;
+            }
+            // Turned more than kCameraCutDegrees: dot of the normalised forwards (a zero-length one never cuts).
+            const float* a = s_frame.cur.forward;
+            const float* b = cam.forward;
+            const float la = std::sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+            const float lb = std::sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+            if (la > 0.0f && lb > 0.0f) {
+                const float dot = (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]) / (la * lb);
+                if (dot < std::cos(kCameraCutDegrees * 3.14159265358979f / 180.0f)) {
+                    reset = true;
+                }
+            }
+        }
+        s_frame.prev = first ? cam : s_frame.cur;
+        s_frame.cur = cam;
+        s_frame.index++;
+        s_frame.reset = reset;
+        s_frame.jitterX = 0.0f;
+        s_frame.jitterY = 0.0f;
+        s_frame.depthMin = depthMin;
+        s_frame.depthMax = depthMax;
+    }
+
+    const Frame& Current() {
+        return s_frame;
+    }
+
+    void SetJitter(float jx, float jy) {
+        s_frame.jitterX = jx;
+        s_frame.jitterY = jy;
+    }
+
+    void Halton23(uint32_t index, float& x, float& y) {
+        x = RadicalInverse(index, 2) - 0.5f;
+        y = RadicalInverse(index, 3) - 0.5f;
+    }
+
+    uint32_t JitterPhaseCount(uint32_t renderWidth, uint32_t displayWidth) {
+        if (renderWidth == 0) {
+            return 8;
+        }
+        const double ratio = static_cast<double>(displayWidth) / renderWidth;
+        const double count = std::round(8.0 * ratio * ratio);
+        return count < 8.0 ? 8u : static_cast<uint32_t>(count);
+    }
+
+    Mat4 ApplyJitter(const Mat4& proj, float jx, float jy, uint32_t width, uint32_t height) {
+        Mat4 out = proj;
+        if (jx == 0.0f && jy == 0.0f) {
+            return out;
+        }
+        out.m[2][0] += 2.0f * jx / static_cast<float>(width);
+        out.m[2][1] -= 2.0f * jy / static_cast<float>(height);
+        return out;
+    }
+
+    void ScaledRenderSize(uint32_t outW, uint32_t outH, float scale, uint32_t& w, uint32_t& h) {
+        if (!(scale >= kMinRenderScale)) {
+            scale = std::isnan(scale) ? 1.0f : kMinRenderScale;
+        }
+        if (scale >= 1.0f) {
+            w = outW;
+            h = outH;
+            return;
+        }
+        const auto axis = [scale](uint32_t out) {
+            const long r = std::lround(static_cast<double>(out) * scale);
+            return r < 1 ? 1u : static_cast<uint32_t>(r);
+        };
+        w = axis(outW);
+        h = axis(outH);
+    }
+
+    Rect CopyRect(float vpMinX, float vpMaxX, float vpMinY, float vpMaxY, uint32_t width, uint32_t height) {
+        const float w = static_cast<float>(width);
+        const float h = static_cast<float>(height);
+        Rect r;
+        r.left = static_cast<int32_t>(std::lround(vpMinX * w));
+        r.right = static_cast<int32_t>(std::lround(vpMaxX * w));
+        r.top = static_cast<int32_t>(std::lround((1.0f - vpMaxY) * h));
+        r.bottom = static_cast<int32_t>(std::lround((1.0f - vpMinY) * h));
+        return r;
+    }
+
+    void Reset() {
+        s_frame = Frame{};
+    }
+}
+
+namespace CoA::RenderPipelineClient {
+    namespace {
+        CVar* s_pipeline;
+        CVar* s_debug;
+        CVar* s_jitter;
+        CVar* s_motion;
+        CVar* s_scale;
+        CVar* s_dlssMode;
+        CVar* s_frameGen;
+        CVar* s_reflex;
+        CVar* s_dlssMvecSign;
+        CVar* s_dlssJitterSign;
+    }
+
+    void QueueCVars() {
+        // name, help, flags, default, callback, category, setCommand, slot, world
+        COA_CVAR("coaRenderPipeline", nullptr, 1, "0", nullptr, 1, false, &s_pipeline, false);
+        COA_CVAR("coaRenderDebug", nullptr, 1, "0", nullptr, 1, false, &s_debug, false);
+        COA_CVAR("coaRenderJitter", nullptr, 1, "0", nullptr, 1, false, &s_jitter, false);
+        COA_CVAR("coaRenderMotion", nullptr, 1, "0", nullptr, 1, false, &s_motion, false);
+        // Developer: the world renders at this fraction of the display size (0.25..1) and is stretched back; only
+        // while the pipeline is active.
+        COA_CVAR("coaRenderScale", nullptr, 1, "1", nullptr, 1, false, &s_scale, false);
+        // DLSS (stage 3): 0 off, 1 DLAA, 2 Quality, 3 Balanced, 4 Performance, 5 Ultra Performance. Streamline loads
+        // only when the value at startup is non-zero (StreamlineClient::PreDevice, before these register).
+        COA_CVAR("coaDlssMode", nullptr, 1, "0", nullptr, 1, false, &s_dlssMode, false);
+        // Stage 4: Frame Generation 0 off, 1 = 2x, 2 = 3x, 3 = 4x; Reflex 0 off, 1 on, 2 on + boost (same startup rule).
+        COA_CVAR("coaFrameGen", nullptr, 1, "0", nullptr, 1, false, &s_frameGen, false);
+        COA_CVAR("coaReflex", nullptr, 1, "0", nullptr, 1, false, &s_reflex, false);
+        // Debug: sign multipliers for the motion vectors and the jitter handed to DLSS.
+        COA_CVAR("coaDlssMvecSign", nullptr, 1, "1", nullptr, 1, false, &s_dlssMvecSign, false);
+        COA_CVAR("coaDlssJitterSign", nullptr, 1, "1", nullptr, 1, false, &s_dlssJitterSign, false);
+    }
+
+    CVar** PipelineSlot() {
+        return &s_pipeline;
+    }
+
+    CVar** DebugSlot() {
+        return &s_debug;
+    }
+
+    CVar** JitterSlot() {
+        return &s_jitter;
+    }
+
+    CVar** MotionSlot() {
+        return &s_motion;
+    }
+
+    CVar** ScaleSlot() {
+        return &s_scale;
+    }
+
+    CVar** DlssModeSlot() {
+        return &s_dlssMode;
+    }
+
+    CVar** DlssMvecSignSlot() {
+        return &s_dlssMvecSign;
+    }
+
+    CVar** DlssJitterSignSlot() {
+        return &s_dlssJitterSign;
+    }
+}

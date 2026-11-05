@@ -32,7 +32,7 @@ namespace {
         return a;
     }
 
-    // The quest record read at the original's offsets; bytes past the client record's end read 0.
+    // The quest record; bytes past the client record's end read 0.
     struct QuestBytes {
         const uint8_t* rec;
         uint32_t size;
@@ -86,7 +86,7 @@ namespace {
         }
     };
 
-    // FUN_1021ea50 / FUN_1021ecb0.
+    // FUN_1021ea50 / FUN_1021ecb0, at the client record's offsets (see Templates.h).
     int GetQuestTemplate(lua_State* L) {
         uint32_t size = 0;
         const uint8_t* rec = s_deps.quest ? s_deps.quest(ArgId(L), size) : nullptr;
@@ -104,9 +104,9 @@ namespace {
             { "HostileFactionAmount", 0x28 }, { "RewardNextQuest", 0x2C }, { "RewardXPDifficulty", 0x30 },
             { "RewardMoney", 0x34 }, { "RewardBonusMoney", 0x38 }, { "RewardDisplaySpell", 0x3C },
             { "RewardSpell", 0x40 }, { "RewardHonor", 0x44 }, { "StartItem", 0x4C }, { "Flags", 0x50 },
-            { "POIContinent", 0xA4 }, { "POIPriority", 0xB0 }, { "RewardTitleId", 0x2494 },
-            { "RequiredPlayerKills", 0x2498 }, { "RewardTalents", 0x249C }, { "RewardArenaPoints", 0x24A0 },
-            { "Unknown", 0x2CE0 },
+            { "POIContinent", 0xA4 }, { "POIPriority", 0xB0 }, { "RewardTitleId", 0x2094 },
+            { "RequiredPlayerKills", 0x2098 }, { "RewardTalents", 0x209C }, { "RewardArenaPoints", 0x20A0 },
+            { "Unknown", 0x28E0 },
         };
 
         for (const auto& f : kInts) {
@@ -133,14 +133,14 @@ namespace {
         json objectives = json::array();   // FUN_1021e970
 
         for (uint32_t i = 0; i < 4; ++i) {
-            objectives.push_back(q.Fixed(0x1C94 + i * 0x200, 0x200));
+            objectives.push_back(q.Fixed(0x1C94 + i * 0x100, 0x100));
         }
 
         j["ObjectiveText"] = objectives;
-        j["CompletedText"] = q.Fixed(0x24A4, 0x800);
-        j["RewardFactionValue"] = q.Ints(0x2CA4, 5);
-        j["RewardFactionID"] = q.Ints(0x2CB8, 5);
-        j["RewardFactionValueOverride"] = q.Ints(0x2CCC, 5);
+        j["CompletedText"] = q.Fixed(0x20A4, 0x800);
+        j["RewardFactionValue"] = q.Ints(0x28A4, 5);
+        j["RewardFactionID"] = q.Ints(0x28B8, 5);
+        j["RewardFactionValueOverride"] = q.Ints(0x28CC, 5);
         CoA::Json::Push(L, j);
         return 1;
     }

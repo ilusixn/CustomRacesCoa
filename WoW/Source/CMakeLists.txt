@@ -24,6 +24,11 @@ foreach (config ${CMAKE_CONFIGURATION_TYPES} ${CMAKE_BUILD_TYPE})
     set_target_properties(Wow PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${config} ${CMAKE_SOURCE_DIR}/bin/Win)
 endforeach ()
 
+# CoA64: a normal build stages the Streamline production DLLs (ThirdParty/streamline) into bin/Win/x64.
+if (TARGET StreamlineDlls)
+    add_dependencies(Wow StreamlineDlls)
+endif ()
+
 target_include_directories(Wow
     PRIVATE
         ${CMAKE_SOURCE_DIR}
