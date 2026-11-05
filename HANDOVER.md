@@ -70,9 +70,20 @@ Add these to the release next to 1.9.8's files:
 | `modules/mod-subclass/addon/Ascension_Subclass/*` | `<game>\Interface\AddOns\Ascension_Subclass\` | From the server branch |
 | `CoA64.exe` built from `races-port` | `<game>\` | Needs the three glue commits above |
 
-`patch-ZZZZY.MPQ` holds exactly: the 20 standard Vault models of the original races, `AnimationData.dbc` (rows
-1792–1795), `SpellVisualKit.dbc` (rows 3455900, 3455901), `CreatureDisplayInfo.dbc` (row 977602),
-`CreatureModelData.dbc` (row 901402), and `custom\thintwins\native\male\thintwinsmirrormale.m2` with its skin.
+`patch-ZZZZY.MPQ` holds: the 20 standard Vault models of the original races, `AnimationData.dbc` (rows 1792–1795),
+`SpellVisualKit.dbc` (rows 3455900, 3455901), `CreatureDisplayInfo.dbc` (row 977602), `CreatureModelData.dbc` (row
+901402), `custom\thintwins\native\male\thintwinsmirrormale.m2` with its skin, and the subclass's client tables:
+
+- `Spell.dbc`: 1.9.8's patch-ZZZZS table plus **24 103 subclass client spells it lacks** (the other head's casts and
+  glows, among them) and our field changes on 308 spells. Without them a borrowed spell such as Create Soulstone
+  plays on the main head's arm, and cast glows stick in her hand.
+- `SkillLineAbility.dbc` (13 931 rows) and `SkillRaceClassInfo.dbc` (135 rows): our class masks, so a subclass can
+  learn its spells.
+- `SpellVisualKitModelAttach.dbc`: the Ogre's quest mark at Y −0.218 (the visual's Y offset is mirrored from the
+  model's axes), so the "!" floats over her second head.
+
+These were in Stefan's own client before and are missing from 1.9.8, so they affect every 1.9.8 player. They are
+client files only: they can go into a release without rebuilding the worldserver.
 
 ### Archive order matters
 
@@ -91,9 +102,11 @@ Put Stefan's `modules/mod-subclass/tools/` files (plus `tools/build_vault_patche
 and run in this order:
 
 ```
-Build-Vault-Patches.bat --fresh
-Build-Mirror-Twin.bat
+Rebuild-Our-Client-Patches.bat
 ```
+
+It runs `Build-Vault-Patches.bat --fresh`, `carrytables.py` (our rows from `subclass-tables.MPQ`, which Stefan can send,
+onto the client's newest tables) and `Build-Mirror-Twin.bat`.
 
 `--fresh` starts `patch-ZZZZY` over. Both read their tables only from archives that load before `patch-ZZZZY`, and the
 mirror tool reads the Twins model path from `CreatureModelData` row 901401, so it follows the model wherever it lives.
@@ -147,14 +160,18 @@ On a test realm with the new server and client:
 
 1. Create a male Thin Twins character (race 96). At creation and at character select the brother is a mirror image,
    standing at the player's right (the viewer's left), and the server does not stop at the character list.
-2. In game, Wardrobe → "Dressing: Your twin" → "Hair & face": Hair style and Facial hair list choices; picking one
+2. As a Two-Headed Ogre with a Warlock subclass, Create Soulstone animates the second head's arm, and the quest "!"
+   floats over the second head.
+3. In game, Wardrobe → "Dressing: Your twin" → "Hair & face": Hair style and Facial hair list choices; picking one
    respawns the brother with it, and character select shows it.
-3. Witch Hunter Vault works for a Two-Headed Ogre, a Night Elf male and one other original race (HD on and off).
-4. From behind, the brother's sheathed and held shield faces outward and leans the opposite way from the player's.
+4. Witch Hunter Vault works for a Two-Headed Ogre, a Night Elf male and one other original race (HD on and off).
+5. From behind, the brother's sheathed and held shield faces outward and leans the opposite way from the player's.
    The shield's picture is not mirrored; that is expected (the game can only turn an item, not flip it).
 
 ## 7. Known issues (not fixed)
 
+- Server fixes after 1.9.9's worldserver (`stefanw1337-subclassing-test`): dropping a Warlock or Paladin subclass
+  unlearned every mount (now only the class's own mounts go), and its summoned demon stayed out (now dismissed).
 - Portraits: with the geometry file from step 4 the Thin Twins portrait and character window show correctly (1.9.8's
   copy has no entry for their model). The Two-Headed Ogre's portrait still shows her whole body small, and the
   character window shows only her weapon. Her model has portrait and character cameras at head height and all
