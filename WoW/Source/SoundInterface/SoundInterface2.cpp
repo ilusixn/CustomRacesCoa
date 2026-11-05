@@ -1495,7 +1495,9 @@ int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, 
 void SI2::DK_GetPlayerFilterName(CGUnit_C* unit, char* name, uint32_t size) {
     uint8_t race = unit->m_unit->m_unitFieldBytes0[0];
     // CoA: AscAttachPatches.cpp:RaceTables (FUN_10a5e020, orig hook 0x4CDA43) -- the DLL's 32-entry table.
-    SStrPrintf(name, size, "Death Knight %s %s", CoA::AttachPatches::kRaceFileNames[race], unit->m_unit->m_unitFieldBytes0[2] ? "Female" : "Male");
+    ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(race);
+    const char* raceName = (raceRec && raceRec->m_clientFileString) ? raceRec->m_clientFileString : (race < 32 && CoA::AttachPatches::kRaceFileNames[race] ? CoA::AttachPatches::kRaceFileNames[race] : "");
+    SStrPrintf(name, size, "Death Knight %s %s", raceName, unit->m_unit->m_unitFieldBytes0[2] ? "Female" : "Male");
 }
 
 // VERIFY: 8858e33e auto

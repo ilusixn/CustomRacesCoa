@@ -109,6 +109,26 @@ COA_TEST(Appearance_ItemSets) {
     Teardown(L);
 }
 
+// A row written after the refresh is still indexed: the refresh only marks the index stale for its next reader.
+COA_TEST(Appearance_ItemIndexRebuildsOnNextRead) {
+    lua_State* L = Setup();
+    CHECK((Run(L, "return C_Appearance.GetItemAppearanceID(1001)") == V{ "101" }));
+    CoA::Appearance::ItemAppearancesPatched();
+    CoA::Dbc::Get("DBFilesClient/ItemAppearances.dbc").Upsert(2, CoATest::Bytes().U32(2).U32(1007).U32(108).data);
+    CHECK((Run(L, "return C_Appearance.GetItemAppearanceID(1007)") == V{ "108" }));
+    CHECK((Run(L, "return C_Appearance.GetItemAppearanceID(1001)") == V{ "nil" }));
+    Teardown(L);
+}
+
+// A row with a new id reaches the item index.
+COA_TEST(Appearance_NewItemAppearanceRowIsIndexed) {
+    lua_State* L = Setup();
+    CoA::Dbc::Get("DBFilesClient/ItemAppearances.dbc").Upsert(50, CoATest::Bytes().U32(50).U32(1007).U32(108).data);
+    CoA::Appearance::ItemAppearancesPatched();
+    CHECK((Run(L, "return C_Appearance.GetItemAppearanceID(1007)") == V{ "108" }));
+    Teardown(L);
+}
+
 // Collected / uncollected packets signal only on a change.
 COA_TEST(Appearance_CollectedPackets) {
     lua_State* L = Setup();

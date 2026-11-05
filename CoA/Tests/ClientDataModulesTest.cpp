@@ -178,10 +178,7 @@ COA_TEST(POI_Packets) {
     End();
 }
 
-// SMSG 0x9C4: u32 n x {category, i32 ms left, u8 used}, kept only for a known category with a max-charges column and a
-// non-zero time; 0x9C5 {category, ms, used}: used 0 removes, a new category starts now, a known one keeps its start.
-// GetSpellCharges(spell): left, max, start (s), duration (s); max, max, 0, recharge without an entry; 0 x 4 otherwise.
-// Every handler fires SPELL_UPDATE_CHARGES while in world (0x9C5 only when it passed).
+// SMSG 0x9C4 / 0x9C5 and GetSpellCharges: docs/2026-10-29-coa-module-notes.md.
 COA_TEST(SpellCharges_Packets) {
     ChargesStart();
     lua_State* L = CoATest::NewState(false);
@@ -296,9 +293,7 @@ COA_TEST(Aura137_Patch) {
     End();
 }
 
-// TryCache*(id): false when cached; true and queued the first time; afterwards false, moving a still-waiting id to the
-// front. The idle tick sends up to 50 ids per kind per batch (CMSG 0x61B / 0x61C / 0x61A {u32 n, ids}), at most 3
-// batches a second (outside development realms).
+// TryCache*(id) queueing and the idle tick's batches: docs/2026-10-29-coa-module-notes.md.
 COA_TEST(AssetQuery_TryCacheAndBatches) {
     QueryStart();
     lua_State* L = CoATest::NewState(false);
@@ -380,9 +375,8 @@ namespace {
     std::string s_name = "Hogger";
 }
 
-// GetQuestTemplate(id): the quest cache record as FUN_1021ecb0's table, read at the original's offsets: ObjectiveText 2
-// and 3 and RewardTitleId .. Unknown land 0x200 / 0x400 past this client's fields; past the record they read 0 / "".
-// Nothing without a record; a non-number argument is a Lua error (luaL_checknumber).
+// GetQuestTemplate(id): the quest cache record as FUN_1021ecb0's table, read at the client record's offsets (upstream
+// 0fa250b). Nothing without a record; a non-number argument is a Lua error (luaL_checknumber).
 COA_TEST(Templates_Quest) {
     Begin();
     CoA::Templates::Reset();
@@ -405,13 +399,15 @@ COA_TEST(Templates_Quest) {
     puts(0x1A24, "Elwynn");
     put(0x1C24, 299);
     puts(0x1C94, "First");
-    puts(0x1D94, "Second");    // the client's [1] -- never read
-    puts(0x1E94, "Third");     // the client's [2] -- read as ObjectiveText[2]
-    put(0x2094, 0x41);          // RewardTitleId in the client -- read as text: "A"
-    puts(0x20A4 + 0x3F0, "Z"); // completion text +0x3F0 = the original's RewardTitleId (0x2494)
-    puts(0x20A4 + 0x400, "Done");
-    put(0x28CC, 77);
-    put(0x3FC, 5);              // what 0x2CE0 would wrap to: past the record must not wrap            // the client's reputation overrides: past what the original reads there
+    puts(0x1D94, "Second");
+    puts(0x1E94, "Third");
+    puts(0x1F94, "Fourth");
+    put(0x2094, 42);            // RewardTitleId
+    put(0x20A0, 7);             // RewardArenaPoints
+    puts(0x20A4, "Done");
+    put(0x28A4, 90);
+    put(0x28CC + 16, 77);       // RewardFactionValueOverride[5]
+    put(0x28E0, 5);             // Unknown, the record's last dword
     CoA::Templates::Dependencies().quest = [](uint32_t id, uint32_t& size) -> const uint8_t* {
         size = static_cast<uint32_t>(s_quest.size());
         return id == 1234 ? s_quest.data() : nullptr;
@@ -420,9 +416,9 @@ COA_TEST(Templates_Quest) {
         "t.RewardItems[1], t.RewardItems[4], t.ChoiceItemAmount[0+1], t.POIx, t.Title, t.Objectives, t.Details, "
         "t.AreaDescription, t.RequiredNpcOrGo[1], #t.ObjectiveText, t.ObjectiveText[1], t.ObjectiveText[2], "
         "t.ObjectiveText[3], t.ObjectiveText[4], t.RewardTitleId, t.CompletedText, t.RewardFactionValue[1], "
-        "t.RewardFactionValueOverride[5], t.Unknown, #t.RewardFactionID")
+        "t.RewardFactionValueOverride[5], t.Unknown, #t.RewardFactionID, t.RewardArenaPoints")
         == V{ "1234", "30", "-50", "2.5", "111", "114", "0", "0.25", "The Title", "Kill things", "", "Elwynn", "299", "4",
-            "First", "Third", "A", "", "90", "Done", "0", "0", "0", "5" }));
+            "First", "Second", "Third", "Fourth", "42", "Done", "90", "77", "5", "5", "7" }));
     CHECK((Run(L, "return GetQuestTemplate(1)") == V{}));
     CHECK(Run(L, "return GetQuestTemplate('x')")[0].compare(0, 7, "<error>") == 0);
     lua_close(L);

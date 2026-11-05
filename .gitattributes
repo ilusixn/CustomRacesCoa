@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# git apply needs the patches byte-exact (LF), also on Windows checkouts
+*.patch text eol=lf

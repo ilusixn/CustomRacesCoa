@@ -82,9 +82,46 @@ namespace {
             return;
         }
 
+        std::vector<const T*> added;
+
         for (const T& row : rows) {
             if (T* dst = db.GetRecord(row.m_id)) {
                 *dst = row;
+            } else {
+                added.push_back(&row);
+            }
+        }
+
+        if (!added.empty()) {
+            int32_t oldCount = db.m_numRecords;
+            int32_t newCount = oldCount + static_cast<int32_t>(added.size());
+            T* records = static_cast<T*>(SMemAlloc(sizeof(T) * newCount, __FILE__, __LINE__, 0));
+
+            if (oldCount > 0) {
+                memcpy(records, db.m_records, sizeof(T) * oldCount);
+            }
+
+            for (size_t i = 0; i < added.size(); ++i) {
+                records[oldCount + static_cast<int32_t>(i)] = *added[i];
+                int32_t id = added[i]->m_id;
+
+                if (id > db.m_maxID) {
+                    db.m_maxID = id;
+                }
+
+                if (id < db.m_minID) {
+                    db.m_minID = id;
+                }
+            }
+
+            SMemFree(db.m_records, __FILE__, __LINE__, 0);
+            delete[] db.m_recordsById;
+            db.m_records = records;
+            db.m_numRecords = newCount;
+            db.m_recordsById = new (__FILE__, __LINE__) T*[db.m_maxID - db.m_minID + 1]();
+
+            for (int32_t i = 0; i < newCount; ++i) {
+                db.m_recordsById[records[i].m_id - db.m_minID] = &records[i];
             }
         }
     }

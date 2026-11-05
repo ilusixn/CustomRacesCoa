@@ -1,0 +1,15 @@
+# Files of the CoA64 release zip, relative to bin\Win. Tools/package/stage.ps1 copies them for BuildCoA64.bat and
+# .github/workflows/release.yml and fails if one is missing. Every Streamline DLL staged by ThirdParty/streamline
+# belongs here (Tools/__tests__/release_files.test.mjs checks it).
+CoA64.exe
+XvidDecoder.dll
+x64/d3d9.dll
+x64/sl.interposer.dll
+x64/sl.common.dll
+x64/sl.dlss.dll
+x64/nvngx_dlss.dll
+x64/sl.dlss_g.dll
+x64/nvngx_dlssg.dll
+x64/sl.reflex.dll
+x64/sl.pcl.dll
+x64/NvLowLatencyVk.dll

@@ -54,9 +54,8 @@ namespace {
     }
 }
 
-// UpdateChallengeDataStores: every challenge row gets an entry; group rows (an unknown challenge logged and skipped, a
-// duplicate member still listed in GroupIds); group-keyed levels / rules attach to every challenge of the group; min and
-// max levels; the challenge table's fields.
+// UpdateChallengeDataStores: an entry per challenge row; group rows (unknown challenge skipped, duplicate member still in
+// GroupIds); group-keyed levels / rules on every challenge of the group; min and max levels; the table's fields.
 COA_TEST(Challenge_DataStores) {
     lua_State* L = Setup();
     ChallengeRow a;
@@ -148,9 +147,8 @@ COA_TEST(Challenge_DataStores) {
     Done();
 }
 
-// Rewards: realm expansion, player class and the achievement gate filter them; first-completion rewards until the level
-// is completed, then repeat rewards; group rewards once all but one of the group's count are done; the featured
-// multiplier (amount > 1, the reward row's own challenge); all sorted by their sort column.
+// Rewards: filtered by expansion, class and achievement; first-completion until the level is done, then repeat; group
+// rewards once all but one of the group are done; the featured multiplier (amount > 1, own challenge); sorted.
 COA_TEST(Challenge_Rewards) {
     lua_State* L = Setup();
     ChallengeRow a;
@@ -840,7 +838,7 @@ COA_TEST(Challenge_TickAndPatches) {
     AddChallenge(a);
     AddLevel(1, 10, 0, 1);
     AddGroup(1, 10, 50);
-    // Rows past the patched ids (CoA::Dbc::Table::Upsert drops the old last row when a patch extends the id range).
+    // Rows past the patched ids.
     AddLevel(9, 99, 0, 1);
     AddGroup(20, 99, 99);
     ChallengeRow z;
@@ -964,9 +962,8 @@ COA_TEST(Challenge_TickAndPatches) {
     Done();
 }
 
-// The ChallengeEntryContainer: what is listed (hidden, check-activation and map-bound rows), its order (active, dungeon
-// trial, featured, sort order), the argument groups of SetChallengeFilter, the text match, and the map / difficulty
-// repopulate; GetAllChallenges / GetAllTrials.
+// The ChallengeEntryContainer: what is listed, its order (active, dungeon trial, featured, sort order), SetChallengeFilter's
+// argument groups, the text match, the map / difficulty repopulate; GetAllChallenges / GetAllTrials.
 COA_TEST(Challenge_Container) {
     lua_State* L = Setup();
     auto add = [](uint32_t id, const char* name, uint32_t sort, auto tweak) {

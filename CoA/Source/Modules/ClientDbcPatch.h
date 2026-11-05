@@ -8,15 +8,10 @@
 
 class CDataStore;
 
-// AscClientDbcPatch.cpp: the SMSG_PATCH_* handlers that patch the CLIENT's own WowClientDB tables (installers
-// FUN_10228d30 / FUN_10229156 / FUN_1022958a). The wire reader and the index insert are here; the per-table writers
-// (ClientDbcPatch.generated.inc, Tools/coa/gen_client_dbc_patch.py) and the handlers are in ClientDbcPatchClient.cpp.
+// AscClientDbcPatch.cpp: SMSG_PATCH_* for the CLIENT's own WowClientDB tables (FUN_10228d30 / FUN_10229156 / FUN_1022958a).
+// Wire reader and index insert here; per-table writers (generated) and handlers in ClientDbcPatchClient.cpp.
 namespace CoA::ClientDbcPatch {
-    // The wire record as the handler reads it, item by item: b / h / d one value each, q two dwords, x four, _ a skipped
-    // byte, L sixteen u32-length locale strings of which slot 0 is kept, p a byte packed into the current value (| closes
-    // it), B a u32 of which only the low byte is kept (four pack into one value), s a C string, z a u32-length string.
-    // Strings are copied into their own allocation and the value is the pointer; an overwritten row's old strings leak,
-    // as in the original.
+    // The wire record, item by item; the program's letters are in docs/2026-11-03-client-dbc-patch-notes.md.
     std::vector<uint64_t> ReadValues(const char* program, CDataStore* msg);
 
     // What the 0x934 SKILL_LINE_ABILITY patch tells the spell API's spell -> ability map (AscSpellApi FUN_103266c0 /
@@ -28,11 +23,8 @@ namespace CoA::ClientDbcPatch {
 
     Deps& Dependencies();
 
-    // AscClientDbc::Insert: a new row's id inside [min, max] takes its slot; outside, the index is reallocated to cover
-    // it and the old rows are copied -- except the old maximum, which the original's copy loop stops short of. The old
-    // index is released only when it is its own allocation: a WowClientDB_RLE index lives inside the table's record
-    // block (ownsIndex false), and the original's free of that interior pointer, silent on its 32-bit heap, would end
-    // the x64 process.
+    // AscClientDbc::Insert, keeping the old maximum the original loses. ownsIndex is false when the index lives inside the
+    // record block (WowClientDB_RLE): freeing it would end the x64 process. See the notes page above.
     template <class DB, class Row>
     void Insert(DB& db, int32_t id, Row* row, void* (*alloc)(size_t), void (*release)(void*), bool ownsIndex = true) {
         const int32_t oldMin = db.m_minID;
@@ -49,7 +41,7 @@ namespace CoA::ClientDbcPatch {
         auto index = static_cast<decltype(db.m_recordsById)>(alloc(size));
         memset(index, 0, size);
 
-        for (int32_t i = oldMin; i < oldMax; ++i) {   // the old maximum is not copied (original bug)
+        for (int32_t i = oldMin; db.m_recordsById && i <= oldMax; ++i) {
             if (db.m_recordsById[i - oldMin]) {
                 index[i - lo] = db.m_recordsById[i - oldMin];
             }

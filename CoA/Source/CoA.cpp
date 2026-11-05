@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/Account.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Modules/RenderOptionsUi.h"
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/DbcPatch.h"
@@ -244,6 +245,8 @@ static const CoA::Module s_modules[] = {
     { "CrashContextClient", CoA::CrashContextClient::Init },
     { "InitHooksClient", CoA::InitHooksClient::Init },
     { "ClientGuardsClient", CoA::ClientGuardsClient::Init },
+    // CoA64 addition: the Graphics page's DLSS / Frame Generation / Reflex dropdowns (stage 5).
+    { "RenderOptionsUi", CoA::RenderOptionsUi::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

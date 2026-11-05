@@ -112,8 +112,7 @@ COA_TEST(CA_Inspect) {
     Stop(L);
 }
 
-// SMSG 0x6CE patches a SpellSpellSuggestions row; the next tick weighs it. (Row 1 is rewritten in place: an insert would
-// hit Dbc::Upsert's growth bug.)
+// SMSG 0x6CE patches a SpellSpellSuggestions row; the next tick weighs it.
 COA_TEST(CA_SuggestPatchRow) {
     lua_State* L = Start({ { 100, 1, 0 } });
     Tick();

@@ -84,10 +84,18 @@ uint32_t CoA::Cursor::Variant() {
 }
 
 float CoA::Cursor::Width() {
+    if (s_deps.screenWidth) {
+        s_width = static_cast<float>(s_size) / s_deps.screenWidth();
+    }
+
     return s_width;
 }
 
 float CoA::Cursor::Height() {
+    if (s_deps.pixelToScreenHeight) {
+        s_height = s_deps.pixelToScreenHeight(static_cast<int32_t>(s_size));
+    }
+
     return s_height;
 }
 
