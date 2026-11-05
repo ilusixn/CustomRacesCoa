@@ -1,4 +1,6 @@
 #include "PortraitButton.h"
+#include "Engine/Source/Model2/M2Data.h"
+#include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Tempest/CImVector.h"
@@ -633,6 +635,23 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit) {
     scene->Animate(origin);
     DataMgrGetCoord(reinterpret_cast<CDataMgr*>(camera), 7, &cameraPosition);
     DataMgrGetCoord(reinterpret_cast<CDataMgr*>(camera), 8, &cameraTarget);
+
+    // CoA: the camera's managed position can hold a stale value after Animate (Two-Headed Ogre, imp); the model's
+    // own camera data is what the stock portraits resolve to.
+    if (model->HasCamera(CAMERA_PORTRAIT) && model->m_cameras) {
+        M2Data* data = model->m_shared->m_data;
+        uint16_t index = data->m_cameraIndicesById[CAMERA_PORTRAIT];
+        M2Camera* shared = &data->m_cameras[index];
+        M2ModelCamera* own = &model->m_cameras[index];
+        cameraPosition.x = shared->m_positionBase.x + own->m_positionTrack.m_currentValue.x;
+        cameraPosition.y = shared->m_positionBase.y + own->m_positionTrack.m_currentValue.y;
+        cameraPosition.z = shared->m_positionBase.z + own->m_positionTrack.m_currentValue.z;
+        cameraTarget.x = shared->m_targetPositionBase.x + own->m_targetTrack.m_currentValue.x;
+        cameraTarget.y = shared->m_targetPositionBase.y + own->m_targetTrack.m_currentValue.y;
+        cameraTarget.z = shared->m_targetPositionBase.z + own->m_targetTrack.m_currentValue.z;
+        CameraSetCoord(camera, 7, cameraPosition, 0);
+        CameraSetCoord(camera, 8, cameraTarget, 0);
+    }
 
     CRect window;
     window.minY = 0.0f;

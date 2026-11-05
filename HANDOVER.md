@@ -1,4 +1,4 @@
-# Handover: subclassing, The Twins and the Two-Headed Ogre for CoA Custom 1.9.9
+# Handover: subclassing, The Twins and the Two-Headed Ogre for CoA Custom 2.0
 
 From Stefan (stefanw1337), 2026-11-05. This is written for the person or Claude building the next CoA Custom release.
 It lists what changed since 1.9.8, what the release must carry, and how to check it before publishing. Follow the
@@ -168,12 +168,22 @@ On a test realm with the new server and client:
 5. From behind, the brother's sheathed and held shield faces outward and leans the opposite way from the player's.
    The shield's picture is not mirrored; that is expected (the game can only turn an item, not flip it).
 
-## 7. Known issues (not fixed)
+## 7. Since 1.9.9 (for 2.0)
 
-- Server fixes after 1.9.9's worldserver (`stefanw1337-subclassing-test`): dropping a Warlock or Paladin subclass
-  unlearned every mount (now only the class's own mounts go), and its summoned demon stayed out (now dismissed).
-- Portraits: with the geometry file from step 4 the Thin Twins portrait and character window show correctly (1.9.8's
-  copy has no entry for their model). The Two-Headed Ogre's portrait still shows her whole body small, and the
-  character window shows only her weapon. Her model has portrait and character cameras at head height and all
-  sequences are embedded; the cause is still open.
+- Client (`races-port`, `WoW/Source/UIUtil/PortraitButton.cpp`): the Two-Headed Ogre's portrait showed her whole body
+  small, because the portrait camera's position came out wrong after the model was animated (the target was right).
+  The portrait now takes the position and target from the model's own camera data, which is what working models such
+  as the Thin Twins already got. The imp's portrait had the same wrong position.
+- Addon (`stefanw1337-subclassing-test`): the character window no longer pushes the Ogre out of view, she stands
+  centred, and her background is the Orc one (the character window gives races without a background Human's; both
+  Ogre races are "Ogre" in ChrRaces). `/subclass sheet <zoom> <right> <up> <turn>` adjusts her by hand.
+- Addon: a pet summoned through the subclass gets its own movable pet bar, like the subclass stance bar.
+- Server (`stefanw1337-subclassing-test`): dropping a Warlock or Paladin subclass unlearned every mount (now only the
+  class's own mounts go); its summoned pet stayed out (now dismissed whenever the subclass is cleared or changed).
+- `races-extras/subclass/` is the 1.9.7 snapshot. Take the module, its SQL and the addon from the server branch, not
+  from there.
+
+## 8. Known issues (not fixed)
+
 - The creator does not yet have "You / Brother / Both" tabs; the brother's look is chosen in the Wardrobe.
+- Female Two-Headed Ogre: a helmet shows on one head only (1.9.9's list).
