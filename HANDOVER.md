@@ -155,6 +155,8 @@ On a test realm with the new server and client:
 
 ## 7. Known issues (not fixed)
 
-- The player-frame portrait is empty for The Twins and the Two-Headed Ogre. The models have a portrait camera; the
-  cause is still open.
+- Portraits: with the geometry file from step 4 the Thin Twins portrait and character window show correctly (1.9.8's
+  copy has no entry for their model). The Two-Headed Ogre's portrait still shows her whole body small, and the
+  character window shows only her weapon. Her model has portrait and character cameras at head height and all
+  sequences are embedded; the cause is still open.
 - The creator does not yet have "You / Brother / Both" tabs; the brother's look is chosen in the Wardrobe.
