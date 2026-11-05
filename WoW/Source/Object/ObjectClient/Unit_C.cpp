@@ -345,6 +345,8 @@ static ClickToMoveActionInfo s_clickToMoveActions[12] = {
 
 // STATIC: 0x00ADAA20
 static const uint32_t s_effectAttachmentIds[16] = { 20, 34, 19, 21, 22, 17, 23, 24, 25, 15, 16, 37, 38, 22, 47, 48 };
+// custom spell visuals can name an attachment id beyond the table: use it as a raw attachment id instead of reading past the end
+static uint32_t EffectAttachmentId(uint32_t id) { return id < 16 ? s_effectAttachmentIds[id] : id; }
 
 // STATIC: 0x00CA1190
 static int32_t s_lastNPCSoundCount;
@@ -9579,7 +9581,7 @@ int32_t CGUnit_C::HasAttachmentForEffect(uint32_t id, int32_t raw) const {
         return model->HasAttachment(s_effectAttachmentIds[4]);
     }
 
-    return model->HasAttachment(s_effectAttachmentIds[id]);
+    return model->HasAttachment(EffectAttachmentId(id));
 }
 
 // VERIFY: 88f55858 manual
@@ -9590,7 +9592,7 @@ C3Vector CGUnit_C::GetAttachmentPositionForEffect(uint32_t id, const C3Vector& o
     }
 
     if (id != 13) {
-        return this->GetAttachmentPosition(s_effectAttachmentIds[id], &offset);
+        return this->GetAttachmentPosition(EffectAttachmentId(id), &offset);
     }
 
     for (CM2Model* model = this->m_worldModel->m_attachList; model; model = model->m_attachNext) {
@@ -19953,7 +19955,7 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
         }
     }
 
-    int32_t attachment = (visual->m_flags & 0x200) ? visual->m_missileDestinationAttachment : s_effectAttachmentIds[visual->m_missileDestinationAttachment];
+    int32_t attachment = (visual->m_flags & 0x200) ? visual->m_missileDestinationAttachment : EffectAttachmentId(visual->m_missileDestinationAttachment);
     C3Vector offset(visual->m_missileImpactOffset[0], -visual->m_missileImpactOffset[1], visual->m_missileImpactOffset[2]);
     bool hasOffset = 0.0f != offset.x || 0.0f != offset.y || offset.z != 0.0f;
 
@@ -19999,7 +20001,10 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
                 missile->m_impactPos = object->GetPosition();
             }
 
-            goto targetsDone;
+            // the cast names a single target and no hit list: a plain hit, not a multi-target bounce
+            missile->m_flags |= 1;
+            missile->m_flags &= ~0x200u;
+            goto flagsDone;
         }
 
         missile->m_flags |= 1;
@@ -20411,7 +20416,7 @@ void CGUnit_C::CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, P
         }
     }
 
-    int32_t attachment = (visual->m_flags & 0x200) ? visual->m_missileDestinationAttachment : s_effectAttachmentIds[visual->m_missileDestinationAttachment];
+    int32_t attachment = (visual->m_flags & 0x200) ? visual->m_missileDestinationAttachment : EffectAttachmentId(visual->m_missileDestinationAttachment);
     missile->m_impactPos = points->m_data[0].m_position;
     missile->m_transportGuid = points->m_data[0].m_transport;
     missile->m_flags |= 1;
@@ -24560,7 +24565,7 @@ void CGUnit_C::AttachPrecastMissileModel(const SpellVisualRec* visual, uint8_t c
         return;
     }
 
-    uint32_t attachId = raw ? visual->m_missileAttachment : s_effectAttachmentIds[visual->m_missileAttachment];
+    uint32_t attachId = raw ? visual->m_missileAttachment : EffectAttachmentId(visual->m_missileAttachment);
     this->m_precastMissileModel = World::s_m2Scene->CreateModel(effectName->m_fileName, 64);
     C44Matrix world = this->GetObjectModel()->m_worldTransform;
     C3Vector position;

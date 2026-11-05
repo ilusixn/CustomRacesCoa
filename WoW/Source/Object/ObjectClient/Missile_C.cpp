@@ -1525,6 +1525,10 @@ void CMissile::HitTarget(CGUnit_C* target, const SpellRec* spell, const SpellVis
     // CoA: AscSpellVisuals.cpp:0x10322AD0 (orig hook 0x702DB0) -- the visual record follows the caster's server-assigned
     // visual (none when hidden).
     visual = CoA::SpellVisualsClient::MissileHitVisual(this, spell, visual);
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "missile hit: spell %d visual %d casterKit %d targetKit %d fizzle %u\n", spell ? static_cast<int>(spell->m_id) : -1, visual ? static_cast<int>(visual->m_id) : -1, visual ? static_cast<int>(visual->m_casterImpactKit) : -1, visual ? static_cast<int>(visual->m_targetImpactKit) : -1, static_cast<unsigned>(this->m_fizzleTime));
+        fclose(f);
+    }
     if (target->m_unit->m_unitFieldHealth > 0) {
         if (!visual || !(visual->m_flags & 0x40)) {
             target->PlayWoundAnimKit(0);
@@ -1618,6 +1622,11 @@ void CMissile::ReachedTarget(CGUnit_C* target, const C3Vector* direction) {
     } else if (target && this->IsHit()) {
         this->HitTarget(target, nullptr, nullptr);
         return;
+    }
+
+    if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
+        fprintf(f, "missile missed: spell %d target %d hit %d\n", static_cast<int>(this->m_spellID), target ? 1 : 0, static_cast<int>(this->IsHit()));
+        fclose(f);
     }
 
     this->MissedTarget(target, direction);

@@ -88,6 +88,7 @@ void RetailRaceForget(CCharacterComponent* character);
 
 // Registers the world owner whose model reference must follow a per-character body change.
 void RetailRaceBindOwner(CCharacterComponent* character, CGUnit_C* owner);
+void RetailRaceApplyGhost(CCharacterComponent* character); // Elune's Chosen: translucent spectral look
 
 // Independent per-character cosmetic, transported separately from frozen appearance codecs.
 bool RetailRaceEyeLightning(CCharacterComponent* character);

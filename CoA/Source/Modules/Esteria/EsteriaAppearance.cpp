@@ -34,6 +34,18 @@ unsigned RaceOf(unsigned race)
         case 90: return 77;  // Banshee (Horde)
         case 87: return 78;  // Faceless One (Horde)
         case 88: return 79;  // Qiraji (Horde)
+        case 86: return 80; // Sureki (AllRaces v12)
+        case 89: return 81; // Dreadlord (AllRaces v12)
+        case 91: return 82; // Titan (AllRaces v12)
+        case 92: return 83; // Wretched (AllRaces v12)
+        case 93: return 84; // Fungarian (AllRaces v12)
+        case 111: return 85; // Sporeling (AllRaces v12)
+        case 114: return 86; // Stormforged (AllRaces v12)
+        case 119: return 87; // Moarg (AllRaces v12)
+        case 120: return 88; // Nerubian (AllRaces v12)
+        case 122: return 89; // Lich (AllRaces v12)
+        case 123: return 90; // Mogu (AllRaces v12)
+        case 125: return 91; // LostOne (AllRaces v12)
         case 104: return 65; // Slime Giant (Horde; id 104 wraps to Troll)
         case 101: return 61; // Venthyr (Horde; id 101 so the 32-bit race masks wrap to Undead)
         case 107: return 60; // Kyrian (Alliance; id 107 so the 32-bit race masks wrap to Draenei)
@@ -1188,6 +1200,13 @@ namespace
             return HighmountainControl(state, command, character, CreatureAppearance::FacelessControls,
                 CreatureAppearance::FacelessLabels, requirements);
         }
+        if (CreatureAppearance::IsPack(RaceOf(CC<unsigned>(character, 0x18))))
+        {
+            constexpr std::array<VulperaAppearance::Requirement, 0> requirements{};
+            return HighmountainControl(state, command, character,
+                CreatureAppearance::PackControl(RaceOf(CC<unsigned>(character, 0x18)), CC<unsigned>(character, 0x1C)),
+                CreatureAppearance::PackLabels(RaceOf(CC<unsigned>(character, 0x18)), CC<unsigned>(character, 0x1C)), requirements);
+        }
         if (RaceOf(CC<unsigned>(character, 0x18)) == 79)
         {
             constexpr std::array<VulperaAppearance::Requirement, 0> requirements{};
@@ -1337,6 +1356,18 @@ namespace
         static auto const banshee = ReadSelections(L"EsteriaBanshee.bin");
         static auto const faceless = ReadSelections(L"EsteriaFaceless.bin");
         static auto const qiraji = ReadSelections(L"EsteriaQiraji.bin");
+        static auto const sureki = ReadSelections(L"EsteriaSureki.bin");
+        static auto const dreadlord = ReadSelections(L"EsteriaDreadlord.bin");
+        static auto const titan = ReadSelections(L"EsteriaTitan.bin");
+        static auto const wretched = ReadSelections(L"EsteriaWretched.bin");
+        static auto const fungarian = ReadSelections(L"EsteriaFungarian.bin");
+        static auto const sporeling = ReadSelections(L"EsteriaSporeling.bin");
+        static auto const stormforged = ReadSelections(L"EsteriaStormforged.bin");
+        static auto const moarg = ReadSelections(L"EsteriaMoarg.bin");
+        static auto const nerubian = ReadSelections(L"EsteriaNerubian.bin");
+        static auto const lich = ReadSelections(L"EsteriaLich.bin");
+        static auto const mogu = ReadSelections(L"EsteriaMogu.bin");
+        static auto const lostone = ReadSelections(L"EsteriaLostOne.bin");
         switch (race)
         {
             case 54: return naga;
@@ -1359,6 +1390,18 @@ namespace
             case 77: return banshee;
             case 78: return faceless;
             case 79: return qiraji;
+            case 80: return sureki;
+            case 81: return dreadlord;
+            case 82: return titan;
+            case 83: return wretched;
+            case 84: return fungarian;
+            case 85: return sporeling;
+            case 86: return stormforged;
+            case 87: return moarg;
+            case 88: return nerubian;
+            case 89: return lich;
+            case 90: return mogu;
+            case 91: return lostone;
             case 66: return tarasek;
             case 69:
             case 70: return drakonid;
@@ -1391,6 +1434,18 @@ namespace
             case 77: return L"EsteriaBansheeTextures.bin";
             case 78: return L"EsteriaFacelessTextures.bin";
             case 79: return L"EsteriaQirajiTextures.bin";
+            case 80: return L"EsteriaSurekiTextures.bin";
+            case 81: return L"EsteriaDreadlordTextures.bin";
+            case 82: return L"EsteriaTitanTextures.bin";
+            case 83: return L"EsteriaWretchedTextures.bin";
+            case 84: return L"EsteriaFungarianTextures.bin";
+            case 85: return L"EsteriaSporelingTextures.bin";
+            case 86: return L"EsteriaStormforgedTextures.bin";
+            case 87: return L"EsteriaMoargTextures.bin";
+            case 88: return L"EsteriaNerubianTextures.bin";
+            case 89: return L"EsteriaLichTextures.bin";
+            case 90: return L"EsteriaMoguTextures.bin";
+            case 91: return L"EsteriaLostOneTextures.bin";
             case 66: return L"EsteriaTarasekTextures.bin";
             case 69:
             case 70: return L"EsteriaDrakonidTextures.bin";
@@ -1423,6 +1478,18 @@ namespace
             case 77: return "Banshee";
             case 78: return "Faceless";
             case 79: return "Qiraji";
+            case 80: return "Sureki";
+            case 81: return "Dreadlord";
+            case 82: return "Titan";
+            case 83: return "Wretched";
+            case 84: return "Fungarian";
+            case 85: return "Sporeling";
+            case 86: return "Stormforged";
+            case 87: return "Moarg";
+            case 88: return "Nerubian";
+            case 89: return "Lich";
+            case 90: return "Mogu";
+            case 91: return "LostOne";
             default: return "Haranir";
         }
     }
@@ -1511,6 +1578,8 @@ namespace
         std::uint64_t geometryGroups = 0;
         unsigned selectedGeosets[52] = {};
         N_82C7C0(instance, 10000, 29999, 0);
+        if (appearanceRace == 84)
+            KvLog("fung geometry: gender %u fields %u,%u,%u,%u,%u records %zu options %zu", gender, unsigned(fields[0]), unsigned(fields[1]), unsigned(fields[2]), unsigned(fields[3]), unsigned(fields[4]), records.size(), size_t(options.size()));
         for (auto const& record : records)
         {
             unsigned race = RaceOf(CC<unsigned>(character, 0x18));
@@ -1606,6 +1675,8 @@ namespace
                     selectedValue = CC<unsigned>(character, 0x440) ? 2002
                         : (race == 50 || race == 51 ? record.value : 2001);
                 selectedGeosets[record.target] = selectedValue;
+                if (race == 84)
+                    KvLog("fung geoset: group %u value %u", record.target, selectedValue);
                 if (record.target < 19)
                     CC<unsigned>(character, 0x144 + record.target * 4) = selectedValue;
                 else
@@ -1666,6 +1737,7 @@ namespace
             KvBansheeBind(character);
         if (RaceOf(CC<unsigned>(character, 0x18)) == 78)
             KvFacelessBind(character);
+        KvPackBind(character);
         // Some source-hidden groups have no customization selector. Apply their hide after all selections.
         for (unsigned group = 0; group < 52; ++group)
             if (helmetGroups & (std::uint64_t{1} << group))
@@ -1734,6 +1806,8 @@ namespace
                 return ExtendedGeometry(character, CreatureAppearance::BansheeControls, RetailSelections(race));
             if (race == 78)
                 return ExtendedGeometry(character, CreatureAppearance::FacelessControls, RetailSelections(race));
+            if (CreatureAppearance::IsPack(race))
+                return ExtendedGeometry(character, CreatureAppearance::PackControl(race, CC<unsigned>(character, 0x1C)), RetailSelections(race));
             if (race == 79)
                 return CC<unsigned>(character, 0x1C)
                     ? ExtendedGeometry(character, CreatureAppearance::QirajiFemaleControls, RetailSelections(race))

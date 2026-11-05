@@ -2,6 +2,7 @@
 #ifndef ACORE_CREATURE_APPEARANCE_H
 #define ACORE_CREATURE_APPEARANCE_H
 
+#include <vector>
 #include <array>
 #include <cstdint>
 
@@ -427,15 +428,57 @@ namespace CreatureAppearance
     }};
     inline constexpr std::array<char const*, 2> CentaurFemaleLabels = {{"Skin Color", "Head Style"}};
 
+    // AllRaces v12 pack races (ids 80-91): plain CharSections colour skins bound from EsteriaXxx.bin, skin colour only
+    constexpr bool IsPack(unsigned race) { return race >= 80 && race <= 91; }
+    inline constexpr unsigned PackSkins[12] = {18, 10, 9, 64, 11, 11, 13, 8, 8, 7, 12, 9};
+#include "PackCounts.inl"
+    // fields: 0 skin colour, 1 hair colour, 2 facial hair; a control only exists when it has more than one choice, in this order
+    inline std::vector<Option> PackControl(unsigned race, unsigned gender)
+    {
+        auto const& c = PackCounts[race - 80][gender & 1];
+        std::vector<Option> controls{{0, c[0], 1}};
+        if (race == 84)      // Fungarian: eye colour (texture), beard / cap / shoulder mushrooms (geoset groups 44-46 by selection records)
+            return {{0, c[0], 1}, {1, c[1], 1}, {2, 3, 1}, {3, 5, 1}, {4, 4, 1}};
+        if (c[1] > 1)
+            controls.push_back({1, c[1], 1});
+        if (c[2] > 1)
+            controls.push_back({4, c[2], 1});      // the engine itself shows the facial-hair row's geosets for the 5th appearance byte
+        return controls;
+    }
+    inline std::vector<char const*> PackLabels(unsigned race, unsigned gender)
+    {
+        auto const& c = PackCounts[race - 80][gender & 1];
+        std::vector<char const*> labels{"Skin Color"};
+        if (race == 84)
+            return {"Skin Color", "Eye Color", "Beard", "Cap", "Extra (Shoulder Mushroom)"};
+        bool fungarian = race == 84;
+        if (c[1] > 1)
+            labels.push_back(fungarian ? "Eye Color" : "Hair Color");
+        if (c[2] > 1)
+            labels.push_back(fungarian ? "Cap / Extra / Beard" : "Features");
+        return labels;
+    }
+    constexpr std::array<std::array<std::array<Option, 5>, 2>, 12> MakePackOptions()
+    {
+        std::array<std::array<std::array<Option, 5>, 2>, 12> a{};
+        for (unsigned i = 0; i < 12; ++i)
+            for (unsigned g = 0; g < 2; ++g)
+                for (unsigned k = 0; k < 5; ++k)
+                    a[i][g][k] = i == 4 ? Option{k, k == 0 ? PackCounts[i][g][0] : k == 1 ? PackCounts[i][g][1] : k == 2 ? 3u : k == 3 ? 5u : 4u, 1}
+                        : Option{k, k < 2 ? PackCounts[i][g][k] : k == 4 ? PackCounts[i][g][2] : 1u, 1};
+        return a;
+    }
+    inline constexpr auto PackOptions = MakePackOptions();
+
     constexpr bool Uses(unsigned race)
     {
-        return (race >= 54 && race <= 61) || race == 65 || race == 68 || race == 62 || race == 63 || race == 64
+        return IsPack(race) || (race >= 54 && race <= 61) || race == 65 || race == 68 || race == 62 || race == 63 || race == 64
             || race == 66 || race == 69 || race == 70 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79;
     }
 
     constexpr bool GenderAllowed(unsigned race, unsigned gender)
     {
-        return Uses(race) && (gender == 0
+        return Uses(race) && (IsPack(race) || gender == 0
             || ((race == 68 || race == 60 || race == 61 || race == 54 || race == 56 || race == 57 || race == 62 || race == 66 || race == 65 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79) && gender == 1));
     }
 
@@ -493,7 +536,7 @@ namespace CreatureAppearance
             case 70:
                 return DrakonidMale;
             default:
-                return NagaMale;
+                return IsPack(race) ? PackOptions[race - 80][gender & 1] : NagaMale;
         }
     }
 
@@ -505,6 +548,9 @@ namespace CreatureAppearance
             return fields[0] < 17 && fields[1] < 4 && fields[2] < 6
                 && fields[3] < 76 && fields[4] == 0;
         auto const& options = Options(race, gender);
+        if (IsPack(race))
+            return fields[0] < options[0].count && fields[1] < options[1].count && fields[2] < options[2].count
+                && fields[3] < options[3].count && fields[4] < options[4].count;
         if (race >= 77 && race <= 79)
         {
             // pack races: the stock face / hair / facial-hair values are unused, only the skin (and Banshee hair) colour count

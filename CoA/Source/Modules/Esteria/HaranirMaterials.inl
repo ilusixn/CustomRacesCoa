@@ -476,8 +476,11 @@ void SetHaranirMaterials(void* character)
         KvFacelessBind(character);
         return;
     }
-    if (RaceOf(CC<unsigned>(character, 0x18)) == 79)
-        return;       // plain colour skins from the selection bank
+    if (RaceOf(CC<unsigned>(character, 0x18)) == 79 || CreatureAppearance::IsPack(RaceOf(CC<unsigned>(character, 0x18))))
+    {
+        KvPackBind(character);       // plain colour skins from the selection bank, armor baked on top
+        return;
+    }
     if (RaceOf(CC<unsigned>(character, 0x18)) == 68)
     {
         KvCentaurBind(character);

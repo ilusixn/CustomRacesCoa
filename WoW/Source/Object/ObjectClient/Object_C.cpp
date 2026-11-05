@@ -1555,7 +1555,7 @@ void CGObject_C::PlayEffectName(int32_t attachType, uint32_t a3, int32_t spellId
 }
 
 static void KitTrace(const char* what, int spell, int kitType, int kit, int head, int chest, int base, int world) {   // diagnostic: Logs\SpellVisual.log (off)
-    return;
+    // trace on
     if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
         fprintf(f, "%s: spell %d type %d kit %d head %d chest %d base %d world %d\n", what, spell, kitType, kit, head, chest, base, world);
         fclose(f);

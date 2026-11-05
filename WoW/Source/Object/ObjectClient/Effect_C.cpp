@@ -416,7 +416,7 @@ void CEffect::EffectEvent(CM2Model* model, uint32_t boneId, uint32_t eventId, ui
 }
 
 static void EffectTrace(const char* what, int spell, int effect, const char* path, int extra) {   // diagnostic: Logs\SpellVisual.log (off)
-    return;
+    // trace on
     if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
         fprintf(f, "%s: spell %d effect %d %s %d\n", what, spell, effect, path ? path : "-", extra);
         fclose(f);

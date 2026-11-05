@@ -5207,6 +5207,7 @@ void CCharacterComponent::RenderPrepSections() {
 // VERIFY: e78118c6 manual
 // OFFSET: 0x004F1520
 bool CCharacterComponent::RenderPrep(int32_t wait) {
+    RetailRaceApplyGhost(this);
     if (this->m_data.m_flags & 0x1) {
         if (this->m_flags & 0x4) {
             this->GeosRenderPrep();

@@ -879,7 +879,7 @@ void ClearSpellCastState(CGUnit_C* unit, PendingSpellCast* cast, const SpellRec*
 }
 
 static void SpellVisualTrace(const char* what, int a, int b, int c, int d) {   // diagnostic: Logs\SpellVisual.log (off)
-    return;
+    // trace on
     if (FILE* f = fopen("Logs\\SpellVisual.log", "a")) {
         fprintf(f, "%s: %d %d %d %d\n", what, a, b, c, d);
         fclose(f);

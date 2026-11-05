@@ -52,6 +52,25 @@
 // STATIC: 0x00A45570
 static const uint32_t s_ribbonBlendModes[] = { 0, 1, 2, 10, 3, 4, 5 };
 
+// CoA: spirit look for models flagged m_ghostFx (Elune's Chosen): about half transparent, gently breathing, cold blue tint.
+static void M2ApplyGhost(CM2Model* model) {
+    if (!model->m_ghostFx) {
+        return;
+    }
+
+    float t = float(model->m_scene->m_time % 100000) * 0.001f;
+    float wave = 0.5f + 0.5f * sinf(t * 1.6f);
+    float fade = 0.42f + 0.10f * wave;
+    model->m_alpha *= fade;
+    model->m_effectiveAlpha *= fade;
+    model->m_diffuseColor.x *= 0.80f;
+    model->m_diffuseColor.y *= 0.92f;
+    model->m_diffuseColor.z *= 1.10f;
+    model->m_emissiveColor.x += 0.08f;
+    model->m_emissiveColor.y += 0.22f;
+    model->m_emissiveColor.z += 0.38f;
+}
+
 namespace {
 // Keep optional collection state outside CM2Model's native ABI. These pointers are
 // borrowed from the attachment relationship and removed before either rig is freed.
@@ -88,14 +107,60 @@ void ClearSkinParents(CM2Model* model) {
     }
 }
 
+// Retail collection boot / leg pieces (attachment 55-57 right, 59-61 left) are modelled in place on the skeleton. A skeleton whose own socket
+// is missing or elsewhere gets the piece seated on the foot (47/48), knee (7/8) or hip (9/10) bone, offset zero, on the skinned parent of
+// the socket's helper bone. RetailRace.cpp does this once per fit; this repeats it at draw time for instances created after that.
+bool ResolveCollectionFrame(CM2Model* child, CM2Model* parent, AttachmentFrame& frame) {
+    const uint32_t own = child->m_attachmentId;
+    if (own < 55 || own > 61 || own == 58 || !child->m_shared || !child->m_shared->m_fileName || !parent->m_shared || !parent->m_shared->m_data) return false;
+    if (!std::strstr(child->m_shared->m_fileName, "collections")) return false;
+    const M2Data* data = parent->m_shared->m_data;
+    const uint16_t ownSocket = own < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[own] : 0xffff;
+    if (ownSocket < data->m_attachments.m_count && data->m_attachments[ownSocket].m_bone < data->m_bones.m_count) {
+        const C3Vector& p = data->m_attachments[ownSocket].m_position;
+        if (std::fabs(p.x) + std::fabs(p.y) + std::fabs(p.z) < 0.01f) return false;   // the model's own socket already holds it
+    }
+    static const uint32_t bodySocket[7] = {48, 7, 9, 0, 47, 8, 10};
+    const uint32_t bodyId = bodySocket[own - 55];
+    const uint16_t socket = bodyId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[bodyId] : 0xffff;
+    if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) return false;
+    uint32_t bone = data->m_attachments[socket].m_bone;
+    const auto& helper = data->m_bones[bone];
+    if (helper.m_parentIndex < data->m_bones.m_count) {
+        const auto& up = data->m_bones[helper.m_parentIndex].m_pivot;
+        if (std::fabs(up.x - helper.m_pivot.x) + std::fabs(up.y - helper.m_pivot.y) + std::fabs(up.z - helper.m_pivot.z) < 0.001f) bone = helper.m_parentIndex;
+    }
+    frame = AttachmentFrame{parent, child->m_shared, data, bone, C3Vector(0.f, 0.f, 0.f), 1.f};
+    return true;
+}
+
 void ApplyAttachmentFrame(CM2Model* child, CM2Model* parent, C44Matrix& matrix) {
     std::lock_guard<std::mutex> lock(s_skinParentMutex);
-    const auto found = s_attachmentFrames.find(child);
-    if (found == s_attachmentFrames.end()) return;
+    auto found = s_attachmentFrames.find(child);
+    if (found == s_attachmentFrames.end() && (parent->m_fFlags & 1)) {
+        AttachmentFrame resolved;
+        if (ResolveCollectionFrame(child, parent, resolved)) found = s_attachmentFrames.insert_or_assign(child, resolved).first;
+    }
+    if (found == s_attachmentFrames.end()) {
+        // a duplicate (character-select / preview copy, see CM2Model::Initialize) inherits the fit of the model it was copied from
+        const auto source = child->m_model30 ? s_attachmentFrames.find(child->m_model30) : s_attachmentFrames.end();
+        if (source == s_attachmentFrames.end() || !child->m_shared || !parent->m_shared || !parent->m_shared->m_data ||
+            child->m_shared != source->second.childShared || source->second.bone >= parent->m_shared->m_data->m_bones.m_count) return;
+        AttachmentFrame copy = source->second;
+        copy.parent = parent;
+        copy.parentData = parent->m_shared->m_data;
+        found = s_attachmentFrames.insert_or_assign(child, copy).first;
+    }
     const auto& frame = found->second;
     if (child->m_attachParent != parent || frame.parent != parent || child->m_shared != frame.childShared ||
         !parent->m_shared || parent->m_shared->m_data != frame.parentData ||
         frame.bone >= frame.parentData->m_bones.m_count || !parent->m_boneMatrices) {
+        if (FILE* log = std::fopen("Logs/RetailRace.log", "a")) {
+            std::fprintf(log, "attachment frame dropped: parent %d shared %d data %d bone %d matrices %d model %s\n", child->m_attachParent == parent, child->m_shared == frame.childShared,
+                parent->m_shared && parent->m_shared->m_data == frame.parentData, frame.bone < frame.parentData->m_bones.m_count, parent->m_boneMatrices != nullptr,
+                child->m_shared ? child->m_shared->m_fileName : "?");
+            std::fclose(log);
+        }
         s_attachmentFrames.erase(found);
         return;
     }
@@ -4138,6 +4203,7 @@ CM2Model::CM2Model() {
     this->m_frameOfReference = nullptr;
     this->m_fadeAlpha = 1.0f;
     this->m_baseAlpha = 1.0f;
+    this->m_ghostFx = false;
     this->m_diffuseTintR = 1.0f;
     this->m_diffuseTintG = 1.0f;
     this->m_diffuseTintB = 1.0f;
@@ -5060,6 +5126,8 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
         }
     }
 
+    M2ApplyGhost(this);
+
     for (uint32_t i = 0; i < data->m_loops.m_count; i++) {
         uint32_t length = data->m_loops[i].m_length;
         uint32_t time = 0;
@@ -5432,6 +5500,8 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
             this->m_emissiveColor.z = emissive.z + this->m_emissiveColor.z;
         }
     }
+
+    M2ApplyGhost(this);
 
     for (uint32_t i = 0; i < data->m_loops.m_count; i++) {
         uint32_t length = data->m_loops[i].m_length;
@@ -6233,6 +6303,7 @@ void CM2Model::Animate() {
             matrix = parent->m_boneMatrices[attachment->m_bone];
             C3Vector position = attachment->m_position;
             matrix.Translate(position);
+            ApplyAttachmentFrame(this, parent, matrix);
             transform = &matrix;
         }
 
@@ -6374,6 +6445,11 @@ C3Vector CM2Model::GetAttachmentPosition(uint32_t id) {
 
     this->Animate();
 
+    if (bone == 0xFFFF) {
+        // CoA: custom models lack some retail attachments (the creator zooms on them): fall back to the root bone
+        return C3Vector{0.0f, 0.0f, 0.0f} * this->m_boneMatrices[0] * this->m_scene->m_viewInv;
+    }
+
     return data->m_attachments[index].m_position * this->m_boneMatrices[bone] * this->m_scene->m_viewInv;
 }
 
@@ -6461,7 +6537,12 @@ void CM2Model::AttachToParent(CM2Model* parent, uint32_t id, const C3Vector* pos
         index = id < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[id] : 0xFFFF;
 
         if (index == 0xFFFF && !attachToRoot) {
-            return;
+            // retail collection boot / leg pieces (ids 55-61) on a skeleton without that socket: keep them, RetailRace seats them on a body bone
+            if (id >= 55 && id <= 61 && this->m_shared && this->m_shared->m_fileName && std::strstr(this->m_shared->m_fileName, "collections")) {
+                attachToRoot = 1;
+            } else {
+                return;
+            }
         }
     } else {
         index = 0xFFFF;
@@ -6568,7 +6649,7 @@ void CM2Model::AnimateSM() {
 
     *this->m_boneMatrices = M2BodyWorld(this) * scene->m_view; // CoA: body sliders
     this->m_alpha = this->m_baseAlpha * this->m_fadeAlpha;
-
+    M2ApplyGhost(this);
     M2Data* data = this->m_shared->m_data;
 
     for (uint32_t i = 0; i < data->m_colors.m_count; i++) {
@@ -7405,6 +7486,10 @@ int32_t CM2Model::InitializeLoaded() {
             case 3:
                 emitterBytes += sizeof(CSplineParticleEmitter);
                 break;
+
+            default:   // custom creature models carry emitter types the client does not know: built as a plane emitter below
+                emitterBytes += sizeof(CPlaneParticleEmitter);
+                break;
         }
     }
 
@@ -7666,6 +7751,9 @@ int32_t CM2Model::InitializeLoaded() {
             } else if (particleData->m_emitterType == 3) {
                 this->m_particleEmitters[i] = new (emitterMemory) CSplineParticleEmitter();
                 emitterMemory += sizeof(CSplineParticleEmitter);
+            } else {
+                this->m_particleEmitters[i] = new (emitterMemory) CPlaneParticleEmitter();
+                emitterMemory += sizeof(CPlaneParticleEmitter);
             }
 
             CParticleEmitter2* emitter = this->m_particleEmitters[i];
@@ -8411,11 +8499,18 @@ void M2SetAttachmentRoll(CM2Model* child, float radians, int axis) {
 
 bool CM2Model::SetAttachmentFrame(uint32_t bone, const C3Vector& position, float scale) {
     CM2Model* parent = this->m_attachParent;
-    if (!parent || !(parent->m_fFlags & 1) || this->m_attachmentIndex == 0xffff ||
+    if (!parent || !(parent->m_fFlags & 1) ||
         !this->m_shared || !parent->m_shared || !parent->m_shared->m_data ||
         bone >= parent->m_shared->m_data->m_bones.m_count ||
         !std::isfinite(position.x) || !std::isfinite(position.y) || !std::isfinite(position.z) ||
-        !std::isfinite(scale) || scale <= 0) return false;
+        !std::isfinite(scale) || scale <= 0) {
+        if (FILE* log = std::fopen("Logs/RetailRace.log", "a")) {
+            std::fprintf(log, "SetAttachmentFrame refused: parent %d flags %d index %d shared %d pdata %d bone %u model %s\n", parent != nullptr, parent && (parent->m_fFlags & 1) ? 1 : 0,
+                this->m_attachmentIndex, this->m_shared != nullptr, parent && parent->m_shared && parent->m_shared->m_data, bone, this->m_shared ? this->m_shared->m_fileName : "?");
+            std::fclose(log);
+        }
+        return false;
+    }
     std::lock_guard<std::mutex> lock(s_skinParentMutex);
     const M2Data* data = parent->m_shared->m_data;
     const auto found = s_attachmentFrames.find(this);

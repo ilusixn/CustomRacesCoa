@@ -1156,34 +1156,47 @@ void FitLowerAttachments(CCharacterComponent* character) {
         Log("attached piece race %u id %u index %u flags %x model %s", unsigned(character->m_data.m_preferences.m_raceID),
             unsigned(any->m_attachmentId), unsigned(any->m_attachmentIndex), unsigned(any->m_fFlags),
             any->m_shared ? any->m_shared->m_fileName : "?");
-    // Retail "collection" foot pieces name attachment 54/55, which sits at head height on these skeletons (re-seating them on the foot
-    // sockets 47/48 did not move them): the boots are already drawn by the body geometry, so drop the floating piece.
-    for (CM2Model* foot = parent->m_attachList, *after = nullptr; foot; foot = after) {
-        after = foot->m_attachNext;
-        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !foot->m_shared) continue;
-        if (!std::strstr(foot->m_shared->m_fileName, "collections_")) continue;   // retail collection pieces only
-        const uint16_t socket = foot->m_attachmentId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[foot->m_attachmentId] : 0xffff;
-        if (socket < data->m_attachments.m_count && data->m_attachments[socket].m_position.z < 1.f) continue;
-        Log("foot piece %s race %u: removed (socket %u at head height)", foot->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID), unsigned(foot->m_attachmentId));
-        foot->DetachFromParent();
-    }
-    for (CM2Model* any = parent->m_attachList; any; any = any->m_attachNext)
-        Log("attached piece race %u id %u index %u flags %x model %s", unsigned(character->m_data.m_preferences.m_raceID),
-            unsigned(any->m_attachmentId), unsigned(any->m_attachmentIndex), unsigned(any->m_fFlags),
-            any->m_shared ? any->m_shared->m_fileName : "?");
-    // Retail "collection" foot pieces name attachment 54/55, which sits at the head on these skeletons; the feet sockets are 47 (left)
-    // and 48 (right).
-    for (CM2Model* foot = parent->m_attachList; foot; foot = foot->m_attachNext) {
-        if (foot->m_attachmentId < 54 || foot->m_attachmentId > 57 || !foot->m_shared) continue;
-        const bool left = std::strstr(foot->m_shared->m_fileName, "feet_left") != nullptr;
-        if (!left && !std::strstr(foot->m_shared->m_fileName, "feet_right")) continue;
-        const uint32_t id = left ? 47 : 48;
-        const uint16_t socket = id < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[id] : 0xffff;
-        if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) continue;
-        const auto& attachment = data->m_attachments[socket];
-        const bool fitted = foot->SetAttachmentFrame(attachment.m_bone, attachment.m_position, 1.f);
-        Log("foot piece %s race %u: socket %u bone %u %s", foot->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID),
-            id, unsigned(attachment.m_bone), fitted ? "fitted" : "not fitted");
+    // Retail "collection" boot / lower-leg / upper-leg pieces are modelled in place on the skeleton and hang on attachment 55-57 (right)
+    // and 59-61 (left) with a ZERO offset on the bone, as the Night Elf's own sockets do. Races whose attachment is missing or sits
+    // elsewhere (Void Elf: 55 at head height) get the piece seated on the foot (47/48), knee (7/8) or hip (9/10) bone with that same
+    // zero offset. 54 / 58 (arm-style pieces) are dropped when their socket is at head height.
+    for (CM2Model* piece = parent->m_attachList, *after = nullptr; piece; piece = after) {
+        after = piece->m_attachNext;
+        const uint32_t own = piece->m_attachmentId;
+        if (own < 54 || own > 61 || !piece->m_shared) continue;
+        if (!std::strstr(piece->m_shared->m_fileName, "collections")) continue;   // retail collection pieces only (folder or file prefix)
+        const uint16_t ownSocket = own < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[own] : 0xffff;
+        const bool ownValid = ownSocket < data->m_attachments.m_count && data->m_attachments[ownSocket].m_bone < data->m_bones.m_count;
+        const bool retailStyle = ownValid && std::fabs(data->m_attachments[ownSocket].m_position.x) + std::fabs(data->m_attachments[ownSocket].m_position.y) +
+            std::fabs(data->m_attachments[ownSocket].m_position.z) < 0.01f;
+        if (own == 54 || own == 58) {
+            if (!ownValid || data->m_attachments[ownSocket].m_position.z >= 1.f) {
+                Log("collection piece %s race %u: removed (socket %u)", piece->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID), unsigned(own));
+                piece->DetachFromParent();
+            }
+            continue;
+        }
+        if (retailStyle) continue;   // the model's own socket already holds it correctly
+        static const uint32_t bodySocket[7] = {48, 7, 9, 0, 47, 8, 10};   // index = id - 55: right foot / lower leg / upper leg, 58 unused, left ones
+        const uint32_t bodyId = bodySocket[own - 55];
+        const uint16_t socket = bodyId && bodyId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[bodyId] : 0xffff;
+        if (socket >= data->m_attachments.m_count || data->m_attachments[socket].m_bone >= data->m_bones.m_count) {
+            Log("collection piece %s race %u: removed (no body socket %u)", piece->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID), unsigned(bodyId));
+            piece->DetachFromParent();
+            continue;
+        }
+        const C3Vector zero(0.f, 0.f, 0.f);
+        // the socket's bone is often a helper child of the real foot / knee / hip bone with the same pivot but its own orientation
+        // (Void Elf: 223 under 22): the skinned parent is the one the body follows, so seat on that
+        uint32_t bone = data->m_attachments[socket].m_bone;
+        const auto& helper = data->m_bones[bone];
+        if (helper.m_parentIndex < data->m_bones.m_count) {
+            const auto& up = data->m_bones[helper.m_parentIndex].m_pivot;
+            if (std::fabs(up.x - helper.m_pivot.x) + std::fabs(up.y - helper.m_pivot.y) + std::fabs(up.z - helper.m_pivot.z) < 0.001f) bone = helper.m_parentIndex;
+        }
+        const bool fitted = piece->SetAttachmentFrame(bone, zero, 1.f);
+        Log("collection piece %s race %u: id %u on socket %u bone %u %s", piece->m_shared->m_fileName, unsigned(character->m_data.m_preferences.m_raceID),
+            unsigned(own), unsigned(bodyId), unsigned(bone), fitted ? "fitted" : "already fitted");
     }
     for (CM2Model* piece = parent->m_attachList, *next = nullptr; piece; piece = next) {
         next = piece->m_attachNext;
@@ -1235,7 +1248,7 @@ void RetailRaceDuplicateCollections(CM2Model* source, CM2Model* target) {
             copy->WaitForLoad("Retail clothing preview");
             if (original->m_attachmentId == CollectionSocket && original->HasSkinParent(source)) {
                 if (!copy->SetSkinParent(target)) Log("preview collection bind failed: %s", copy->m_shared->m_fileName);
-            } else copy->CopyAttachmentFrameFrom(original);
+            } else Log("preview frame copy %s: %s", copy->m_shared->m_fileName, copy->CopyAttachmentFrameFrom(original) ? "copied" : "none");
         }
     }
 }
@@ -1752,6 +1765,11 @@ void BodyShapeCreateFooter(CDataStore* packet, bool always) {
     for (uint32_t shift = 0; shift < 32; shift += 8) packet->Put(static_cast<uint8_t>(CharacterBodyShape::FooterMagic >> shift));
 }
 
+void RetailRaceApplyGhost(CCharacterComponent* character) {
+    if (!character || character->m_data.m_preferences.m_raceID != 118) return;
+    if (CM2Model* model = character->m_data.m_model) model->m_ghostFx = true;
+}
+
 void RetailRaceBindOwner(CCharacterComponent* character, CGUnit_C* owner) {
     if (!character) return;
     if (owner && owner->m_obj) {
@@ -2263,6 +2281,7 @@ bool RetailRaceLegArmorHidden(CCharacterComponent*) { return false; }
 void RetailRaceDuplicateCollections(CM2Model*, CM2Model*) {}
 float RetailRacePreviewScale(uint32_t) { return 1.0f; }
 void RetailRaceBindOwner(CCharacterComponent*, CGUnit_C*) {}
+void RetailRaceApplyGhost(CCharacterComponent*) {}
 bool RetailRaceEyeLightning(CCharacterComponent*) { return false; }
 void RetailRaceEyeLightning(CCharacterComponent*, bool) {}
 void RetailRaceCreateEyeEffects(CDataStore*) {}

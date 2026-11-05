@@ -29,6 +29,7 @@ struct KvFittingMap
     unsigned height = 0;
     std::vector<unsigned> pixels;
     std::vector<unsigned char> coverage;
+    bool fine = false;      // version 2: atlas coordinates in 1/128 texel, sampled bilinearly
 };
 
 struct KvOutfit
@@ -108,28 +109,30 @@ std::array<int, 3> KvItemGeoset(unsigned display)
 // resident in the 32-bit client.
 KvBodySkin const* KvSkin(char const* path)
 {
-    struct Entry { std::string name; unsigned width, height, size; long offset; };
+    struct Entry { std::string name; unsigned width, height, size; long offset; FILE* file; };
     static std::vector<Entry> index;
-    static FILE* file = nullptr;
     static bool loaded = false;
     static std::unordered_map<std::string, KvBodySkin> cache;
     if (!loaded)
     {
         loaded = true;
-        file = CatalogFile(L"EsteriaKvSkins.bin");
-        unsigned head[2]{};
-        if (file && std::fread(head, sizeof(head), 1, file) == 1 && head[0] == 0x3153564B)
+        for (wchar_t const* bank : {L"EsteriaKvSkins.bin", L"EsteriaPackSkins.bin"})      // the pack races' skins sit in their own bank
         {
-            for (unsigned i = 0; i < head[1]; ++i)
+            FILE* file = CatalogFile(bank);
+            unsigned head[2]{};
+            if (file && std::fread(head, sizeof(head), 1, file) == 1 && head[0] == 0x3153564B)
             {
-                char header[144]{};
-                if (std::fread(header, sizeof(header), 1, file) != 1)
-                    break;
-                Entry entry{std::string(header, strnlen(header, 128)), Field<unsigned>(header, 128), Field<unsigned>(header, 132),
-                    Field<unsigned>(header, 136), std::ftell(file)};
-                index.push_back(entry);
-                if (std::fseek(file, static_cast<long>(entry.size), SEEK_CUR))
-                    break;
+                for (unsigned i = 0; i < head[1]; ++i)
+                {
+                    char header[144]{};
+                    if (std::fread(header, sizeof(header), 1, file) != 1)
+                        break;
+                    Entry entry{std::string(header, strnlen(header, 128)), Field<unsigned>(header, 128), Field<unsigned>(header, 132),
+                        Field<unsigned>(header, 136), std::ftell(file), file};
+                    index.push_back(entry);
+                    if (std::fseek(file, static_cast<long>(entry.size), SEEK_CUR))
+                        break;
+                }
             }
         }
     }
@@ -148,10 +151,10 @@ KvBodySkin const* KvSkin(char const* path)
     {
         if (item.name != key)
             continue;
-        if (!decompress || !file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
+        if (!decompress || !item.file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
             return nullptr;
         std::vector<unsigned char> packed(item.size);
-        if (std::fseek(file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), file) != packed.size())
+        if (std::fseek(item.file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), item.file) != packed.size())
             return nullptr;
         entry.rgba.resize(static_cast<std::size_t>(item.width) * item.height * 4);
         ULONG final = 0;
@@ -183,7 +186,7 @@ KvFittingMap const* KvMap(unsigned race, unsigned gender)
         if (!file)
             return nullptr;
         unsigned header[6]{};
-        bool valid = std::fread(header, sizeof(header), 1, file) == 1 && header[0] == 0x3146554e && header[1] == 1
+        bool valid = std::fread(header, sizeof(header), 1, file) == 1 && header[0] == 0x3146554e && (header[1] == 1 || header[1] == 2)
             && header[2] && header[2] <= 1024 && header[3] && header[3] <= 1024 && header[4] == 512 && header[5] == 512;
         if (valid)
         {
@@ -191,10 +194,11 @@ KvFittingMap const* KvMap(unsigned race, unsigned gender)
             map.height = header[3];
             map.pixels.resize(static_cast<std::size_t>(map.width) * map.height);
             valid = std::fread(map.pixels.data(), sizeof(unsigned), map.pixels.size(), file) == map.pixels.size()
-                && std::all_of(map.pixels.begin(), map.pixels.end(), [](unsigned p)
+                && std::all_of(map.pixels.begin(), map.pixels.end(), [fine = header[1] == 2](unsigned p)
                 {
-                    return p == 0xffffffffu || ((p & 65535u) < 512 && (p >> 16) < 512);
+                    return p == 0xffffffffu || fine || ((p & 65535u) < 512 && (p >> 16) < 512);
                 });
+            map.fine = header[1] == 2;
             if (valid && ((race == 60 && gender == 1) || race == 61))
             {
                 map.coverage.resize(map.pixels.size());
@@ -454,13 +458,15 @@ std::shared_ptr<void> KvLoadTexture(char const* path)
     ctexture->m_filename[0x103] = 0;
     void* texture = ctexture;
     int32_t decoded = PumpBlpTextureAsync(ctexture, bytes.data());
-    auto result = std::shared_ptr<void>(texture, [](void* value)
+    if (!decoded)
+    {
+        KvLog("texture decode failed: %s", path);
+        return {};      // a half-built texture is leaked on purpose: releasing it crashes in the CTexture destructor
+    }
+    return std::shared_ptr<void>(texture, [](void* value)
     {
         N_47BF30(value);
     });
-    if (!decoded)
-        return {};
-    return result;
 }
 
 std::shared_ptr<void> KvWriteAndLoad(char const* family, std::vector<unsigned char> pixels, unsigned width,
@@ -1000,6 +1006,16 @@ bool KvCentaurBind(void* character)
 
 // Hozen (Esteria id 73): the Centaur's atlas fit on one male body (hozen_fit_map.py)
 std::unordered_map<void*, std::pair<unsigned long long, std::shared_ptr<void>>> kvNative;
+// a replaced body texture may still be referenced by the model for a few frames: keep the last ones alive instead of releasing them at once
+std::vector<std::shared_ptr<void>> kvRetired;
+void KvRetire(std::shared_ptr<void> texture)
+{
+    if (!texture)
+        return;
+    kvRetired.push_back(std::move(texture));
+    if (kvRetired.size() > 48)
+        kvRetired.erase(kvRetired.begin());
+}
 
 bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned markings, bool singleBody)
 {
@@ -1017,6 +1033,16 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
     auto fields = HighmountainFields(character);
     unsigned skinValue = fields[0] % skinCount;
     char const* skinPath = nullptr;
+    unsigned eyeValue = race == 84 ? fields[1] % CreatureAppearance::PackCounts[4][gender & 1][1] : 0;
+    if (race == 84)      // Fungarian: the glowing-eye colour has its own skin variants
+        for (auto const& record : RetailSelections(race))
+            if (record.gender == gender && record.kind == 1 && record.target == 11 && record.choices[0] == (skinValue << 16)
+                && record.choices[1] == ((eyeValue << 16) | 1u) && record.choices[2] == 0xffffffffu)
+            {
+                skinPath = record.path;
+                break;
+            }
+    if (!skinPath)
     for (auto const& record : RetailSelections(race))
         if (record.gender == gender && record.kind == 1 && record.target == 11
             && record.choices[0] == (skinValue << 16) && record.choices[1] == 0xffffffffu && record.choices[2] == 0xffffffffu)
@@ -1024,12 +1050,32 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
             skinPath = record.path;
             break;
         }
+    // pack races: the body skin with its painted-on gear inpainted, laid under the armor (copied: the skin cache may be cleared by the next lookup)
+    std::vector<unsigned char> nakedPixels;
+    unsigned nakedWidth = 0, nakedHeight = 0;
+    if (skinPath && race >= 79 && race <= 91)
+        if (auto const* naked = KvSkin((std::string("naked\\") + skinPath).c_str()))
+        {
+            nakedPixels = naked->rgba;
+            nakedWidth = naked->width;
+            nakedHeight = naked->height;
+        }
     auto const* skin = skinPath ? KvSkin(skinPath) : nullptr;
+    KvBodySkin skinCopy;      // the skin cache clears itself after 12 entries (every refresh below looks up more): never keep a pointer into it
+    if (skin)
+    {
+        skinCopy = *skin;
+        skin = &skinCopy;
+    }
     auto const* map = KvMap(race, gender);
     unsigned marking = markings ? fields[1] % markings : 0;
     if (!worn && !marking)
     {
-        kvNative.erase(character);
+        if (auto old = kvNative.find(character); old != kvNative.end())
+        {
+            KvRetire(old->second.second);
+            kvNative.erase(old);
+        }
         if (race == 77 || race == 78)
         {
             // pack races: bind the plain skin / face / hair ourselves on every refresh, the selection pass alone left them unbound in the world
@@ -1064,11 +1110,21 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
         }
         return true; // the plain colour skin the selection bound stays
     }
+    if (!map && race >= 79 && race <= 91)
+        return true;      // pack race whose own texture is its armor: no armor is baked
     if (!skin || !map || skin->width != map->width || skin->height != map->height)
     {
         KvLog("native: skin %s %s, map %s", skinPath ? skinPath : "(none)", skin ? "ok" : "not in bank", map ? "ok" : "missing");
         return false;
     }
+    if (skin->rgba.size() != static_cast<std::size_t>(map->width) * map->height * 4 || map->pixels.size() != static_cast<std::size_t>(map->width) * map->height)
+    {
+        KvLog("native: size mismatch skin %zu map %zu (%ux%u)", skin->rgba.size(), map->pixels.size(), map->width, map->height);
+        return false;
+    }
+    if (nakedWidth != map->width || nakedHeight != map->height || nakedPixels.size() != skin->rgba.size())
+        nakedPixels.clear();
+    KvLog("native: race %u sex %u skin %s %ux%u naked %s", race, gender, skinPath, map->width, map->height, nakedPixels.empty() ? "no" : "yes");
     unsigned dirty = CC<unsigned>(character, 0x0C);
     CC<unsigned>(character, 0x0C) = dirty | 0xFF;
     N_4ED6D0(character, 1);
@@ -1153,6 +1209,24 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
             unsigned sample = map->pixels[i];
             if (sample == 0xffffffffu)
                 continue;
+            if (map->fine)
+            {
+                float fx = (sample & 65535u) / 128.0f - 0.5f, fy = (sample >> 16) / 128.0f - 0.5f;
+                int x0 = static_cast<int>(std::floor(fx)), y0 = static_cast<int>(std::floor(fy));
+                float tx = fx - x0, ty = fy - y0;
+                for (int k = 0; k < 4; ++k)
+                {
+                    int x = (std::clamp)(x0 + (k & 1), 0, 511), y = (std::clamp)(y0 + (k >> 1), 0, 511);
+                    float weight = ((k & 1) ? tx : 1 - tx) * ((k >> 1) ? ty : 1 - ty);
+                    auto const* texel = atlas.data() + 4 * (y * 512 + x);
+                    float a = texel[3] / 255.0f;
+                    layer[4 * i] += texel[0] * a * weight;
+                    layer[4 * i + 1] += texel[1] * a * weight;
+                    layer[4 * i + 2] += texel[2] * a * weight;
+                    layer[4 * i + 3] += a * weight;
+                }
+                continue;
+            }
             auto const* pixel = atlas.data() + 4 * ((sample >> 16) * 512 + (sample & 65535u));
             if (!pixel[3])
                 continue;
@@ -1162,7 +1236,7 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
             layer[4 * i + 2] = pixel[2] * a;
             layer[4 * i + 3] = a;
         }
-        int const radius = 2;
+        int const radius = map->fine ? (map->width >= 1024 ? 1 : 0) : (race >= 79 && race <= 91 && map->width <= 512) ? 1 : 2;      // the pack skins are small: a 5x5 blur only smears the armor
         for (int pass = 0; pass < 2; ++pass)
         {
             for (std::size_t y = 0; y < h; ++y)
@@ -1209,6 +1283,8 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
             for (int c = 0; c < 3; ++c)
                 pixel[c] = static_cast<unsigned char>((std::min)(255.0f, layer[4 * i + c] / a + 0.5f));
             pixel[3] = static_cast<unsigned char>((std::min)(255.0f, a * 255.0f + 0.5f));
+            if (!nakedPixels.empty() && a > 0.5f)
+                std::memcpy(body.data() + 4 * i, nakedPixels.data() + 4 * i, 4);
             KvOver(body.data() + 4 * i, pixel);
         }
     }
@@ -1232,6 +1308,8 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
         return false;
     }
     N_825260(instance, 11, texture.get());
+    if (auto old = kvNative.find(character); old != kvNative.end())
+        KvRetire(old->second.second);
     kvNative[character] = {hash, texture};
     KvLog("native: race %u outfit bound on skin %u sex %u", race, skinValue, gender);
     return true;
@@ -1246,3 +1324,10 @@ bool KvMantidBind(void* character) { return KvNativeBind(character, 75, 8, 0, tr
 bool KvEtherealBind(void* character) { return KvNativeBind(character, 76, 8, 0, true); }
 bool KvBansheeBind(void* character) { return KvNativeBind(character, 77, 6, 0, true); }      
 bool KvFacelessBind(void* character) { return KvNativeBind(character, 78, 9, 0, true); }
+bool KvPackBind(void* character)
+{
+    unsigned race = RaceOf(CC<unsigned>(character, 0x18));
+    if (race < 79 || race > 91)
+        return true;
+    return KvNativeBind(character, race, race == 79 ? 8u : CreatureAppearance::PackSkins[race - 80], 0, race == 84 || race == 85 || race == 91);
+}

@@ -392,6 +392,8 @@ class CM2Model {
     int32_t SetVertices(int32_t optimized, M2SkinSection* section, int32_t texCoord);
     int32_t SetVerticesMultiSample(int32_t optimized, M2SkinSection* section);
     void UnlinkFromCallbackList();
+
+    bool m_ghostFx = false; // CoA: translucent spectral look (Elune's Chosen)
 };
 
 class M2SequenceFallback {
