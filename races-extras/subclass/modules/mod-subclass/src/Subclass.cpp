@@ -6,6 +6,9 @@
 #include "AllSpellScript.h"
 #include "AscensionAppearanceChanges.h"
 #include "AscensionCoATalentData.h"
+#include "AscensionCoATalentState.h"
+#include "AscensionSpellProgressionData.h"
+#include "AscensionRunemasterEchoes.h"
 #include "AscensionCustomClassData.h"
 #include "AscensionCustomResourceData.h"
 #include "AscensionLiveBaselineData.h"
@@ -14,6 +17,7 @@
 #include "DBCStores.h"
 #include "AscensionSpecialization.h"
 #include "AscensionTaughtAbilityData.h"
+#include "AscensionTalentReplacementData.h"
 #include "Chat.h"
 #include "ClientDBC.h"
 #include "CoASpellbook.h"
@@ -55,10 +59,13 @@ using namespace Acore::ChatCommands;
 
 ChatCommandTable const& SubclassTwinCommandTable();
 bool HandleSubclassBrain(ChatHandler* handler);
+bool HandleSubclassAudit(ChatHandler* handler);
 bool HandleSubclassGun(ChatHandler* handler);
 bool HandleSubclassBots(ChatHandler* handler, Optional<std::string> mode);
 
 void HandleTwinLook(Player* player, std::vector<std::string_view> const& words);
+void HandleTwinFeatures(Player* player, std::vector<std::string_view> const& words);
+std::string TwinFeatures(Player const* player);
 void AimAtTarget(Player* player);
 void DressLeftHead(Player* player, std::string_view choice);
 void LearnStandardMainWeaponSkills(Player* player);
@@ -74,6 +81,7 @@ bool SubclassResting(Player const* player);
 bool LonelyTwin(Player const* player);
 bool OrderBrother(Player* player, uint32 spellId, Unit* target);
 void PressForOtherHalf(Player* player, uint32 spellId);
+void SendTwinGearToCharacterSelect(WorldSession* session);
 std::vector<uint32> KnownBorrowedActives(Player const* player);
 bool OffersStandardMains();
 bool SubclassRaceEnabled(uint8 race);
@@ -364,6 +372,7 @@ std::atomic<bool> thinHumanEnabled{ true };
 std::atomic<bool> twoHeadedOgreEnabled{ true };
 std::atomic<bool> forceBots{ false };
 std::atomic<bool> travelFormsWholeBody{ true };
+std::atomic<uint32> brotherMirrorDisplay{ 977602 };
 std::vector<Subclass::Pair> pairs;
 std::unordered_map<uint32, Record>& records = *new std::unordered_map<uint32, Record>;
 
@@ -1280,6 +1289,8 @@ void LearnFromAddon(Player* player, uint32 entryId, uint32 rank)
     SendSubclassState(player);
 }
 
+std::string PetOwnerState(Player const* player);
+
 void HandleAddonMessage(Player* player, std::string_view message)
 {
     if (message == "SYNC")
@@ -1289,6 +1300,7 @@ void HandleAddonMessage(Player* player, std::string_view message)
         SendAddon(player, std::string("RACE ") + Subclass::RaceToken(player->getRace()));
         SendSubclassState(player);
         SendAddon(player, TwinState(player));
+        SendAddon(player, TwinFeatures(player));
         SendAddon(player, RelicState(player));
         SendAddon(player, CyclopsModelState(player));
         return;
@@ -1297,6 +1309,11 @@ void HandleAddonMessage(Player* player, std::string_view message)
     {
         if (OffersQuest(player))
             ShowPrompt(player, player->GetGUID());
+        return;
+    }
+    if (message == "PETOWNER")
+    {
+        SendAddon(player, PetOwnerState(player));
         return;
     }
     if (message == "AIM")
@@ -1343,6 +1360,12 @@ void HandleAddonMessage(Player* player, std::string_view message)
         }
         if (changes.empty() || !ApplyAscensionAppearanceChanges(player, changes))
             ChatHandler(player->GetSession()).SendSysMessage("Your wardrobe could not apply that look.");
+        return;
+    }
+    if (!words.empty() && words[0] == "TWINFEATURES")
+    {
+        HandleTwinFeatures(player, words);
+        SendAddon(player, TwinFeatures(player));
         return;
     }
     if (!words.empty() && words[0] == "TWINLOOK")
@@ -1401,13 +1424,15 @@ std::vector<uint32> TaughtBy(Trainer::Trainer const* trainer)
     return taught;
 }
 
+void DropClassSkill(Player* player, uint16 skillId);
+
 uint32 ForgetStandardKit(Player* player, uint8 playableClass)
 {
     std::vector<uint32> const own = TaughtBy(ClassTrainerOf(player->getClass()));
     std::vector<uint16> const ownLines = ClassSkillLinesOf(own);
     for (uint16 skill : ClassSkillLinesOf(TaughtBy(ClassTrainerOf(playableClass))))
         if (player->HasSkill(skill) && std::find(ownLines.begin(), ownLines.end(), skill) == ownLines.end())
-            player->SetSkill(skill, 0, 0, 0);
+            DropClassSkill(player, skill);
     uint32 removed = 0;
     for (uint32 spellId : TaughtBy(ClassTrainerOf(playableClass)))
         if (player->HasSpell(spellId) && std::find(own.begin(), own.end(), spellId) == own.end())
@@ -1454,6 +1479,63 @@ uint32 SyncBorrowedTaughtAbilities(Player* player, uint8 subClass, Subclass::Cho
     return changed;
 }
 
+uint32 BorrowedReplacementFor(Player const* player, Subclass::Choice const& choice,
+    AscensionCompatData::TalentReplacement const& entry)
+{
+    if (entry.RequiresAura || !player->HasSpell(entry.ParentSpellId) ||
+        (entry.SpecId && entry.SpecId != choice.SubSpec && entry.SpecId != choice.SecondSpec))
+        return 0;
+    uint32 replacement = 0;
+    for (AscensionCompatData::ReplacementRank const& rank : entry.Ranks)
+        if (rank.SpellId && rank.RequiredLevel <= player->GetLevel() && sSpellMgr->GetSpellInfo(rank.SpellId))
+            replacement = rank.SpellId;
+    return replacement;
+}
+
+bool IsReplacementParent(uint32 spellId)
+{
+    return std::any_of(AscensionCompatData::TalentReplacements.begin(),
+        AscensionCompatData::TalentReplacements.end(),
+        [spellId](AscensionCompatData::TalentReplacement const& entry) { return entry.ParentSpellId == spellId; });
+}
+
+uint32 SyncBorrowedReplacements(Player* player, uint8 subClass, Subclass::Choice const& choice)
+{
+    uint32 changed = 0;
+    for (AscensionCompatData::TalentReplacement const& entry : AscensionCompatData::TalentReplacements)
+    {
+        if (entry.ClassId != subClass || entry.ClassId == player->getClass())
+            continue;
+        uint32 const replacement = BorrowedReplacementFor(player, choice, entry);
+        for (AscensionCompatData::ReplacementRank const& rank : entry.Ranks)
+            if (rank.SpellId && rank.SpellId != replacement && player->HasSpell(rank.SpellId) &&
+                !OwnClassGrants(player, rank.SpellId))
+            {
+                player->removeSpell(rank.SpellId, SPEC_MASK_ALL, false);
+                ++changed;
+            }
+        if (replacement && !player->HasSpell(replacement))
+        {
+            player->learnSpellWithoutAnnouncement(replacement);
+            ++changed;
+        }
+        std::vector<uint32> originals;
+        for (auto const& [spellId, known] : player->GetSpellMap())
+            if (known->State != PLAYERSPELL_REMOVED &&
+                sSpellMgr->GetFirstSpellInChain(spellId) == entry.OriginalSpellId)
+                originals.push_back(spellId);
+        for (uint32 original : originals)
+            if (player->GetTemporarySpellReplacement(original) != replacement)
+            {
+                player->SetTemporarySpellReplacement(original, 0);
+                if (replacement)
+                    player->SetTemporarySpellReplacement(original, replacement);
+                ++changed;
+            }
+    }
+    return changed;
+}
+
 uint32 ForgetBorrowedBaseSpells(Player* player, uint8 subClass)
 {
     if (IsStandardCatalogClass(subClass))
@@ -1463,6 +1545,7 @@ uint32 ForgetBorrowedBaseSpells(Player* player, uint8 subClass)
     }
     ForgetCoAWeapons(player, subClass);
     uint32 removed = SyncBorrowedTaughtAbilities(player, subClass, {});
+    removed += SyncBorrowedReplacements(player, subClass, {});
     for (AscensionCompatData::ClassSpell const& spell : AscensionCompatData::ClassSpells)
         if (spell.ClassId == subClass && player->HasSpell(spell.SpellId) && !OwnClassGrants(player, spell.SpellId))
         {
@@ -1475,7 +1558,31 @@ uint32 ForgetBorrowedBaseSpells(Player* player, uint8 subClass)
 bool IsClassSkillLine(uint16 skillId)
 {
     SkillLineEntry const* skillLine = sSkillLineStore.LookupEntry(skillId);
-    return skillLine && skillLine->categoryId == SKILL_CATEGORY_CLASS;
+    return skillLine && skillLine->categoryId == SKILL_CATEGORY_CLASS && skillId != SKILL_MOUNTS &&
+        skillId != SKILL_COMPANIONS;
+}
+
+bool IsCollectedSpell(uint32 spellId)
+{
+    SkillLineAbilityMapBounds const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+    return std::any_of(bounds.first, bounds.second, [](auto const& entry)
+    {
+        return entry.second->SkillLine == SKILL_MOUNTS || entry.second->SkillLine == SKILL_COMPANIONS;
+    });
+}
+
+void DropClassSkill(Player* player, uint16 skillId)
+{
+    std::vector<uint32> kept;
+    for (SkillLineAbilityEntry const* ability : GetSkillLineAbilitiesBySkillLine(skillId))
+    {
+        uint32 const spellId = sSpellMgr->GetFirstSpellInChain(ability->Spell);
+        if (player->HasSpell(spellId) && IsCollectedSpell(spellId))
+            kept.push_back(spellId);
+    }
+    player->SetSkill(skillId, 0, 0, 0);
+    for (uint32 spellId : kept)
+        player->learnSpell(spellId, false);
 }
 
 bool OwnClassSkill(Player const* player, uint16 skillId)
@@ -1492,7 +1599,7 @@ void ForgetBorrowedSkillLines(Player* player, uint8 subClass)
     for (AscensionLiveBaseline::Skill const& skill : AscensionLiveBaseline::Skills)
         if (skill.ClassId == subClass && IsClassSkillLine(skill.SkillId) && player->HasSkill(skill.SkillId) &&
             !OwnClassSkill(player, skill.SkillId))
-            player->SetSkill(skill.SkillId, 0, 0, 0);
+            DropClassSkill(player, skill.SkillId);
 }
 
 void SyncBorrowedSkillLines(Player* player, uint8 subClass)
@@ -1762,6 +1869,21 @@ void KeepStockAutoShot(Player* player)
     player->removeSpell(copy, SPEC_MASK_ALL, false);
 }
 
+uint32 ForgetStrayBorrowedCopies(Player* player)
+{
+    std::vector<uint32> stray;
+    for (auto const& [spellId, known] : player->GetSpellMap())
+        if (known->State != PLAYERSPELL_REMOVED && spellId > BookCopyOffset && BookCopies().contains(spellId) &&
+            !IsBorrowedSpell(player, spellId - BookCopyOffset))
+            stray.push_back(spellId);
+    if (player->HasSpell(StockAutoShot) && player->getClass() != CLASS_HUNTER &&
+        !IsBorrowedSpell(player, StockAutoShot) && !OwnClassGrants(player, StockAutoShot))
+        stray.push_back(StockAutoShot);
+    for (uint32 spellId : stray)
+        player->removeSpell(spellId, SPEC_MASK_ALL, false);
+    return stray.size();
+}
+
 uint32 PreferBorrowedBookCopies(Player* player)
 {
     KeepStockAutoShot(player);
@@ -1781,6 +1903,50 @@ uint32 PreferBorrowedBookCopies(Player* player)
     return stock.size();
 }
 
+uint32 GrantBorrowedAutomaticEntries(Player* player)
+{
+    std::vector<Subclass::Tree> const open = OpenTreesOf(player);
+    if (open.empty() || player->GetLevel() <= 1)
+        return 0;
+    auto const known = [player](std::uint32_t spellId) { return player->HasSpell(spellId); };
+    uint32 learned = 0;
+    for (bool changed = true; changed;)
+    {
+        changed = false;
+        for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+        {
+            if (!InTrees(open, entry) ||
+                !AscensionCoATalentState::CanGrantAutomatic(entry, entry.ClassId, player->GetLevel(), entry.SpecId,
+                    known))
+                continue;
+            uint32 const spellId = entry.SpellIds[entry.SpellCount - 1];
+            if (!spellId || player->HasSpell(spellId) || !sSpellMgr->GetSpellInfo(spellId))
+                continue;
+            player->learnSpell(spellId, false);
+            if (player->HasSpell(spellId))
+            {
+                ++learned;
+                changed = true;
+            }
+        }
+    }
+    return learned;
+}
+
+uint32 GrantBorrowedRanks(Player* player, uint8 subClass)
+{
+    uint32 learned = 0;
+    for (AscensionProgression::Rank const& rank : AscensionProgression::Ranks)
+        if (rank.ClassId == subClass && rank.RequiredLevel <= player->GetLevel() &&
+            player->HasSpell(rank.FirstSpellId) && !player->HasSpell(rank.SpellId) &&
+            !(rank.FirstSpellId == 800792 && player->HasAura(520937)) && sSpellMgr->GetSpellInfo(rank.SpellId))
+        {
+            player->learnSpell(rank.SpellId, false);
+            ++learned;
+        }
+    return learned;
+}
+
 uint32 SyncBorrowedBaseSpells(Player* player)
 {
     if (OpenTreesOf(player).empty())
@@ -1794,7 +1960,7 @@ uint32 SyncBorrowedBaseSpells(Player* player)
         return learned;
     }
     LearnCoAWeapons(player, subClass);
-    uint32 learned = GrantSpecializationPresets(player);
+    uint32 learned = GrantSpecializationPresets(player) + GrantBorrowedAutomaticEntries(player);
     for (AscensionCompatData::ClassSpell const& spell : AscensionCompatData::ClassSpells)
         if (spell.ClassId == subClass && spell.RequiredLevel <= player->GetLevel() &&
             !player->HasSpell(spell.SpellId) && sSpellMgr->GetSpellInfo(spell.SpellId))
@@ -1802,27 +1968,64 @@ uint32 SyncBorrowedBaseSpells(Player* player)
             player->learnSpell(spell.SpellId, false);
             ++learned;
         }
-    return learned + SyncBorrowedTaughtAbilities(player, subClass, ChoiceOf(player));
+    learned += GrantBorrowedRanks(player, subClass);
+    learned += SyncBorrowedTaughtAbilities(player, subClass, ChoiceOf(player));
+    learned += SyncBorrowedReplacements(player, subClass, ChoiceOf(player));
+    if (subClass == CLASS_SPIRIT_MAGE)
+        SynchronizeAscensionRunemasterEchoes(player, ChoiceOf(player).SubSpec);
+    return learned;
+}
+
+bool PetFromSubclass(Player const* player)
+{
+    Pet const* pet = player->GetPet();
+    if (!pet)
+        return false;
+    if (uint32 const createdBy = pet->GetUInt32Value(UNIT_CREATED_BY_SPELL))
+        return IsBorrowedSpell(player, createdBy);
+    return pet->getPetType() == HUNTER_PET && player->getClass() != CLASS_HUNTER;
+}
+
+std::string PetOwnerState(Player const* player)
+{
+    if (!player->GetPet())
+        return "PETOWNER -";
+    return PetFromSubclass(player) ? "PETOWNER brother" : "PETOWNER main";
+}
+
+void DismissPetUnlessKnown(Player* player, bool fromSubclass)
+{
+    Pet* pet = player->GetPet();
+    if (!pet)
+        return;
+    uint32 const createdBy = pet->GetUInt32Value(UNIT_CREATED_BY_SPELL);
+    if (fromSubclass || (createdBy && !player->HasSpell(createdBy)))
+        player->RemovePet(pet, PET_SAVE_NOT_IN_SLOT, false);
 }
 
 uint32 ApplyChoice(Player* player, Subclass::Choice const& wanted)
 {
     Record record = RecordOf(player);
+    bool const subclassChanged = record.Choice.SubClass && record.Choice.SubClass != wanted.SubClass;
+    bool const petFromSubclass = subclassChanged && PetFromSubclass(player);
     uint32 removed = record.Choice == wanted ? 0 : ForgetBorrowedTrees(player, record.Choice);
-    if (record.Choice.SubClass && record.Choice.SubClass != wanted.SubClass)
+    if (subclassChanged)
     {
         removed += ForgetBorrowedBaseSpells(player, record.Choice.SubClass);
         ForgetBorrowedSkillLines(player, record.Choice.SubClass);
+        DismissPetUnlessKnown(player, petFromSubclass);
     }
     record.Choice = wanted;
     StoreRecord(player, record);
     LendRunes(player);
     SyncBorrowedBaseSpells(player);
+    ForgetStrayBorrowedCopies(player);
     RefreshPowerPools(player);
     if (uint32 const active = GetAscensionActiveSpecialization(player))
         SwitchAscensionSpecialization(player, active);
     GrantSpecializationPresets(player);
     SendSubclassState(player);
+    SendAddon(player, PetOwnerState(player));
     return removed;
 }
 
@@ -2084,6 +2287,7 @@ public:
         loaded.TwoHeadedOgre = sConfigMgr->GetOption<bool>("Subclass.TwoHeadedOgre.Enable", true);
         loaded.ForceBots = sConfigMgr->GetOption<bool>("Subclass.Bots.Force", false);
         loaded.TravelFormsWholeBody = sConfigMgr->GetOption<bool>("Subclass.TravelForms.WholeBody", true);
+        loaded.BrotherMirrorDisplay = sConfigMgr->GetOption<uint32>("Subclass.ThinTwins.MirrorDisplay", 977602);
         loaded.HeroRaceSecurity = uint8(std::min<uint32>(
             sConfigMgr->GetOption<uint32>("Subclass.HeroRaces.Security", 0), SEC_CONSOLE));
         loaded.HeroRaceLevel = uint8(std::min<uint32>(
@@ -2092,6 +2296,7 @@ public:
         twoHeadedOgreEnabled = loaded.TwoHeadedOgre;
         forceBots = loaded.ForceBots;
         travelFormsWholeBody = loaded.TravelFormsWholeBody;
+        brotherMirrorDisplay = loaded.BrotherMirrorDisplay;
         std::lock_guard<std::mutex> lock(subclassMutex);
         settings = loaded;
     }
@@ -2612,6 +2817,17 @@ void SyncBorrowedMana(Player* player, uint32 milliseconds)
 
 bool IsBasicAttack(SpellInfo const* info);
 
+uint32 BorrowedReplacementOf(Player const* player, uint32 spellId)
+{
+    Subclass::Choice const choice = ChoiceOf(player);
+    for (AscensionCompatData::TalentReplacement const& entry : AscensionCompatData::TalentReplacements)
+        if (entry.ClassId == choice.SubClass && entry.ClassId != player->getClass() &&
+            sSpellMgr->GetFirstSpellInChain(spellId) == entry.OriginalSpellId)
+            if (uint32 const replacement = BorrowedReplacementFor(player, choice, entry))
+                return replacement;
+    return 0;
+}
+
 bool IsBorrowedSpell(Player const* player, uint32 spellId)
 {
     Record const record = RecordOf(player);
@@ -2653,6 +2869,9 @@ std::vector<uint32> KnownBorrowedActives(Player const* player)
         return actives;
     auto consider = [&](uint32 spellId)
     {
+        if (uint32 const replacement = BorrowedReplacementOf(player, spellId); replacement &&
+            player->HasSpell(replacement))
+            spellId = replacement;
         SpellInfo const* info = spellId ? sSpellMgr->GetSpellInfo(spellId) : nullptr;
         if (!info || info->IsPassive() || !player->HasSpell(spellId) || OwnClassGrants(player, spellId) ||
             IsBasicAttack(info))
@@ -2781,8 +3000,15 @@ public:
         PLAYERHOOK_ON_CREATE, PLAYERHOOK_ON_DELETE, PLAYERHOOK_ON_LEVEL_CHANGED, PLAYERHOOK_ON_GOSSIP_SELECT,
         PLAYERHOOK_ON_QUEST_ABANDON, PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT, PLAYERHOOK_ON_PLAYER_IS_CLASS,
         PLAYERHOOK_ON_PLAYER_HAS_ACTIVE_POWER_TYPE, PLAYERHOOK_ON_LEARN_SPELL, PLAYERHOOK_CAN_EQUIP_ITEM,
-        PLAYERHOOK_ON_LOAD_FOREIGN_SKILL })
+        PLAYERHOOK_ON_LOAD_FOREIGN_SKILL, PLAYERHOOK_ON_FORGOT_SPELL })
     {
+    }
+
+    void OnPlayerForgotSpell(Player* player, uint32 spellId) override
+    {
+        if (IsReplacementParent(spellId))
+            if (Subclass::Choice const choice = ChoiceOf(player); choice.Complete())
+                SyncBorrowedReplacements(player, choice.SubClass, choice);
     }
 
     void OnPlayerLoadForeignSkill(Player const* player, uint16 skill, SkillRaceClassInfoEntry const*& entry) override
@@ -2805,6 +3031,9 @@ public:
         if (IsTaughtAbilityParent(spellId))
             if (Subclass::Choice const choice = ChoiceOf(player); choice.Complete())
                 SyncBorrowedTaughtAbilities(player, choice.SubClass, choice);
+        if (IsReplacementParent(spellId))
+            if (Subclass::Choice const choice = ChoiceOf(player); choice.Complete())
+                SyncBorrowedReplacements(player, choice.SubClass, choice);
         if (player->IsInWorld() && StanceLike(sSpellMgr->GetSpellInfo(spellId)))
             SendAddon(player, BorrowedStances(player));
     }
@@ -2851,6 +3080,7 @@ public:
         LearnStandardMainWeaponSkills(player);
         LendRunes(player);
         SyncBorrowedBaseSpells(player);
+        ForgetStrayBorrowedCopies(player);
         if (SubclassRaceEnabled(player->getRace()))
             DropUnwieldedGearSkills(player);
         RefreshPowerPools(player);
@@ -3175,6 +3405,7 @@ public:
             { "quest", HandleQuest, SEC_GAMEMASTER, Console::No },
             { "insight", HandleInsight, SEC_GAMEMASTER, Console::No },
             { "brain", HandleSubclassBrain, SEC_GAMEMASTER, Console::No },
+            { "audit", HandleSubclassAudit, SEC_GAMEMASTER, Console::Yes },
             { "gun", HandleSubclassGun, SEC_GAMEMASTER, Console::No },
             { "bots", HandleSubclassBots, SEC_GAMEMASTER, Console::Yes },
             { "twin", SubclassTwinCommandTable() },
@@ -3401,6 +3632,11 @@ bool TravelFormsShapeWholeBody()
     return travelFormsWholeBody;
 }
 
+uint32 BrotherMirrorDisplay()
+{
+    return brotherMirrorDisplay;
+}
+
 bool SubclassRaceEnabled(uint8 race)
 {
     if (race == Subclass::ThinHumanRace)
@@ -3576,7 +3812,10 @@ public:
     bool CanPacketReceive(WorldSession* session, WorldPacket const& packet) override
     {
         if (session && packet.GetOpcode() == CMSG_CHAR_ENUM)
+        {
             SendSubclassesToCharacterSelect(session);
+            SendTwinGearToCharacterSelect(session);
+        }
         return !session || (AllowsCreation(session, packet) && KeepsRelicOutOfBank(session, packet));
     }
 };
@@ -3606,6 +3845,12 @@ void AddSC_mod_subclass()
     {
         Subclass::Choice const choice = RecordOf(player).Choice;
         return classId && choice.Complete() && choice.SubClass == classId && !SubclassResting(player);
+    });
+    AddAscensionClassSpecializationProvider([](Player const* player, uint8 classId) -> uint32
+    {
+        Subclass::Choice const choice = RecordOf(player).Choice;
+        return classId && choice.Complete() && choice.SubClass == classId && !SubclassResting(player) ?
+            choice.SubSpec : 0;
     });
     AddAscensionTalentTreeProvider([](Player const* player)
     {

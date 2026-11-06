@@ -1,0 +1,166 @@
+#
+# AzerothCore
+#
+
+.cache
+/conf/*
+!/conf/dist
+/modules/*
+!/modules/mod-coa-change-potions/
+!/modules/mod-coa-mythic-plus/
+!/modules/mod-coa-custom-races/
+!/modules/mod-subclass/
+!/modules/mod-cfbg/
+!/modules/*.md
+!/modules/*.sh
+!/modules/CMakeLists.txt
+!/modules/*.h
+!/modules/*.cmake
+/build*/
+/var/*
+!/var/build/.gitkeep
+!/var/ccache/.gitkeep
+/env/dist/*
+!/env/dist/.gitkeep
+/env/user/*
+/.env*
+/apps/joiner
+/deps/deno
+/data/sql/custom/*
+/src/server/scripts/Custom/*
+!/src/server/scripts/Custom/README.md
+
+/*.override.yml
+/*.override.yaml
+
+!.gitkeep
+
+# default build directory if not specified by CMAKE configuration
+/out/*
+
+#
+#Generic
+#
+
+.directory
+.mailmap
+*.orig
+*.rej
+*~
+.hg/
+*.kdev*
+.DS_Store
+CMakeLists.txt.user
+*.bak
+*.patch
+*.diff
+*.REMOTE.*
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+
+#
+# Agents
+#
+.agents/plans/**
+
+#
+# Claude
+#
+.claude/worktrees
+.claude/settings.local.json
+.claude/plans/**
+.claude/.cc-writes/
+CLAUDE.local.md
+
+#
+# IDE & other software
+#
+/.settings/
+/.externalToolBuilders/*
+# exclude in all levels
+nbproject/
+.sync.ffs_db
+*.kate-swp
+.browse.VC*
+.idea
+cmake-build-*/*
+coverage-report/
+.vs
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+#
+# Eclipse
+#
+*.pydevproject
+.metadata
+.gradle
+tmp/
+*.tmp
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.project
+.cproject
+
+# vcpkg integration
+/vcpkg/
+/vcpkg-ports/
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+
+
+# ==================
+#
+#  CUSTOM
+#
+#  put below your custom ignore rules
+#  for example , if you want to include a
+#  module directly in repositoryyou can do:
+#
+#  !modules/yourmodule
+#
+# ==================
+!/modules/mod-ascension/
+!/modules/mod-book-of-artisans/
+!/modules/mod-coa-challenges/
+!/modules/mod-worldforged-pickups/
+!/modules/mod-teleport-actionbar/
+!/modules/mod-manastorm-endless/
+!/modules/mod-portablemail/
+!/modules/mod-craftsmans-codex/
+!/modules/mod-spellbook/
+!/modules/mod-destiny-weaver/
+!/modules/mod-treasure-keeper/
+!/modules/mod-coa-titan-scrolls/
+!/modules/mod-path-to-ascension/
+!/modules/mod-war-games/
+!/modules/mod-hero-call-board/
+!/modules/mod-item-recovery/
+!/modules/mod-battlehorn/
+!/modules/mod-scrolls-of-retreat/
+!/modules/mod-coa-prestige/
+!/modules/mod-coa-lottery/
+!/modules/mod-woodworking/
+!/modules/mod-portable-sawmill/
+!/modules/mod-npc-enchanter/
+!/modules/mod-ah-bot-plus/
+!/modules/mod-coa-legendary-items/
+!/modules/mod-ethereal-bazaar/
+
+# Local Manastorm test runtime and duplicate client staging copies
+/ManastormTestRepack/
+/modules/mod-manastorm-endless/client/Corrected Addons Needs to get added to patch b/
+
+# Unrelated legacy client override; not part of the four-file Manastorm package
+/modules/mod-manastorm-endless/client/overlay/Interface/FrameXML/StaticPopup.lua
+!/modules/mod-TimeIsTime/

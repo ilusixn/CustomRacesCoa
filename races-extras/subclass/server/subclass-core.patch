@@ -1,5 +1,150 @@
+diff --git a/.github/workflows/subclass-test-build.yml b/.github/workflows/subclass-test-build.yml
+new file mode 100644
+index 0000000000..0736086586
+--- /dev/null
++++ b/.github/workflows/subclass-test-build.yml
+@@ -0,0 +1,126 @@
++name: subclass-test-build
++
++on:
++  workflow_dispatch:
++
++jobs:
++  build:
++    runs-on: windows-latest
++    timeout-minutes: 330
++    env:
++      BOOST_ROOT: C:\local\boost_1_87_0
++    steps:
++      - uses: actions/checkout@v4
++      - name: Cache Boost and MySQL
++        uses: actions/cache@v4
++        continue-on-error: true
++        with:
++          path: |
++            C:\local\boost_1_87_0
++            C:\tools\mysql\current
++          key: winbuild-deps:boost-1.87.0:mysql-8.4.9
++      - name: Install Boost and the MySQL client
++        shell: pwsh
++        run: |
++          $ErrorActionPreference = 'Stop'
++          if (-not (Test-Path 'C:\local\boost_1_87_0\boost')) {
++            $boostExe = Join-Path $env:RUNNER_TEMP 'boost.exe'
++            $boostUrl = 'https://downloads.sourceforge.net/project/boost/boost-binaries/1.87.0/boost_1_87_0-msvc-14.3-64.exe'
++            for ($attempt = 1; $attempt -le 3; $attempt++) {
++              try {
++                Invoke-WebRequest -Uri $boostUrl -OutFile $boostExe -UserAgent 'azerothcore-ci' `
++                  -ConnectionTimeoutSeconds 60 -OperationTimeoutSeconds 60
++                if ((Get-Item $boostExe).Length / 1MB -lt 50) { throw 'Boost download is too small.' }
++                break
++              } catch {
++                if ($attempt -eq 3) { throw }
++                Start-Sleep -Seconds 15
++              }
++            }
++            $proc = Start-Process -FilePath $boostExe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',
++              '/DIR=C:\local\boost_1_87_0' -WindowStyle Hidden -Wait -PassThru
++            if ($proc.ExitCode -ne 0) { throw "Boost installer failed with $($proc.ExitCode)." }
++          }
++          if (-not (Test-Path 'C:\tools\mysql\current\lib\mysqlclient.lib')) {
++            $mysqlZip = Join-Path $env:RUNNER_TEMP 'mysql.zip'
++            Invoke-WebRequest -Uri 'https://cdn.mysql.com/archives/mysql-8.4/mysql-8.4.9-winx64.zip' `
++              -OutFile $mysqlZip -UserAgent 'Mozilla/5.0'
++            New-Item -ItemType Directory -Force -Path 'C:\tools\mysql' | Out-Null
++            Expand-Archive -Path $mysqlZip -DestinationPath 'C:\tools\mysql' -Force
++            Rename-Item 'C:\tools\mysql\mysql-8.4.9-winx64' 'C:\tools\mysql\current'
++          }
++          $opensslRoot = @($env:OPENSSL_ROOT_DIR, 'C:\Program Files\OpenSSL', 'C:\Program Files\OpenSSL-Win64') |
++            Where-Object { $_ -and (Test-Path (Join-Path $_ 'include\openssl\opensslv.h')) } | Select-Object -First 1
++          if (-not $opensslRoot) { throw 'No OpenSSL install found.' }
++          "OPENSSL_ROOT_DIR=$opensslRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
++      - name: Fetch mod-coa-playerbots
++        uses: actions/checkout@v4
++        with:
++          repository: Corfirean/mod-coa-playerbots
++          ref: c76847a19aaf0b709a6a3dcc785c09ada0aa8fee
++          path: _bots
++      - name: Fetch mod-coa-content-scaling
++        uses: actions/checkout@v4
++        with:
++          repository: Corfirean/mod-coa-content-scaling
++          ref: d75f141fb4998f7c486bba737fe045d46847cd37
++          path: _scaling
++      - name: Fetch SQUID Playerbots
++        uses: actions/checkout@v4
++        with:
++          repository: Zyth45/mod-playerbots
++          ref: 662213082340c862452042473f13b34921373fe3
++          path: modules/mod-playerbots
++      - name: Place the modules
++        shell: pwsh
++        run: |
++          $dst = 'modules/mod-coa-playerbots'
++          New-Item -ItemType Directory -Force -Path "$dst/conf" | Out-Null
++          Copy-Item -Recurse -Force '_bots/module/src' "$dst/src"
++          Copy-Item -Force '_bots/module/conf/*' "$dst/conf/"
++          robocopy '_scaling' 'modules\mod-coa-content-scaling' /E /XD .git artifacts tools /NFL /NDL /NJH /NJS /NP | Out-Null
++          if ($LASTEXITCODE -ge 8) { throw "copying mod-coa-content-scaling failed ($LASTEXITCODE)" }
++          foreach ($pack in 'mod-coa-tbc-content', 'mod-coa-wotlk-content') {
++            robocopy "_scaling\content-packs\$pack" "modules\$pack" /E /NFL /NDL /NJH /NJS /NP | Out-Null
++            if ($LASTEXITCODE -ge 8) { throw "copying $pack failed ($LASTEXITCODE)" }
++          }
++          $global:LASTEXITCODE = 0
++      - name: MSVC environment
++        uses: ilammy/msvc-dev-cmd@v1
++        with:
++          arch: x64
++      - name: Configure
++        shell: pwsh
++        run: |
++          cmake -S . -B build -G Ninja `
++            -DCMAKE_BUILD_TYPE=RelWithDebInfo `
++            -DCMAKE_JOB_POOLS=link_pool=1 -DCMAKE_JOB_POOL_LINK=link_pool `
++            -DAPPS_BUILD=all -DTOOLS_BUILD=none `
++            -DSCRIPTS=static -DMODULES=static `
++            -DUSE_COREPCH=0 -DUSE_SCRIPTPCH=0 `
++            -DBOOST_ROOT=$env:BOOST_ROOT `
++            -DMYSQL_INCLUDE_DIR=C:/tools/mysql/current/include `
++            -DMYSQL_LIBRARY=C:/tools/mysql/current/lib/mysqlclient.lib `
++            -DOPENSSL_ROOT_DIR="$env:OPENSSL_ROOT_DIR"
++      - name: Build worldserver
++        timeout-minutes: 300
++        shell: pwsh
++        run: cmake --build build --target worldserver
++      - name: Collect the server files
++        shell: pwsh
++        run: |
++          $bin = (Get-ChildItem build -Recurse -Filter worldserver.exe | Select-Object -First 1).DirectoryName
++          & "$bin\worldserver.exe" --version
++          $out = 'subclass-test'
++          New-Item -ItemType Directory -Force -Path "$out/sql/world", "$out/sql/characters" | Out-Null
++          Copy-Item "$bin\worldserver.exe", "$bin\*.dll" $out
++          Copy-Item 'modules/mod-subclass/conf/mod_subclass.conf.dist' "$out/mod_subclass.conf"
++          Copy-Item 'modules/mod-subclass/data/sql/db-world/*.sql' "$out/sql/world/"
++          Copy-Item 'modules/mod-subclass/data/sql/db-characters/*.sql' "$out/sql/characters/"
++          Copy-Item 'modules/mod-subclass/README.md' $out
++          git rev-parse HEAD | Out-File "$out/core-commit.txt" -Encoding utf8
++      - uses: actions/upload-artifact@v4
++        with:
++          name: subclass-test-worldserver
++          path: subclass-test/
++          retention-days: 30
+diff --git a/.gitignore b/.gitignore
+index 270f260e6e..775be89b26 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -9,7 +9,7 @@
+ !/modules/mod-coa-change-potions/
+ !/modules/mod-coa-mythic-plus/
+ !/modules/mod-coa-custom-races/
+-
++!/modules/mod-subclass/
+ !/modules/mod-cfbg/
+ !/modules/*.md
+ !/modules/*.sh
 diff --git a/apps/coa-tests/talent_state/run.py b/apps/coa-tests/talent_state/run.py
-index 1a49d3cf..07afd01e 100644
+index 1a49d3cf71..07afd01e25 100644
 --- a/apps/coa-tests/talent_state/run.py
 +++ b/apps/coa-tests/talent_state/run.py
 @@ -23,11 +23,21 @@ from client_data import dbc_dir  # noqa: E402
@@ -211,7 +356,7 @@ index 1a49d3cf..07afd01e 100644
  }
  """
 diff --git a/apps/coa-tests/warcraft_reborn/run.py b/apps/coa-tests/warcraft_reborn/run.py
-index 2692a911..d7cac36d 100644
+index 2692a9119f..d7cac36d4a 100644
 --- a/apps/coa-tests/warcraft_reborn/run.py
 +++ b/apps/coa-tests/warcraft_reborn/run.py
 @@ -364,6 +364,43 @@ int main(int, char** argv)
@@ -260,7 +405,7 @@ index 2692a911..d7cac36d 100644
  """
 diff --git a/apps/coa-tests/witch_hunter_vault/run.py b/apps/coa-tests/witch_hunter_vault/run.py
 new file mode 100644
-index 00000000..2f7024fb
+index 0000000000..2f7024fbde
 --- /dev/null
 +++ b/apps/coa-tests/witch_hunter_vault/run.py
 @@ -0,0 +1,60 @@
@@ -326,7 +471,7 @@ index 00000000..2f7024fb
 +    main()
 diff --git a/data/sql/updates/pending_db_characters/rev_20261101_01_coa_custom_195_looks.sql b/data/sql/updates/pending_db_characters/rev_20261101_01_coa_custom_195_looks.sql
 new file mode 100644
-index 00000000..df50d219
+index 0000000000..df50d21946
 --- /dev/null
 +++ b/data/sql/updates/pending_db_characters/rev_20261101_01_coa_custom_195_looks.sql
 @@ -0,0 +1,7 @@
@@ -339,7 +484,7 @@ index 00000000..df50d219
 +INSERT IGNORE INTO `character_spell` (`guid`, `spell`, `specMask`) SELECT `guid`, 110690, 255 FROM `characters` WHERE `race` = 13;
 diff --git a/data/sql/updates/pending_db_world/rev_20261101_01_coa_custom_195_racials.sql b/data/sql/updates/pending_db_world/rev_20261101_01_coa_custom_195_racials.sql
 new file mode 100644
-index 00000000..11c54160
+index 0000000000..11c54160a1
 --- /dev/null
 +++ b/data/sql/updates/pending_db_world/rev_20261101_01_coa_custom_195_racials.sql
 @@ -0,0 +1,13 @@
@@ -358,7 +503,7 @@ index 00000000..11c54160
 +UPDATE spell_dbc SET Name_Lang_enUS = 'Skinner' WHERE ID = 110923;
 diff --git a/src/server/coa/AscensionAppearanceChanges.h b/src/server/coa/AscensionAppearanceChanges.h
 new file mode 100644
-index 00000000..33a22660
+index 0000000000..33a22660f3
 --- /dev/null
 +++ b/src/server/coa/AscensionAppearanceChanges.h
 @@ -0,0 +1,16 @@
@@ -379,7 +524,7 @@ index 00000000..33a22660
 +
 +#endif
 diff --git a/src/server/coa/AscensionBarbarian.cpp b/src/server/coa/AscensionBarbarian.cpp
-index 248d6a08..6241100c 100644
+index 248d6a0863..6241100cbe 100644
 --- a/src/server/coa/AscensionBarbarian.cpp
 +++ b/src/server/coa/AscensionBarbarian.cpp
 @@ -2,6 +2,7 @@
@@ -418,7 +563,7 @@ index 248d6a08..6241100c 100644
  
      SpellInfo const* info = spell->GetSpellInfo();
 diff --git a/src/server/coa/AscensionBarbarianCompletion.cpp b/src/server/coa/AscensionBarbarianCompletion.cpp
-index 8a5b95fd..795b5e9d 100644
+index 8a5b95fd2a..795b5e9d1d 100644
 --- a/src/server/coa/AscensionBarbarianCompletion.cpp
 +++ b/src/server/coa/AscensionBarbarianCompletion.cpp
 @@ -1,6 +1,7 @@
@@ -457,7 +602,7 @@ index 8a5b95fd..795b5e9d 100644
          if (!index && Family(info, 1, 262144) && player->HasAura(570242))
              value += player->GetStat(STAT_AGILITY) * 0.2f;
 diff --git a/src/server/coa/AscensionBarbarianEvents.cpp b/src/server/coa/AscensionBarbarianEvents.cpp
-index 808e125a..111b6f1c 100644
+index 808e125afa..111b6f1ca4 100644
 --- a/src/server/coa/AscensionBarbarianEvents.cpp
 +++ b/src/server/coa/AscensionBarbarianEvents.cpp
 @@ -1,6 +1,7 @@
@@ -478,7 +623,7 @@ index 808e125a..111b6f1c 100644
          for (uint32 rank : {804765u, 807946u, 807947u, 807948u})
              if (player->HasSpell(rank))
 diff --git a/src/server/coa/AscensionBarbarianScaling.cpp b/src/server/coa/AscensionBarbarianScaling.cpp
-index 6ddd49ee..c7e5b935 100644
+index 6ddd49eea2..c7e5b935e8 100644
 --- a/src/server/coa/AscensionBarbarianScaling.cpp
 +++ b/src/server/coa/AscensionBarbarianScaling.cpp
 @@ -1,6 +1,7 @@
@@ -499,7 +644,7 @@ index 6ddd49ee..c7e5b935 100644
  
      SpellEffectInfo const& effect = info->Effects[EFFECT_0];
 diff --git a/src/server/coa/AscensionBloodmageBloodShards.cpp b/src/server/coa/AscensionBloodmageBloodShards.cpp
-index a97b330e..4aa99645 100644
+index a97b330eb7..4aa996452e 100644
 --- a/src/server/coa/AscensionBloodmageBloodShards.cpp
 +++ b/src/server/coa/AscensionBloodmageBloodShards.cpp
 @@ -1,6 +1,7 @@
@@ -522,7 +667,7 @@ index a97b330e..4aa99645 100644
  
  uint8 Shards(Player* player)
 diff --git a/src/server/coa/AscensionBloodmageHemostasis.cpp b/src/server/coa/AscensionBloodmageHemostasis.cpp
-index 6130c614..e78614d6 100644
+index 6130c6142b..e78614d6e8 100644
 --- a/src/server/coa/AscensionBloodmageHemostasis.cpp
 +++ b/src/server/coa/AscensionBloodmageHemostasis.cpp
 @@ -1,4 +1,5 @@
@@ -541,7 +686,7 @@ index 6130c614..e78614d6 100644
  
  Unit* HemostasisTarget(Player* player)
 diff --git a/src/server/coa/AscensionBloodmageSecondary.cpp b/src/server/coa/AscensionBloodmageSecondary.cpp
-index d9f72760..3ee02177 100644
+index d9f727603c..3ee02177a2 100644
 --- a/src/server/coa/AscensionBloodmageSecondary.cpp
 +++ b/src/server/coa/AscensionBloodmageSecondary.cpp
 @@ -1,5 +1,6 @@
@@ -627,7 +772,7 @@ index d9f72760..3ee02177 100644
      }
  
 diff --git a/src/server/coa/AscensionBloodmageTalents.cpp b/src/server/coa/AscensionBloodmageTalents.cpp
-index 2dd0e8e8..a124d854 100644
+index 2dd0e8e830..a124d8549b 100644
 --- a/src/server/coa/AscensionBloodmageTalents.cpp
 +++ b/src/server/coa/AscensionBloodmageTalents.cpp
 @@ -2,6 +2,7 @@
@@ -757,7 +902,7 @@ index 2dd0e8e8..a124d854 100644
              player->GetTemporarySpellReplacement(SPELL_ACCURSED_FORM) != SPELL_BLOODGALE)
              return;
 diff --git a/src/server/coa/AscensionBloodmageVitality.cpp b/src/server/coa/AscensionBloodmageVitality.cpp
-index 2eb8510f..56173cbc 100644
+index 2eb8510f18..56173cbc0f 100644
 --- a/src/server/coa/AscensionBloodmageVitality.cpp
 +++ b/src/server/coa/AscensionBloodmageVitality.cpp
 @@ -1,5 +1,6 @@
@@ -805,7 +950,7 @@ index 2eb8510f..56173cbc 100644
      }
  
 diff --git a/src/server/coa/AscensionChronomancerMovement.cpp b/src/server/coa/AscensionChronomancerMovement.cpp
-index 2b291ac8..f9635cb6 100644
+index 2b291ac8a5..f9635cb6b2 100644
 --- a/src/server/coa/AscensionChronomancerMovement.cpp
 +++ b/src/server/coa/AscensionChronomancerMovement.cpp
 @@ -1,4 +1,5 @@
@@ -834,7 +979,7 @@ index 2b291ac8..f9635cb6 100644
      }
  
 diff --git a/src/server/coa/AscensionChronomancerRipple.cpp b/src/server/coa/AscensionChronomancerRipple.cpp
-index 85573858..0d6740f5 100644
+index 8557385887..0d6740f591 100644
 --- a/src/server/coa/AscensionChronomancerRipple.cpp
 +++ b/src/server/coa/AscensionChronomancerRipple.cpp
 @@ -1,4 +1,5 @@
@@ -864,7 +1009,7 @@ index 85573858..0d6740f5 100644
              caster->GetMap() == target->GetMap() && caster->InSamePhase(target) && caster->IsValidAttackTarget(target))
              caster->CastSpell(target, EndOfTimeRelease, true);
 diff --git a/src/server/coa/AscensionChronomancerSecondary.cpp b/src/server/coa/AscensionChronomancerSecondary.cpp
-index a2e06fbf..4a62f26d 100644
+index a2e06fbf2f..4a62f26db7 100644
 --- a/src/server/coa/AscensionChronomancerSecondary.cpp
 +++ b/src/server/coa/AscensionChronomancerSecondary.cpp
 @@ -1,4 +1,5 @@
@@ -892,7 +1037,7 @@ index a2e06fbf..4a62f26d 100644
  
      void Sync(AuraEffect const*, AuraEffectHandleModes)
 diff --git a/src/server/coa/AscensionChronomancerTalents.cpp b/src/server/coa/AscensionChronomancerTalents.cpp
-index aa39b4cc..0abc3df5 100644
+index aa39b4ccc3..0abc3df513 100644
 --- a/src/server/coa/AscensionChronomancerTalents.cpp
 +++ b/src/server/coa/AscensionChronomancerTalents.cpp
 @@ -1,5 +1,6 @@
@@ -931,7 +1076,7 @@ index aa39b4cc..0abc3df5 100644
              return;
          if (player->HasAura(SPELL_SHIMMERING_SHARD))
 diff --git a/src/server/coa/AscensionChronomancerTime.cpp b/src/server/coa/AscensionChronomancerTime.cpp
-index 1a074057..235e1759 100644
+index 1a074057ca..235e175965 100644
 --- a/src/server/coa/AscensionChronomancerTime.cpp
 +++ b/src/server/coa/AscensionChronomancerTime.cpp
 @@ -1,4 +1,5 @@
@@ -950,7 +1095,7 @@ index 1a074057..235e1759 100644
  
  bool IsRank(uint32 spell, uint32 root)
 diff --git a/src/server/coa/AscensionClassMechanics.cpp b/src/server/coa/AscensionClassMechanics.cpp
-index c800ca26..4a2ddada 100644
+index c800ca266a..4fd786eb0f 100644
 --- a/src/server/coa/AscensionClassMechanics.cpp
 +++ b/src/server/coa/AscensionClassMechanics.cpp
 @@ -7,6 +7,7 @@
@@ -979,6 +1124,15 @@ index c800ca26..4a2ddada 100644
          return;
  
      AuraEffect* penalty = player->GetAuraEffect(SPELL_RANGER_ELUDE_SPEED_PENALTY, EFFECT_2);
+@@ -1219,7 +1220,7 @@ void ApplyAscensionClassMechanics(SpellInfo* spellInfo)
+ 
+ void SynchronizeAscensionClassMechanics(Player* player)
+ {
+-    if (!player || !IsAscensionClass(player->getClass()))
++    if (!player || (!IsAscensionClass(player->getClass()) && !UsesAnyAscensionClassMechanics(player)))
+         return;
+ 
+     std::vector<uint32> obsolete;
 @@ -1232,7 +1233,7 @@ void SynchronizeAscensionClassMechanics(Player* player)
      for (uint32 spellId : obsolete)
          player->removeSpell(spellId, SPEC_MASK_ALL, false);
@@ -1333,7 +1487,7 @@ index c800ca26..4a2ddada 100644
          RefreshRangerEludePenalty(player);
  }
 diff --git a/src/server/coa/AscensionClassMechanics12To17.cpp b/src/server/coa/AscensionClassMechanics12To17.cpp
-index cc715b9d..aa227bc7 100644
+index cc715b9d0d..aa227bc7f6 100644
 --- a/src/server/coa/AscensionClassMechanics12To17.cpp
 +++ b/src/server/coa/AscensionClassMechanics12To17.cpp
 @@ -1,6 +1,7 @@
@@ -1493,7 +1647,7 @@ index cc715b9d..aa227bc7 100644
      }
  }
 diff --git a/src/server/coa/AscensionClassMechanics19To25.cpp b/src/server/coa/AscensionClassMechanics19To25.cpp
-index b1da42be..990c63d1 100644
+index b1da42beee..990c63d1d9 100644
 --- a/src/server/coa/AscensionClassMechanics19To25.cpp
 +++ b/src/server/coa/AscensionClassMechanics19To25.cpp
 @@ -1,6 +1,7 @@
@@ -1532,7 +1686,7 @@ index b1da42be..990c63d1 100644
          spell->GetSpellInfo()->SpellFamilyName != std::uint32_t(CLASS_MONK) + 6 ||
          target == player || missInfo != SPELL_MISS_NONE || !damage ||
 diff --git a/src/server/coa/AscensionClassMechanics26To32.cpp b/src/server/coa/AscensionClassMechanics26To32.cpp
-index f10e5aea..4ef219f8 100644
+index f10e5aea97..4ef219f8af 100644
 --- a/src/server/coa/AscensionClassMechanics26To32.cpp
 +++ b/src/server/coa/AscensionClassMechanics26To32.cpp
 @@ -2,6 +2,7 @@
@@ -1641,7 +1795,7 @@ index f10e5aea..4ef219f8 100644
          return;
  
 diff --git a/src/server/coa/AscensionCoATalentData.cpp b/src/server/coa/AscensionCoATalentData.cpp
-index 0f12357e..f8c27bf8 100644
+index 0f12357edc..f8c27bf8c9 100644
 --- a/src/server/coa/AscensionCoATalentData.cpp
 +++ b/src/server/coa/AscensionCoATalentData.cpp
 @@ -2,6 +2,7 @@
@@ -1726,7 +1880,7 @@ index 0f12357e..f8c27bf8 100644
          }
  
 diff --git a/src/server/coa/AscensionCoATalentData.h b/src/server/coa/AscensionCoATalentData.h
-index 04c30ac0..5e383eb5 100644
+index 04c30ac05c..5e383eb50e 100644
 --- a/src/server/coa/AscensionCoATalentData.h
 +++ b/src/server/coa/AscensionCoATalentData.h
 @@ -7,6 +7,20 @@
@@ -1768,7 +1922,7 @@ index 04c30ac0..5e383eb5 100644
  extern std::vector<CoAAutomaticDependency> CoAAutomaticDependencies;
  extern std::vector<CoASpecialization> CoASpecializations;
 diff --git a/src/server/coa/AscensionCoATalentState.cpp b/src/server/coa/AscensionCoATalentState.cpp
-index 167e5b72..18f7487e 100644
+index 167e5b7216..18f7487e86 100644
 --- a/src/server/coa/AscensionCoATalentState.cpp
 +++ b/src/server/coa/AscensionCoATalentState.cpp
 @@ -115,6 +115,89 @@ std::vector<KnownEntry> KnownEntries(std::uint8_t classId, HasSpell const& hasSp
@@ -1911,7 +2065,7 @@ index 167e5b72..18f7487e 100644
  {
      std::vector<std::uint8_t> out;
 diff --git a/src/server/coa/AscensionCoATalentState.h b/src/server/coa/AscensionCoATalentState.h
-index 1f32ce54..a20af686 100644
+index 1f32ce5437..a20af6869a 100644
 --- a/src/server/coa/AscensionCoATalentState.h
 +++ b/src/server/coa/AscensionCoATalentState.h
 @@ -38,9 +38,57 @@ std::uint32_t KnownRank(AscensionCompatData::CoATalentEntry const& entry, HasSpe
@@ -1982,7 +2136,7 @@ index 1f32ce54..a20af686 100644
  
  bool ParseKnownEntriesUpload(std::uint8_t const* data, std::size_t size, std::vector<KnownEntry>& known);
 diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
-index 57a2b4c8..ea171f53 100644
+index 57a2b4c893..7c3f2bc8f8 100644
 --- a/src/server/coa/AscensionCompat.cpp
 +++ b/src/server/coa/AscensionCompat.cpp
 @@ -38,6 +38,7 @@
@@ -2013,7 +2167,7 @@ index 57a2b4c8..ea171f53 100644
      SetConfigValue<bool>(AscensionCompatConfig::QUEST_LEVEL_SCALING,
                           "CoA.QuestLevelScaling", true);
      SetConfigValue<uint32>(AscensionCompatConfig::COLLECTIONS_FOR_BOTS,
-@@ -835,6 +842,42 @@ std::string SpecializationSwitchRefusal(Player* player, uint32 activeSpecializat
+@@ -835,6 +842,54 @@ std::string SpecializationSwitchRefusal(Player* player, uint32 activeSpecializat
      return {};
  }
  
@@ -2032,6 +2186,18 @@ index 57a2b4c8..ea171f53 100644
 +std::vector<AscensionClassMechanicsProvider>& ClassMechanicsProviders()
 +{
 +    static std::vector<AscensionClassMechanicsProvider> providers;
++    return providers;
++}
++
++std::vector<AscensionClassSpecializationProvider>& ClassSpecializationProviders()
++{
++    static std::vector<AscensionClassSpecializationProvider> providers;
++    return providers;
++}
++
++std::vector<AscensionClassLookProvider>& ClassLookProviders()
++{
++    static std::vector<AscensionClassLookProvider> providers;
 +    return providers;
 +}
 +
@@ -2056,7 +2222,7 @@ index 57a2b4c8..ea171f53 100644
  struct UpdateEntriesRefusal
  {
      char const* Result = "CA_UPDATE_ENTRIES_UNKNOWN";
-@@ -873,20 +916,23 @@ public:
+@@ -873,20 +928,23 @@ public:
      uint32 const activeSpec = GetActiveSpecialization(player);
      AscensionClassTuning::Synchronize(player, activeSpec, true);
      auto const racialSpells = GetAscensionRacialSpells(player);
@@ -2084,7 +2250,7 @@ index 57a2b4c8..ea171f53 100644
      {
        if (!CanGrantAscensionRacialSpell(player, spellId))
          return false;
-@@ -898,9 +944,9 @@ public:
+@@ -898,9 +956,9 @@ public:
        bool const unresolved = std::any_of(AscensionCompatData::UnresolvedTrainerSpells.begin(), AscensionCompatData::UnresolvedTrainerSpells.end(),
            [player, spellId](auto const& entry) { return entry.ClassId == player->getClass() && entry.SpellId == spellId; });
        bool const automatic = player->GetLevel() > 1 && std::any_of(AscensionCompatData::CoATalentEntries.begin(),
@@ -2096,7 +2262,7 @@ index 57a2b4c8..ea171f53 100644
                     std::find(entry.SpellIds.begin(), entry.SpellIds.end(), spellId) != entry.SpellIds.end();
            });
        return std::binary_search(racialSpells.begin(), racialSpells.end(), spellId) ||
-@@ -925,7 +971,7 @@ public:
+@@ -925,7 +983,7 @@ public:
      };
      reconcile(AscensionCompatData::LegacyGeneratedClassSpells);
      reconcile(AscensionCompatData::ClassSpells);
@@ -2105,7 +2271,7 @@ index 57a2b4c8..ea171f53 100644
        for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
          if (rift.RequiredLevel > player->GetLevel() && player->HasSpell(rift.SpellId))
          {
-@@ -976,7 +1022,7 @@ public:
+@@ -976,7 +1034,7 @@ public:
        player->learnSpell(progressionSpell.SpellId, false);
        ++learned;
      }
@@ -2114,7 +2280,7 @@ index 57a2b4c8..ea171f53 100644
        for (FelswornRiftGrant const& rift : FelswornHordeCapitalRifts)
          if (automaticProgression && rift.RequiredLevel <= player->GetLevel() &&
              CanGrantAscensionRacialSpell(player, rift.SpellId) &&
-@@ -1711,10 +1757,11 @@ public:
+@@ -1711,10 +1769,11 @@ public:
      {
          if (!SharedPaidEntries().count(entry.EntryId))
              return false;
@@ -2127,7 +2293,7 @@ index 57a2b4c8..ea171f53 100644
                  continue;
              uint32 const rank = KnownRank(player, *other);
              for (uint32 index = 0; index < rank; ++index)
-@@ -1731,8 +1778,9 @@ public:
+@@ -1731,8 +1790,9 @@ public:
      if (AscensionFreepick::HasFreepickBuild(player))
        return AscensionFreepick::KnownEntries(player);
      std::vector<AscensionCoATalentState::KnownEntry> known;
@@ -2138,7 +2304,7 @@ index 57a2b4c8..ea171f53 100644
              if (uint32 const rank = KnownRank(player, entry))
                  known.push_back({entry.EntryId, rank});
      return known;
-@@ -1849,7 +1897,8 @@ public:
+@@ -1849,7 +1909,8 @@ public:
    uint32 SendKnownTalentEntries(Player* player)
    {
      SendResetCredits(player);
@@ -2148,7 +2314,7 @@ index 57a2b4c8..ea171f53 100644
      std::vector<uint8> const body = AscensionCoATalentState::KnownEntriesPayload(known);
      WorldPacket packet(SMSG_CHARACTER_ADVANCEMENT_KNOWN_ENTRIES, body.size());
      packet.append(body.data(), body.size());
-@@ -1861,20 +1910,22 @@ public:
+@@ -1861,20 +1922,22 @@ public:
                       std::string& error, bool checkBudget = true)
    {
      uint32 const entryId = entry.EntryId;
@@ -2174,7 +2340,7 @@ index 57a2b4c8..ea171f53 100644
      {
        error = Acore::StringFormat(
            "Talent entry {} belongs to specialization {}, but your active specialization is {}.",
-@@ -1904,7 +1955,8 @@ public:
+@@ -1904,7 +1967,8 @@ public:
  
      if (automaticallyGranted)
      {
@@ -2184,7 +2350,7 @@ index 57a2b4c8..ea171f53 100644
        SynchronizeProgression(player);
        if (!grantable)
        {
-@@ -1966,7 +2018,7 @@ public:
+@@ -1966,7 +2030,7 @@ public:
      if (rank > 0 && freeChoiceGroup)
      {
        for (auto const& other : AscensionCompatData::CoATalentEntries)
@@ -2193,7 +2359,7 @@ index 57a2b4c8..ea171f53 100644
              GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
            for (uint32 spellId : other.SpellIds)
              if (spellId && player->HasSpell(spellId))
-@@ -1993,10 +2045,11 @@ public:
+@@ -1993,10 +2057,11 @@ public:
  
    char const* PurgeTalents(Player* player)
    {
@@ -2207,7 +2373,7 @@ index 57a2b4c8..ea171f53 100644
                   KnownRank(player, entry);
          });
      if (!anyPaid)
-@@ -2022,9 +2075,10 @@ public:
+@@ -2022,9 +2087,10 @@ public:
    {
      StorePurchasedRanks(player);
      uint32 removed = 0;
@@ -2219,7 +2385,7 @@ index 57a2b4c8..ea171f53 100644
          continue;
        for (uint32 spellId : entry.SpellIds)
          if (spellId && player->HasSpell(spellId))
-@@ -2042,9 +2096,27 @@ public:
+@@ -2042,9 +2108,27 @@ public:
  
    bool TalentBudget(Player const* player, uint32& classBudget, uint32& specializationBudget, std::string& error)
    {
@@ -2248,7 +2414,7 @@ index 57a2b4c8..ea171f53 100644
  
      LOG_ERROR("coa", "No CoA talent budget row for class {} at level {} ({})",
                uint32(player->getClass()), uint32(player->GetLevel()), player->GetName());
-@@ -2071,10 +2143,115 @@ public:
+@@ -2071,10 +2155,115 @@ public:
      return rank;
    }
  
@@ -2365,7 +2531,7 @@ index 57a2b4c8..ea171f53 100644
      if (uploaded.Mixed)
      {
        refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "", 0, 0, "The uploaded build mixes specializations." };
-@@ -2084,13 +2261,14 @@ public:
+@@ -2084,13 +2273,14 @@ public:
      uint32 const activeSpecialization = GetActiveSpecialization(player);
      uint32 const targetSpec = requestedSpec.value_or(uploaded.SpecId ? uploaded.SpecId : activeSpecialization);
      bool const switching = targetSpec != activeSpecialization;
@@ -2381,7 +2547,7 @@ index 57a2b4c8..ea171f53 100644
        {
          refusal = { "CA_UPDATE_ENTRIES_BAD_ENTRY", "CA_LEARN_WRONG_CLASS", item.EntryId, item.Rank,
                      Acore::StringFormat("Talent entry {} does not belong to your custom class.", item.EntryId) };
-@@ -2126,7 +2304,7 @@ public:
+@@ -2126,7 +2316,7 @@ public:
            return false;
          }
        }
@@ -2390,7 +2556,7 @@ index 57a2b4c8..ea171f53 100644
        {
          if (UnifiedClassAdvancement() && !IsAscensionCustomClass(player) && !entry->AECost && !entry->TECost &&
              !GetSelectableFreeGroup(entry->EntryId) &&
-@@ -2152,10 +2330,12 @@ public:
+@@ -2152,10 +2342,12 @@ public:
      std::vector<AscensionCoATalentState::KnownEntry> priced;
      for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
      {
@@ -2405,7 +2571,7 @@ index 57a2b4c8..ea171f53 100644
        if (rank)
          priced.push_back({ entry.EntryId, rank });
      }
-@@ -2168,7 +2348,7 @@ public:
+@@ -2168,7 +2360,7 @@ public:
          if (rank && GetSelectableFreeGroup(entryId))
              proposed.Entries.push_back({ entryId, rank });
      std::vector<AscensionCoATalentState::KnownEntry> const proposedKnown =
@@ -2414,7 +2580,7 @@ index 57a2b4c8..ea171f53 100644
      for (AscensionCoATalentState::KnownEntry const& item : upload)
      {
          AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
-@@ -2187,7 +2367,7 @@ public:
+@@ -2187,7 +2379,7 @@ public:
      for (AscensionCoATalentState::KnownEntry const& item : priced)
      {
          AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(item.EntryId);
@@ -2423,7 +2589,7 @@ index 57a2b4c8..ea171f53 100644
              continue;
          for (uint32 requiredId : entry->RequiredEntryIds)
              if (requiredId && std::none_of(proposedKnown.begin(), proposedKnown.end(),
-@@ -2217,7 +2397,7 @@ public:
+@@ -2217,7 +2409,7 @@ public:
        refusal.Result = "CA_UPDATE_ENTRIES_UNKNOWN";
        return false;
      }
@@ -2432,7 +2598,7 @@ index 57a2b4c8..ea171f53 100644
      if (spent.AE > classBudget || spent.TE > specializationBudget)
      {
        refusal = { "CA_UPDATE_ENTRIES_NOT_TRAVERSIBLE",
-@@ -2276,7 +2456,7 @@ public:
+@@ -2276,7 +2468,7 @@ public:
      std::vector<std::pair<AscensionCompatData::CoATalentEntry const*, uint32>> changes;
      for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
      {
@@ -2441,7 +2607,7 @@ index 57a2b4c8..ea171f53 100644
            (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
          continue;
        auto itr = wanted.find(entry.EntryId);
-@@ -2414,6 +2594,11 @@ public:
+@@ -2414,6 +2606,11 @@ public:
      return itr == _activeSpecializations.end() ? 0 : itr->second;
    }
  
@@ -2453,7 +2619,7 @@ index 57a2b4c8..ea171f53 100644
      static uint32 ActiveSlot(Player const* player)
      {
          auto const* values = player->FindPlayerSettings("core.ascension_slot.active");
-@@ -2436,9 +2621,10 @@ public:
+@@ -2436,9 +2633,10 @@ public:
    static std::vector<uint32> LivePicks(Player const* player, uint32 specializationId)
    {
      std::vector<uint32> picks;
@@ -2465,7 +2631,7 @@ index 57a2b4c8..ea171f53 100644
            (!entry.AECost && !entry.TECost && !GetSelectableFreeGroup(entry.EntryId)))
          continue;
        if (uint32 const rank = KnownRank(player, entry))
-@@ -2636,7 +2822,7 @@ public:
+@@ -2636,7 +2834,7 @@ public:
        {
          AscensionCompatData::CoATalentEntry const* entry = FindTalentEntry(pick / 10);
          uint32 const rank = pick % 10;
@@ -2474,7 +2640,7 @@ index 57a2b4c8..ea171f53 100644
              rank > entry->SpellCount)
            continue;
          if (KnownRank(player, *entry) >= rank)
-@@ -2671,14 +2857,8 @@ public:
+@@ -2671,14 +2869,8 @@ public:
      if (!IsCharacterAdvancementClass(player) || (!specializationId && restoreStoredBuild))
        return false;
  
@@ -2491,7 +2657,7 @@ index 57a2b4c8..ea171f53 100644
      if (!validSpecialization && (specializationId || restoreStoredBuild))
        return false;
  
-@@ -2718,10 +2898,11 @@ public:
+@@ -2718,10 +2910,11 @@ public:
  
      std::unordered_set<uint32> visitedSpellIds;
      uint32 removed = 0;
@@ -2504,7 +2670,7 @@ index 57a2b4c8..ea171f53 100644
            for (uint32 spellId : entry.SpellIds)
              if (spellId && player->HasSpell(spellId))
                talentSpells.insert(spellId);
-@@ -2731,7 +2912,7 @@ public:
+@@ -2731,7 +2924,7 @@ public:
      }
      for (AscensionCompatData::CoATalentEntry const &entry :
           AscensionCompatData::CoATalentEntries) {
@@ -2513,7 +2679,7 @@ index 57a2b4c8..ea171f53 100644
          continue;
  
        for (uint32 spellId : entry.SpellIds) {
-@@ -2873,6 +3054,16 @@ public:
+@@ -2873,6 +3066,16 @@ public:
  
          uint32 const previousIndex = ActiveSlot(player);
          auto const previous = LiveSlot(player, GetActiveSpecialization(player));
@@ -2530,7 +2696,7 @@ index 57a2b4c8..ea171f53 100644
          UpdateEntriesRefusal refusal;
          if (!ApplyKnownEntriesUpload(player, target.Entries, refusal, target.SpecId))
          {
-@@ -2940,11 +3131,16 @@ public:
+@@ -2940,11 +3143,16 @@ public:
          return 0;
      }
  
@@ -2549,7 +2715,7 @@ index 57a2b4c8..ea171f53 100644
      }
  
      static AscensionCoATalentState::HasSpell CarriedSpells(Player const* player)
-@@ -2979,7 +3175,8 @@ public:
+@@ -2979,7 +3187,8 @@ public:
          AscensionCoATalentState::SpecializationSlot slot;
          if (!AscensionCoATalentState::ParseSpecializationSlot(values, slot) || slot.ClassId != player->getClass())
              return {};
@@ -2559,7 +2725,7 @@ index 57a2b4c8..ea171f53 100644
      }
  
      static void ReconcileRunemasterFists(Player* player, uint32 specializationId)
-@@ -3001,11 +3198,11 @@ public:
+@@ -3001,11 +3210,11 @@ public:
          if (fists == entries.end() || fists->EntryId != 4062 ||
              fists->ClassId != CLASS_SPIRIT_MAGE || fists->SpecId != 61 ||
              fists->SpellCount != 1 || fists->AECost || fists->TECost || fists->RequiredLevel != 10 ||
@@ -2573,7 +2739,7 @@ index 57a2b4c8..ea171f53 100644
              return;
  
          auto const& dependencies = AscensionCompatData::CoAAutomaticDependencies;
-@@ -3029,12 +3226,13 @@ private:
+@@ -3029,12 +3238,13 @@ private:
              return 0;
          uint32 learned = 0;
          bool changed = true;
@@ -2588,7 +2754,23 @@ index 57a2b4c8..ea171f53 100644
                      continue;
  
                  uint32 spellId = entry.SpellIds[entry.SpellCount - 1];
-@@ -3273,7 +3471,7 @@ public:
+@@ -3244,13 +3454,13 @@ public:
+     void OnPlayerLogin(Player* player) const
+     {
+         ForgetStaticDecay(player->GetGUID());
+-        if (IsAscensionCustomClass(player))
++        if (UsesAnyAscensionClassMechanics(player))
+             SynchronizeThresholdResources(player);
+     }
+ 
+     void OnPlayerUpdate(Player* player, uint32 diff) const
+     {
+-        if (IsAscensionCustomClass(player))
++        if (UsesAnyAscensionClassMechanics(player))
+         {
+             DecayStatic(player, diff);
+             SynchronizeThresholdResources(player);
+@@ -3273,7 +3483,7 @@ public:
              return true;
  
          if (spell->GetSpellInfo()->Id != SPELL_REAPER_GENERATE_SOUL ||
@@ -2597,7 +2779,7 @@ index 57a2b4c8..ea171f53 100644
              return true;
  
          return GetAuraStacks(player, SPELL_REAPER_SOUL_FRAGMENT) >=
-@@ -3291,7 +3489,7 @@ public:
+@@ -3291,7 +3501,7 @@ public:
  
          SpellInfo const* spellInfo = spell->GetSpellInfo();
          uint32 spellId = spellInfo->Id;
@@ -2606,7 +2788,7 @@ index 57a2b4c8..ea171f53 100644
              spellInfo->SpellFamilyName == uint32(CLASS_RANGER) + 6 &&
              spellInfo->CasterAuraSpell == 804329 && !player->HasAura(804329))
          {
-@@ -3299,7 +3497,7 @@ public:
+@@ -3299,7 +3509,7 @@ public:
              return;
          }
  
@@ -2615,7 +2797,14 @@ index 57a2b4c8..ea171f53 100644
          {
              Unit* target = spell->m_targets.GetUnitTarget();
              if (target && target->HasAura(SPELL_REAPER_SCYTHE_RUSH_MARKER,
-@@ -3335,7 +3533,7 @@ public:
+@@ -3329,13 +3539,13 @@ public:
+             return;
+ 
+         Player* player = spell->GetCaster()->ToPlayer();
+-        if (!player || !IsAscensionCustomClass(player))
++        if (!player || !UsesAnyAscensionClassMechanics(player))
+             return;
+ 
          SpellInfo const* spellInfo = spell->GetSpellInfo();
          uint32 spellId = spellInfo->Id;
  
@@ -2624,7 +2813,33 @@ index 57a2b4c8..ea171f53 100644
              spellInfo->PowerType == POWER_HEALTH && spell->GetPowerCost() > 0 &&
              player->HasAura(SPELL_BLOODMAGE_THIRST_PASSIVE))
              ModifyAuraStacks(player, SPELL_BLOODMAGE_THIRST, 1);
-@@ -3627,7 +3825,7 @@ public:
+@@ -3422,7 +3632,7 @@ public:
+             return;
+ 
+         Player* player = spell->GetCaster()->ToPlayer();
+-        if (!player || !IsAscensionCustomClass(player))
++        if (!player || !UsesAnyAscensionClassMechanics(player))
+             return;
+ 
+         bool successful = missInfo == SPELL_MISS_NONE;
+@@ -3577,7 +3787,7 @@ public:
+             return;
+ 
+         Player* player = attacker->ToPlayer();
+-        if (!player || !IsAscensionCustomClass(player) || target == player ||
++        if (!player || !UsesAnyAscensionClassMechanics(player) || target == player ||
+             player->IsFriendlyTo(target))
+             return;
+ 
+@@ -3620,14 +3830,14 @@ public:
+ 
+     void OnBlock(Player* player) const
+     {
+-        if (!player || !IsAscensionCustomClass(player))
++        if (!player || !UsesAnyAscensionClassMechanics(player))
+             return;
+ 
+         bool changed = false;
          for (AscensionCompatData::ResourceGainRule const& rule :
               AscensionCompatData::ResourceGainRules)
          {
@@ -2633,7 +2848,7 @@ index 57a2b4c8..ea171f53 100644
                  rule.Event != AscensionCompatData::ResourceGainEvent::Block ||
                  (rule.RequiredAuraSpellId &&
                      !player->HasAura(rule.RequiredAuraSpellId)) ||
-@@ -3651,7 +3849,7 @@ public:
+@@ -3651,7 +3861,7 @@ public:
          handler->PSendSysMessage("Ascension resource status for class {}:",
              uint32(player->getClass()));
  
@@ -2642,7 +2857,7 @@ index 57a2b4c8..ea171f53 100644
          {
              handler->PSendSysMessage("Runic Power: {}/{}",
                  player->GetPower(POWER_RUNIC_POWER) / 10,
-@@ -3662,7 +3860,7 @@ public:
+@@ -3662,7 +3872,7 @@ public:
          for (AscensionCompatData::ResourceDisplay const& resource :
               AscensionCompatData::ResourceDisplays)
          {
@@ -2651,7 +2866,7 @@ index 57a2b4c8..ea171f53 100644
                  continue;
  
              uint32 maximum = resource.DisplayMaximum;
-@@ -3682,7 +3880,7 @@ public:
+@@ -3682,7 +3892,7 @@ public:
          for (AscensionCompatData::ResourceThresholdRule const& threshold :
               AscensionCompatData::ResourceThresholdRules)
          {
@@ -2660,7 +2875,7 @@ index 57a2b4c8..ea171f53 100644
                  continue;
  
              handler->PSendSysMessage(
-@@ -3693,7 +3891,7 @@ public:
+@@ -3693,7 +3903,7 @@ public:
                                                                 "inactive");
          }
  
@@ -2669,7 +2884,7 @@ index 57a2b4c8..ea171f53 100644
              handler->SendSysMessage(
                  "This class has no separate Ascension resource widget.");
      }
-@@ -3721,26 +3919,25 @@ private:
+@@ -3721,26 +3931,25 @@ private:
      static bool Matches(Player const* player, uint32 spellId, uint8 classId,
          uint32 firstSpellId, uint32 lastSpellId)
      {
@@ -2703,7 +2918,7 @@ index 57a2b4c8..ea171f53 100644
      }
  
      static uint8 GetAuraStacks(Unit const* unit, uint32 spellId)
-@@ -3843,7 +4040,7 @@ private:
+@@ -3843,7 +4052,7 @@ private:
  
      static void ConsumeReaperSouls(Player* player, Spell* spell)
      {
@@ -2712,7 +2927,7 @@ index 57a2b4c8..ea171f53 100644
              return;
  
          SpellInfo const* spellInfo = spell->GetSpellInfo();
-@@ -3888,7 +4085,7 @@ private:
+@@ -3888,7 +4097,7 @@ private:
      {
          ObjectGuid const guid = player->GetGUID();
          uint8 const stacks = GetAuraStacks(player, SPELL_STORMBRINGER_STATIC);
@@ -2721,7 +2936,7 @@ index 57a2b4c8..ea171f53 100644
          {
              ForgetStaticDecay(guid);
              return;
-@@ -3930,7 +4127,7 @@ private:
+@@ -3930,7 +4139,7 @@ private:
          for (AscensionCompatData::ResourceThresholdRule const& rule :
               AscensionCompatData::ResourceThresholdRules)
          {
@@ -2730,7 +2945,7 @@ index 57a2b4c8..ea171f53 100644
                  continue;
  
              bool meetsThreshold =
-@@ -3946,7 +4143,7 @@ private:
+@@ -3946,7 +4155,7 @@ private:
              }
          }
  
@@ -2739,7 +2954,7 @@ index 57a2b4c8..ea171f53 100644
          {
              while (GetAuraStacks(player, SPELL_PYROMANCER_HEAT) >=
                     PYROMANCER_HEAT_PER_EMBER)
-@@ -3957,7 +4154,7 @@ private:
+@@ -3957,7 +4166,7 @@ private:
              }
          }
  
@@ -2748,7 +2963,7 @@ index 57a2b4c8..ea171f53 100644
              GetAuraStacks(player, SPELL_REAPER_SOUL_FRAGMENT) >=
                  REAPER_SOUL_FRAGMENT_COST)
          {
-@@ -3970,7 +4167,7 @@ private:
+@@ -3970,7 +4179,7 @@ private:
              }
          }
  
@@ -2757,7 +2972,7 @@ index 57a2b4c8..ea171f53 100644
              GetAuraStacks(player, SPELL_REAPER_REAPED_SOUL) >= 3 &&
              !player->HasAura(SPELL_REAPER_SOUL_INFUSION))
          {
-@@ -6463,7 +6660,7 @@ public:
+@@ -6463,7 +6672,7 @@ public:
  
      uint32 GetShadowhoundDisplay(Player* player)
      {
@@ -2766,7 +2981,7 @@ index 57a2b4c8..ea171f53 100644
              !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED))
              return 0;
  
-@@ -7351,6 +7548,37 @@ private:
+@@ -7351,6 +7560,37 @@ private:
          requested[index] = appearanceId;
      }
  
@@ -2804,7 +3019,7 @@ index 57a2b4c8..ea171f53 100644
      for (uint32 categoryId = 1; categoryId < requested.size(); ++categoryId) {
        uint32 appearanceId = requested[categoryId];
        if (!appearanceId)
-@@ -7417,6 +7645,8 @@ private:
+@@ -7417,6 +7657,8 @@ private:
      RefreshCosmetics(player, *state);
      RefreshVisibleItems(player);
      RefreshIncarnations(player);
@@ -2813,7 +3028,7 @@ index 57a2b4c8..ea171f53 100644
      SendApplyResult(player, "APPLY_APPEARANCES_OK");
    }
  
-@@ -8456,6 +8686,9 @@ public:
+@@ -8456,6 +8698,9 @@ public:
  
      if (opcode == CMSG_ANTICHEAT_ALERT)
        return true;
@@ -2823,7 +3038,7 @@ index 57a2b4c8..ea171f53 100644
  
      if (std::find(CORE_EXTENSION_OPCODES.begin(), CORE_EXTENSION_OPCODES.end(), opcode) !=
          CORE_EXTENSION_OPCODES.end())
-@@ -9093,7 +9326,7 @@ public:
+@@ -9093,7 +9338,7 @@ public:
        uint8& err, uint16& dest) override
    {
        if (!ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
@@ -2832,7 +3047,7 @@ index 57a2b4c8..ea171f53 100644
            return true;
  
        uint8 result = player->CanEquipItem(slot, dest, item, false, false);
-@@ -10728,7 +10961,7 @@ namespace AscensionCompatData
+@@ -10728,7 +10973,7 @@ namespace AscensionCompatData
      MinionCapacityState QueryMinionCapacityState(Player* player)
      {
          MinionCapacityState state;
@@ -2841,7 +3056,7 @@ index 57a2b4c8..ea171f53 100644
              return state;
  
          state.Maximum = AscensionNecromancer::Capacity(player);
-@@ -10738,7 +10971,7 @@ namespace AscensionCompatData
+@@ -10738,7 +10983,7 @@ namespace AscensionCompatData
  
      uint32 QueryMinionCapacityCost(Player* player, uint32 resolvedSpellId)
      {
@@ -2850,7 +3065,7 @@ index 57a2b4c8..ea171f53 100644
              return 0;
          return AscensionNecromancer::Cost(player, resolvedSpellId);
      }
-@@ -10788,19 +11021,34 @@ namespace AscensionCompatData
+@@ -10788,19 +11033,34 @@ namespace AscensionCompatData
      }
  }
  
@@ -2890,7 +3105,7 @@ index 57a2b4c8..ea171f53 100644
  }
  
  uint32 GetAscensionActiveSpecialization(Player const* player)
-@@ -10837,6 +11085,39 @@ std::string AscensionSpecializationSwitchRefusal(Player* player, uint32 activeSp
+@@ -10837,6 +11097,83 @@ std::string AscensionSpecializationSwitchRefusal(Player* player, uint32 activeSp
      return SpecializationSwitchRefusal(player, activeSpecializationId, requestedSpecializationId);
  }
  
@@ -2922,6 +3137,50 @@ index 57a2b4c8..ea171f53 100644
 +        [player, classId](AscensionClassMechanicsProvider const& provider) { return provider(player, classId); });
 +}
 +
++bool UsesAnyAscensionClassMechanics(Player const* player)
++{
++    if (!player)
++        return false;
++    if (IsAscensionCustomClass(player))
++        return true;
++    for (uint8 classId = CLASS_BARBARIAN; classId <= CLASS_SPIRIT_MAGE; ++classId)
++        if (UsesAscensionClassMechanics(player, classId))
++            return true;
++    return false;
++}
++
++void AddAscensionClassSpecializationProvider(AscensionClassSpecializationProvider provider)
++{
++    if (provider)
++        ClassSpecializationProviders().push_back(std::move(provider));
++}
++
++uint32 AscensionSpecializationForClass(Player const* player, uint8 classId, uint32 ownSpecializationId)
++{
++    if (!player || player->getClass() == classId)
++        return ownSpecializationId;
++    for (AscensionClassSpecializationProvider const& provider : ClassSpecializationProviders())
++        if (uint32 const specializationId = provider(player, classId))
++            return specializationId;
++    return ownSpecializationId;
++}
++
++void AddAscensionClassLookProvider(AscensionClassLookProvider provider)
++{
++    if (provider)
++        ClassLookProviders().push_back(std::move(provider));
++}
++
++bool AscensionClassLookCarriedElsewhere(Player* player, uint8 classId, uint32 displayId)
++{
++    if (!player || player->getClass() == classId)
++        return false;
++    bool carried = false;
++    for (AscensionClassLookProvider const& provider : ClassLookProviders())
++        carried = provider(player, classId, displayId) || carried;
++    return carried;
++}
++
 +AscensionCoATalentState::TalentAccess GetAscensionTalentAccess(Player const* player)
 +{
 +    return player ? AscensionClassService::AccessOf(player) : AscensionCoATalentState::TalentAccess{};
@@ -2930,7 +3189,7 @@ index 57a2b4c8..ea171f53 100644
  void ClearAscensionSpecializationSlots(Player* player)
  {
      if (player)
-@@ -10849,9 +11130,10 @@ uint32 ForgetAscensionClassTalents(Player* player)
+@@ -10849,9 +11186,10 @@ uint32 ForgetAscensionClassTalents(Player* player)
          return 0;
  
      uint32 removed = 0;
@@ -2942,7 +3201,7 @@ index 57a2b4c8..ea171f53 100644
              continue;
  
          for (uint32 spellId : entry.SpellIds)
-@@ -10895,7 +11177,7 @@ bool RestoreAscensionSpecializationSignature(Player* player)
+@@ -10895,7 +11233,7 @@ bool RestoreAscensionSpecializationSignature(Player* player)
      auto const specialization = std::find_if(AscensionCompatData::CoASpecializations.begin(),
          AscensionCompatData::CoASpecializations.end(), [player, active](auto const& row)
          {
@@ -2951,7 +3210,7 @@ index 57a2b4c8..ea171f53 100644
          });
      if (specialization == AscensionCompatData::CoASpecializations.end())
          return false;
-@@ -10922,12 +11204,84 @@ bool RestoreAscensionSpecializationSignature(Player* player)
+@@ -10922,12 +11260,84 @@ bool RestoreAscensionSpecializationSignature(Player* player)
      return true;
  }
  
@@ -3036,7 +3295,7 @@ index 57a2b4c8..ea171f53 100644
  uint32 SynchronizeAscensionTalentReplacements(Player* player)
  {
      return player ? AscensionClassService::Instance().SynchronizeTalentReplacements(player) : 0;
-@@ -10936,15 +11290,18 @@ uint32 SynchronizeAscensionTalentReplacements(Player* player)
+@@ -10936,15 +11346,18 @@ uint32 SynchronizeAscensionTalentReplacements(Player* player)
  bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
  {
      AscensionCompatData::CoATalentEntry const* entry = FindAscensionTalentEntry(entryId);
@@ -3058,7 +3317,7 @@ index 57a2b4c8..ea171f53 100644
          return false;
  
      uint32 const selectedSpellId = rank > 0 ? entry->SpellIds[rank - 1] : 0;
-@@ -10953,7 +11310,7 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
+@@ -10953,7 +11366,7 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
  
      if (rank > 0 && freeChoiceGroup)
          for (auto const& other : AscensionCompatData::CoATalentEntries)
@@ -3067,7 +3326,7 @@ index 57a2b4c8..ea171f53 100644
                  AscensionClassService::GetSelectableFreeGroup(other.EntryId) == freeChoiceGroup)
                  for (uint32 spellId : other.SpellIds)
                      if (spellId && player->HasSpell(spellId))
-@@ -11258,7 +11615,7 @@ bool IsAscensionMaleOnlyRace(uint8 race)
+@@ -11258,7 +11671,7 @@ bool IsAscensionMaleOnlyRace(uint8 race)
      switch (race)
      {
          case 15: case 17: case 18: case 23: case 24: case 25: case 26: case 32: case 50:
@@ -3077,7 +3336,7 @@ index 57a2b4c8..ea171f53 100644
          default:
              return false;
 diff --git a/src/server/coa/AscensionCultist.cpp b/src/server/coa/AscensionCultist.cpp
-index 2b8a3583..0da642cc 100644
+index 2b8a3583b1..0da642cc21 100644
 --- a/src/server/coa/AscensionCultist.cpp
 +++ b/src/server/coa/AscensionCultist.cpp
 @@ -2,6 +2,7 @@
@@ -3107,7 +3366,7 @@ index 2b8a3583..0da642cc 100644
      if (delta < 0 && player->HasAura(Madness) && !force)
          return true;
 diff --git a/src/server/coa/AscensionFelsworn.cpp b/src/server/coa/AscensionFelsworn.cpp
-index a090e9b9..50a058a9 100644
+index a090e9b9f9..50a058a962 100644
 --- a/src/server/coa/AscensionFelsworn.cpp
 +++ b/src/server/coa/AscensionFelsworn.cpp
 @@ -1,6 +1,7 @@
@@ -3151,7 +3410,7 @@ index a090e9b9..50a058a9 100644
      }
      void OnPlayerLogout(Player* player) override
 diff --git a/src/server/coa/AscensionFreepick.cpp b/src/server/coa/AscensionFreepick.cpp
-index 3fae7902..1c585958 100644
+index 3fae790224..1c5859586d 100644
 --- a/src/server/coa/AscensionFreepick.cpp
 +++ b/src/server/coa/AscensionFreepick.cpp
 @@ -51,6 +51,7 @@ Realm ReadRealm()
@@ -3163,7 +3422,7 @@ index 3fae7902..1c585958 100644
      realm.Ruleset = maxLevel <= 60 ? 0 : maxLevel <= 70 ? 1 : 2;
      return realm;
 diff --git a/src/server/coa/AscensionFreepickRules.h b/src/server/coa/AscensionFreepickRules.h
-index 743a14b3..163cf47d 100644
+index 743a14b3cd..163cf47de8 100644
 --- a/src/server/coa/AscensionFreepickRules.h
 +++ b/src/server/coa/AscensionFreepickRules.h
 @@ -162,6 +162,7 @@ struct Realm
@@ -3175,7 +3434,7 @@ index 743a14b3..163cf47d 100644
  };
  
 diff --git a/src/server/coa/AscensionGuardianAbilities.cpp b/src/server/coa/AscensionGuardianAbilities.cpp
-index c7e67993..219c9913 100644
+index c7e679939a..219c991388 100644
 --- a/src/server/coa/AscensionGuardianAbilities.cpp
 +++ b/src/server/coa/AscensionGuardianAbilities.cpp
 @@ -1,6 +1,7 @@
@@ -3196,7 +3455,7 @@ index c7e67993..219c9913 100644
  
      void Before()
 diff --git a/src/server/coa/AscensionGuardianCompletion.cpp b/src/server/coa/AscensionGuardianCompletion.cpp
-index 7073fa9c..48af13e2 100644
+index 7073fa9c42..48af13e26b 100644
 --- a/src/server/coa/AscensionGuardianCompletion.cpp
 +++ b/src/server/coa/AscensionGuardianCompletion.cpp
 @@ -2,6 +2,7 @@
@@ -3232,7 +3491,7 @@ index 7073fa9c..48af13e2 100644
          uint32 id = info->Id;
          if (!index && AscensionGuardian::Ram(id))
 diff --git a/src/server/coa/AscensionGuardianDrums.cpp b/src/server/coa/AscensionGuardianDrums.cpp
-index f0610b34..1e1d6079 100644
+index f0610b34ef..1e1d6079b2 100644
 --- a/src/server/coa/AscensionGuardianDrums.cpp
 +++ b/src/server/coa/AscensionGuardianDrums.cpp
 @@ -1,5 +1,6 @@
@@ -3252,7 +3511,7 @@ index f0610b34..1e1d6079 100644
  
      void Skip(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionGuardianFavor.cpp b/src/server/coa/AscensionGuardianFavor.cpp
-index 38fd0bc5..de16b135 100644
+index 38fd0bc594..de16b135e3 100644
 --- a/src/server/coa/AscensionGuardianFavor.cpp
 +++ b/src/server/coa/AscensionGuardianFavor.cpp
 @@ -1,5 +1,6 @@
@@ -3272,7 +3531,7 @@ index 38fd0bc5..de16b135 100644
                  (event.GetDamageInfo() && (event.GetHitMask() & PROC_HIT_CRITICAL)) ||
                  ((event.GetTypeMask() & PROC_FLAG_DONE_MELEE_AUTO_ATTACK) &&
 diff --git a/src/server/coa/AscensionGuardianResources.cpp b/src/server/coa/AscensionGuardianResources.cpp
-index 341723b2..e96d2923 100644
+index 341723b20f..e96d2923e7 100644
 --- a/src/server/coa/AscensionGuardianResources.cpp
 +++ b/src/server/coa/AscensionGuardianResources.cpp
 @@ -2,6 +2,7 @@
@@ -3302,7 +3561,7 @@ index 341723b2..e96d2923 100644
  
      switch (id)
 diff --git a/src/server/coa/AscensionGuardianStandards.cpp b/src/server/coa/AscensionGuardianStandards.cpp
-index 8459d659..cd246156 100644
+index 8459d6598d..cd24615647 100644
 --- a/src/server/coa/AscensionGuardianStandards.cpp
 +++ b/src/server/coa/AscensionGuardianStandards.cpp
 @@ -1,6 +1,7 @@
@@ -3350,7 +3609,7 @@ index 8459d659..cd246156 100644
      void Reclaim(SpellEffIndex index)
      {
 diff --git a/src/server/coa/AscensionGuardianTalents.cpp b/src/server/coa/AscensionGuardianTalents.cpp
-index f635dc71..7e46a909 100644
+index f635dc71bf..7e46a9095d 100644
 --- a/src/server/coa/AscensionGuardianTalents.cpp
 +++ b/src/server/coa/AscensionGuardianTalents.cpp
 @@ -1,6 +1,7 @@
@@ -3380,7 +3639,7 @@ index f635dc71..7e46a909 100644
      }
  };
 diff --git a/src/server/coa/AscensionHeroMissileBarrage.cpp b/src/server/coa/AscensionHeroMissileBarrage.cpp
-index 58a80412..5dac33e4 100644
+index 58a80412d7..5dac33e4f0 100644
 --- a/src/server/coa/AscensionHeroMissileBarrage.cpp
 +++ b/src/server/coa/AscensionHeroMissileBarrage.cpp
 @@ -1,5 +1,6 @@
@@ -3400,7 +3659,7 @@ index 58a80412..5dac33e4 100644
  
          if (SpellInfo const* missiles = HighestKnownArcaneMissiles(player))
 diff --git a/src/server/coa/AscensionNecromancer.cpp b/src/server/coa/AscensionNecromancer.cpp
-index aecb5247..2651cdde 100644
+index aecb524751..2651cddea6 100644
 --- a/src/server/coa/AscensionNecromancer.cpp
 +++ b/src/server/coa/AscensionNecromancer.cpp
 @@ -1,6 +1,7 @@
@@ -3421,7 +3680,7 @@ index aecb5247..2651cdde 100644
  NecromancerState& State(Player* player)
  {
 diff --git a/src/server/coa/AscensionNecromancerSummons.cpp b/src/server/coa/AscensionNecromancerSummons.cpp
-index 72242dfe..5a210729 100644
+index 72242dfe64..5a2107293f 100644
 --- a/src/server/coa/AscensionNecromancerSummons.cpp
 +++ b/src/server/coa/AscensionNecromancerSummons.cpp
 @@ -2,6 +2,7 @@
@@ -3442,7 +3701,7 @@ index 72242dfe..5a210729 100644
          _owner = player->GetGUID();
          _spell = me->GetUInt32Value(UNIT_CREATED_BY_SPELL);
 diff --git a/src/server/coa/AscensionPrimalistBarrier.cpp b/src/server/coa/AscensionPrimalistBarrier.cpp
-index ca139528..4e6ef3c0 100644
+index ca139528b3..4e6ef3c032 100644
 --- a/src/server/coa/AscensionPrimalistBarrier.cpp
 +++ b/src/server/coa/AscensionPrimalistBarrier.cpp
 @@ -1,5 +1,6 @@
@@ -3491,7 +3750,7 @@ index ca139528..4e6ef3c0 100644
  
      void Restore()
 diff --git a/src/server/coa/AscensionPrimalistBloodyClaws.cpp b/src/server/coa/AscensionPrimalistBloodyClaws.cpp
-index 57a50a61..8cc36eb8 100644
+index 57a50a61bd..8cc36eb80c 100644
 --- a/src/server/coa/AscensionPrimalistBloodyClaws.cpp
 +++ b/src/server/coa/AscensionPrimalistBloodyClaws.cpp
 @@ -1,5 +1,6 @@
@@ -3511,7 +3770,7 @@ index 57a50a61..8cc36eb8 100644
              !pet->IsFriendlyTo(victim) && damage && damage->GetDamage();
      }
 diff --git a/src/server/coa/AscensionPrimalistBones.cpp b/src/server/coa/AscensionPrimalistBones.cpp
-index b35ea443..cd303105 100644
+index b35ea443ba..cd3031053b 100644
 --- a/src/server/coa/AscensionPrimalistBones.cpp
 +++ b/src/server/coa/AscensionPrimalistBones.cpp
 @@ -1,5 +1,6 @@
@@ -3543,7 +3802,7 @@ index b35ea443..cd303105 100644
      SpellCastResult CheckPet()
      {
 diff --git a/src/server/coa/AscensionPrimalistBoons.cpp b/src/server/coa/AscensionPrimalistBoons.cpp
-index c60939ce..79c98dc3 100644
+index c60939ce29..79c98dc342 100644
 --- a/src/server/coa/AscensionPrimalistBoons.cpp
 +++ b/src/server/coa/AscensionPrimalistBoons.cpp
 @@ -1,5 +1,6 @@
@@ -3563,7 +3822,7 @@ index c60939ce..79c98dc3 100644
  
  bool IsPetCopy(Unit* target, Unit* caster)
 diff --git a/src/server/coa/AscensionPrimalistBoulder.cpp b/src/server/coa/AscensionPrimalistBoulder.cpp
-index 19c3ef85..22ae2a3c 100644
+index 19c3ef85ad..22ae2a3cb0 100644
 --- a/src/server/coa/AscensionPrimalistBoulder.cpp
 +++ b/src/server/coa/AscensionPrimalistBoulder.cpp
 @@ -1,5 +1,6 @@
@@ -3583,7 +3842,7 @@ index 19c3ef85..22ae2a3c 100644
              result = SPELL_FAILED_SPELL_IN_PROGRESS;
      }
 diff --git a/src/server/coa/AscensionPrimalistCataclysm.cpp b/src/server/coa/AscensionPrimalistCataclysm.cpp
-index 5c5af845..1e8b4d82 100644
+index 5c5af84531..1e8b4d82e6 100644
 --- a/src/server/coa/AscensionPrimalistCataclysm.cpp
 +++ b/src/server/coa/AscensionPrimalistCataclysm.cpp
 @@ -1,5 +1,6 @@
@@ -3604,7 +3863,7 @@ index 5c5af845..1e8b4d82 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistCrushingEarth.cpp b/src/server/coa/AscensionPrimalistCrushingEarth.cpp
-index 8db5abc7..5c2e2ece 100644
+index 8db5abc71a..5c2e2ece61 100644
 --- a/src/server/coa/AscensionPrimalistCrushingEarth.cpp
 +++ b/src/server/coa/AscensionPrimalistCrushingEarth.cpp
 @@ -1,5 +1,6 @@
@@ -3625,7 +3884,7 @@ index 8db5abc7..5c2e2ece 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistDruidTraining.cpp b/src/server/coa/AscensionPrimalistDruidTraining.cpp
-index 187b3c1f..be53254a 100644
+index 187b3c1f31..be53254a0a 100644
 --- a/src/server/coa/AscensionPrimalistDruidTraining.cpp
 +++ b/src/server/coa/AscensionPrimalistDruidTraining.cpp
 @@ -1,5 +1,6 @@
@@ -3646,7 +3905,7 @@ index 187b3c1f..be53254a 100644
              !owner->IsFriendlyTo(victim) && damage && damage->GetDamage();
      }
 diff --git a/src/server/coa/AscensionPrimalistEarthmotherRoar.cpp b/src/server/coa/AscensionPrimalistEarthmotherRoar.cpp
-index 94072c14..a8b73b2d 100644
+index 94072c1459..a8b73b2d59 100644
 --- a/src/server/coa/AscensionPrimalistEarthmotherRoar.cpp
 +++ b/src/server/coa/AscensionPrimalistEarthmotherRoar.cpp
 @@ -1,5 +1,6 @@
@@ -3666,7 +3925,7 @@ index 94072c14..a8b73b2d 100644
  
      void Heal()
 diff --git a/src/server/coa/AscensionPrimalistEarthsGuidance.cpp b/src/server/coa/AscensionPrimalistEarthsGuidance.cpp
-index 950705cf..033dc733 100644
+index 950705cf8b..033dc733ef 100644
 --- a/src/server/coa/AscensionPrimalistEarthsGuidance.cpp
 +++ b/src/server/coa/AscensionPrimalistEarthsGuidance.cpp
 @@ -1,5 +1,6 @@
@@ -3688,7 +3947,7 @@ index 950705cf..033dc733 100644
          if (HealInfo const* heal = event.GetHealInfo())
              return heal->GetEffectiveHeal() > 0;
 diff --git a/src/server/coa/AscensionPrimalistEarthshaker.cpp b/src/server/coa/AscensionPrimalistEarthshaker.cpp
-index e2281827..4056194d 100644
+index e2281827f0..4056194d3d 100644
 --- a/src/server/coa/AscensionPrimalistEarthshaker.cpp
 +++ b/src/server/coa/AscensionPrimalistEarthshaker.cpp
 @@ -1,5 +1,6 @@
@@ -3708,7 +3967,7 @@ index e2281827..4056194d 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistEarthshaping.cpp b/src/server/coa/AscensionPrimalistEarthshaping.cpp
-index 84495359..b9211a22 100644
+index 84495359db..b9211a22f7 100644
 --- a/src/server/coa/AscensionPrimalistEarthshaping.cpp
 +++ b/src/server/coa/AscensionPrimalistEarthshaping.cpp
 @@ -1,6 +1,7 @@
@@ -3729,7 +3988,7 @@ index 84495359..b9211a22 100644
  
  void SynchronizeEarthshapingHelpers(Unit* owner, bool remove)
 diff --git a/src/server/coa/AscensionPrimalistEmeraldWill.cpp b/src/server/coa/AscensionPrimalistEmeraldWill.cpp
-index 56459b99..88671726 100644
+index 56459b991f..8867172652 100644
 --- a/src/server/coa/AscensionPrimalistEmeraldWill.cpp
 +++ b/src/server/coa/AscensionPrimalistEmeraldWill.cpp
 @@ -1,5 +1,6 @@
@@ -3752,7 +4011,7 @@ index 56459b99..88671726 100644
              return;
          int32 type = info->Effects[effect].MiscValue;
 diff --git a/src/server/coa/AscensionPrimalistEmpoweredBoons.cpp b/src/server/coa/AscensionPrimalistEmpoweredBoons.cpp
-index 77193234..91f97d0f 100644
+index 771932344e..91f97d0fb5 100644
 --- a/src/server/coa/AscensionPrimalistEmpoweredBoons.cpp
 +++ b/src/server/coa/AscensionPrimalistEmpoweredBoons.cpp
 @@ -1,5 +1,6 @@
@@ -3773,7 +4032,7 @@ index 77193234..91f97d0f 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistGeomancy.cpp b/src/server/coa/AscensionPrimalistGeomancy.cpp
-index f0685fea..0b20e951 100644
+index f0685fea46..0b20e95192 100644
 --- a/src/server/coa/AscensionPrimalistGeomancy.cpp
 +++ b/src/server/coa/AscensionPrimalistGeomancy.cpp
 @@ -1,5 +1,6 @@
@@ -3802,7 +4061,7 @@ index f0685fea..0b20e951 100644
              source->GetSpellInfo()->SpellFamilyName == 37 &&
              sSpellMgr->GetFirstSpellInChain(source->GetSpellInfo()->Id) == StoneshardFirst &&
 diff --git a/src/server/coa/AscensionPrimalistGuidance.cpp b/src/server/coa/AscensionPrimalistGuidance.cpp
-index 7c1bc3d6..13ef3dca 100644
+index 7c1bc3d6e3..13ef3dca64 100644
 --- a/src/server/coa/AscensionPrimalistGuidance.cpp
 +++ b/src/server/coa/AscensionPrimalistGuidance.cpp
 @@ -1,5 +1,6 @@
@@ -3858,7 +4117,7 @@ index 7c1bc3d6..13ef3dca 100644
  
      void Reduce(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionPrimalistHeavyEarth.cpp b/src/server/coa/AscensionPrimalistHeavyEarth.cpp
-index 93998f03..e8fbcfd7 100644
+index 93998f03eb..e8fbcfd784 100644
 --- a/src/server/coa/AscensionPrimalistHeavyEarth.cpp
 +++ b/src/server/coa/AscensionPrimalistHeavyEarth.cpp
 @@ -1,5 +1,6 @@
@@ -3889,7 +4148,7 @@ index 93998f03..e8fbcfd7 100644
              (spell->Id == GeodeBarrageDamage || spell->GetFirstRankSpell()->Id == Stoneshard) &&
              damage && damage->GetDamage() && damage->GetDamageType() != DOT;
 diff --git a/src/server/coa/AscensionPrimalistJourney.cpp b/src/server/coa/AscensionPrimalistJourney.cpp
-index 4010b1cf..1b934a2b 100644
+index 4010b1cf48..1b934a2b56 100644
 --- a/src/server/coa/AscensionPrimalistJourney.cpp
 +++ b/src/server/coa/AscensionPrimalistJourney.cpp
 @@ -1,5 +1,6 @@
@@ -3920,7 +4179,7 @@ index 4010b1cf..1b934a2b 100644
  
      bool Validate(SpellInfo const*) override { return ValidateSpellInfo({JourneyGround, CragDamage}); }
 diff --git a/src/server/coa/AscensionPrimalistJudgement.cpp b/src/server/coa/AscensionPrimalistJudgement.cpp
-index 947c41e1..91ecd4af 100644
+index 947c41e14e..91ecd4af38 100644
 --- a/src/server/coa/AscensionPrimalistJudgement.cpp
 +++ b/src/server/coa/AscensionPrimalistJudgement.cpp
 @@ -1,5 +1,6 @@
@@ -3950,7 +4209,7 @@ index 947c41e1..91ecd4af 100644
              return;
          player->ApplySpellMod(MountainHammer, SPELLMOD_DAMAGE, hit.damage);
 diff --git a/src/server/coa/AscensionPrimalistLifeSpirit.cpp b/src/server/coa/AscensionPrimalistLifeSpirit.cpp
-index 41880f77..88e66686 100644
+index 41880f7795..88e666869a 100644
 --- a/src/server/coa/AscensionPrimalistLifeSpirit.cpp
 +++ b/src/server/coa/AscensionPrimalistLifeSpirit.cpp
 @@ -1,5 +1,6 @@
@@ -3989,7 +4248,7 @@ index 41880f77..88e66686 100644
  
          value += 0.2f * (std::max(0, const_cast<Unit*>(owner)->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE)) +
 diff --git a/src/server/coa/AscensionPrimalistLithicLance.cpp b/src/server/coa/AscensionPrimalistLithicLance.cpp
-index 8d7d6f28..c892f95f 100644
+index 8d7d6f2875..c892f95ff0 100644
 --- a/src/server/coa/AscensionPrimalistLithicLance.cpp
 +++ b/src/server/coa/AscensionPrimalistLithicLance.cpp
 @@ -1,5 +1,6 @@
@@ -4018,7 +4277,7 @@ index 8d7d6f28..c892f95f 100644
  
      void Consume()
 diff --git a/src/server/coa/AscensionPrimalistMountain.cpp b/src/server/coa/AscensionPrimalistMountain.cpp
-index 43be4fa5..abdc0193 100644
+index 43be4fa58c..abdc0193da 100644
 --- a/src/server/coa/AscensionPrimalistMountain.cpp
 +++ b/src/server/coa/AscensionPrimalistMountain.cpp
 @@ -1,4 +1,5 @@
@@ -4047,7 +4306,7 @@ index 43be4fa5..abdc0193 100644
          if (crossedDown)
              owner->RemoveAurasDueToSpell(MountainBuff, owner->GetGUID());
 diff --git a/src/server/coa/AscensionPrimalistMountainAvatar.cpp b/src/server/coa/AscensionPrimalistMountainAvatar.cpp
-index 9a1eb9e8..977e7206 100644
+index 9a1eb9e886..977e720637 100644
 --- a/src/server/coa/AscensionPrimalistMountainAvatar.cpp
 +++ b/src/server/coa/AscensionPrimalistMountainAvatar.cpp
 @@ -1,5 +1,6 @@
@@ -4078,7 +4337,7 @@ index 9a1eb9e8..977e7206 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistMountainFury.cpp b/src/server/coa/AscensionPrimalistMountainFury.cpp
-index 5e2f6eba..63a45f52 100644
+index 5e2f6eba2e..63a45f5278 100644
 --- a/src/server/coa/AscensionPrimalistMountainFury.cpp
 +++ b/src/server/coa/AscensionPrimalistMountainFury.cpp
 @@ -1,5 +1,6 @@
@@ -4107,7 +4366,7 @@ index 5e2f6eba..63a45f52 100644
  
      void Defend(SpellEffIndex)
 diff --git a/src/server/coa/AscensionPrimalistNeptulonWrath.cpp b/src/server/coa/AscensionPrimalistNeptulonWrath.cpp
-index 843f61e2..dc76d36b 100644
+index 843f61e2bd..dc76d36b28 100644
 --- a/src/server/coa/AscensionPrimalistNeptulonWrath.cpp
 +++ b/src/server/coa/AscensionPrimalistNeptulonWrath.cpp
 @@ -1,5 +1,6 @@
@@ -4127,7 +4386,7 @@ index 843f61e2..dc76d36b 100644
              value += std::clamp(caster->GetTotalAttackPowerValue(BASE_ATTACK) * 0.35f,
                  0.0f, float(std::numeric_limits<int32>::max() / 2));
 diff --git a/src/server/coa/AscensionPrimalistPendant.cpp b/src/server/coa/AscensionPrimalistPendant.cpp
-index 55179b16..dba1f234 100644
+index 55179b16f7..dba1f234ef 100644
 --- a/src/server/coa/AscensionPrimalistPendant.cpp
 +++ b/src/server/coa/AscensionPrimalistPendant.cpp
 @@ -1,5 +1,6 @@
@@ -4148,7 +4407,7 @@ index 55179b16..dba1f234 100644
              !owner->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
              !(event.GetTypeMask() & PROC_FLAG_DONE_PERIODIC);
 diff --git a/src/server/coa/AscensionPrimalistPhysicalCrit.cpp b/src/server/coa/AscensionPrimalistPhysicalCrit.cpp
-index 07da5310..08f43555 100644
+index 07da5310b0..08f435557b 100644
 --- a/src/server/coa/AscensionPrimalistPhysicalCrit.cpp
 +++ b/src/server/coa/AscensionPrimalistPhysicalCrit.cpp
 @@ -1,5 +1,6 @@
@@ -4168,7 +4427,7 @@ index 07da5310..08f43555 100644
              info->GetSchoolMask() != SPELL_SCHOOL_MASK_NORMAL || !info->IsCritCapable() ||
              info->HasAttribute(SPELL_ATTR2_CANT_CRIT))
 diff --git a/src/server/coa/AscensionPrimalistPowerHammer.cpp b/src/server/coa/AscensionPrimalistPowerHammer.cpp
-index 1c13e0fb..9bec5447 100644
+index 1c13e0fb17..9bec54479f 100644
 --- a/src/server/coa/AscensionPrimalistPowerHammer.cpp
 +++ b/src/server/coa/AscensionPrimalistPowerHammer.cpp
 @@ -1,5 +1,6 @@
@@ -4197,7 +4456,7 @@ index 1c13e0fb..9bec5447 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistPrimalStrikes.cpp b/src/server/coa/AscensionPrimalistPrimalStrikes.cpp
-index 8ca32eb7..0745c9d1 100644
+index 8ca32eb739..0745c9d1d8 100644
 --- a/src/server/coa/AscensionPrimalistPrimalStrikes.cpp
 +++ b/src/server/coa/AscensionPrimalistPrimalStrikes.cpp
 @@ -1,5 +1,6 @@
@@ -4219,7 +4478,7 @@ index 8ca32eb7..0745c9d1 100644
              (damage->GetSchoolMask() & SPELL_SCHOOL_MASK_NORMAL) && (event.GetHitMask() & PROC_HIT_CRITICAL);
      }
 diff --git a/src/server/coa/AscensionPrimalistPulverize.cpp b/src/server/coa/AscensionPrimalistPulverize.cpp
-index d0cad6eb..b49a0244 100644
+index d0cad6eb2b..b49a02448a 100644
 --- a/src/server/coa/AscensionPrimalistPulverize.cpp
 +++ b/src/server/coa/AscensionPrimalistPulverize.cpp
 @@ -1,5 +1,6 @@
@@ -4240,7 +4499,7 @@ index d0cad6eb..b49a0244 100644
              miss != SPELL_MISS_NONE || !damage || !critical || !target ||
              target != spell->m_targets.GetUnitTarget() || !caster->HasAura(Pulverize, caster->GetGUID()) ||
 diff --git a/src/server/coa/AscensionPrimalistQuakingThane.cpp b/src/server/coa/AscensionPrimalistQuakingThane.cpp
-index 2f483e49..d662593e 100644
+index 2f483e495e..d662593eb4 100644
 --- a/src/server/coa/AscensionPrimalistQuakingThane.cpp
 +++ b/src/server/coa/AscensionPrimalistQuakingThane.cpp
 @@ -1,5 +1,6 @@
@@ -4270,7 +4529,7 @@ index 2f483e49..d662593e 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistRexxarMight.cpp b/src/server/coa/AscensionPrimalistRexxarMight.cpp
-index 6df71abb..709dc8db 100644
+index 6df71abb70..709dc8db22 100644
 --- a/src/server/coa/AscensionPrimalistRexxarMight.cpp
 +++ b/src/server/coa/AscensionPrimalistRexxarMight.cpp
 @@ -1,5 +1,6 @@
@@ -4308,7 +4567,7 @@ index 6df71abb..709dc8db 100644
  
          double amount = double(value) + 0.15 * std::max(0.0f, owner->GetTotalAttackPowerValue(BASE_ATTACK));
 diff --git a/src/server/coa/AscensionPrimalistRipsAndTears.cpp b/src/server/coa/AscensionPrimalistRipsAndTears.cpp
-index 2fc109f5..bfc8104b 100644
+index 2fc109f5d8..bfc8104bcc 100644
 --- a/src/server/coa/AscensionPrimalistRipsAndTears.cpp
 +++ b/src/server/coa/AscensionPrimalistRipsAndTears.cpp
 @@ -1,5 +1,6 @@
@@ -4328,7 +4587,7 @@ index 2fc109f5..bfc8104b 100644
              return;
          owner->CastSpell(owner, RipsRage, TRIGGERED_FULL_MASK);
 diff --git a/src/server/coa/AscensionPrimalistRunningInstinct.cpp b/src/server/coa/AscensionPrimalistRunningInstinct.cpp
-index ec0308ee..54575dd9 100644
+index ec0308ee78..54575dd96e 100644
 --- a/src/server/coa/AscensionPrimalistRunningInstinct.cpp
 +++ b/src/server/coa/AscensionPrimalistRunningInstinct.cpp
 @@ -1,5 +1,6 @@
@@ -4348,7 +4607,7 @@ index ec0308ee..54575dd9 100644
  
      void Heal()
 diff --git a/src/server/coa/AscensionPrimalistRylaksBlessing.cpp b/src/server/coa/AscensionPrimalistRylaksBlessing.cpp
-index 29590fc3..5402e0f1 100644
+index 29590fc306..5402e0f12f 100644
 --- a/src/server/coa/AscensionPrimalistRylaksBlessing.cpp
 +++ b/src/server/coa/AscensionPrimalistRylaksBlessing.cpp
 @@ -1,5 +1,6 @@
@@ -4378,7 +4637,7 @@ index 29590fc3..5402e0f1 100644
  
      void Register() override
 diff --git a/src/server/coa/AscensionPrimalistSecondary.cpp b/src/server/coa/AscensionPrimalistSecondary.cpp
-index 1ce99663..8e9bb38d 100644
+index 1ce9966380..8e9bb38d68 100644
 --- a/src/server/coa/AscensionPrimalistSecondary.cpp
 +++ b/src/server/coa/AscensionPrimalistSecondary.cpp
 @@ -1,4 +1,5 @@
@@ -4469,7 +4728,7 @@ index 1ce99663..8e9bb38d 100644
  };
  }
 diff --git a/src/server/coa/AscensionPrimalistSeismicResources.cpp b/src/server/coa/AscensionPrimalistSeismicResources.cpp
-index 75e5e63e..456a21c8 100644
+index 75e5e63e89..456a21c892 100644
 --- a/src/server/coa/AscensionPrimalistSeismicResources.cpp
 +++ b/src/server/coa/AscensionPrimalistSeismicResources.cpp
 @@ -1,5 +1,6 @@
@@ -4489,7 +4748,7 @@ index 75e5e63e..456a21c8 100644
  
  class primalist_seismic_resources : public AllSpellScript
 diff --git a/src/server/coa/AscensionPrimalistShattering.cpp b/src/server/coa/AscensionPrimalistShattering.cpp
-index c1887697..dde9afd8 100644
+index c188769711..dde9afd819 100644
 --- a/src/server/coa/AscensionPrimalistShattering.cpp
 +++ b/src/server/coa/AscensionPrimalistShattering.cpp
 @@ -1,5 +1,6 @@
@@ -4510,7 +4769,7 @@ index c1887697..dde9afd8 100644
              caster->CastSpell(caster, ShatteringBuff, TRIGGERED_FULL_MASK);
      }
 diff --git a/src/server/coa/AscensionPrimalistSpiritBeast.cpp b/src/server/coa/AscensionPrimalistSpiritBeast.cpp
-index 6d51877c..ae53d740 100644
+index 6d51877c48..ae53d7405d 100644
 --- a/src/server/coa/AscensionPrimalistSpiritBeast.cpp
 +++ b/src/server/coa/AscensionPrimalistSpiritBeast.cpp
 @@ -1,6 +1,7 @@
@@ -4531,7 +4790,7 @@ index 6d51877c..ae53d740 100644
      if (IsAscensionPrimalistTameEligible(player))
          return true;
 diff --git a/src/server/coa/AscensionPrimalistSpiritualFrenzy.cpp b/src/server/coa/AscensionPrimalistSpiritualFrenzy.cpp
-index 49a8d4b0..fd800c3d 100644
+index 49a8d4b0ea..fd800c3d34 100644
 --- a/src/server/coa/AscensionPrimalistSpiritualFrenzy.cpp
 +++ b/src/server/coa/AscensionPrimalistSpiritualFrenzy.cpp
 @@ -1,5 +1,6 @@
@@ -4560,7 +4819,7 @@ index 49a8d4b0..fd800c3d 100644
              event.GetActor() == pet && !event.GetSpellInfo() && damage && damage->GetDamage() &&
              (event.GetTypeMask() & PROC_FLAG_DONE_MELEE_AUTO_ATTACK);
 diff --git a/src/server/coa/AscensionPrimalistTalents.cpp b/src/server/coa/AscensionPrimalistTalents.cpp
-index 2b28b1e2..d5b5c88a 100644
+index 2b28b1e20f..d5b5c88a74 100644
 --- a/src/server/coa/AscensionPrimalistTalents.cpp
 +++ b/src/server/coa/AscensionPrimalistTalents.cpp
 @@ -1,5 +1,6 @@
@@ -4580,7 +4839,7 @@ index 2b28b1e2..d5b5c88a 100644
  
  class primalist_talent_events : public UnitScript
 diff --git a/src/server/coa/AscensionPrimalistThorns.cpp b/src/server/coa/AscensionPrimalistThorns.cpp
-index 7682eec7..02160686 100644
+index 7682eec787..021606866e 100644
 --- a/src/server/coa/AscensionPrimalistThorns.cpp
 +++ b/src/server/coa/AscensionPrimalistThorns.cpp
 @@ -1,5 +1,6 @@
@@ -4602,7 +4861,7 @@ index 7682eec7..02160686 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistTorn.cpp b/src/server/coa/AscensionPrimalistTorn.cpp
-index 7208a686..2fd26bf2 100644
+index 7208a686d2..2fd26bf2b8 100644
 --- a/src/server/coa/AscensionPrimalistTorn.cpp
 +++ b/src/server/coa/AscensionPrimalistTorn.cpp
 @@ -1,5 +1,6 @@
@@ -4622,7 +4881,7 @@ index 7208a686..2fd26bf2 100644
              info->Effects[EFFECT_0].ApplyAuraName != SPELL_AURA_PERIODIC_DAMAGE)
              return;
 diff --git a/src/server/coa/AscensionPrimalistTotem.cpp b/src/server/coa/AscensionPrimalistTotem.cpp
-index c963ef99..dd94a6ee 100644
+index c963ef9997..dd94a6ee8a 100644
 --- a/src/server/coa/AscensionPrimalistTotem.cpp
 +++ b/src/server/coa/AscensionPrimalistTotem.cpp
 @@ -1,5 +1,6 @@
@@ -4642,7 +4901,7 @@ index c963ef99..dd94a6ee 100644
  
      void Summon(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionPrimalistTotemicEchoes.cpp b/src/server/coa/AscensionPrimalistTotemicEchoes.cpp
-index 851f0b07..ac986e40 100644
+index 851f0b0769..ac986e40cf 100644
 --- a/src/server/coa/AscensionPrimalistTotemicEchoes.cpp
 +++ b/src/server/coa/AscensionPrimalistTotemicEchoes.cpp
 @@ -1,5 +1,6 @@
@@ -4662,7 +4921,7 @@ index 851f0b07..ac986e40 100644
              !caster->IsValidAttackTarget(target))
              return;
 diff --git a/src/server/coa/AscensionPrimalistTremor.cpp b/src/server/coa/AscensionPrimalistTremor.cpp
-index 16dcdee3..b639799a 100644
+index 16dcdee368..b639799a6d 100644
 --- a/src/server/coa/AscensionPrimalistTremor.cpp
 +++ b/src/server/coa/AscensionPrimalistTremor.cpp
 @@ -1,5 +1,6 @@
@@ -4682,7 +4941,7 @@ index 16dcdee3..b639799a 100644
          sSpellMgr->GetFirstSpellInChain(info->Id) == SeismicTremor)
          caster->CastSpell(caster, TremorRage, TRIGGERED_FULL_MASK);
 diff --git a/src/server/coa/AscensionPrimalistTremors.cpp b/src/server/coa/AscensionPrimalistTremors.cpp
-index d3e34a81..f1827454 100644
+index d3e34a815b..f182745433 100644
 --- a/src/server/coa/AscensionPrimalistTremors.cpp
 +++ b/src/server/coa/AscensionPrimalistTremors.cpp
 @@ -1,5 +1,6 @@
@@ -4704,7 +4963,7 @@ index d3e34a81..f1827454 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistUrsoc.cpp b/src/server/coa/AscensionPrimalistUrsoc.cpp
-index 522a0822..ae14c519 100644
+index 522a082247..ae14c51912 100644
 --- a/src/server/coa/AscensionPrimalistUrsoc.cpp
 +++ b/src/server/coa/AscensionPrimalistUrsoc.cpp
 @@ -1,5 +1,6 @@
@@ -4724,7 +4983,7 @@ index 522a0822..ae14c519 100644
      }
  
 diff --git a/src/server/coa/AscensionPrimalistVerdantChase.cpp b/src/server/coa/AscensionPrimalistVerdantChase.cpp
-index dcc02304..40b211dc 100644
+index dcc0230407..40b211dccc 100644
 --- a/src/server/coa/AscensionPrimalistVerdantChase.cpp
 +++ b/src/server/coa/AscensionPrimalistVerdantChase.cpp
 @@ -1,5 +1,6 @@
@@ -4744,7 +5003,7 @@ index dcc02304..40b211dc 100644
  
      bool Validate(SpellInfo const* info) override
 diff --git a/src/server/coa/AscensionPrimalistVitality.cpp b/src/server/coa/AscensionPrimalistVitality.cpp
-index e845ae25..16105e7e 100644
+index e845ae25eb..16105e7e80 100644
 --- a/src/server/coa/AscensionPrimalistVitality.cpp
 +++ b/src/server/coa/AscensionPrimalistVitality.cpp
 @@ -1,5 +1,6 @@
@@ -4764,7 +5023,7 @@ index e845ae25..16105e7e 100644
              heal->GetHealer() == owner && heal->GetEffectiveHeal() > 0;
      }
 diff --git a/src/server/coa/AscensionPrimalistWeapons.cpp b/src/server/coa/AscensionPrimalistWeapons.cpp
-index 2bfb35ab..a4de67ec 100644
+index 2bfb35abf4..a4de67ece6 100644
 --- a/src/server/coa/AscensionPrimalistWeapons.cpp
 +++ b/src/server/coa/AscensionPrimalistWeapons.cpp
 @@ -1,5 +1,6 @@
@@ -4785,7 +5044,7 @@ index 2bfb35ab..a4de67ec 100644
      for (uint32 id : {SPELL_BESTIAL_MIGHT, SPELL_PRIMAL_MIGHT, SPELL_WILDCLAW_BONUS, SPELL_TALONFURY})
          player->RemoveAurasDueToSpell(id, player->GetGUID());
 diff --git a/src/server/coa/AscensionPrimalistWildheart.cpp b/src/server/coa/AscensionPrimalistWildheart.cpp
-index 6bbace0b..258bcc77 100644
+index 6bbace0b02..258bcc774a 100644
 --- a/src/server/coa/AscensionPrimalistWildheart.cpp
 +++ b/src/server/coa/AscensionPrimalistWildheart.cpp
 @@ -1,5 +1,6 @@
@@ -4806,7 +5065,7 @@ index 6bbace0b..258bcc77 100644
      }
  
 diff --git a/src/server/coa/AscensionPyromancer.cpp b/src/server/coa/AscensionPyromancer.cpp
-index d3280990..2b1437dd 100644
+index d328099085..44a4c45ecd 100644
 --- a/src/server/coa/AscensionPyromancer.cpp
 +++ b/src/server/coa/AscensionPyromancer.cpp
 @@ -1,6 +1,7 @@
@@ -4835,8 +5094,48 @@ index d3280990..2b1437dd 100644
          return false;
      int32 before = Count(player, id);
      int64 total = std::max<int64>(0, int64(before) + delta);
+@@ -399,7 +400,9 @@ void Refresh(Player* player)
+         player->learnSpell(802117, true);
+     if (!player->HasAura(92128))
+         player->removeSpell(802117, SPEC_MASK_ALL, true);
+-    if (player->HasAura(802117) && player->GetDisplayId() == player->GetNativeDisplayId())
++    if (player->HasAura(802117) &&
++        !AscensionClassLookCarriedElsewhere(player, CLASS_PYROMANCER, PyromancerDraconicDisplay) &&
++        player->GetDisplayId() == player->GetNativeDisplayId())
+         player->SetDisplayId(PyromancerDraconicDisplay);
+     if (player->HasAura(520937))
+         for (uint32 id : PyromancerEchoRanks)
+diff --git a/src/server/coa/AscensionPyromancerAuras.cpp b/src/server/coa/AscensionPyromancerAuras.cpp
+index 126e683288..b661f6334b 100644
+--- a/src/server/coa/AscensionPyromancerAuras.cpp
++++ b/src/server/coa/AscensionPyromancerAuras.cpp
+@@ -1,6 +1,7 @@
+ /* Copyright (C) 2016+ AzerothCore, GNU AGPL v3. */
+ #include "AscensionPyromancer.h"
+ #include "AscensionPyromancerData.h"
++#include "AscensionSpecialization.h"
+ #include "Player.h"
+ #include "ScriptMgr.h"
+ #include "SpellAuraEffects.h"
+@@ -226,12 +227,14 @@ class aura_ascension_pyromancer_draconic_form : public AuraScript
+     bool Validate(SpellInfo const* info) override { return info->Id == 802117; }
+     void Apply(AuraEffect const*, AuraEffectHandleModes)
+     {
+-        if (Player* player = Owner(GetTarget()))
++        if (Player* player = Owner(GetTarget());
++            player && !AscensionClassLookCarriedElsewhere(player, CLASS_PYROMANCER, PyromancerDraconicDisplay))
+             player->SetDisplayId(PyromancerDraconicDisplay);
+     }
+     void Remove(AuraEffect const*, AuraEffectHandleModes)
+     {
+-        if (Player* player = Owner(GetTarget()))
++        if (Player* player = Owner(GetTarget());
++            player && !AscensionClassLookCarriedElsewhere(player, CLASS_PYROMANCER, 0))
+             player->RestoreDisplayId();
+     }
+     void Register() override
 diff --git a/src/server/coa/AscensionRangerArchery.cpp b/src/server/coa/AscensionRangerArchery.cpp
-index c5e97a43..5e1f5f81 100644
+index c5e97a4307..5e1f5f813e 100644
 --- a/src/server/coa/AscensionRangerArchery.cpp
 +++ b/src/server/coa/AscensionRangerArchery.cpp
 @@ -1,4 +1,5 @@
@@ -4866,7 +5165,7 @@ index c5e97a43..5e1f5f81 100644
          return target == ranger ||
              (!ranger->IsFriendlyTo(target) && target->GetAuraOfRankedSpell(CHAIN_HUNTING_SHOT, ranger->GetGUID()));
 diff --git a/src/server/coa/AscensionRangerAssault.cpp b/src/server/coa/AscensionRangerAssault.cpp
-index 1187314c..1f7d1f34 100644
+index 1187314cd5..1f7d1f3463 100644
 --- a/src/server/coa/AscensionRangerAssault.cpp
 +++ b/src/server/coa/AscensionRangerAssault.cpp
 @@ -1,5 +1,6 @@
@@ -4886,7 +5185,7 @@ index 1187314c..1f7d1f34 100644
  
      void ScaleWeaponDamage(SpellEffIndex)
 diff --git a/src/server/coa/AscensionRangerDamage.cpp b/src/server/coa/AscensionRangerDamage.cpp
-index 614973f7..800c5ee3 100644
+index 614973f763..800c5ee3c3 100644
 --- a/src/server/coa/AscensionRangerDamage.cpp
 +++ b/src/server/coa/AscensionRangerDamage.cpp
 @@ -1,6 +1,7 @@
@@ -4925,7 +5224,7 @@ index 614973f7..800c5ee3 100644
      }
  
 diff --git a/src/server/coa/AscensionRangerDirtyFighter.cpp b/src/server/coa/AscensionRangerDirtyFighter.cpp
-index 2dc44c25..963e854d 100644
+index 2dc44c256e..963e854d8d 100644
 --- a/src/server/coa/AscensionRangerDirtyFighter.cpp
 +++ b/src/server/coa/AscensionRangerDirtyFighter.cpp
 @@ -1,4 +1,5 @@
@@ -4944,7 +5243,7 @@ index 2dc44c25..963e854d 100644
  
  bool CanSuckerPunch(Player* player)
 diff --git a/src/server/coa/AscensionRangerFalconstrike.cpp b/src/server/coa/AscensionRangerFalconstrike.cpp
-index 577a36dd..9d25094e 100644
+index 577a36dd4b..9d25094e91 100644
 --- a/src/server/coa/AscensionRangerFalconstrike.cpp
 +++ b/src/server/coa/AscensionRangerFalconstrike.cpp
 @@ -1,4 +1,5 @@
@@ -4981,7 +5280,7 @@ index 577a36dd..9d25094e 100644
              return;
          if (info->SpellFamilyFlags[1] & 4194304)
 diff --git a/src/server/coa/AscensionRangerFlowers.cpp b/src/server/coa/AscensionRangerFlowers.cpp
-index 3e3a59b3..09b45adc 100644
+index 3e3a59b3d4..09b45adc2c 100644
 --- a/src/server/coa/AscensionRangerFlowers.cpp
 +++ b/src/server/coa/AscensionRangerFlowers.cpp
 @@ -1,4 +1,5 @@
@@ -5062,7 +5361,7 @@ index 3e3a59b3..09b45adc 100644
                  if (player->HasAura(spell, player->GetGUID()))
                      player->RemoveAurasDueToSpell(spell, player->GetGUID());
 diff --git a/src/server/coa/AscensionRangerHookshot.cpp b/src/server/coa/AscensionRangerHookshot.cpp
-index dda6a02d..7c5cb27c 100644
+index dda6a02d21..7c5cb27c7e 100644
 --- a/src/server/coa/AscensionRangerHookshot.cpp
 +++ b/src/server/coa/AscensionRangerHookshot.cpp
 @@ -1,4 +1,5 @@
@@ -5081,7 +5380,7 @@ index dda6a02d..7c5cb27c 100644
  
  Unit* HookTarget(Player* player)
 diff --git a/src/server/coa/AscensionRangerOutmaneuver.cpp b/src/server/coa/AscensionRangerOutmaneuver.cpp
-index e33086aa..b80e57e0 100644
+index e33086aa8b..b80e57e09b 100644
 --- a/src/server/coa/AscensionRangerOutmaneuver.cpp
 +++ b/src/server/coa/AscensionRangerOutmaneuver.cpp
 @@ -1,4 +1,5 @@
@@ -5100,7 +5399,7 @@ index e33086aa..b80e57e0 100644
  
  bool CanManeuver(Player* player)
 diff --git a/src/server/coa/AscensionRangerPetalkeeper.cpp b/src/server/coa/AscensionRangerPetalkeeper.cpp
-index cd3ac89e..66a0d455 100644
+index cd3ac89e82..66a0d455b2 100644
 --- a/src/server/coa/AscensionRangerPetalkeeper.cpp
 +++ b/src/server/coa/AscensionRangerPetalkeeper.cpp
 @@ -1,4 +1,5 @@
@@ -5161,7 +5460,7 @@ index cd3ac89e..66a0d455 100644
          if (info->SpellFamilyFlags[2] & 8192)
              player->CastSpell(player, SPELL_RED_FLOWER, true);
 diff --git a/src/server/coa/AscensionRangerScaling.cpp b/src/server/coa/AscensionRangerScaling.cpp
-index 48015fb5..de186ecd 100644
+index 48015fb566..de186ecdc9 100644
 --- a/src/server/coa/AscensionRangerScaling.cpp
 +++ b/src/server/coa/AscensionRangerScaling.cpp
 @@ -1,5 +1,6 @@
@@ -5199,7 +5498,7 @@ index 48015fb5..de186ecd 100644
  
      void ScaleDamage(SpellEffIndex)
 diff --git a/src/server/coa/AscensionRangerSecondary.cpp b/src/server/coa/AscensionRangerSecondary.cpp
-index 4e50370f..9f042b87 100644
+index 4e50370fba..9f042b873e 100644
 --- a/src/server/coa/AscensionRangerSecondary.cpp
 +++ b/src/server/coa/AscensionRangerSecondary.cpp
 @@ -1,4 +1,5 @@
@@ -5248,7 +5547,7 @@ index 4e50370f..9f042b87 100644
  
      void Select(std::list<WorldObject*>& targets)
 diff --git a/src/server/coa/AscensionRangerTalents.cpp b/src/server/coa/AscensionRangerTalents.cpp
-index 15e252a1..432a5d2c 100644
+index 15e252a1c6..432a5d2cd9 100644
 --- a/src/server/coa/AscensionRangerTalents.cpp
 +++ b/src/server/coa/AscensionRangerTalents.cpp
 @@ -1,5 +1,6 @@
@@ -5330,7 +5629,7 @@ index 15e252a1..432a5d2c 100644
          !player->HasAura(SPELL_DIRTY_BLADES, player->GetGUID()))
          return;
 diff --git a/src/server/coa/AscensionReaperBloodBinding.cpp b/src/server/coa/AscensionReaperBloodBinding.cpp
-index fa73a66b..eeb8b4e0 100644
+index fa73a66bd5..eeb8b4e022 100644
 --- a/src/server/coa/AscensionReaperBloodBinding.cpp
 +++ b/src/server/coa/AscensionReaperBloodBinding.cpp
 @@ -1,4 +1,5 @@
@@ -5349,7 +5648,7 @@ index fa73a66b..eeb8b4e0 100644
  
          uint32 const spellId = spell->GetSpellInfo()->Id;
 diff --git a/src/server/coa/AscensionReaperDirge.cpp b/src/server/coa/AscensionReaperDirge.cpp
-index e43ba41c..5fbd181a 100644
+index e43ba41cc4..5fbd181a7d 100644
 --- a/src/server/coa/AscensionReaperDirge.cpp
 +++ b/src/server/coa/AscensionReaperDirge.cpp
 @@ -1,6 +1,7 @@
@@ -5379,7 +5678,7 @@ index e43ba41c..5fbd181a 100644
  
      void ApplyDaggerMultiplier()
 diff --git a/src/server/coa/AscensionReaperGhostClaw.cpp b/src/server/coa/AscensionReaperGhostClaw.cpp
-index 12a6e0b0..c33e182d 100644
+index 12a6e0b0a0..c33e182d1b 100644
 --- a/src/server/coa/AscensionReaperGhostClaw.cpp
 +++ b/src/server/coa/AscensionReaperGhostClaw.cpp
 @@ -1,4 +1,5 @@
@@ -5398,7 +5697,7 @@ index 12a6e0b0..c33e182d 100644
  
          for (uint32 spellId : GhostClawSpells)
 diff --git a/src/server/coa/AscensionReaperPainmail.cpp b/src/server/coa/AscensionReaperPainmail.cpp
-index f73af4c7..5e440573 100644
+index f73af4c776..5e4405733a 100644
 --- a/src/server/coa/AscensionReaperPainmail.cpp
 +++ b/src/server/coa/AscensionReaperPainmail.cpp
 @@ -1,6 +1,7 @@
@@ -5419,7 +5718,7 @@ index f73af4c7..5e440573 100644
          missInfo != SPELL_MISS_NONE || !damage || !player->HasAura(SPELL_PAINMAIL_TALENT) ||
          !IsPainmailAttack(spell->GetSpellInfo()) || !HasPainmailContract())
 diff --git a/src/server/coa/AscensionReaperRedshade.cpp b/src/server/coa/AscensionReaperRedshade.cpp
-index fb0a625c..3c681ef1 100644
+index fb0a625c5e..3c681ef177 100644
 --- a/src/server/coa/AscensionReaperRedshade.cpp
 +++ b/src/server/coa/AscensionReaperRedshade.cpp
 @@ -1,5 +1,6 @@
@@ -5468,7 +5767,7 @@ index fb0a625c..3c681ef1 100644
              application->GetBase()->GetCasterGUID() != unit->GetGUID())
              return;
 diff --git a/src/server/coa/AscensionReaperReflexes.cpp b/src/server/coa/AscensionReaperReflexes.cpp
-index 86a3e36e..c163d1c2 100644
+index 86a3e36efb..c163d1c208 100644
 --- a/src/server/coa/AscensionReaperReflexes.cpp
 +++ b/src/server/coa/AscensionReaperReflexes.cpp
 @@ -1,4 +1,5 @@
@@ -5487,7 +5786,7 @@ index 86a3e36e..c163d1c2 100644
              (event.GetHitMask() & PROC_HIT_DODGE) && attacker && attacker->IsAlive() &&
              owner->IsValidAttackTarget(attacker);
 diff --git a/src/server/coa/AscensionReaperSecondary.cpp b/src/server/coa/AscensionReaperSecondary.cpp
-index 1290ac52..e2967cb6 100644
+index 1290ac5296..e2967cb60b 100644
 --- a/src/server/coa/AscensionReaperSecondary.cpp
 +++ b/src/server/coa/AscensionReaperSecondary.cpp
 @@ -1,5 +1,6 @@
@@ -5601,7 +5900,7 @@ index 1290ac52..e2967cb6 100644
              victim->IsAlive() && !owner->IsFriendlyTo(victim) && damage && damage->GetDamage() &&
              damage->GetDamageType() != DOT && (!spell || spell->Id != SPELL_GHOSTLY_WEAPON_FROST) &&
 diff --git a/src/server/coa/AscensionReaperSoulStrike.cpp b/src/server/coa/AscensionReaperSoulStrike.cpp
-index 47dc27ff..2a65dac9 100644
+index 47dc27ff3d..2a65dac9c4 100644
 --- a/src/server/coa/AscensionReaperSoulStrike.cpp
 +++ b/src/server/coa/AscensionReaperSoulStrike.cpp
 @@ -1,6 +1,7 @@
@@ -5622,7 +5921,7 @@ index 47dc27ff..2a65dac9 100644
          player->IsFriendlyTo(target) || missInfo != SPELL_MISS_NONE || !IsSoulStrike(spell->GetSpellInfo()))
          return;
 diff --git a/src/server/coa/AscensionReaperSpellContracts.cpp b/src/server/coa/AscensionReaperSpellContracts.cpp
-index f4cc251e..fc6f0753 100644
+index f4cc251e91..fc6f0753b9 100644
 --- a/src/server/coa/AscensionReaperSpellContracts.cpp
 +++ b/src/server/coa/AscensionReaperSpellContracts.cpp
 @@ -1,5 +1,6 @@
@@ -5642,7 +5941,7 @@ index f4cc251e..fc6f0753 100644
  
              me->SetOwnerGUID(player->GetGUID());
 diff --git a/src/server/coa/AscensionReaperTalentProcs.cpp b/src/server/coa/AscensionReaperTalentProcs.cpp
-index 47336c4a..370bd61a 100644
+index 47336c4a0d..370bd61a49 100644
 --- a/src/server/coa/AscensionReaperTalentProcs.cpp
 +++ b/src/server/coa/AscensionReaperTalentProcs.cpp
 @@ -1,6 +1,7 @@
@@ -5673,7 +5972,7 @@ index 47336c4a..370bd61a 100644
      }
  
 diff --git a/src/server/coa/AscensionReaperTalents.cpp b/src/server/coa/AscensionReaperTalents.cpp
-index 66d5be45..0a92d1f4 100644
+index 66d5be4549..0a92d1f47b 100644
 --- a/src/server/coa/AscensionReaperTalents.cpp
 +++ b/src/server/coa/AscensionReaperTalents.cpp
 @@ -1,5 +1,6 @@
@@ -5773,7 +6072,7 @@ index 66d5be45..0a92d1f4 100644
  
      CastTalentTrigger(player, SPELL_ESSENCE_INVIGORATION, SPELL_ESSENCE_INVIGORATION_HEAL);
 diff --git a/src/server/coa/AscensionResourceTalents.cpp b/src/server/coa/AscensionResourceTalents.cpp
-index dc67f1e7..f00d39f7 100644
+index dc67f1e711..f00d39f78f 100644
 --- a/src/server/coa/AscensionResourceTalents.cpp
 +++ b/src/server/coa/AscensionResourceTalents.cpp
 @@ -1,4 +1,5 @@
@@ -5858,7 +6157,7 @@ index dc67f1e7..f00d39f7 100644
              return;
          if (AuraEffect const* talent = caster->GetAuraEffect(Superconductor, EFFECT_0))
 diff --git a/src/server/coa/AscensionRunemasterBrand.cpp b/src/server/coa/AscensionRunemasterBrand.cpp
-index 5b4c3db9..c5293bc8 100644
+index 5b4c3db96e..c5293bc85f 100644
 --- a/src/server/coa/AscensionRunemasterBrand.cpp
 +++ b/src/server/coa/AscensionRunemasterBrand.cpp
 @@ -1,6 +1,7 @@
@@ -5897,7 +6196,7 @@ index 5b4c3db9..c5293bc8 100644
  
      void PreventUnconditionalExplosion(SpellEffIndex effIndex)
 diff --git a/src/server/coa/AscensionRunemasterBurnedEtching.cpp b/src/server/coa/AscensionRunemasterBurnedEtching.cpp
-index 6c2d62cb..c0e36094 100644
+index 6c2d62cb99..c0e36094ca 100644
 --- a/src/server/coa/AscensionRunemasterBurnedEtching.cpp
 +++ b/src/server/coa/AscensionRunemasterBurnedEtching.cpp
 @@ -1,4 +1,5 @@
@@ -5916,7 +6215,7 @@ index 6c2d62cb..c0e36094 100644
  
  bool IsBurnedEtchingSource(uint32 spellId)
 diff --git a/src/server/coa/AscensionRunemasterDisappearance.cpp b/src/server/coa/AscensionRunemasterDisappearance.cpp
-index e5ef56c3..9c930d3b 100644
+index e5ef56c33f..9c930d3bad 100644
 --- a/src/server/coa/AscensionRunemasterDisappearance.cpp
 +++ b/src/server/coa/AscensionRunemasterDisappearance.cpp
 @@ -1,4 +1,5 @@
@@ -5944,7 +6243,7 @@ index e5ef56c3..9c930d3b 100644
              return;
  
 diff --git a/src/server/coa/AscensionRunemasterEchoes.cpp b/src/server/coa/AscensionRunemasterEchoes.cpp
-index 608930af..50ec6ae6 100644
+index 608930af05..9a18721669 100644
 --- a/src/server/coa/AscensionRunemasterEchoes.cpp
 +++ b/src/server/coa/AscensionRunemasterEchoes.cpp
 @@ -1,6 +1,7 @@
@@ -5964,8 +6263,17 @@ index 608930af..50ec6ae6 100644
  }
  
  uint64 Now()
+@@ -463,7 +464,7 @@ void SynchronizeAscensionRunemasterEchoes(Player* player, uint32 specializationI
+     if (!IsRunemaster(player))
+         return;
+     Runtime& runtime = *player->CustomData.GetDefault<Runtime>(RUNTIME_KEY);
+-    runtime.Specialization = specializationId;
++    runtime.Specialization = AscensionSpecializationForClass(player, CLASS_SPIRIT_MAGE, specializationId);
+     Synchronize(player, runtime);
+ }
+ 
 diff --git a/src/server/coa/AscensionRunemasterElementalTalents.cpp b/src/server/coa/AscensionRunemasterElementalTalents.cpp
-index c4617e32..11994179 100644
+index c4617e3248..11994179a9 100644
 --- a/src/server/coa/AscensionRunemasterElementalTalents.cpp
 +++ b/src/server/coa/AscensionRunemasterElementalTalents.cpp
 @@ -65,7 +65,7 @@ PrimordialAlteration const* AlterationByBlast(uint32 blast)
@@ -5978,7 +6286,7 @@ index c4617e32..11994179 100644
  
  class spell_ascension_runemaster_primeval_carving : public SpellScript
 diff --git a/src/server/coa/AscensionRunemasterGlyphs.cpp b/src/server/coa/AscensionRunemasterGlyphs.cpp
-index f556d213..43d4b3b3 100644
+index f556d21317..43d4b3b33e 100644
 --- a/src/server/coa/AscensionRunemasterGlyphs.cpp
 +++ b/src/server/coa/AscensionRunemasterGlyphs.cpp
 @@ -1,6 +1,7 @@
@@ -5999,7 +6307,7 @@ index f556d213..43d4b3b3 100644
  
  void GenerateGlyph(Unit* caster)
 diff --git a/src/server/coa/AscensionRunemasterHurricane.cpp b/src/server/coa/AscensionRunemasterHurricane.cpp
-index 618e88c3..f95303f8 100644
+index 618e88c367..f95303f84d 100644
 --- a/src/server/coa/AscensionRunemasterHurricane.cpp
 +++ b/src/server/coa/AscensionRunemasterHurricane.cpp
 @@ -1,4 +1,5 @@
@@ -6030,7 +6338,7 @@ index 618e88c3..f95303f8 100644
      void Scale()
      {
 diff --git a/src/server/coa/AscensionRunemasterManuscription.cpp b/src/server/coa/AscensionRunemasterManuscription.cpp
-index 6952e8a9..4ebadaf7 100644
+index 6952e8a961..4ebadaf78b 100644
 --- a/src/server/coa/AscensionRunemasterManuscription.cpp
 +++ b/src/server/coa/AscensionRunemasterManuscription.cpp
 @@ -1,5 +1,6 @@
@@ -6069,7 +6377,7 @@ index 6952e8a9..4ebadaf7 100644
              spell->GetScriptValue(CHAPTER_FIRED))
              return;
 diff --git a/src/server/coa/AscensionRunemasterRiftClones.cpp b/src/server/coa/AscensionRunemasterRiftClones.cpp
-index 29daa288..b8d7d5f3 100644
+index 29daa288e2..b8d7d5f364 100644
 --- a/src/server/coa/AscensionRunemasterRiftClones.cpp
 +++ b/src/server/coa/AscensionRunemasterRiftClones.cpp
 @@ -1,4 +1,5 @@
@@ -6108,7 +6416,7 @@ index 29daa288..b8d7d5f3 100644
      }
  };
 diff --git a/src/server/coa/AscensionRunemasterScaling.cpp b/src/server/coa/AscensionRunemasterScaling.cpp
-index 777c58f2..2b8d9ff0 100644
+index 777c58f250..2b8d9ff06a 100644
 --- a/src/server/coa/AscensionRunemasterScaling.cpp
 +++ b/src/server/coa/AscensionRunemasterScaling.cpp
 @@ -1,6 +1,7 @@
@@ -6129,7 +6437,7 @@ index 777c58f2..2b8d9ff0 100644
  
      void SuppressDefault(SpellEffIndex effIndex)
 diff --git a/src/server/coa/AscensionRunemasterSecondary.cpp b/src/server/coa/AscensionRunemasterSecondary.cpp
-index 992eca60..f662c53e 100644
+index 992eca60d9..f662c53e9f 100644
 --- a/src/server/coa/AscensionRunemasterSecondary.cpp
 +++ b/src/server/coa/AscensionRunemasterSecondary.cpp
 @@ -1,4 +1,5 @@
@@ -6219,7 +6527,7 @@ index 992eca60..f662c53e 100644
              damage->GetDamageType() != DOT;
      }
 diff --git a/src/server/coa/AscensionRunemasterTalentEffects.cpp b/src/server/coa/AscensionRunemasterTalentEffects.cpp
-index a3db8e0c..62e9ed23 100644
+index a3db8e0c2c..62e9ed23ea 100644
 --- a/src/server/coa/AscensionRunemasterTalentEffects.cpp
 +++ b/src/server/coa/AscensionRunemasterTalentEffects.cpp
 @@ -1,5 +1,6 @@
@@ -6239,7 +6547,7 @@ index a3db8e0c..62e9ed23 100644
  
  class spell_ascension_runemaster_earth_wind_and_fire : public SpellScript
 diff --git a/src/server/coa/AscensionRunemasterTalentMechanics.cpp b/src/server/coa/AscensionRunemasterTalentMechanics.cpp
-index 7e08e806..2c35660b 100644
+index 7e08e80680..2c35660be1 100644
 --- a/src/server/coa/AscensionRunemasterTalentMechanics.cpp
 +++ b/src/server/coa/AscensionRunemasterTalentMechanics.cpp
 @@ -1,5 +1,6 @@
@@ -6259,7 +6567,7 @@ index 7e08e806..2c35660b 100644
  
  void ReduceRankCooldowns(Player* player, uint32 firstRank, int32 delta)
 diff --git a/src/server/coa/AscensionRunemasterTalentProcs.cpp b/src/server/coa/AscensionRunemasterTalentProcs.cpp
-index 2ecf918b..0837cf0e 100644
+index 2ecf918bfa..0837cf0e6f 100644
 --- a/src/server/coa/AscensionRunemasterTalentProcs.cpp
 +++ b/src/server/coa/AscensionRunemasterTalentProcs.cpp
 @@ -1,6 +1,7 @@
@@ -6280,7 +6588,7 @@ index 2ecf918b..0837cf0e 100644
  
  void ReduceSharedCooldowns(Player* player, uint32 spellId, int32 delta)
 diff --git a/src/server/coa/AscensionRunemasterTalents.cpp b/src/server/coa/AscensionRunemasterTalents.cpp
-index 281c6210..435746e7 100644
+index 281c6210cc..435746e793 100644
 --- a/src/server/coa/AscensionRunemasterTalents.cpp
 +++ b/src/server/coa/AscensionRunemasterTalents.cpp
 @@ -1,5 +1,6 @@
@@ -6346,7 +6654,7 @@ index 281c6210..435746e7 100644
          SyncRuneshroudOrWaveforged(player);
          KeepRunicTempestMarker(player);
 diff --git a/src/server/coa/AscensionRunemasterTravel.cpp b/src/server/coa/AscensionRunemasterTravel.cpp
-index 9fbddf3a..2dbe9cca 100644
+index 9fbddf3a35..2dbe9ccaca 100644
 --- a/src/server/coa/AscensionRunemasterTravel.cpp
 +++ b/src/server/coa/AscensionRunemasterTravel.cpp
 @@ -1,5 +1,6 @@
@@ -6411,7 +6719,7 @@ index 9fbddf3a..2dbe9cca 100644
          for (uint32 spell : {SPELL_ECHO_RUNE, SPELL_WARPDAGGER})
              if ((MarkerGuid(player->GetGUID(), spell) || player->GetTemporarySpellReplacement(spell) != spell) &&
 diff --git a/src/server/coa/AscensionRunemasterZenith.cpp b/src/server/coa/AscensionRunemasterZenith.cpp
-index 8e77c884..b8e6550c 100644
+index 8e77c884a6..b8e6550cd9 100644
 --- a/src/server/coa/AscensionRunemasterZenith.cpp
 +++ b/src/server/coa/AscensionRunemasterZenith.cpp
 @@ -1,6 +1,7 @@
@@ -6432,7 +6740,7 @@ index 8e77c884..b8e6550c 100644
  
  bool HasPlainAttributes(SpellInfo const* info)
 diff --git a/src/server/coa/AscensionSpecialization.h b/src/server/coa/AscensionSpecialization.h
-index 3ab27b2d..c80f603b 100644
+index 3ab27b2d2f..dd79933734 100644
 --- a/src/server/coa/AscensionSpecialization.h
 +++ b/src/server/coa/AscensionSpecialization.h
 @@ -1,6 +1,7 @@
@@ -6455,7 +6763,7 @@ index 3ab27b2d..c80f603b 100644
  uint32 GetAscensionActiveSpecialization(Player const* player);
  
  bool SwitchAscensionSpecialization(Player* player, uint32 specializationId);
-@@ -26,6 +22,31 @@ void AddAscensionSpecializationSwitchGuard(AscensionSpecializationSwitchGuard gu
+@@ -26,6 +22,45 @@ void AddAscensionSpecializationSwitchGuard(AscensionSpecializationSwitchGuard gu
  std::string AscensionSpecializationSwitchRefusal(Player* player, uint32 activeSpecializationId,
      uint32 requestedSpecializationId);
  
@@ -6475,6 +6783,20 @@ index 3ab27b2d..c80f603b 100644
 +
 +bool UsesAscensionClassMechanics(Player const* player, uint8 classId);
 +
++bool UsesAnyAscensionClassMechanics(Player const* player);
++
++using AscensionClassSpecializationProvider = std::function<uint32(Player const* player, uint8 classId)>;
++
++void AddAscensionClassSpecializationProvider(AscensionClassSpecializationProvider provider);
++
++uint32 AscensionSpecializationForClass(Player const* player, uint8 classId, uint32 ownSpecializationId);
++
++using AscensionClassLookProvider = std::function<bool(Player* player, uint8 classId, uint32 displayId)>;
++
++void AddAscensionClassLookProvider(AscensionClassLookProvider provider);
++
++bool AscensionClassLookCarriedElsewhere(Player* player, uint8 classId, uint32 displayId);
++
 +AscensionCoATalentState::TalentAccess GetAscensionTalentAccess(Player const* player);
 +
 +bool ApplyAscensionTalentBuild(Player* player, std::vector<AscensionCoATalentState::KnownEntry> const& build,
@@ -6487,7 +6809,7 @@ index 3ab27b2d..c80f603b 100644
  void ClearAscensionSpecializationSlots(Player* player);
  
  uint32 ForgetAscensionClassTalents(Player* player);
-@@ -35,6 +56,7 @@ uint32 GetAscensionTalentRank(Player const* player, uint32 entryId);
+@@ -35,6 +70,7 @@ uint32 GetAscensionTalentRank(Player const* player, uint32 entryId);
  bool RestoreAscensionSpecializationSignature(Player* player);
  
  std::vector<AscensionCoATalentState::KnownEntry> GetAscensionKnownTalentEntries(Player const* player);
@@ -6496,7 +6818,7 @@ index 3ab27b2d..c80f603b 100644
  bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank);
  
 diff --git a/src/server/coa/AscensionStarcallerAbilities.cpp b/src/server/coa/AscensionStarcallerAbilities.cpp
-index d3a14bba..ad2741ce 100644
+index d3a14bba33..ad2741cec3 100644
 --- a/src/server/coa/AscensionStarcallerAbilities.cpp
 +++ b/src/server/coa/AscensionStarcallerAbilities.cpp
 @@ -1,4 +1,5 @@
@@ -6515,7 +6837,7 @@ index d3a14bba..ad2741ce 100644
              return;
          AuraEffect const* talent = player->GetAuraEffect(704771, EFFECT_0, player->GetGUID());
 diff --git a/src/server/coa/AscensionStormbringerDrown.cpp b/src/server/coa/AscensionStormbringerDrown.cpp
-index b51f4459..1b182687 100644
+index b51f4459e3..1b1826878a 100644
 --- a/src/server/coa/AscensionStormbringerDrown.cpp
 +++ b/src/server/coa/AscensionStormbringerDrown.cpp
 @@ -1,4 +1,5 @@
@@ -6534,7 +6856,7 @@ index b51f4459..1b182687 100644
  }
  
 diff --git a/src/server/coa/AscensionStormbringerLightning.cpp b/src/server/coa/AscensionStormbringerLightning.cpp
-index ecd8b6a4..82be73b5 100644
+index ecd8b6a497..82be73b5b6 100644
 --- a/src/server/coa/AscensionStormbringerLightning.cpp
 +++ b/src/server/coa/AscensionStormbringerLightning.cpp
 @@ -1,4 +1,5 @@
@@ -6553,7 +6875,7 @@ index ecd8b6a4..82be73b5 100644
              miss != SPELL_MISS_NONE || !damage)
              return;
 diff --git a/src/server/coa/AscensionStormbringerPet.cpp b/src/server/coa/AscensionStormbringerPet.cpp
-index f4496d17..dc18ff94 100644
+index f4496d171a..dc18ff94a9 100644
 --- a/src/server/coa/AscensionStormbringerPet.cpp
 +++ b/src/server/coa/AscensionStormbringerPet.cpp
 @@ -1,4 +1,5 @@
@@ -6597,7 +6919,7 @@ index f4496d17..dc18ff94 100644
          Pet* pet = player->GetPet();
          if (!pet || pet->GetEntry() != NPC_AIR_ELEMENTAL || pet->isBeingLoaded())
 diff --git a/src/server/coa/AscensionStormbringerSphere.cpp b/src/server/coa/AscensionStormbringerSphere.cpp
-index f35eaab2..1c9305ef 100644
+index f35eaab24c..1c9305ef42 100644
 --- a/src/server/coa/AscensionStormbringerSphere.cpp
 +++ b/src/server/coa/AscensionStormbringerSphere.cpp
 @@ -1,4 +1,5 @@
@@ -6626,7 +6948,7 @@ index f35eaab2..1c9305ef 100644
              !owner->IsValidAttackTarget(target) || miss != SPELL_MISS_NONE || info->Id == SPELL_POWER_SPHERE)
              return;
 diff --git a/src/server/coa/AscensionStormbringerStormflow.cpp b/src/server/coa/AscensionStormbringerStormflow.cpp
-index 81f8de84..115f005e 100644
+index 81f8de84eb..115f005e4b 100644
 --- a/src/server/coa/AscensionStormbringerStormflow.cpp
 +++ b/src/server/coa/AscensionStormbringerStormflow.cpp
 @@ -1,4 +1,5 @@
@@ -6663,7 +6985,7 @@ index 81f8de84..115f005e 100644
              !damage || spell->IsTriggered())
              return;
 diff --git a/src/server/coa/AscensionStormbringerSurge.cpp b/src/server/coa/AscensionStormbringerSurge.cpp
-index 54f5d4ca..0069445d 100644
+index 54f5d4ca23..0069445de7 100644
 --- a/src/server/coa/AscensionStormbringerSurge.cpp
 +++ b/src/server/coa/AscensionStormbringerSurge.cpp
 @@ -1,5 +1,6 @@
@@ -6683,7 +7005,7 @@ index 54f5d4ca..0069445d 100644
              value += 0.7f * float(std::max(0,
                  const_cast<Unit*>(caster)->SpellBaseDamageBonusDone(SPELL_SCHOOL_MASK_NATURE)));
 diff --git a/src/server/coa/AscensionStormbringerTalents.cpp b/src/server/coa/AscensionStormbringerTalents.cpp
-index 004a753c..f4a9fd66 100644
+index 004a753ca3..f4a9fd66b1 100644
 --- a/src/server/coa/AscensionStormbringerTalents.cpp
 +++ b/src/server/coa/AscensionStormbringerTalents.cpp
 @@ -1,5 +1,6 @@
@@ -6756,7 +7078,7 @@ index 004a753c..f4a9fd66 100644
  
      bool Check(ProcEventInfo& event)
 diff --git a/src/server/coa/AscensionStormbringerThunderOrb.cpp b/src/server/coa/AscensionStormbringerThunderOrb.cpp
-index 853116ca..5ccc2b44 100644
+index 853116ca50..5ccc2b44f5 100644
 --- a/src/server/coa/AscensionStormbringerThunderOrb.cpp
 +++ b/src/server/coa/AscensionStormbringerThunderOrb.cpp
 @@ -1,4 +1,5 @@
@@ -6793,7 +7115,7 @@ index 853116ca..5ccc2b44 100644
  
      void Summon(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionStormbringerWindGate.cpp b/src/server/coa/AscensionStormbringerWindGate.cpp
-index d4edc90a..206fe1aa 100644
+index d4edc90a2c..206fe1aaac 100644
 --- a/src/server/coa/AscensionStormbringerWindGate.cpp
 +++ b/src/server/coa/AscensionStormbringerWindGate.cpp
 @@ -1,4 +1,5 @@
@@ -6840,7 +7162,7 @@ index d4edc90a..206fe1aa 100644
  
      void Summon(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionStormbringerZephyr.cpp b/src/server/coa/AscensionStormbringerZephyr.cpp
-index 114dc6ea..2b279951 100644
+index 114dc6eae0..2b279951eb 100644
 --- a/src/server/coa/AscensionStormbringerZephyr.cpp
 +++ b/src/server/coa/AscensionStormbringerZephyr.cpp
 @@ -1,4 +1,5 @@
@@ -6879,7 +7201,7 @@ index 114dc6ea..2b279951 100644
  
      void Summon(SpellEffIndex index)
 diff --git a/src/server/coa/AscensionSunCleric.cpp b/src/server/coa/AscensionSunCleric.cpp
-index 6bec2a6e..73cafa32 100644
+index 6bec2a6e84..73cafa3279 100644
 --- a/src/server/coa/AscensionSunCleric.cpp
 +++ b/src/server/coa/AscensionSunCleric.cpp
 @@ -1,4 +1,5 @@
@@ -6907,7 +7229,7 @@ index 6bec2a6e..73cafa32 100644
      if (delta > 0 && (player->HasAura(Dawn) || State(player).dawnEvent))
          return true;
 diff --git a/src/server/coa/AscensionSunClericBattleCleric.cpp b/src/server/coa/AscensionSunClericBattleCleric.cpp
-index c58fd4b2..00e4fa13 100644
+index c58fd4b29e..00e4fa13c0 100644
 --- a/src/server/coa/AscensionSunClericBattleCleric.cpp
 +++ b/src/server/coa/AscensionSunClericBattleCleric.cpp
 @@ -1,4 +1,5 @@
@@ -6926,7 +7248,7 @@ index c58fd4b2..00e4fa13 100644
  
      void Apply(AuraEffect const*, AuraEffectHandleModes)
 diff --git a/src/server/coa/AscensionTemplar.cpp b/src/server/coa/AscensionTemplar.cpp
-index ba2af3a3..447c377d 100644
+index ba2af3a3d9..447c377d21 100644
 --- a/src/server/coa/AscensionTemplar.cpp
 +++ b/src/server/coa/AscensionTemplar.cpp
 @@ -1,4 +1,5 @@
@@ -6945,7 +7267,7 @@ index ba2af3a3..447c377d 100644
  TemplarState& State(Player* player)
  {
 diff --git a/src/server/coa/AscensionTemplarTemporaryLibramProcs.cpp b/src/server/coa/AscensionTemplarTemporaryLibramProcs.cpp
-index 8fcbb34c..a6cd8f93 100644
+index 8fcbb34ca6..a6cd8f9387 100644
 --- a/src/server/coa/AscensionTemplarTemporaryLibramProcs.cpp
 +++ b/src/server/coa/AscensionTemplarTemporaryLibramProcs.cpp
 @@ -1,5 +1,6 @@
@@ -6967,7 +7289,7 @@ index 8fcbb34c..a6cd8f93 100644
  
          SpellInfo const* castInfo = eventInfo.GetSpellInfo();
 diff --git a/src/server/coa/AscensionTinker.cpp b/src/server/coa/AscensionTinker.cpp
-index 1a6dae68..bfe56035 100644
+index 1a6dae68e6..bfe5603540 100644
 --- a/src/server/coa/AscensionTinker.cpp
 +++ b/src/server/coa/AscensionTinker.cpp
 @@ -1,4 +1,5 @@
@@ -6995,7 +7317,7 @@ index 1a6dae68..bfe56035 100644
      uint32 after = uint32(std::clamp<int64>(int64(Count(player,Scrap)) + delta,0,
          int64(AscensionCompatData::TINKER_SCRAP_MAX)));
 diff --git a/src/server/coa/AscensionTinkerAugmentationTalents.cpp b/src/server/coa/AscensionTinkerAugmentationTalents.cpp
-index 978db593..abfff2cc 100644
+index 978db59301..abfff2ccf8 100644
 --- a/src/server/coa/AscensionTinkerAugmentationTalents.cpp
 +++ b/src/server/coa/AscensionTinkerAugmentationTalents.cpp
 @@ -1,5 +1,6 @@
@@ -7042,7 +7364,7 @@ index 978db593..abfff2cc 100644
  
          for (uint32 id : MED_PACK_RANKS)
 diff --git a/src/server/coa/AscensionTinkerAugmentations.cpp b/src/server/coa/AscensionTinkerAugmentations.cpp
-index fb71cab2..d298c0f9 100644
+index fb71cab274..d298c0f9a5 100644
 --- a/src/server/coa/AscensionTinkerAugmentations.cpp
 +++ b/src/server/coa/AscensionTinkerAugmentations.cpp
 @@ -1,5 +1,6 @@
@@ -7107,7 +7429,7 @@ index fb71cab2..d298c0f9 100644
              spellInfo && spellInfo->Id != SPELL_STIM_HEAL &&
              !(eventInfo.GetTypeMask() & PROC_FLAG_DONE_PERIODIC);
 diff --git a/src/server/coa/AscensionTinkerCombatSymbiosis.cpp b/src/server/coa/AscensionTinkerCombatSymbiosis.cpp
-index a2ea79ae..8336715c 100644
+index a2ea79ae71..8336715cbc 100644
 --- a/src/server/coa/AscensionTinkerCombatSymbiosis.cpp
 +++ b/src/server/coa/AscensionTinkerCombatSymbiosis.cpp
 @@ -1,6 +1,7 @@
@@ -7128,7 +7450,7 @@ index a2ea79ae..8336715c 100644
  
      bool CheckDamage(ProcEventInfo& eventInfo)
 diff --git a/src/server/coa/AscensionTinkerHacking.cpp b/src/server/coa/AscensionTinkerHacking.cpp
-index 4be943c5..cdecc4d2 100644
+index 4be943c542..cdecc4d269 100644
 --- a/src/server/coa/AscensionTinkerHacking.cpp
 +++ b/src/server/coa/AscensionTinkerHacking.cpp
 @@ -1,5 +1,6 @@
@@ -7148,7 +7470,7 @@ index 4be943c5..cdecc4d2 100644
              modifier->ownerAura != GetAura() || modifier->spellId != SPELL_HACKING_THE_ENEMY ||
              modifier->type != SPELLMOD_FLAT || modifier->op != SpellModOp(effect->GetMiscValue()) ||
 diff --git a/src/server/coa/AscensionTinkerOverload.cpp b/src/server/coa/AscensionTinkerOverload.cpp
-index c4a5db74..bf41a47c 100644
+index c4a5db74ef..bf41a47c1c 100644
 --- a/src/server/coa/AscensionTinkerOverload.cpp
 +++ b/src/server/coa/AscensionTinkerOverload.cpp
 @@ -1,6 +1,7 @@
@@ -7178,7 +7500,7 @@ index c4a5db74..bf41a47c 100644
              player->RemoveAurasDueToSpell(SPELL_MECHANICAL_ARM, player->GetGUID());
      }
 diff --git a/src/server/coa/AscensionTinkerRockadier.cpp b/src/server/coa/AscensionTinkerRockadier.cpp
-index 6bf1e287..e80197a9 100644
+index 6bf1e287bf..e80197a991 100644
 --- a/src/server/coa/AscensionTinkerRockadier.cpp
 +++ b/src/server/coa/AscensionTinkerRockadier.cpp
 @@ -1,5 +1,6 @@
@@ -7198,7 +7520,7 @@ index 6bf1e287..e80197a9 100644
  
          GetAura()->SetCharges(0);
 diff --git a/src/server/coa/AscensionVenomancer.cpp b/src/server/coa/AscensionVenomancer.cpp
-index af406677..bc10dd10 100644
+index af4066779d..bc10dd103c 100644
 --- a/src/server/coa/AscensionVenomancer.cpp
 +++ b/src/server/coa/AscensionVenomancer.cpp
 @@ -1,5 +1,6 @@
@@ -7227,7 +7549,7 @@ index af406677..bc10dd10 100644
      uint32 maximum = sSpellMgr->GetSpellInfo(Brood)->CalcMaxAuraStacks(player);
      uint32 after = uint32(std::clamp<int64>(int64(Count(player, Brood)) + delta, 0, maximum));
 diff --git a/src/server/coa/AscensionVenomancerCatalyst.cpp b/src/server/coa/AscensionVenomancerCatalyst.cpp
-index 400d9312..44af41db 100644
+index 400d931273..44af41db4d 100644
 --- a/src/server/coa/AscensionVenomancerCatalyst.cpp
 +++ b/src/server/coa/AscensionVenomancerCatalyst.cpp
 @@ -1,6 +1,7 @@
@@ -7249,7 +7571,7 @@ index 400d9312..44af41db 100644
  
      void GrantImmediateRage()
 diff --git a/src/server/coa/AscensionVenomancerSerpentFang.cpp b/src/server/coa/AscensionVenomancerSerpentFang.cpp
-index 8abb477c..317020b4 100644
+index 8abb477cc0..317020b40a 100644
 --- a/src/server/coa/AscensionVenomancerSerpentFang.cpp
 +++ b/src/server/coa/AscensionVenomancerSerpentFang.cpp
 @@ -1,4 +1,5 @@
@@ -7270,7 +7592,7 @@ index 8abb477c..317020b4 100644
              !target || !target->IsInWorld() || target == player || player->IsFriendlyTo(target) ||
              player->GetMap() != target->GetMap() || !player->InSamePhase(target) || miss != SPELL_MISS_NONE ||
 diff --git a/src/server/coa/AscensionVenomancerVenomPayloads.cpp b/src/server/coa/AscensionVenomancerVenomPayloads.cpp
-index 6742b3b6..55e8b77c 100644
+index 6742b3b6c5..55e8b77c00 100644
 --- a/src/server/coa/AscensionVenomancerVenomPayloads.cpp
 +++ b/src/server/coa/AscensionVenomancerVenomPayloads.cpp
 @@ -1,5 +1,6 @@
@@ -7291,7 +7613,7 @@ index 6742b3b6..55e8b77c 100644
              return;
  
 diff --git a/src/server/coa/AscensionVenomancerVenomProcs.cpp b/src/server/coa/AscensionVenomancerVenomProcs.cpp
-index c7e58f88..4532c124 100644
+index c7e58f888e..4532c12438 100644
 --- a/src/server/coa/AscensionVenomancerVenomProcs.cpp
 +++ b/src/server/coa/AscensionVenomancerVenomProcs.cpp
 @@ -1,5 +1,6 @@
@@ -7311,7 +7633,7 @@ index c7e58f88..4532c124 100644
              IsActivation(GetSpellInfo()) && event.GetActor() == owner && source && !source->IsTriggered() &&
              source->GetCaster() == owner && source->GetOriginalCaster() == owner &&
 diff --git a/src/server/coa/AscensionVenomancerVenomTalents.cpp b/src/server/coa/AscensionVenomancerVenomTalents.cpp
-index deb18f68..635efc00 100644
+index deb18f6874..635efc00fd 100644
 --- a/src/server/coa/AscensionVenomancerVenomTalents.cpp
 +++ b/src/server/coa/AscensionVenomancerVenomTalents.cpp
 @@ -1,5 +1,6 @@
@@ -7340,7 +7662,7 @@ index deb18f68..635efc00 100644
  
      for (uint32 id : {805731u, 805775u})
 diff --git a/src/server/coa/AscensionVenomancerVenoms.cpp b/src/server/coa/AscensionVenomancerVenoms.cpp
-index c45d82d7..2cc044bd 100644
+index c45d82d7fb..2cc044bdc9 100644
 --- a/src/server/coa/AscensionVenomancerVenoms.cpp
 +++ b/src/server/coa/AscensionVenomancerVenoms.cpp
 @@ -1,6 +1,7 @@
@@ -7361,7 +7683,7 @@ index c45d82d7..2cc044bd 100644
  
  Aura* OwnActiveVenom(Player* player, uint32 spellId)
 diff --git a/src/server/coa/AscensionWarcraftReborn.cpp b/src/server/coa/AscensionWarcraftReborn.cpp
-index 7cbe26c4..b7832b02 100644
+index 7cbe26c428..b7832b0203 100644
 --- a/src/server/coa/AscensionWarcraftReborn.cpp
 +++ b/src/server/coa/AscensionWarcraftReborn.cpp
 @@ -26,6 +26,7 @@ Data Loaded;
@@ -7406,7 +7728,7 @@ index 7cbe26c4..b7832b02 100644
          LearnOutfitSkills(player);
          LearnMissing(player, StartingSpells(Loaded, CurrentRealm, player->getClass(), StartLevel(player)));
 diff --git a/src/server/coa/AscensionWarcraftRebornRules.cpp b/src/server/coa/AscensionWarcraftRebornRules.cpp
-index c2dc7a13..a4532183 100644
+index c2dc7a13e4..a45321832e 100644
 --- a/src/server/coa/AscensionWarcraftRebornRules.cpp
 +++ b/src/server/coa/AscensionWarcraftRebornRules.cpp
 @@ -43,7 +43,7 @@ bool Stock(Data const& data, Row const& row)
@@ -7499,7 +7821,7 @@ index c2dc7a13..a4532183 100644
      std::sort(missing.begin(), missing.end());
      for (std::uint32_t spellId : missing)
 diff --git a/src/server/coa/AscensionWarcraftRebornRules.h b/src/server/coa/AscensionWarcraftRebornRules.h
-index fcf9e82b..d0b17c95 100644
+index fcf9e82b30..d0b17c9565 100644
 --- a/src/server/coa/AscensionWarcraftRebornRules.h
 +++ b/src/server/coa/AscensionWarcraftRebornRules.h
 @@ -4,6 +4,7 @@
@@ -7540,7 +7862,7 @@ index fcf9e82b..d0b17c95 100644
      std::uint32_t classId, std::uint32_t level);
  std::vector<std::uint32_t> ClassSkillLines(Data const& data, AscensionFreepick::Realm const& realm,
 diff --git a/src/server/coa/AscensionWitchDoctorCompletion.cpp b/src/server/coa/AscensionWitchDoctorCompletion.cpp
-index 8ff7a2a3..52459a5a 100644
+index 8ff7a2a344..52459a5af8 100644
 --- a/src/server/coa/AscensionWitchDoctorCompletion.cpp
 +++ b/src/server/coa/AscensionWitchDoctorCompletion.cpp
 @@ -1,5 +1,6 @@
@@ -7560,7 +7882,7 @@ index 8ff7a2a3..52459a5a 100644
  DoctorState& State(Player* player)
  {
 diff --git a/src/server/coa/AscensionWitchDoctorSummons.cpp b/src/server/coa/AscensionWitchDoctorSummons.cpp
-index f9a80634..04acd884 100644
+index f9a8063452..04acd88449 100644
 --- a/src/server/coa/AscensionWitchDoctorSummons.cpp
 +++ b/src/server/coa/AscensionWitchDoctorSummons.cpp
 @@ -1,5 +1,6 @@
@@ -7607,7 +7929,7 @@ index f9a80634..04acd884 100644
          int32 mana = 0;
          auto summons = State(player).summons;
 diff --git a/src/server/coa/AscensionWitchHunterAbilities.cpp b/src/server/coa/AscensionWitchHunterAbilities.cpp
-index 0d717f5f..328ea1a2 100644
+index 0d717f5f0d..328ea1a251 100644
 --- a/src/server/coa/AscensionWitchHunterAbilities.cpp
 +++ b/src/server/coa/AscensionWitchHunterAbilities.cpp
 @@ -74,6 +74,17 @@ bool SixfoldShotReady(Player* player)
@@ -7637,7 +7959,7 @@ index 0d717f5f..328ea1a2 100644
              talent(681156, 681155);
              player->RemoveAurasDueToSpell(500102);
 diff --git a/src/server/coa/AscensionWitchHunterCompletion.cpp b/src/server/coa/AscensionWitchHunterCompletion.cpp
-index 5b261e0b..d5e5fe36 100644
+index 5b261e0b64..d5e5fe3664 100644
 --- a/src/server/coa/AscensionWitchHunterCompletion.cpp
 +++ b/src/server/coa/AscensionWitchHunterCompletion.cpp
 @@ -1,5 +1,6 @@
@@ -7675,7 +7997,7 @@ index 5b261e0b..d5e5fe36 100644
          for (WitchCoefficient const& c : WitchCoefficients)
              if (c.id == info->Id && c.effect == index)
 diff --git a/src/server/coa/AscensionWitchHunterDefenses.cpp b/src/server/coa/AscensionWitchHunterDefenses.cpp
-index 36ca4003..e7046099 100644
+index 36ca400390..e7046099bb 100644
 --- a/src/server/coa/AscensionWitchHunterDefenses.cpp
 +++ b/src/server/coa/AscensionWitchHunterDefenses.cpp
 @@ -1,6 +1,7 @@
@@ -7696,7 +8018,7 @@ index 36ca4003..e7046099 100644
          };
          if (unit && target && (disguise(unit, target) || disguise(target, unit)))
 diff --git a/src/server/coa/AscensionWitchHunterFlames.cpp b/src/server/coa/AscensionWitchHunterFlames.cpp
-index 0dd4b477..d052a40a 100644
+index 0dd4b4770e..d052a40ace 100644
 --- a/src/server/coa/AscensionWitchHunterFlames.cpp
 +++ b/src/server/coa/AscensionWitchHunterFlames.cpp
 @@ -1,6 +1,7 @@
@@ -7717,7 +8039,7 @@ index 0dd4b477..d052a40a 100644
  
  bool IsFlameGrantHelper(uint32 id)
 diff --git a/src/server/coa/AscensionWitchHunterTonicTalents.cpp b/src/server/coa/AscensionWitchHunterTonicTalents.cpp
-index 40a4d8c5..765f9fe9 100644
+index 40a4d8c5be..765f9fe981 100644
 --- a/src/server/coa/AscensionWitchHunterTonicTalents.cpp
 +++ b/src/server/coa/AscensionWitchHunterTonicTalents.cpp
 @@ -1,5 +1,6 @@
@@ -7738,7 +8060,7 @@ index 40a4d8c5..765f9fe9 100644
  
      void ReduceOtherTonics()
 diff --git a/src/server/coa/AscensionWitchHunterTonics.cpp b/src/server/coa/AscensionWitchHunterTonics.cpp
-index 6a8b6a69..1ed4c4a7 100644
+index 6a8b6a6904..1ed4c4a768 100644
 --- a/src/server/coa/AscensionWitchHunterTonics.cpp
 +++ b/src/server/coa/AscensionWitchHunterTonics.cpp
 @@ -1,5 +1,6 @@
@@ -7758,7 +8080,7 @@ index 6a8b6a69..1ed4c4a7 100644
  
  bool IsDarkTonicContract(SpellInfo const* spellInfo)
 diff --git a/src/server/coa/AscensionWitchHunterTorch.cpp b/src/server/coa/AscensionWitchHunterTorch.cpp
-index 72cd15e2..8d6fcc9a 100644
+index 72cd15e2a6..8d6fcc9a0a 100644
 --- a/src/server/coa/AscensionWitchHunterTorch.cpp
 +++ b/src/server/coa/AscensionWitchHunterTorch.cpp
 @@ -1,5 +1,6 @@
@@ -7789,7 +8111,7 @@ index 72cd15e2..8d6fcc9a 100644
  
      void ResetTorchlight()
 diff --git a/src/server/coa/AscensionWitchHunterTorchlight.cpp b/src/server/coa/AscensionWitchHunterTorchlight.cpp
-index eed64e87..86b241ea 100644
+index eed64e87d7..86b241eac3 100644
 --- a/src/server/coa/AscensionWitchHunterTorchlight.cpp
 +++ b/src/server/coa/AscensionWitchHunterTorchlight.cpp
 @@ -1,5 +1,6 @@
@@ -7809,7 +8131,7 @@ index eed64e87..86b241ea 100644
      }
  
 diff --git a/src/server/coa/CoAGameplayTest.cpp b/src/server/coa/CoAGameplayTest.cpp
-index 6e959a24..7e80b705 100644
+index 6e959a2433..7e80b70532 100644
 --- a/src/server/coa/CoAGameplayTest.cpp
 +++ b/src/server/coa/CoAGameplayTest.cpp
 @@ -2304,7 +2304,7 @@ private:
@@ -7822,7 +8144,7 @@ index 6e959a24..7e80b705 100644
                  }));
          }
 diff --git a/src/server/coa/CoAScriptLoader.cpp b/src/server/coa/CoAScriptLoader.cpp
-index cf3751c1..fcc8cdbd 100644
+index cf3751c19d..fcc8cdbde5 100644
 --- a/src/server/coa/CoAScriptLoader.cpp
 +++ b/src/server/coa/CoAScriptLoader.cpp
 @@ -62,6 +62,9 @@ void AddSC_drakkin_racials();
@@ -7846,7 +8168,7 @@ index cf3751c1..fcc8cdbd 100644
      AddSC_CoADungeonBossKit();
      AddSC_CoADungeonNormal();
 diff --git a/src/server/coa/CoASpellbook.cpp b/src/server/coa/CoASpellbook.cpp
-index cc56ceb4..9ceb7eb0 100644
+index cc56ceb4c8..9ceb7eb07e 100644
 --- a/src/server/coa/CoASpellbook.cpp
 +++ b/src/server/coa/CoASpellbook.cpp
 @@ -3,6 +3,17 @@
@@ -7868,7 +8190,7 @@ index cc56ceb4..9ceb7eb0 100644
  
  void CoASpellbook::SetProvider(Provider provider)
 diff --git a/src/server/coa/CoASpellbook.h b/src/server/coa/CoASpellbook.h
-index aa2fe508..b0c4a5c0 100644
+index aa2fe5082c..b0c4a5c084 100644
 --- a/src/server/coa/CoASpellbook.h
 +++ b/src/server/coa/CoASpellbook.h
 @@ -2,6 +2,7 @@
@@ -7892,7 +8214,7 @@ index aa2fe508..b0c4a5c0 100644
      double RowCount(Player* player);
      double OffersSpell(Player* player, std::uint32_t spellId);
 diff --git a/src/server/coa/EsteriaRacials/CoaRacialSync.cpp b/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
-index bb299e1b..bfa32a5c 100644
+index bb299e1bf4..bfa32a5c5c 100644
 --- a/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
 +++ b/src/server/coa/EsteriaRacials/CoaRacialSync.cpp
 @@ -63,6 +63,5 @@ public:
@@ -7903,7 +8225,7 @@ index bb299e1b..bfa32a5c 100644
      new CoaRacialSync();
  }
 diff --git a/src/server/coa/EsteriaRacials/race_racials.cpp b/src/server/coa/EsteriaRacials/race_racials.cpp
-index 5b1360e6..6d2f0621 100644
+index 5b1360e61c..6d2f062154 100644
 --- a/src/server/coa/EsteriaRacials/race_racials.cpp
 +++ b/src/server/coa/EsteriaRacials/race_racials.cpp
 @@ -1084,6 +1084,15 @@ class spell_race_visage : public SpellScript
@@ -7955,7 +8277,7 @@ index 5b1360e6..6d2f0621 100644
      RegisterSpellScript(spell_race_ingest_minerals);
      RegisterSpellScript(spell_race_quiet_contemplation);
 diff --git a/src/server/coa/conf/coa.conf.dist b/src/server/coa/conf/coa.conf.dist
-index c464b384..c98a3f1b 100644
+index c464b3845e..c98a3f1ba4 100644
 --- a/src/server/coa/conf/coa.conf.dist
 +++ b/src/server/coa/conf/coa.conf.dist
 @@ -152,6 +152,15 @@ CoA.LearnOwnedCompanions = 1
@@ -7994,7 +8316,7 @@ index c464b384..c98a3f1b 100644
  #    CoA.GameModeMask
  #        Description: Custom game-mode bits sent to the client when a character logs in, which
 diff --git a/src/server/database/Database/Implementation/CharacterDatabase.cpp b/src/server/database/Database/Implementation/CharacterDatabase.cpp
-index 5d8579ec..de62c580 100644
+index 5d8579ec91..de62c5807d 100644
 --- a/src/server/database/Database/Implementation/CharacterDatabase.cpp
 +++ b/src/server/database/Database/Implementation/CharacterDatabase.cpp
 @@ -256,6 +256,32 @@ void CharacterDatabaseConnection::DoPrepareStatements()
@@ -8031,7 +8353,7 @@ index 5d8579ec..de62c580 100644
                       "c.position_x, c.position_y, c.position_z, gm.guildid, c.playerFlags, c.at_login, cp.entry, cp.modelid, cp.level, c.equipmentCache, "
                       "cb.guid, c.extra_flags, cd.genitive, c.extraAppearance FROM characters AS c LEFT JOIN character_pet AS cp ON c.guid = cp.owner AND cp.slot = ? "
 diff --git a/src/server/database/Database/Implementation/CharacterDatabase.h b/src/server/database/Database/Implementation/CharacterDatabase.h
-index d6234643..fb027c01 100644
+index d62346436f..fb027c019a 100644
 --- a/src/server/database/Database/Implementation/CharacterDatabase.h
 +++ b/src/server/database/Database/Implementation/CharacterDatabase.h
 @@ -48,6 +48,17 @@ enum CharacterDatabaseStatements : uint32
@@ -8053,7 +8375,7 @@ index d6234643..fb027c01 100644
      CHAR_SEL_CHAR_ZONE,
      CHAR_SEL_CHARACTER_NAME_DATA,
 diff --git a/src/server/game/Entities/Creature/Trainer.cpp b/src/server/game/Entities/Creature/Trainer.cpp
-index d8a83017..1a9a1684 100644
+index d8a830177b..1a9a16843a 100644
 --- a/src/server/game/Entities/Creature/Trainer.cpp
 +++ b/src/server/game/Entities/Creature/Trainer.cpp
 @@ -28,6 +28,7 @@
@@ -8077,7 +8399,7 @@ index d8a83017..1a9a1684 100644
  
      void SetRankTrainerHero(RankTrainerHero heroes)
 diff --git a/src/server/game/Entities/Creature/Trainer.h b/src/server/game/Entities/Creature/Trainer.h
-index a4ce2520..ddcb83df 100644
+index a4ce252018..ddcb83df47 100644
 --- a/src/server/game/Entities/Creature/Trainer.h
 +++ b/src/server/game/Entities/Creature/Trainer.h
 @@ -109,9 +109,10 @@ namespace Trainer
@@ -8094,7 +8416,7 @@ index a4ce2520..ddcb83df 100644
      /// The trainer that serves this player at this unit: its own, or the class trainer the realm puts in its place,
      /// except that a rank-training Hero is taught the next rank of each ability it knows at any class trainer or
 diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
-index 3d61d957..03c0eeaf 100644
+index 3d61d95791..03c0eeaff4 100644
 --- a/src/server/game/Entities/Player/Player.cpp
 +++ b/src/server/game/Entities/Player/Player.cpp
 @@ -16,6 +16,7 @@
@@ -8320,7 +8642,7 @@ index 3d61d957..03c0eeaf 100644
              }
  
 diff --git a/src/server/game/Entities/Player/Player.h b/src/server/game/Entities/Player/Player.h
-index a3119e7e..5c1a618e 100644
+index a3119e7eb9..5c1a618e7d 100644
 --- a/src/server/game/Entities/Player/Player.h
 +++ b/src/server/game/Entities/Player/Player.h
 @@ -19,6 +19,8 @@
@@ -8388,7 +8710,7 @@ index a3119e7e..5c1a618e 100644
 +#endif
 \ No newline at end of file
 diff --git a/src/server/game/Entities/Player/PlayerQuest.cpp b/src/server/game/Entities/Player/PlayerQuest.cpp
-index 778fee3e..bb5f5fad 100644
+index 778fee3e64..bb5f5fad6c 100644
 --- a/src/server/game/Entities/Player/PlayerQuest.cpp
 +++ b/src/server/game/Entities/Player/PlayerQuest.cpp
 @@ -1200,7 +1200,7 @@ bool Player::SatisfyQuestRace(Quest const* qInfo, bool msg) const
@@ -8401,7 +8723,7 @@ index 778fee3e..bb5f5fad 100644
          if (msg)
              SendCanTakeQuestResponse(INVALIDREASON_QUEST_FAILED_WRONG_RACE);
 diff --git a/src/server/game/Entities/Player/PlayerStorage.cpp b/src/server/game/Entities/Player/PlayerStorage.cpp
-index bda2ffab..c1bbe821 100644
+index bda2ffab06..c1bbe821cc 100644
 --- a/src/server/game/Entities/Player/PlayerStorage.cpp
 +++ b/src/server/game/Entities/Player/PlayerStorage.cpp
 @@ -5760,6 +5760,9 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
@@ -8415,7 +8737,7 @@ index bda2ffab..c1bbe821 100644
      // Players are immune to taunt
      ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_TAUNT, true);
 diff --git a/src/server/game/Entities/Player/PlayerUpdates.cpp b/src/server/game/Entities/Player/PlayerUpdates.cpp
-index 813e628d..ed9d94d9 100644
+index 813e628db3..ed9d94d98b 100644
 --- a/src/server/game/Entities/Player/PlayerUpdates.cpp
 +++ b/src/server/game/Entities/Player/PlayerUpdates.cpp
 @@ -1780,6 +1780,8 @@ inline void UpdateVisibilityOf_helper(Player* player, Player* target,
@@ -8441,7 +8763,7 @@ index 813e628d..ed9d94d9 100644
              // caster client send data at target visibility change (adding to
              // client)
 diff --git a/src/server/game/Entities/Unit/Unit.cpp b/src/server/game/Entities/Unit/Unit.cpp
-index 785f131e..71af41c2 100644
+index 785f131e2e..71af41c20f 100644
 --- a/src/server/game/Entities/Unit/Unit.cpp
 +++ b/src/server/game/Entities/Unit/Unit.cpp
 @@ -14443,6 +14443,8 @@ void Unit::RestoreDisplayId()
@@ -8493,7 +8815,7 @@ index 785f131e..71af41c2 100644
              return 1u << (RACE_NIGHTELF - 1);
          case 60: case 63: case 81: case 84: case 90: case 101:
 diff --git a/src/server/game/Handlers/CharacterHandler.cpp b/src/server/game/Handlers/CharacterHandler.cpp
-index 8323b01e..bab1d40c 100644
+index 8323b01ec4..bab1d40cf6 100644
 --- a/src/server/game/Handlers/CharacterHandler.cpp
 +++ b/src/server/game/Handlers/CharacterHandler.cpp
 @@ -222,11 +222,49 @@ bool LoginQueryHolder::Initialize()
@@ -8727,7 +9049,7 @@ index 8323b01e..bab1d40c 100644
  {
      std::shared_ptr<CharacterFactionChangeInfo> factionChangeInfo = std::make_shared<CharacterFactionChangeInfo>();
 diff --git a/src/server/game/Reputation/ReputationMgr.cpp b/src/server/game/Reputation/ReputationMgr.cpp
-index ec3d398d..994c8f33 100644
+index ec3d398ddd..994c8f33dc 100644
 --- a/src/server/game/Reputation/ReputationMgr.cpp
 +++ b/src/server/game/Reputation/ReputationMgr.cpp
 @@ -677,15 +677,15 @@ void ReputationMgr::ApplyStartingZoneReputation()
@@ -8750,7 +9072,7 @@ index ec3d398d..994c8f33 100644
              tmpl = T_NE; break;
          case 60: case 63: case 81: case 84: case 90: case 101:
 diff --git a/src/server/game/Scripting/ScriptDefines/PlayerScript.cpp b/src/server/game/Scripting/ScriptDefines/PlayerScript.cpp
-index fb96e99e..f6949724 100644
+index fb96e99ed2..f694972490 100644
 --- a/src/server/game/Scripting/ScriptDefines/PlayerScript.cpp
 +++ b/src/server/game/Scripting/ScriptDefines/PlayerScript.cpp
 @@ -1070,6 +1070,12 @@ void ScriptMgr::OnPlayerGetShapeshiftModel(Player* player, uint8 form, uint32 sp
@@ -8798,7 +9120,7 @@ index fb96e99e..f6949724 100644
      : ScriptObject(name, PLAYERHOOK_END)
  {
 diff --git a/src/server/game/Scripting/ScriptDefines/PlayerScript.h b/src/server/game/Scripting/ScriptDefines/PlayerScript.h
-index 4fa8884f..4f12e59c 100644
+index 4fa8884f63..4f12e59c3b 100644
 --- a/src/server/game/Scripting/ScriptDefines/PlayerScript.h
 +++ b/src/server/game/Scripting/ScriptDefines/PlayerScript.h
 @@ -262,7 +262,11 @@ enum PlayerHook
@@ -8858,7 +9180,7 @@ index 4fa8884f..4f12e59c 100644
  
  #endif
 diff --git a/src/server/game/Scripting/ScriptMgr.h b/src/server/game/Scripting/ScriptMgr.h
-index e538062d..50f760e8 100644
+index e538062dc4..50f760e8d0 100644
 --- a/src/server/game/Scripting/ScriptMgr.h
 +++ b/src/server/game/Scripting/ScriptMgr.h
 @@ -85,6 +85,7 @@ class SpellScriptLoader;
@@ -8888,7 +9210,7 @@ index e538062d..50f760e8 100644
      // Anti cheat
      void AnticheatSetCanFlybyServer(Player* player, bool apply);
 diff --git a/src/server/game/Server/WorldSession.h b/src/server/game/Server/WorldSession.h
-index 31de40b5..5790cd99 100644
+index 31de40b53f..5790cd99d1 100644
 --- a/src/server/game/Server/WorldSession.h
 +++ b/src/server/game/Server/WorldSession.h
 @@ -25,6 +25,8 @@
@@ -8922,7 +9244,7 @@ index 31de40b5..5790cd99 100644
      void HandlePlayerLoginToCharInWorld(Player* pCurrChar);
      void HandlePlayerLoginToCharOutOfWorld(Player* pCurrChar);
 diff --git a/src/server/game/Spells/Auras/SpellAuraEffects.cpp b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
-index ecee6cda..be52c5bc 100644
+index ecee6cda87..be52c5bc22 100644
 --- a/src/server/game/Spells/Auras/SpellAuraEffects.cpp
 +++ b/src/server/game/Spells/Auras/SpellAuraEffects.cpp
 @@ -41,6 +41,7 @@
@@ -8964,7 +9286,7 @@ index ecee6cda..be52c5bc 100644
  
      HealInfo healInfo(caster, caster, heal, GetSpellInfo(), GetSpellInfo()->GetSchoolMask());
 diff --git a/src/server/game/Spells/Spell.cpp b/src/server/game/Spells/Spell.cpp
-index d6e5067c..6010bce0 100644
+index d6e5067c87..6010bce00e 100644
 --- a/src/server/game/Spells/Spell.cpp
 +++ b/src/server/game/Spells/Spell.cpp
 @@ -3634,7 +3634,7 @@ SpellCastResult Spell::prepare(SpellCastTargets const* targets, AuraEffect const
@@ -9036,7 +9358,7 @@ index d6e5067c..6010bce0 100644
          return false;
      }
 diff --git a/src/server/game/Spells/Spell.h b/src/server/game/Spells/Spell.h
-index d31b6215..77e619d8 100644
+index d31b621528..77e619d86d 100644
 --- a/src/server/game/Spells/Spell.h
 +++ b/src/server/game/Spells/Spell.h
 @@ -585,7 +585,10 @@ public:
@@ -9052,7 +9374,7 @@ index d31b6215..77e619d8 100644
      [[nodiscard]] bool IsProcDisabled() const { return HasTriggeredCastFlag(TRIGGERED_DISALLOW_PROC_EVENTS); }
      bool IsChannelActive() const { return m_caster->GetUInt32Value(UNIT_CHANNEL_SPELL) != 0; }
 diff --git a/src/server/game/Spells/SpellDefines.h b/src/server/game/Spells/SpellDefines.h
-index db4226ee..aeeeaafe 100644
+index db4226eeec..aeeeaafe61 100644
 --- a/src/server/game/Spells/SpellDefines.h
 +++ b/src/server/game/Spells/SpellDefines.h
 @@ -155,6 +155,7 @@ enum TriggerCastFlags
@@ -9064,7 +9386,7 @@ index db4226ee..aeeeaafe 100644
  };
  
 diff --git a/src/server/shared/CoaCustomRacials.h b/src/server/shared/CoaCustomRacials.h
-index 3eee14a9..3c9830d1 100644
+index 3eee14a917..3c9830d154 100644
 --- a/src/server/shared/CoaCustomRacials.h
 +++ b/src/server/shared/CoaCustomRacials.h
 @@ -14,10 +14,10 @@ struct CoaCustomRacial
@@ -9180,7 +9502,7 @@ index 3eee14a9..3c9830d1 100644
  inline CoaCustomRacial const* GetCoaCustomRacial(uint8 race)
 diff --git a/src/test/server/game/Entities/CustomRaceTeamTest.cpp b/src/test/server/game/Entities/CustomRaceTeamTest.cpp
 new file mode 100644
-index 00000000..e095aadf
+index 0000000000..e095aadfc0
 --- /dev/null
 +++ b/src/test/server/game/Entities/CustomRaceTeamTest.cpp
 @@ -0,0 +1,106 @@
@@ -9290,12 +9612,217 @@ index 00000000..e095aadf
 +    EXPECT_GE(twoHeadedOgre.GetRank(sFactionStore.LookupEntry(Orgrimmar)), REP_FRIENDLY);
 +    EXPECT_EQ(twoHeadedOgre.GetRank(sFactionStore.LookupEntry(Darnassus)), REP_HATED);
 +}
+diff --git a/tools/build_vault_patches.py b/tools/build_vault_patches.py
+new file mode 100644
+index 0000000000..73f3aa8930
+--- /dev/null
++++ b/tools/build_vault_patches.py
+@@ -0,0 +1,199 @@
++import argparse
++import shutil
++import sys
++from pathlib import Path
++
++HERE = Path(__file__).resolve().parent
++for folder in (HERE, HERE.parent / "modules" / "mod-subclass" / "tools"):
++    if str(folder) not in sys.path:
++        sys.path.append(str(folder))
++
++import patch_handspring_client as handspring  # noqa: E402
++from mkmergepatch import LISTFILE, merge, verified, written  # noqa: E402
++from mpqpull import Archive, patch_order  # noqa: E402
++
++HD_ARCHIVES = frozenset(("patch-4", "patch-5", "patch-x", "patch-u", "patch-z", "patch-q", "patch-r", "patch-v"))
++MERGED, HD_PATCH = "patch-ZZZZZY.MPQ", "patch-ZZZZZ-HD.MPQ"
++OWN_ARCHIVES = frozenset(("patch-zzzzzy", "patch-zzzzy", "patch-zzzzv", "patch-zzzzz-hd"))
++LOCALE_FOLDERS = ("enUS", "enGB")
++LOCALES = frozenset(folder.lower() for folder in LOCALE_FOLDERS)
++RACES = ("BloodElf", "Draenei", "Dwarf", "Gnome", "Human", "NightElf", "Orc", "Scourge", "Tauren", "Troll")
++SEXES = ("Male", "Female")
++TABLES = {"DBFilesClient\\AnimationData.dbc": handspring.add_animation_rows,
++          "DBFilesClient\\SpellVisualKit.dbc": handspring.add_visual_kits}
++
++
++def model_names():
++    return [f"Character\\{race}\\{sex}\\{race}{sex}.m2" for race in RACES for sex in SEXES]
++
++
++def ordered_archives(data):
++    root = sorted((path for path in data.iterdir() if path.suffix.lower() == ".mpq"), key=patch_order)
++    locales = []
++    for locale in LOCALE_FOLDERS:
++        folder = data / locale
++        if folder.is_dir():
++            locales += sorted((path for path in folder.iterdir() if path.suffix.lower() == ".mpq"),
++                              key=lambda path: path.stem.lower())
++    base = [path for path in root if patch_order(path)[0] == 0]
++    return base + locales + [path for path in root if patch_order(path)[0] != 0]
++
++
++def original_archives(archives):
++    return [path for path in archives if path.stem.lower() not in OWN_ARCHIVES]
++
++
++def below_merged(archives):
++    merged = patch_order(Path(MERGED))
++    return [path for path in original_archives(archives)
++            if path.parent.name.lower() in LOCALES or patch_order(path) < merged]
++
++
++def opens_without_hd(path):
++    stem = path.stem.lower()
++    return stem not in HD_ARCHIVES and not stem.endswith("-hd")
++
++
++def standard_archives(archives):
++    return [path for path in original_archives(archives) if opens_without_hd(path)]
++
++
++class Client:
++    def __init__(self, archives):
++        self.archives = archives
++        self.opened = {}
++
++    def archive(self, path):
++        if path not in self.opened:
++            self.opened[path] = Archive(str(path))
++        return self.opened[path]
++
++    def close(self):
++        for archive in self.opened.values():
++            archive.close()
++        self.opened.clear()
++
++    def newest(self, name, among):
++        for path in reversed(among):
++            data = self.archive(path).extract(name)
++            if data is not None:
++                return data, path
++        return None, None
++
++
++def skin_name(model):
++    return model[:-len(".m2")] + "00.skin"
++
++
++def vaulted_models(client, among, kind):
++    models, sources = {}, {}
++    for number, name in enumerate(model_names(), 1):
++        print(f"{kind} {number}/{len(model_names())}: {name}", flush=True)
++        data, source = client.newest(name, among)
++        if data is None:
++            continue
++        skin, _ = client.newest(skin_name(name), among)
++        stem = name.rsplit("\\", 1)[1][:-len(".m2")]
++        models[name] = handspring.add_handsprings(data, handspring.style_for(stem), skin)
++        sources[name] = source
++    return models, sources
++
++
++def vault_tables(client):
++    tables = {}
++    for name, add_rows in TABLES.items():
++        data, _ = client.newest(name, below_merged(client.archives))
++        if data is None:
++            raise SystemExit(f"no archive in Data has {name}")
++        try:
++            tables[name] = add_rows(data)
++        except ValueError as refused:
++            if "already has ids" in str(refused):
++                tables[name] = data
++    return tables
++
++
++def listed(files):
++    listing = "\r\n".join(sorted(files)).encode("latin1")
++    return sorted(list(files.items()) + [(LISTFILE, listing)], key=lambda entry: entry[0].lower())
++
++
++def write_archive(path, entries):
++    staged = path.with_name(path.name + ".building")
++    try:
++        staged.write_bytes(written(entries))
++        verified(staged, entries)
++        staged.replace(path)
++    finally:
++        staged.unlink(missing_ok=True)
++
++
++def require_writable(paths):
++    for path in paths:
++        if not path.exists():
++            continue
++        probe = path.with_name(path.name + ".checking")
++        try:
++            path.replace(probe)
++            probe.replace(path)
++        except PermissionError:
++            raise SystemExit(f"{path.name} is in use by another program (the game, MPQ-DupeChecker or a WoW tool); "
++                             "close it and run this again")
++
++
++def merge_into_merged(data, additions, backup, fresh=False):
++    merged = data / MERGED
++    addition = data / (MERGED + ".adding")
++    write_archive(addition, listed(additions))
++    inputs = [(addition, False)]
++    if merged.exists():
++        if not backup.exists() or fresh:
++            shutil.copy2(merged, backup)
++        if not fresh:
++            inputs.insert(0, (merged, False))
++    try:
++        entries = merge(inputs, set())
++        write_archive(merged, entries)
++    finally:
++        addition.unlink(missing_ok=True)
++
++
++def build(data, backup_folder, fresh=False):
++    require_writable([data / MERGED, data / HD_PATCH])
++    archives = ordered_archives(data)
++    client = Client(archives)
++    standard, standard_sources = vaulted_models(client, standard_archives(archives), "standard")
++    hd, hd_sources = vaulted_models(client, original_archives(archives), "HD")
++    hd = {name: model for name, model in hd.items() if hd_sources[name] != standard_sources.get(name)}
++    additions = {**standard, **vault_tables(client)}
++    client.close()
++    print(f"writing {MERGED} and {HD_PATCH}", flush=True)
++    merge_into_merged(data, additions, backup_folder / (MERGED + ".before-vault"), fresh)
++    hd_path = data / HD_PATCH
++    if hd:
++        write_archive(hd_path, listed(hd))
++    elif hd_path.exists():
++        hd_path.unlink()
++    return standard_sources, hd_sources, hd
++
++
++def main():
++    parser = argparse.ArgumentParser(
++        description="Build the Vault for the original races from this client's own models: standard models into "
++                    "patch-ZZZZZY.MPQ and HD models into patch-ZZZZZ-HD.MPQ")
++    parser.add_argument("data", type=Path, help="the client's Data folder")
++    parser.add_argument("--backup", type=Path, help="folder for the patch-ZZZZZY.MPQ backup (default: Data)")
++    parser.add_argument("--fresh", action="store_true",
++                        help="start patch-ZZZZZY.MPQ over with only the Vault, dropping files merged into it before")
++    args = parser.parse_args()
++    standard_sources, hd_sources, hd = build(args.data, args.backup or args.data, args.fresh)
++    for name in model_names():
++        line = f"{name}: standard from {standard_sources[name].name}" if name in standard_sources else f"{name}: absent"
++        if name in hd:
++            line += f", HD from {hd_sources[name].name}"
++        print(line)
++    print(f"{MERGED} and {HD_PATCH if hd else 'no HD patch (no HD archives found)'} written and read back intact")
++
++
++if __name__ == "__main__":
++    main()
 diff --git a/tools/patch_handspring_client.py b/tools/patch_handspring_client.py
 new file mode 100644
-index 00000000..f6079e45
+index 0000000000..7c2ccc4577
 --- /dev/null
 +++ b/tools/patch_handspring_client.py
-@@ -0,0 +1,786 @@
+@@ -0,0 +1,803 @@
 +import argparse
 +import math
 +import struct
@@ -9310,6 +9837,7 @@ index 00000000..f6079e45
 +SEQUENCE_SIZE, BONE_SIZE = 64, 88
 +BONE_PARENT, BONE_PIVOT = 8, 76
 +TRANSLATION, ROTATION, SCALE = 16, 36, 56
++LINEAR = 1
 +VALUE_SIZES = {TRANSLATION: 12, ROTATION: 8, SCALE: 12}
 +RECORD_TRACKS = {TEXTURE_WEIGHTS: (20, (0,)), TEXTURE_TRANSFORMS: (60, (0, 20, 40)), ATTACHMENTS: (40, (20,)),
 +                 CAMERAS: (100, (16, 48, 80))}
@@ -9318,6 +9846,8 @@ index 00000000..f6079e45
 +SEQUENCE_BLEND, SEQUENCE_BOUNDS, SEQUENCE_NEXT = 28, 32, 60
 +EMBEDDED = 0x20
 +KEY_ARM_LEFT, KEY_ARM_RIGHT, KEY_HEAD, KEY_ROOT = 0, 1, 6, 26
++KEY_SHOULDER_LEFT, KEY_SHOULDER_RIGHT = 2, 3
++SHOULDER_OF_ARM = {KEY_ARM_LEFT: KEY_SHOULDER_LEFT, KEY_ARM_RIGHT: KEY_SHOULDER_RIGHT}
 +SPINE_CURL, HEAD_TUCK = 1.0, 0.6
 +INDEX_FINGERS = (13, 8)
 +
@@ -9530,6 +10060,9 @@ index 00000000..f6079e45
 +    def arm(self, key):
 +        arm = self.key_bone(key)
 +        if arm < 0:
++            shoulder = self.key_bone(SHOULDER_OF_ARM[key])
++            arm = max(self.children(shoulder), key=self.subtree_size, default=-1) if shoulder >= 0 else -1
++        if arm < 0:
 +            raise ValueError(f"model has no key bone {key}")
 +        chain = [arm]
 +        while len(chain) < 3 and self.children(chain[-1]):
@@ -9539,6 +10072,15 @@ index 00000000..f6079e45
 +    def animated(self, place):
 +        _, global_sequence, count, _ = struct.unpack_from("<hhII", self.data, place)
 +        return global_sequence == -1 and count == self.sequence_count
++
++    def animate(self, place):
++        interpolation, global_sequence, count, _ = struct.unpack_from("<hhII", self.data, place)
++        if global_sequence != -1 or count:
++            return
++        empty = bytes(self.sequence_count * 8)
++        struct.pack_into("<hh", self.data, place, max(interpolation, LINEAR), -1)
++        struct.pack_into("<II", self.data, place + 4, self.sequence_count, self.append(empty, 4))
++        struct.pack_into("<II", self.data, place + 12, self.sequence_count, self.append(empty, 4))
 +
 +    def keys(self, place, track, sequence):
 +        times = struct.unpack_from("<I", self.data, place + 8)[0]
@@ -9650,6 +10192,8 @@ index 00000000..f6079e45
 +            if sequence is not None and not model.embedded(sequence):
 +                raise ValueError(f"sequence {sequence} keeps its keys in an external .anim file")
 +        self.root = model.key_bone(KEY_ROOT)
++        if self.root >= 0:
++            model.animate(model.bone(self.root) + ROTATION)
 +        if self.root < 0 or not model.animated(model.bone(self.root) + ROTATION):
 +            raise ValueError("model has no animated root bone")
 +        self.arms = (model.arm(KEY_ARM_LEFT), model.arm(KEY_ARM_RIGHT))
@@ -10082,12 +10626,168 @@ index 00000000..f6079e45
 +
 +if __name__ == "__main__":
 +    main()
+diff --git a/tools/test_build_vault_patches.py b/tools/test_build_vault_patches.py
+new file mode 100644
+index 0000000000..7a6c82d064
+--- /dev/null
++++ b/tools/test_build_vault_patches.py
+@@ -0,0 +1,150 @@
++import struct
++import tempfile
++import unittest
++from pathlib import Path
++
++import build_vault_patches as vault
++import patch_handspring_client as handspring
++from mkmergepatch import written
++from mpqpull import Archive
++from test_handspring_client import synthetic_model, table
++
++HUMAN = "Character\\Human\\Male\\HumanMale.m2"
++OWN_FILE = "Interface\\Glues\\Twins.txt"
++ANIMATIONS, KITS = vault.TABLES
++
++
++def archive(path, files):
++    listing = "\r\n".join(sorted(files)).encode("latin1")
++    entries = sorted(list(files.items()) + [("(listfile)", listing)], key=lambda entry: entry[0].lower())
++    path.write_bytes(written(entries))
++
++
++def client_tables():
++    animations = table(8, [[handspring.JUMP, 1, 0, 257, 2, 0, 38, 0],
++                           [handspring.FLY_JUMP, 6, 0, 257, 2, 229, 38, 3]], b"\0Jump\0FlyJump\0")
++    kits = table(38, [[handspring.VAULT_DUST_KIT, 0xFFFFFFFF, handspring.JUMP_START] + [0] * 35], b"\0")
++    return {ANIMATIONS: animations, KITS: kits}
++
++
++def rows(dbc):
++    count, fields, size, _ = struct.unpack_from("<4I", dbc, 4)
++    return {struct.unpack_from("<I", dbc, 20 + index * size)[0] for index in range(count)}
++
++
++class VaultPatchTest(unittest.TestCase):
++    def setUp(self):
++        self.folder = tempfile.TemporaryDirectory()
++        self.data = Path(self.folder.name)
++        self.standard = synthetic_model()
++        self.hd = synthetic_model() + bytes(16)
++        archive(self.data / "common.MPQ", {HUMAN: self.standard, **client_tables()})
++        archive(self.data / "patch-Q.MPQ", {HUMAN: self.hd})
++        archive(self.data / vault.MERGED, {OWN_FILE: b"twins", HUMAN: b"stale"})
++
++    def tearDown(self):
++        self.folder.cleanup()
++
++    def built(self, name):
++        return Archive(str(self.data / name))
++
++    def test_standard_model_goes_into_the_merged_patch(self):
++        vault.build(self.data, self.data)
++        merged = self.built(vault.MERGED)
++        self.assertEqual(merged.extract(HUMAN), handspring.add_handsprings(self.standard))
++        self.assertEqual(merged.extract(OWN_FILE), b"twins")
++        self.assertTrue(set(handspring.ANIMATION_NAMES) <= rows(merged.extract(ANIMATIONS)))
++        self.assertTrue(set(handspring.VAULT_KITS) <= rows(merged.extract(KITS)))
++
++    def test_hd_model_goes_into_the_hd_patch(self):
++        vault.build(self.data, self.data)
++        self.assertEqual(self.built(vault.HD_PATCH).extract(HUMAN), handspring.add_handsprings(self.hd))
++
++    def test_rebuilding_starts_from_the_client_models(self):
++        vault.build(self.data, self.data)
++        vault.build(self.data, self.data)
++        self.assertEqual(self.built(vault.MERGED).extract(HUMAN), handspring.add_handsprings(self.standard))
++        self.assertEqual(self.built(vault.HD_PATCH).extract(HUMAN), handspring.add_handsprings(self.hd))
++        self.assertEqual(Archive(str(self.data / (vault.MERGED + ".before-vault"))).extract(HUMAN), b"stale")
++
++    def test_client_without_hd_archives_gets_no_hd_patch(self):
++        (self.data / "patch-Q.MPQ").unlink()
++        vault.build(self.data, self.data)
++        self.assertFalse((self.data / vault.HD_PATCH).exists())
++
++    def test_root_patches_win_over_locale_tables(self):
++        (self.data / "enUS").mkdir()
++        locale_tables = {ANIMATIONS: table(8, [[1, 0, 0, 0, 0, 0, 0, 0]], b"\0"), KITS: client_tables()[KITS]}
++        archive(self.data / "enUS" / "patch-enUS-3.MPQ", locale_tables)
++        archive(self.data / "patch-ZZZZS.MPQ", client_tables())
++        vault.build(self.data, self.data)
++        built = rows(self.built(vault.MERGED).extract(ANIMATIONS))
++        self.assertIn(handspring.JUMP, built)
++        self.assertNotIn(1, built)
++
++    def test_the_client_archives_are_closed_before_the_patch_is_replaced(self):
++        opened = []
++        original = vault.Archive
++
++        def tracked(path):
++            archive = original(path)
++            opened.append(archive)
++            return archive
++
++        vault.Archive = tracked
++        try:
++            vault.build(self.data, self.data)
++        finally:
++            vault.Archive = original
++        self.assertTrue(opened)
++        self.assertTrue(all(archive.file.closed for archive in opened))
++
++    def test_a_fresh_build_drops_what_was_merged_before(self):
++        vault.build(self.data, self.data, fresh=True)
++        merged = self.built(vault.MERGED)
++        self.assertIsNone(merged.extract(OWN_FILE))
++        self.assertEqual(merged.extract(HUMAN), handspring.add_handsprings(self.standard))
++        self.assertEqual(Archive(str(self.data / (vault.MERGED + ".before-vault"))).extract(OWN_FILE), b"twins")
++
++    def test_tables_come_from_the_client_not_from_the_merged_patch(self):
++        archive(self.data / vault.MERGED, {OWN_FILE: b"twins", ANIMATIONS: table(8, [[7, 0, 0, 0, 0, 0, 0, 0]], b"\0"),
++                                           KITS: client_tables()[KITS]})
++        vault.build(self.data, self.data)
++        self.assertNotIn(7, rows(self.built(vault.MERGED).extract(ANIMATIONS)))
++
++    def test_tables_come_from_archives_below_the_merged_patch(self):
++        archive(self.data / "patch-ZZZZZZ-SKIN.MPQ", {ANIMATIONS: table(8, [[9, 0, 0, 0, 0, 0, 0, 0]], b"\0")})
++        vault.build(self.data, self.data)
++        built = rows(self.built(vault.MERGED).extract(ANIMATIONS))
++        self.assertIn(handspring.JUMP, built)
++        self.assertNotIn(9, built)
++
++    def test_a_release_patch_named_zzzzz_is_built_on_not_hidden(self):
++        release = table(8, [[handspring.JUMP, 1, 0, 257, 2, 0, 38, 0], [handspring.FLY_JUMP, 6, 0, 257, 2, 229, 38, 3],
++                            [9, 0, 0, 0, 0, 0, 0, 0]], b"\0Jump\0FlyJump\0")
++        archive(self.data / "patch-ZZZZZ.MPQ", {ANIMATIONS: release})
++        vault.build(self.data, self.data)
++        built = rows(self.built(vault.MERGED).extract(ANIMATIONS))
++        self.assertIn(9, built)
++        self.assertTrue(set(handspring.ANIMATION_NAMES) <= built)
++
++    def test_a_table_that_already_has_the_vault_rows_is_still_written(self):
++        archive(self.data / "patch-ZZZZX.MPQ", {ANIMATIONS: handspring.add_animation_rows(client_tables()[ANIMATIONS])})
++        vault.build(self.data, self.data, fresh=True)
++        self.assertTrue(set(handspring.ANIMATION_NAMES) <= rows(self.built(vault.MERGED).extract(ANIMATIONS)))
++
++    def test_no_build_files_are_left_in_data(self):
++        vault.build(self.data, self.data)
++        self.assertEqual(sorted(path.name for path in self.data.iterdir() if ".building" in path.name or
++                                path.name.endswith(".adding")), [])
++
++    def test_hd_archives_are_left_out_of_the_standard_models(self):
++        names = [Path(name) for name in ("common.MPQ", "patch-Q.MPQ", "patch-CHA.MPQ", "patch-ZZZZZY.MPQ",
++                                         "patch-ZZZZZ-HD.MPQ", "patch-Bear-HD.MPQ")]
++        self.assertEqual([path.name for path in vault.standard_archives(names)], ["common.MPQ", "patch-CHA.MPQ"])
++        self.assertEqual([path.name for path in vault.original_archives(names)],
++                         ["common.MPQ", "patch-Q.MPQ", "patch-CHA.MPQ", "patch-Bear-HD.MPQ"])
++
++
++if __name__ == "__main__":
++    unittest.main()
 diff --git a/tools/test_handspring_client.py b/tools/test_handspring_client.py
 new file mode 100644
-index 00000000..b2e642ea
+index 0000000000..6ed5281e90
 --- /dev/null
 +++ b/tools/test_handspring_client.py
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,287 @@
 +import math
 +import struct
 +import unittest
@@ -10123,7 +10823,7 @@ index 00000000..b2e642ea
 +        return struct.pack("<hhIIII", 1, -1, len(SEQUENCE_IDS), outer_stamps, len(SEQUENCE_IDS), outer_values)
 +
 +
-+def synthetic_model():
++def synthetic_model(key_bones=KEY_BONES):
 +    writer = Writer()
 +    writer.data[:8] = b"MD20" + struct.pack("<I", 264)
 +    sequences = b""
@@ -10148,7 +10848,7 @@ index 00000000..b2e642ea
 +        bones += bone
 +    writer.array(handspring.BONES, len(BONES), bones)
 +    keys = [-1] * (handspring.KEY_ROOT + 1)
-+    for key, bone in KEY_BONES.items():
++    for key, bone in key_bones.items():
 +        keys[key] = bone
 +    writer.array(handspring.KEY_BONES, len(keys), struct.pack(f"<{len(keys)}h", *keys))
 +    vertices = b""
@@ -10223,6 +10923,23 @@ index 00000000..b2e642ea
 +        struct.pack_into("<I", data, jump_start + handspring.SEQUENCE_FLAGS, 0)
 +        with self.assertRaises(ValueError):
 +            handspring.add_handsprings(bytes(data))
++
++    def test_still_root_rotation_turns_over(self):
++        data = bytearray(synthetic_model())
++        still = handspring.Model(data)
++        place = still.bone(still.key_bone(handspring.KEY_ROOT)) + handspring.ROTATION
++        struct.pack_into("<hhIIII", data, place, 0, -1, 0, 0, 0, 0)
++        model = handspring.Model(handspring.add_handsprings(bytes(data)))
++        sequence = model.sequences[handspring.HANDSPRING]
++        inverted = model.value(0, handspring.ROTATION, sequence, handspring.DURATION_MS * 0.45)
++        self.assertLess(rotated_head(inverted)[2], -0.8)
++        self.assertIsNone(model.value(0, handspring.ROTATION, model.sequences[handspring.STAND], 0))
++
++    def test_arm_without_key_hangs_from_its_shoulder(self):
++        model = handspring.Model(synthetic_model({handspring.KEY_ROOT: 0, handspring.KEY_SHOULDER_LEFT: 1,
++                                                  handspring.KEY_SHOULDER_RIGHT: 4}))
++        self.assertEqual(model.arm(handspring.KEY_ARM_LEFT), [2, 3])
++        self.assertEqual(model.arm(handspring.KEY_ARM_RIGHT), [5, 6])
 +
 +    def test_model_with_handsprings_is_refused(self):
 +        with self.assertRaises(ValueError):

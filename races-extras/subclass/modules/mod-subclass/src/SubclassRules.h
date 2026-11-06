@@ -82,6 +82,7 @@ struct Settings
     bool TwoHeadedOgre = true;
     bool ForceBots = false;
     bool TravelFormsWholeBody = true;
+    std::uint32_t BrotherMirrorDisplay = 977602;
     std::uint8_t HeroRaceSecurity = 0;
     std::uint8_t HeroRaceLevel = 60;
 };
@@ -116,17 +117,30 @@ inline bool KeepsDistance(SpecializationRoles const& roles)
     return !roles.Tank && (roles.Ranged || roles.Caster || roles.Healer);
 }
 
-inline bool LeavesSpentForm(bool tankForm, bool timed, bool anythingReady)
-{
-    return !tankForm && timed && !anythingReady;
-}
-
 inline bool HalfFormExpired(std::uint32_t until, std::uint32_t now)
 {
     return until && now >= until;
 }
 
 constexpr std::uint8_t ThinTwinsBeards = 7;
+constexpr std::uint32_t ThinTwinsDisplay = 977601;
+
+constexpr std::uint8_t SameAsPlayer = 255;
+
+inline std::uint8_t BrotherFeature(std::uint8_t own, std::uint8_t chosen)
+{
+    return chosen == SameAsPlayer ? own : chosen;
+}
+
+inline bool BrotherFeatureFits(std::uint8_t chosen, std::uint8_t choices)
+{
+    return chosen == SameAsPlayer || chosen < choices;
+}
+
+inline std::uint32_t BrotherDisplay(std::uint32_t native, std::uint32_t mirror)
+{
+    return native == ThinTwinsDisplay && mirror ? mirror : native;
+}
 constexpr std::uint8_t ThinTwinsCutHairstyles = 3;
 
 inline std::uint8_t FacialUnderHat(std::uint8_t facial, std::uint8_t hairStyle, bool hat)
