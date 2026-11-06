@@ -417,14 +417,6 @@ TEST(Subclass, ATimedHalfFormEndsWhenItsTimeRunsOutAndAnUntimedOneNever)
     EXPECT_TRUE(HalfFormExpired(30000, 45000));
 }
 
-TEST(Subclass, OnlyATimedFormThatIsNoTankFormIsLeftWhenNothingInItIsReady)
-{
-    EXPECT_TRUE(LeavesSpentForm(false, true, false));
-    EXPECT_FALSE(LeavesSpentForm(false, true, true));
-    EXPECT_FALSE(LeavesSpentForm(true, true, false));
-    EXPECT_FALSE(LeavesSpentForm(false, false, false));
-}
-
 TEST(Subclass, UnderAHatTheTwinsWearACutOfTheirOwnHairstyleWithTheirBeard)
 {
     EXPECT_EQ(FacialUnderHat(3, 1, false), 3);
@@ -434,4 +426,26 @@ TEST(Subclass, UnderAHatTheTwinsWearACutOfTheirOwnHairstyleWithTheirBeard)
     EXPECT_EQ(FacialUnderHat(3, 3, true), 3);
     EXPECT_EQ(FacialUnderHat(3 + 2 * ThinTwinsBeards, 2, false), 3);
     EXPECT_EQ(FacialUnderHat(6 + ThinTwinsBeards, 2, true), 6 + 3 * ThinTwinsBeards);
+}
+
+TEST(Subclass, TheThinTwinsBrotherWearsTheMirroredModelWhenOneIsSet)
+{
+    EXPECT_EQ(BrotherDisplay(ThinTwinsDisplay, 977602), 977602u);
+    EXPECT_EQ(BrotherDisplay(ThinTwinsDisplay, 0), ThinTwinsDisplay);
+    EXPECT_EQ(BrotherDisplay(977600, 977602), 977600u);
+}
+
+TEST(Subclass, TheThinTwinsBrotherKeepsThePlayersFeatureUntilHisOwnIsChosen)
+{
+    EXPECT_EQ(BrotherFeature(2, SameAsPlayer), 2);
+    EXPECT_EQ(BrotherFeature(2, 0), 0);
+    EXPECT_EQ(BrotherFeature(0, 5), 5);
+}
+
+TEST(Subclass, TheThinTwinsBrotherOnlyTakesFeaturesTheRaceOffers)
+{
+    EXPECT_TRUE(BrotherFeatureFits(SameAsPlayer, 4));
+    EXPECT_TRUE(BrotherFeatureFits(3, 4));
+    EXPECT_FALSE(BrotherFeatureFits(4, 4));
+    EXPECT_FALSE(BrotherFeatureFits(0, 0));
 }

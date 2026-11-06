@@ -5,7 +5,12 @@
 #include "AllCreatureScript.h"
 #include "AllSpellScript.h"
 #include "AscensionAppearanceChanges.h"
+#include "AscensionCoATalentData.h"
+#include "AscensionCustomClassData.h"
+#include "AscensionLiveBaselineData.h"
+#include "Config.h"
 #include "AscensionIncarnation.h"
+#include "AscensionSpecialization.h"
 #include "CellImpl.h"
 #include "Chat.h"
 #include "CommandScript.h"
@@ -44,6 +49,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
+#include <fstream>
+#include <set>
 #include <limits>
 #include <list>
 #include <mutex>
@@ -64,6 +72,8 @@ bool MainHalfCasts(Player const* player);
 bool BrotherOut(Player const* player);
 void RefreshSubclassResources(Player* player);
 bool IsBorrowedSpell(Player const* player, uint32 spellId);
+uint32 BorrowedReplacementOf(Player const* player, uint32 spellId);
+void SendOtherHalfCooldown(Player* player, uint32 spellId);
 void SyncBorrowedMana(Player* player, uint32 milliseconds);
 Powers PowerBothHalvesUse(Player const* player);
 void RefreshSubclassState(Player* player);
@@ -73,6 +83,7 @@ bool LendsTankSpecialization(Player const* player);
 bool LendsRangedSpecialization(Player const* player);
 bool SubclassRaceEnabled(uint8 race);
 bool TravelFormsShapeWholeBody();
+uint32 BrotherMirrorDisplay();
 uint8 StoryGenderOf(Player const* player);
 bool SubclassQuestOffered(Player const* player);
 bool SubclassOfferPostponed(Player const* player);
@@ -231,6 +242,11 @@ struct Look
 
 std::mutex& twinMutex = *new std::mutex;
 std::unordered_map<uint32, Wardrobe>& wardrobes = *new std::unordered_map<uint32, Wardrobe>;
+using OwnFeatures = std::array<uint8, 3>;
+constexpr std::array<CharSectionType, 3> FeatureSections = { SECTION_TYPE_FACE, SECTION_TYPE_HAIR,
+    SECTION_TYPE_FACIAL_HAIR };
+constexpr std::array<std::size_t, 3> FeatureBytes = { 1, 2, 4 };
+std::unordered_map<uint32, OwnFeatures>& ownFeatures = *new std::unordered_map<uint32, OwnFeatures>;
 std::unordered_map<uint32, ObjectGuid>& twinOfOwner = *new std::unordered_map<uint32, ObjectGuid>;
 std::unordered_map<ObjectGuid, Look>& looks = *new std::unordered_map<ObjectGuid, Look>;
 std::unordered_map<uint32, Motion>& motions = *new std::unordered_map<uint32, Motion>;
@@ -269,6 +285,56 @@ struct BrotherCast
 };
 
 thread_local BrotherCast castingAsBrother;
+
+struct BrotherFollowUps
+{
+    ObjectGuid Twin;
+    std::unordered_map<uint32, uint64> Until;
+};
+
+constexpr uint64 FollowUpWindow = 6000;
+std::mutex& followUpMutex = *new std::mutex;
+std::unordered_map<ObjectGuid, BrotherFollowUps>& followUps = *new std::unordered_map<ObjectGuid, BrotherFollowUps>;
+
+void NoteFollowUps(Player const* player, Creature const* twin, SpellInfo const* info)
+{
+    std::vector<uint32> pending{ info->Id };
+    std::unordered_set<uint32> seen;
+    uint64 const until = GameTime::GetGameTimeMS().count() + FollowUpWindow;
+    std::lock_guard<std::mutex> lock(followUpMutex);
+    BrotherFollowUps& noted = followUps[player->GetGUID()];
+    noted.Twin = twin->GetGUID();
+    while (!pending.empty())
+    {
+        uint32 const id = pending.back();
+        pending.pop_back();
+        SpellInfo const* spell = sSpellMgr->GetSpellInfo(id);
+        if (!spell || !seen.insert(id).second)
+            continue;
+        if (id != info->Id)
+            noted.Until[id] = until;
+        for (SpellEffectInfo const& effect : spell->GetEffects())
+            if (effect.TriggerSpell)
+                pending.push_back(effect.TriggerSpell);
+    }
+}
+
+ObjectGuid FollowUpTwin(ObjectGuid caster, uint32 spellId)
+{
+    std::lock_guard<std::mutex> lock(followUpMutex);
+    auto const found = followUps.find(caster);
+    if (found == followUps.end())
+        return ObjectGuid::Empty;
+    auto const spell = found->second.Until.find(spellId);
+    if (spell == found->second.Until.end())
+        return ObjectGuid::Empty;
+    if (spell->second < GameTime::GetGameTimeMS().count())
+    {
+        found->second.Until.erase(spell);
+        return ObjectGuid::Empty;
+    }
+    return found->second.Twin;
+}
 thread_local bool resendingAsBrother = false;
 thread_local bool resendingOwnShot = false;
 thread_local ObjectGuid swingingAlone;
@@ -432,6 +498,64 @@ Wardrobe WardrobeOf(Player const* player)
     return wardrobes.try_emplace(guid, wardrobe).first->second;
 }
 
+OwnFeatures FeaturesOf(Player const* player)
+{
+    uint32 const guid = player->GetGUID().GetCounter();
+    {
+        std::lock_guard<std::mutex> lock(twinMutex);
+        if (auto itr = ownFeatures.find(guid); itr != ownFeatures.end())
+            return itr->second;
+    }
+
+    OwnFeatures features = { Subclass::SameAsPlayer, Subclass::SameAsPlayer, Subclass::SameAsPlayer };
+    if (QueryResult result = CharacterDatabase.Query(
+            "SELECT `face`, `hair`, `facial` FROM `mod_subclass_twin_features` WHERE `guid` = {}", guid))
+    {
+        Field* fields = result->Fetch();
+        for (std::size_t index = 0; index < features.size(); ++index)
+            features[index] = fields[index].Get<uint8>();
+    }
+
+    std::lock_guard<std::mutex> lock(twinMutex);
+    return ownFeatures.try_emplace(guid, features).first->second;
+}
+
+void StoreFeatures(Player const* player, OwnFeatures const& features)
+{
+    uint32 const guid = player->GetGUID().GetCounter();
+    CharacterDatabase.Execute("REPLACE INTO `mod_subclass_twin_features` (`guid`, `face`, `hair`, `facial`) "
+        "VALUES ({}, {}, {}, {})", guid, features[0], features[1], features[2]);
+    std::lock_guard<std::mutex> lock(twinMutex);
+    ownFeatures[guid] = features;
+}
+
+uint8 FeatureColor(Player const* player, CharSectionType section)
+{
+    return player->GetByteValue(PLAYER_BYTES, section == SECTION_TYPE_FACE ? 0 : 3);
+}
+
+uint32 SectionKey(uint32 race, uint32 gender, uint32 section, uint32 color)
+{
+    return race | gender << 8 | section << 16 | color << 24;
+}
+
+uint8 FeatureChoices(Player const* player, CharSectionType section)
+{
+    static std::once_flag indexed;
+    static std::unordered_map<uint32, std::set<uint32>>& variations = *new std::unordered_map<uint32, std::set<uint32>>;
+    std::call_once(indexed, []
+    {
+        for (CharSectionsEntry const* entry : sCharSectionsStore)
+            variations[SectionKey(entry->Race, entry->Gender, entry->GenType, entry->Color)].insert(entry->Type);
+    });
+    auto const found = variations.find(SectionKey(player->getRace(), player->GetByteValue(PLAYER_BYTES_3, 0), section,
+        FeatureColor(player, section)));
+    uint8 count = 0;
+    while (found != variations.end() && count < Subclass::SameAsPlayer && found->second.contains(count))
+        ++count;
+    return count;
+}
+
 void StoreWardrobe(Player const* player, Wardrobe const& wardrobe)
 {
     uint32 const guid = player->GetGUID().GetCounter();
@@ -554,8 +678,21 @@ uint32 OtherHalfForm(Player const* player)
     return half.Form ? half.Form : BorrowedBodyForm(player);
 }
 
+bool CasterAurasAllow(Player const* player, SpellInfo const* info)
+{
+    if (info->CasterAuraSpell && !player->HasAura(info->CasterAuraSpell))
+        return false;
+    if (info->ExcludeCasterAuraSpell && player->HasAura(info->ExcludeCasterAuraSpell))
+        return false;
+    if (info->CasterAuraState && !player->HasAuraState(AuraStateType(info->CasterAuraState), info, player))
+        return false;
+    return !info->CasterAuraStateNot || !player->HasAuraState(AuraStateType(info->CasterAuraStateNot));
+}
+
 bool FitsOtherHalfForm(Player const* player, SpellInfo const* info)
 {
+    if (!CasterAurasAllow(player, info))
+        return false;
     uint32 const form = OtherHalfForm(player);
     if (form > LastStanceForm)
         return !info->Stances || (info->Stances & FormMask(form));
@@ -590,8 +727,12 @@ bool ShapesWholeBody(uint32 spellId)
     return false;
 }
 
+uint32 ClassLookOf(Player const* player);
+
 bool InBorrowedShape(Player const* player)
 {
+    if (HalfFormOf(player).Form || ClassLookOf(player))
+        return true;
     for (AuraEffect const* effect : player->GetAuraEffectsByType(SPELL_AURA_MOD_SHAPESHIFT))
         if (IsBorrowedSpell(player, effect->GetId()) && !IsRiddenForm(uint32(effect->GetMiscValue())))
             return true;
@@ -650,11 +791,59 @@ uint32 ModellessFormShape(uint32 form)
     return form == CursedFormId ? CreatureShape(CursedFormCreature) : 0;
 }
 
+uint32 TransformShape(uint32 spellId)
+{
+    if (SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId))
+        for (SpellEffectInfo const& effect : info->GetEffects())
+            if (effect.IsAura(SPELL_AURA_TRANSFORM))
+                if (uint32 model = CreatureShape(uint32(effect.MiscValue)))
+                    return model;
+    return 0;
+}
+
+uint32 SpellShape(uint32 spellId)
+{
+    if (uint32 model = TransformShape(spellId))
+        return model;
+    if (std::vector<int32> const* linked = sSpellMgr->GetSpellLinked(int32(spellId) + SPELL_LINK_AURA))
+        for (int32 companion : *linked)
+            if (companion > 0)
+                if (uint32 model = TransformShape(uint32(companion)))
+                    return model;
+    return 0;
+}
+
+bool HasTwin(Player const* player);
+
+std::mutex& classLookMutex = *new std::mutex;
+std::unordered_map<ObjectGuid::LowType, uint32>& classLooks = *new std::unordered_map<ObjectGuid::LowType, uint32>;
+
+uint32 ClassLookOf(Player const* player)
+{
+    std::lock_guard<std::mutex> lock(classLookMutex);
+    auto const found = classLooks.find(player->GetGUID().GetCounter());
+    return found == classLooks.end() ? 0 : found->second;
+}
+
+bool CarryClassLook(Player* player, uint8 classId, uint32 displayId)
+{
+    if (!HasTwin(player) || SubclassChoiceOf(player).SubClass != classId)
+        return false;
+    std::lock_guard<std::mutex> lock(classLookMutex);
+    if (displayId)
+        classLooks[player->GetGUID().GetCounter()] = displayId;
+    else
+        classLooks.erase(player->GetGUID().GetCounter());
+    return true;
+}
+
 uint32 BorrowedShape(Player* player)
 {
     if (HalfForm const half = HalfFormOf(player); half.Form)
     {
         if (uint32 model = GetAscensionIncarnationDisplay(player, half.Form, half.Spell))
+            return model;
+        if (uint32 model = SpellShape(half.Spell))
             return model;
         if (uint32 model = FormModelFor(player, ShapeshiftForm(half.Form)))
             return model;
@@ -674,7 +863,7 @@ uint32 BorrowedShape(Player* player)
             if (uint32 model = ModellessFormShape(form))
                 return model;
         }
-    return 0;
+    return ClassLookOf(player);
 }
 
 void LendWeapon(Player const* player, Wardrobe& wardrobe, std::size_t slot, uint8 equipmentSlot)
@@ -714,10 +903,15 @@ uint32 DisplayOfItem(uint32 itemId)
     return item ? item->DisplayInfoID : 0;
 }
 
+uint32 BrotherNativeDisplay(Player const* player)
+{
+    return Subclass::BrotherDisplay(player->GetNativeDisplayId(), BrotherMirrorDisplay());
+}
+
 Look LookOf(Player const* player, Wardrobe const& wardrobe)
 {
     Look look;
-    look.DisplayId = player->GetNativeDisplayId();
+    look.DisplayId = BrotherNativeDisplay(player);
     look.Race = player->getRace();
     look.Gender = StoryGenderOf(player);
     look.Class = player->getClass();
@@ -726,6 +920,10 @@ Look LookOf(Player const* player, Wardrobe const& wardrobe)
         player->GetByteValue(PLAYER_BYTES_2, 0) };
     for (std::size_t slot = 0; slot < LookSlots; ++slot)
         look.Displays[slot] = DisplayOfItem(wardrobe.Items[slot]);
+    OwnFeatures const features = FeaturesOf(player);
+    for (std::size_t index = 0; index < features.size(); ++index)
+        look.Features[FeatureBytes[index]] = Subclass::BrotherFeature(look.Features[FeatureBytes[index]],
+            features[index]);
     if (look.Race == Subclass::ThinHumanRace)
         look.Features[4] = Subclass::FacialUnderHat(look.Features[4], look.Features[2], look.Displays[0] != 0);
     return look;
@@ -1548,7 +1746,7 @@ void MirrorShape(Player* player, Creature* twin)
 {
     uint32 const cursed = CursedShape(player);
     uint32 const shaped = cursed ? cursed : RidesTheBrother(player) ? 0 : BorrowedShape(player);
-    uint32 const wanted = shaped ? shaped : player->GetNativeDisplayId();
+    uint32 const wanted = shaped ? shaped : BrotherNativeDisplay(player);
     if (twin->GetDisplayId() == wanted)
         return;
     if (shaped)
@@ -1658,7 +1856,8 @@ bool SwingFromBrother(Player* player, Creature* twin, Unit* foe)
     if (PlayerHitsItHimself(player, foe) || !twin->IsWithinMeleeRange(foe) ||
         twin->GetMotionMaster()->GetCurrentMovementGeneratorType() == EFFECT_MOTION_TYPE)
         return false;
-    TurnTo(twin, foe);
+    if (!twin->HasInArc(float(M_PI) / 2, foe))
+        twin->SetFacingToObject(foe);
     swingingAlone = player->GetGUID();
     player->AttackerStateUpdate(foe, BASE_ATTACK);
     swingingAlone = ObjectGuid::Empty;
@@ -1906,8 +2105,8 @@ void SummonTwin(Player* player)
         motions[player->GetGUID().GetCounter()].Split = IsSplit(player);
     }
     twin->SetLevel(player->GetLevel());
-    twin->SetDisplayId(player->GetNativeDisplayId());
-    twin->SetNativeDisplayId(player->GetNativeDisplayId());
+    twin->SetDisplayId(BrotherNativeDisplay(player));
+    twin->SetNativeDisplayId(BrotherNativeDisplay(player));
     twin->SetFloatValue(UNIT_FIELD_COMBATREACH, TwinReach);
     twin->SetFloatValue(UNIT_FIELD_BOUNDINGRADIUS, TwinReach);
     twin->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
@@ -2237,6 +2436,12 @@ void SetHalfForm(Player* player, HalfForm const& wanted)
         stored = wanted;
     }
     WearHalfForm(player, previous, wanted);
+    if (SpellInfo const* ended = previous.Spell ? sSpellMgr->GetSpellInfo(previous.Spell) : nullptr;
+        ended && ended->HasAttribute(SPELL_ATTR0_COOLDOWN_ON_EVENT))
+    {
+        player->AddSpellAndCategoryCooldowns(ended, 0);
+        SendOtherHalfCooldown(player, ended->Id);
+    }
     RefreshSubclassState(player);
     LOG_INFO("module", "mod-subclass: the other half of {} takes form {} (spell {})", player->GetName(), wanted.Form,
         wanted.Spell);
@@ -2266,6 +2471,18 @@ bool IsTankForm(uint32 form)
 
 constexpr uint32 PreferredFormBonus = 100;
 
+bool FightsInForm(SpellInfo const* info)
+{
+    return !info->HasAura(SPELL_AURA_MOD_STUN) && !info->HasAura(SPELL_AURA_MOD_PACIFY) &&
+        !info->HasAura(SPELL_AURA_MOD_PACIFY_SILENCE) && !info->HasAura(SPELL_AURA_MOD_ROOT);
+}
+
+bool FormAllowedNow(Player const* player, SpellInfo const* info)
+{
+    return !(info->HasAttribute(SPELL_ATTR0_NOT_IN_COMBAT_ONLY_PEACEFUL) && player->IsInCombat()) &&
+        !(info->HasAttribute(SPELL_ATTR0_ONLY_OUTDOORS) && !player->IsOutdoors());
+}
+
 SpellInfo const* PreferredHalfForm(Player* player)
 {
     std::vector<uint32> const actives = KnownBorrowedActives(player);
@@ -2275,7 +2492,8 @@ SpellInfo const* PreferredHalfForm(Player* player)
     for (uint32 spellId : actives)
     {
         SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
-        if (!info || !IsHalfFormSpell(player, info) || info->GetMaxDuration() > 0)
+        if (!info || !IsHalfFormSpell(player, info) || info->GetMaxDuration() > 0 || !FightsInForm(info) ||
+            !FormAllowedNow(player, info))
             continue;
         uint32 const form = FormOfSpell(info);
         uint32 score = IsTankForm(form) == tank ? PreferredFormBonus : 0;
@@ -2309,7 +2527,8 @@ bool PayForHalfForm(Player* player, SpellInfo const* info)
             return false;
         player->ModifyPower(Powers(info->PowerType), -cost);
     }
-    player->AddSpellAndCategoryCooldowns(info, 0);
+    if (!info->HasAttribute(SPELL_ATTR0_COOLDOWN_ON_EVENT))
+        player->AddSpellAndCategoryCooldowns(info, 0);
     return true;
 }
 
@@ -2326,6 +2545,12 @@ bool TakeHalfForm(Player* player, SpellInfo const* info)
     if (HalfFormOf(player).Spell == info->Id)
     {
         SetHalfForm(player, {});
+        return true;
+    }
+    if (!FormAllowedNow(player, info))
+    {
+        ChatHandler(player->GetSession()).SendNotification(info->HasAttribute(SPELL_ATTR0_NOT_IN_COMBAT_ONLY_PEACEFUL) ?
+            "That can't be used in combat." : "That can only be used outdoors.");
         return true;
     }
     if (!PayForHalfForm(player, info))
@@ -3665,6 +3890,43 @@ void DressCyclops(Player* player, std::vector<std::string_view> const& words)
     }
 }
 
+std::string TwinFeatures(Player const* player)
+{
+    if (!HasTwin(player))
+        return "TWINFEATURES";
+    OwnFeatures const features = FeaturesOf(player);
+    std::string reply = "TWINFEATURES";
+    constexpr std::array<char, 3> Keys = {'f', 'h', 'b'};
+    for (std::size_t index = 0; index < features.size(); ++index)
+        reply += Acore::StringFormat(" {}:{}:{}", Keys[index],
+            int(features[index] == Subclass::SameAsPlayer ? -1 : features[index]),
+            uint32(FeatureChoices(player, FeatureSections[index])));
+    return reply;
+}
+
+void HandleTwinFeatures(Player* player, std::vector<std::string_view> const& words)
+{
+    if (!HasTwin(player) || words.size() != 4)
+        return;
+    OwnFeatures features = FeaturesOf(player);
+    for (std::size_t index = 0; index < features.size(); ++index)
+    {
+        Optional<int32> const chosen = Acore::StringTo<int32>(words[index + 1]);
+        if (!chosen || *chosen < -1 || *chosen >= Subclass::SameAsPlayer)
+            return;
+        uint8 const value = *chosen < 0 ? Subclass::SameAsPlayer : uint8(*chosen);
+        if (!Subclass::BrotherFeatureFits(value, FeatureChoices(player, FeatureSections[index])))
+            return;
+        features[index] = value;
+    }
+    StoreFeatures(player, features);
+    if (TwinOf(player))
+    {
+        DismissTwin(player);
+        RefreshTwin(player);
+    }
+}
+
 void HandleTwinLook(Player* player, std::vector<std::string_view> const& words)
 {
     if (HasSecondHead(player))
@@ -4159,8 +4421,7 @@ bool CancelFormByPlainCopy(WorldSession* session, WorldPacket const& packet)
 
 bool ShowCastOnBrother(WorldSession* session, WorldPacket const& packet)
 {
-    if (resendingAsBrother || !castingAsBrother.Spell ||
-        (packet.GetOpcode() != SMSG_SPELL_START && packet.GetOpcode() != SMSG_SPELL_GO))
+    if (resendingAsBrother || (packet.GetOpcode() != SMSG_SPELL_START && packet.GetOpcode() != SMSG_SPELL_GO))
         return true;
     WorldPacket reader(packet);
     reader.rpos(0);
@@ -4172,13 +4433,18 @@ bool ShowCastOnBrother(WorldSession* session, WorldPacket const& packet)
     reader >> caster.ReadAsPacked();
     std::size_t const afterCasters = reader.rpos();
     reader >> castCount >> spellId;
-    if (caster != castingAsBrother.Player || spellId != castingAsBrother.Spell)
+    ObjectGuid twin = castingAsBrother.Spell && caster == castingAsBrother.Player ? castingAsBrother.Twin :
+        ObjectGuid::Empty;
+    if (twin)
+        ++castingAsBrother.Shown;
+    else if (caster.IsPlayer())
+        twin = FollowUpTwin(caster, spellId);
+    if (!twin)
         return true;
     WorldPacket shown(packet.GetOpcode(), packet.size());
-    shown << castingAsBrother.Twin.WriteAsPacked();
-    shown << castingAsBrother.Twin.WriteAsPacked();
+    shown << twin.WriteAsPacked();
+    shown << twin.WriteAsPacked();
     shown.append(packet.contents() + afterCasters, packet.size() - afterCasters);
-    ++castingAsBrother.Shown;
     resendingAsBrother = true;
     session->SendPacket(&shown);
     resendingAsBrother = false;
@@ -4327,6 +4593,14 @@ public:
             std::lock_guard<std::mutex> lock(riderMutex);
             riderWeapons.erase(player->GetGUID().GetCounter());
         }
+        {
+            std::lock_guard<std::mutex> lock(followUpMutex);
+            followUps.erase(player->GetGUID());
+        }
+        {
+            std::lock_guard<std::mutex> lock(classLookMutex);
+            classLooks.erase(player->GetGUID().GetCounter());
+        }
         DismissTwin(player);
         std::lock_guard<std::mutex> lock(twinMutex);
         wardrobes.erase(player->GetGUID().GetCounter());
@@ -4348,8 +4622,10 @@ private:
     static void ForgetTwinOf(uint32 guid)
     {
         CharacterDatabase.DirectExecute("DELETE FROM `mod_subclass_twin` WHERE `guid` = {}", guid);
+        CharacterDatabase.DirectExecute("DELETE FROM `mod_subclass_twin_features` WHERE `guid` = {}", guid);
         std::lock_guard<std::mutex> lock(twinMutex);
         wardrobes.erase(guid);
+        ownFeatures.erase(guid);
     }
 };
 
@@ -4668,11 +4944,18 @@ void ReleaseOtherHalf(Player* player, uint32 spellId, ObjectGuid targetGuid, uin
     Unit* target = targetGuid == player->GetGUID() ? player : ObjectAccessor::GetUnit(*player, targetGuid);
     if (!info || !target || !player->IsInWorld() || !player->IsAlive() || !OtherHalfActs(player) ||
         !Affordable(player, info) || Helpless(player) || !FitsOtherHalfForm(player, info))
+    {
+        if (player->IsInWorld())
+            SendSubclassMessage(player, Acore::StringFormat("OTHERSTOP {}", spellId));
         return;
+    }
     Creature* twin = HasTwin(player) ? TwinOf(player) : nullptr;
     ActOutCast(player, info, target);
     if (twin)
+    {
         castingAsBrother = { player->GetGUID(), twin->GetGUID(), spellId };
+        NoteFollowUps(player, twin, info);
+    }
     else if (HasSecondHead(player))
         ShowCastAsCopy(player, spellId, ShowsAsCopy(player, info));
     bool const brotherPays = twin && info->PowerType < MAX_POWERS && SplitsPower(player, Powers(info->PowerType));
@@ -4813,11 +5096,42 @@ bool CancelsOnSecondPress(Player* player, SpellInfo const* info)
     return true;
 }
 
+bool IsMountSkillSpell(uint32 spellId)
+{
+    SkillLineAbilityMapBounds const bounds = sSpellMgr->GetSkillLineAbilityMapBounds(spellId);
+    return std::any_of(bounds.first, bounds.second,
+        [](auto const& entry) { return entry.second->SkillLine == SKILL_MOUNTS; });
+}
+
+bool SharesName(SpellInfo const* a, SpellInfo const* b)
+{
+    char const* first = a->SpellName[LOCALE_enUS];
+    char const* second = b->SpellName[LOCALE_enUS];
+    return first && second && *first && std::strcmp(first, second) == 0;
+}
+
+bool DismountsOnPress(Player* player, SpellInfo const* info)
+{
+    if (!player->IsMounted())
+        return false;
+    bool mount = info->HasAura(SPELL_AURA_MOUNTED) || IsMountSkillSpell(info->Id);
+    for (AuraEffect const* effect : player->GetAuraEffectsByType(SPELL_AURA_MOUNTED))
+        mount = mount || SharesName(effect->GetSpellInfo(), info);
+    if (!mount)
+        return false;
+    player->RemoveAurasByType(SPELL_AURA_MOUNTED);
+    return true;
+}
+
 void PressForOtherHalf(Player* player, uint32 spellId)
 {
+    if (uint32 const replacement = BorrowedReplacementOf(player, spellId); replacement &&
+        player->HasSpell(replacement))
+        spellId = replacement;
     SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
     if (!info || !player->IsAlive() || !player->HasSpell(spellId) || !IsBorrowedSpell(player, spellId) ||
-        TakeHalfForm(player, info) || CancelsOnSecondPress(player, info))
+        TakeHalfForm(player, info) || CancelsOnSecondPress(player, info) ||
+        DismountsOnPress(player, info))
         return;
     Unit* selected = player->GetSelectedUnit();
     Unit* target = player;
@@ -4898,10 +5212,12 @@ bool RainsOnAnArea(SpellInfo const* info)
     return info->HasEffect(SPELL_EFFECT_PERSISTENT_AREA_AURA);
 }
 
-bool NeverAlone(SpellInfo const* info)
+std::string_view WhyNeverAlone(SpellInfo const* info)
 {
-    if ((info->IsChanneled() && !RainsOnAnArea(info)) || UsesReagents(info))
-        return true;
+    if (info->IsChanneled() && !RainsOnAnArea(info))
+        return "channelled";
+    if (UsesReagents(info))
+        return "uses reagents";
     switch (info->GetSpellSpecific())
     {
         case SPELL_SPECIFIC_ASPECT:
@@ -4911,28 +5227,32 @@ bool NeverAlone(SpellInfo const* info)
         case SPELL_SPECIFIC_FOOD:
         case SPELL_SPECIFIC_DRINK:
         case SPELL_SPECIFIC_FOOD_AND_DRINK:
-            return true;
+            return "aspect, aura, presence, tracker or food";
         default:
             break;
     }
+    if (info->HasAura(SPELL_AURA_MOD_SHAPESHIFT))
+        return "shapeshift (taken as a half form)";
     if (HasAnyAura(info, { SPELL_AURA_BIND_SIGHT, SPELL_AURA_FAR_SIGHT, SPELL_AURA_MOD_POSSESS,
             SPELL_AURA_MOD_POSSESS_PET, SPELL_AURA_TRACK_CREATURES, SPELL_AURA_TRACK_RESOURCES,
-            SPELL_AURA_TRACK_STEALTHED, SPELL_AURA_MOD_STEALTH_DETECT, SPELL_AURA_MOD_SHAPESHIFT,
+            SPELL_AURA_TRACK_STEALTHED, SPELL_AURA_MOD_STEALTH_DETECT,
             SPELL_AURA_MOD_INVISIBILITY_DETECT, SPELL_AURA_MOD_STEALTH, SPELL_AURA_MOD_INVISIBILITY,
             SPELL_AURA_FEIGN_DEATH, SPELL_AURA_MOD_INCREASE_SPEED, SPELL_AURA_MOD_SPEED_ALWAYS,
             SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED, SPELL_AURA_MOUNTED, SPELL_AURA_FLY, SPELL_AURA_WATER_BREATHING,
             SPELL_AURA_WATER_WALK, SPELL_AURA_FEATHER_FALL, SPELL_AURA_HOVER, SPELL_AURA_MOD_THREAT,
             SPELL_AURA_MOD_TOTAL_THREAT, SPELL_AURA_MANA_SHIELD, SPELL_AURA_TRANSFORM, SPELL_AURA_CONTROL_VEHICLE,
             SPELL_AURA_COMPREHEND_LANGUAGE }))
-        return true;
+        return "utility aura (sight, stealth, speed, threat, transform ...)";
     if (info->IsPositive() && HasAnyAura(info, { SPELL_AURA_MOD_STUN, SPELL_AURA_MOD_PACIFY,
             SPELL_AURA_MOD_PACIFY_SILENCE }))
-        return true;
+        return "stuns or pacifies the caster";
     if (info->HasEffect(SPELL_EFFECT_SUMMON) && !SummonsAShortHelper(info))
-        return true;
-    return HasAnyEffect(info, { SPELL_EFFECT_LEAP, SPELL_EFFECT_LEAP_BACK, SPELL_EFFECT_CHARGE,
-        SPELL_EFFECT_CHARGE_DEST, SPELL_EFFECT_JUMP, SPELL_EFFECT_JUMP_DEST, SPELL_EFFECT_TELEPORT_UNITS,
-        SPELL_EFFECT_TELEPORT_UNITS_FACE_CASTER, SPELL_EFFECT_TAMECREATURE, SPELL_EFFECT_RESURRECT_PET,
+        return "lasting summon";
+    if (HasAnyEffect(info, { SPELL_EFFECT_LEAP, SPELL_EFFECT_LEAP_BACK, SPELL_EFFECT_CHARGE,
+            SPELL_EFFECT_CHARGE_DEST, SPELL_EFFECT_JUMP, SPELL_EFFECT_JUMP_DEST, SPELL_EFFECT_TELEPORT_UNITS,
+            SPELL_EFFECT_TELEPORT_UNITS_FACE_CASTER }))
+        return "movement";
+    if (HasAnyEffect(info, { SPELL_EFFECT_TAMECREATURE, SPELL_EFFECT_RESURRECT_PET,
         SPELL_EFFECT_SUMMON_PET, SPELL_EFFECT_DISMISS_PET, SPELL_EFFECT_FEED_PET, SPELL_EFFECT_CREATE_ITEM,
         SPELL_EFFECT_CREATE_ITEM_2, SPELL_EFFECT_CREATE_RANDOM_ITEM, SPELL_EFFECT_ENCHANT_ITEM,
         SPELL_EFFECT_ENCHANT_ITEM_TEMPORARY, SPELL_EFFECT_ENCHANT_ITEM_PRISMATIC, SPELL_EFFECT_ENCHANT_HELD_ITEM,
@@ -4940,11 +5260,18 @@ bool NeverAlone(SpellInfo const* info)
         SPELL_EFFECT_SUMMON_OBJECT_WILD, SPELL_EFFECT_SUMMON_PLAYER, SPELL_EFFECT_OPEN_LOCK, SPELL_EFFECT_SKINNING,
         SPELL_EFFECT_PICKPOCKET, SPELL_EFFECT_DISTRACT, SPELL_EFFECT_ADD_FARSIGHT, SPELL_EFFECT_REDIRECT_THREAT,
         SPELL_EFFECT_SANCTUARY, SPELL_EFFECT_STUCK, SPELL_EFFECT_INSTAKILL, SPELL_EFFECT_TRADE_SKILL,
-        SPELL_EFFECT_PROSPECTING, SPELL_EFFECT_MILLING, SPELL_EFFECT_DISENCHANT });
+        SPELL_EFFECT_PROSPECTING, SPELL_EFFECT_MILLING, SPELL_EFFECT_DISENCHANT }))
+        return "pet, item, resurrection or profession";
+    return {};
+}
+
+bool NeverAlone(SpellInfo const* info)
+{
+    return !WhyNeverAlone(info).empty();
 }
 
 enum class Use { Never, Interrupt, Taunt, Heal, Shield, Cleanse, Purge, Defend, Attack, Shoot, Energize, Cooldown,
-    Buff };
+    Buff, Close };
 
 bool Heals(SpellInfo const* info)
 {
@@ -4954,10 +5281,27 @@ bool Heals(SpellInfo const* info)
 
 bool GivesManaBack(SpellInfo const* info, uint8 depth = 0);
 
+bool MovesTheBrother(SpellInfo const* info)
+{
+    SpellScriptsBounds const scripts = sObjectMgr->GetSpellScriptsBounds(info->Id);
+    for (auto itr = scripts.first; itr != scripts.second; ++itr)
+        if (sObjectMgr->GetScriptName(itr->second) == "spell_subclass_brother_moves")
+            return true;
+    return false;
+}
+
+bool ClosesOnAFoe(SpellInfo const* info)
+{
+    return HasAnyEffect(info, { SPELL_EFFECT_CHARGE, SPELL_EFFECT_JUMP }) && info->NeedsExplicitUnitTarget() &&
+        !info->IsPositive() && MovesTheBrother(info);
+}
+
 Use UseOf(SpellInfo const* info)
 {
     if (info->IsAutoRepeatRangedSpell())
         return Use::Shoot;
+    if (ClosesOnAFoe(info))
+        return Use::Close;
     if (NeverAlone(info))
         return Use::Never;
     if (info->HasEffect(SPELL_EFFECT_INTERRUPT_CAST) || info->HasAura(SPELL_AURA_MOD_SILENCE))
@@ -5299,6 +5643,8 @@ struct Pick
     uint32 Weight = 0;
 };
 
+constexpr float ClosingDistance = 8.0f;
+
 enum Tier : int32
 {
     TierShot = 1,
@@ -5498,6 +5844,18 @@ std::string_view ConsiderSpell(Player* player, SpellInfo const* info, Unit* foe,
             Consider(best, { info->Id, player, TierBuff, 100.0f, recovery });
             return {};
         }
+        case Use::Close:
+        {
+            Creature* twin = HasTwin(player) ? TwinOf(player) : nullptr;
+            if (!foe || !twin || FightsFromRange(player, twin))
+                return "close in: only for a brother who fights up close";
+            if (twin->IsWithinDist(foe, ClosingDistance))
+                return "close in: already near the target";
+            if (!Reaches(player, info, foe))
+                return "close in: out of reach";
+            Consider(best, { info->Id, foe, TierAttack, 100.0f, BigCooldown });
+            return {};
+        }
         case Use::Never:
             break;
     }
@@ -5563,29 +5921,33 @@ std::vector<std::string> ExplainBrain(Player* player)
     return lines;
 }
 
-bool FeedsTheForm(SpellInfo const* info)
-{
-    return info->ManaCost || info->ManaCostPercentage || info->HasEffect(SPELL_EFFECT_ENERGIZE);
-}
-
-bool LeaveSpentHalfForm(Player* player)
+bool LeaveFormToHeal(Player* player)
 {
     HalfForm const half = HalfFormOf(player);
-    if (!half.Spell)
+    if (!half.Spell || !SomeoneCritical(Friends(player)))
         return false;
-    uint64 const mask = FormMask(half.Form);
-    bool ready = false;
     for (uint32 spellId : KnownBorrowedActives(player))
-        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId); info && info->Id != half.Spell &&
-            (info->Stances & mask) && FeedsTheForm(info) && Affordable(player, info))
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId); info && UseOf(info) == Use::Heal &&
+            !player->HasSpellCooldown(info->Id) && Affordable(player, info) && !FitsOtherHalfForm(player, info))
         {
-            ready = true;
-            break;
+            SetHalfForm(player, {});
+            LOG_INFO("module", "mod-subclass: the other half of {} leaves his form to cast {} ({})", player->GetName(),
+                info->SpellName[0], info->Id);
+            return true;
         }
-    if (!Subclass::LeavesSpentForm(IsTankForm(half.Form), half.Until != 0, ready))
+    return false;
+}
+
+bool TakeReadyTimedHalfForm(Player* player)
+{
+    if (HalfFormOf(player).Spell)
         return false;
-    SetHalfForm(player, {});
-    return true;
+    for (uint32 spellId : KnownBorrowedActives(player))
+        if (SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId); info && IsHalfFormSpell(player, info) &&
+            info->GetMaxDuration() > 0 && FightsInForm(info) && FormAllowedNow(player, info) &&
+            !player->HasSpellCooldown(info->Id) && Affordable(player, info))
+            return TakeHalfForm(player, info);
+    return false;
 }
 
 void PlayEasy(Player* player, uint32 diff)
@@ -5608,7 +5970,7 @@ void PlayEasy(Player* player, uint32 diff)
     if ((!bot && !player->HasAura(easyAura)) || !InAFight(player) || !player->IsAlive() ||
         player->HasStealthAura() || !OtherHalfActs(player) || (!bot && HasTwin(player) && !BrotherOut(player)))
         return;
-    if (LeaveSpentHalfForm(player) || TakePreferredHalfForm(player))
+    if (LeaveFormToHeal(player) || TakePreferredHalfForm(player) || TakeReadyTimedHalfForm(player))
         return;
     auto const [spellId, target] = PickSpell(player);
     if (spellId && OrderOtherHalf(player, spellId, target, 0))
@@ -6040,8 +6402,55 @@ public:
     }
 };
 
+void SendTwinGearToCharacterSelect(WorldSession* session)
+{
+    constexpr uint16 MiscPlayerDataPayload = 0x77D;
+    constexpr uint32 TwinGearPayload = 0x54574E53;
+    std::string columns;
+    for (TwinSlot const& slot : Slots)
+        columns += Acore::StringFormat(", `t`.`{}`", slot.Name);
+    session->QueueQueryCallback(CharacterDatabase.AsyncQuery(Acore::StringFormat(
+        "SELECT `c`.`name`, `t`.`guid` IS NOT NULL AND (EXISTS (SELECT 1 FROM `character_queststatus_rewarded` AS "
+        "`q` WHERE `q`.`guid` = `c`.`guid` AND `q`.`quest` = {}) OR EXISTS (SELECT 1 FROM `mod_subclass_character` "
+        "AS `s` WHERE `s`.`guid` = `c`.`guid` AND `s`.`sub_class` <> 0 AND `s`.`sub_spec` <> 0)), `f`.`guid` IS NOT "
+        "NULL, `f`.`face`, `f`.`hair`, `f`.`facial`{} FROM `characters` AS `c` LEFT JOIN `mod_subclass_twin` AS `t` "
+        "ON `t`.`guid` = `c`.`guid` LEFT JOIN `mod_subclass_twin_features` AS `f` ON `f`.`guid` = `c`.`guid` "
+        "WHERE `c`.`account` = {} AND `c`.`race` = {} AND `c`.`deleteInfos_Name` IS NULL", TwinQuest, columns,
+        session->GetAccountId(), TwinRace)).WithCallback(
+        [session](QueryResult result)
+        {
+            constexpr std::size_t FirstItem = 6;
+            std::string payload = "{";
+            if (result)
+                do
+                {
+                    Field* fields = result->Fetch();
+                    std::string const name = fields[0].Get<std::string>();
+                    if (fields[1].Get<bool>())
+                    {
+                        std::string items;
+                        for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
+                            if (ItemTemplate const* item =
+                                    sObjectMgr->GetItemTemplate(fields[FirstItem + slot].Get<uint32>()))
+                                items += Acore::StringFormat("{}[{},{},{}]", items.empty() ? "" : ",",
+                                    uint32(Slots[slot].Slot), item->DisplayInfoID, item->InventoryType);
+                        payload += Acore::StringFormat("{}\"{}\":[{}]", payload.size() > 1 ? "," : "", name, items);
+                    }
+                    if (fields[2].Get<bool>())
+                        payload += Acore::StringFormat("{}\"{}#look\":[{},{},{}]", payload.size() > 1 ? "," : "",
+                            name, uint32(fields[3].Get<uint8>()), uint32(fields[4].Get<uint8>()),
+                            uint32(fields[5].Get<uint8>()));
+                } while (result->NextRow());
+            payload += "}";
+            WorldPacket packet(MiscPlayerDataPayload, 4 + payload.size() + 1);
+            packet << TwinGearPayload << payload;
+            session->SendPacket(&packet);
+        }));
+}
+
 void AddSC_mod_subclass_twin()
 {
+    AddAscensionClassLookProvider(&CarryClassLook);
     new mod_subclass_borrowed_auras();
     new mod_subclass_own_look();
     new mod_subclass_hand_me_downs();
@@ -6081,6 +6490,100 @@ bool HandleSubclassGun(ChatHandler* handler)
         intent.AskedAt ? Acore::StringFormat("{} ms ago", now - intent.AskedAt) : std::string("never"),
         intent.StoppedAt ? Acore::StringFormat("{} ms ago", now - intent.StoppedAt) : std::string("never"),
         player->HasUnitState(UNIT_STATE_MELEE_ATTACKING));
+    return true;
+}
+
+std::string_view UseName(Use use)
+{
+    switch (use)
+    {
+        case Use::Interrupt: return "interrupt";
+        case Use::Taunt: return "taunt";
+        case Use::Heal: return "heal";
+        case Use::Shield: return "shield";
+        case Use::Cleanse: return "cleanse";
+        case Use::Purge: return "purge";
+        case Use::Defend: return "defend";
+        case Use::Attack: return "attack";
+        case Use::Shoot: return "shoot";
+        case Use::Energize: return "energize";
+        case Use::Cooldown: return "cooldown";
+        case Use::Buff: return "buff";
+        case Use::Close: return "close in";
+        default: return "never";
+    }
+}
+
+std::string NeverBecause(SpellInfo const* info)
+{
+    if (std::string_view const why = WhyNeverAlone(info); !why.empty())
+        return std::string(why);
+    if (!info->IsPositive())
+        return BreaksOnDamageOrSendsAway(info) ? "breaks on damage or sends the foe away" :
+            "harmful but neither hurts nor hinders";
+    return "helpful but no use matches (no heal, shield, defence, energize, summon or lasting aura)";
+}
+
+std::set<uint32> AuditedSpells(uint8 classId)
+{
+    std::set<uint32> spells;
+    for (AscensionCompatData::ClassSpell const& spell : AscensionCompatData::ClassSpells)
+        if (spell.ClassId == classId)
+            spells.insert(spell.SpellId);
+    for (AscensionCompatData::CoATalentEntry const& entry : AscensionCompatData::CoATalentEntries)
+        if (entry.ClassId == classId)
+            for (uint32 spellId : entry.SpellIds)
+                if (spellId)
+                    spells.insert(spellId);
+    for (AscensionLiveBaseline::Spell const& spell : AscensionLiveBaseline::Spells)
+        if (spell.ClassId == classId)
+            spells.insert(spell.SpellId);
+    return spells;
+}
+
+std::string CsvField(std::string text)
+{
+    std::string quoted = "\"";
+    for (char c : text)
+        quoted += c == '"' ? std::string("\"\"") : std::string(1, c);
+    return quoted + "\"";
+}
+
+bool HandleSubclassAudit(ChatHandler* handler)
+{
+    std::string const path = sConfigMgr->GetOption<std::string>("LogsDir", ".") + "/subclass-audit.csv";
+    std::ofstream out(path, std::ios::trunc);
+    if (!out)
+    {
+        handler->PSendSysMessage("Cannot write {}.", path);
+        return true;
+    }
+    out << "class,spell,name,rank,use,never because,forms (stances),needs caster aura,excluded by caster aura,"
+           "half form,timed form,fights in form,moves the brother,cast ms,cooldown ms\n";
+    uint32 rows = 0;
+    for (uint8 classId = CLASS_WARRIOR; classId <= CLASS_SPIRIT_MAGE; ++classId)
+    {
+        std::set<uint32> const spells = AuditedSpells(classId);
+        for (uint32 spellId : spells)
+        {
+            SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId);
+            if (!info || info->IsPassive())
+                continue;
+            if (uint32 const next = sSpellMgr->GetNextSpellInChain(spellId); next && spells.contains(next))
+                continue;
+            Use const use = UseOf(info);
+            uint32 const form = info->HasAura(SPELL_AURA_MOD_SHAPESHIFT) ? FormOfSpell(info) : 0;
+            out << uint32(classId) << ',' << spellId << ',' << CsvField(info->SpellName[0]) << ','
+                << CsvField(info->Rank[0]) << ',' << UseName(use) << ','
+                << CsvField(use == Use::Never ? NeverBecause(info) : std::string()) << ','
+                << Acore::StringFormat("{:#x}", uint64(info->Stances)) << ',' << info->CasterAuraSpell << ','
+                << info->ExcludeCasterAuraSpell << ',' << form << ',' << (form && info->GetMaxDuration() > 0) << ','
+                << (form ? FightsInForm(info) : false) << ',' << MovesTheBrother(info) << ','
+                << info->CalcCastTime() << ',' << LongestRecovery(info) << '\n';
+            ++rows;
+        }
+    }
+    handler->PSendSysMessage("Wrote {} borrowed abilities to {}.", rows, path);
     return true;
 }
 

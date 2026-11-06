@@ -17,8 +17,8 @@ Nothing here touches Stefan's Skinshifter class. It is a separate, unreleased pr
 | Server | The brother can have his own face, hair style and beard (Wardrobe → "Hair & face") | same branch, new characters SQL |
 | Server | Hair and beard choices for races above 32 are read from CharSections directly | same branch |
 | Server | 1.9.5's server changes from `handover-ilusixn-2.0` are merged into the branch | same branch |
-| Client | Vault for the 10 original races, standard and HD models | `races-extras/assets/mpq/patch-ZZZZY.MPQ`, `patch-ZZZZZ-HD.MPQ` |
-| Client | The brother's mirrored model and its two table rows, built from 1.9.8's `custom\thintwins` model | `patch-ZZZZY.MPQ` |
+| Client | Vault for the 10 original races, standard and HD models | `races-extras/assets/mpq/patch-ZZZZZY.MPQ`, `patch-ZZZZZ-HD.MPQ` |
+| Client | The brother's mirrored model and its two table rows, built from 1.9.8's `custom\thintwins` model | `patch-ZZZZZY.MPQ` |
 | Client | `EsteriaAppearanceGeometry.bin` with the Thin Twins and brother entries | `races-extras/assets/client_root/` |
 | Client | Character select: the brother is mirrored, stands at the player's right and shows his own look | `races-port` glue (commits 212d7915, 8d547d79, 39be9b61) |
 | Addon | Ascension_Subclass: "Hair & face" button in the Wardrobe's twin view | `modules/mod-subclass/addon/Ascension_Subclass` |
@@ -64,13 +64,13 @@ Add these to the release next to 1.9.8's files:
 
 | File | Goes to | Notes |
 |---|---|---|
-| `races-extras/assets/mpq/patch-ZZZZY.MPQ` | `<game>\Data\` | **Replaces `patch-ZZZZV.MPQ`; remove that from the release and the installer** |
+| `races-extras/assets/mpq/patch-ZZZZZY.MPQ` | `<game>\Data\` | **Replaces `patch-ZZZZY.MPQ` and `patch-ZZZZV.MPQ`; remove both from the release and the installer** |
 | `races-extras/assets/mpq/patch-ZZZZZ-HD.MPQ` | `<game>\Data\` | Opened only when HD is on (the `-HD` suffix rule) |
 | `races-extras/assets/client_root/EsteriaAppearanceGeometry.bin` | `<game>\` | Replaces 1.9.8's |
 | `modules/mod-subclass/addon/Ascension_Subclass/*` | `<game>\Interface\AddOns\Ascension_Subclass\` | From the server branch |
 | `CoA64.exe` built from `races-port` | `<game>\` | Needs the three glue commits above |
 
-`patch-ZZZZY.MPQ` holds: the 20 standard Vault models of the original races, `AnimationData.dbc` (rows 1792–1795),
+`patch-ZZZZZY.MPQ` holds: the 20 standard Vault models of the original races, `AnimationData.dbc` (rows 1792–1795),
 `SpellVisualKit.dbc` (rows 3455900, 3455901), `CreatureDisplayInfo.dbc` (row 977602), `CreatureModelData.dbc` (row
 901402), `custom\thintwins\native\male\thintwinsmirrormale.m2` with its skin, and the subclass's client tables:
 
@@ -87,15 +87,16 @@ client files only: they can go into a release without rebuilding the worldserver
 
 ### Archive order matters
 
-The client uses the copy of a file from the archive that sorts **last**. `patch-ZZZZY` sorts after 1.9.8's
-`patch-ZZZZS` and `patch-ZZZZX`, and its four tables are **whole copies** of 1.9.8's tables plus our rows. So:
+The client uses the copy of a file from the archive that sorts **last**. `patch-ZZZZZY` sorts after 1.9.9's
+`patch-ZZZZZ`, `patch-ZZZZS` and `patch-ZZZZX`, and its tables are **whole copies** of 1.9.9's tables plus our rows.
+The one in `races-extras` was built on a 1.9.9 client on Nov 5 and keeps every 1.9.9 row. So:
 
-- If you change AnimationData, SpellVisualKit, CreatureDisplayInfo or CreatureModelData in any archive for 1.9.9, or
-  move the Thin Twins model again, rebuild `patch-ZZZZY` (below). Otherwise it hides your change.
-- Never give the release an archive named after `patch-ZZZZY` that carries those four tables without our rows, or the
+- If you change Spell, AnimationData, SpellVisualKit, CreatureDisplayInfo or CreatureModelData in any archive for 2.0, or
+  move the Thin Twins model again, rebuild `patch-ZZZZZY` (below). Otherwise it hides your change.
+- Never give the release an archive named after `patch-ZZZZZY` that carries those four tables without our rows, or the
   Vault and the brother disappear. That is exactly how the Vault broke locally on Nov 5.
 
-### Rebuilding patch-ZZZZY on a release client
+### Rebuilding patch-ZZZZZY on a release client
 
 Put Stefan's `modules/mod-subclass/tools/` files (plus `tools/build_vault_patches.py` and
 `tools/patch_handspring_client.py` from the server branch) in a folder next to the client's `Data`, close the game,
@@ -108,9 +109,9 @@ Rebuild-Our-Client-Patches.bat
 It runs `Build-Vault-Patches.bat --fresh`, `carrytables.py` (our rows from `subclass-tables.MPQ`, which Stefan can send,
 onto the client's newest tables) and `Build-Mirror-Twin.bat`.
 
-`--fresh` starts `patch-ZZZZY` over. Both read their tables only from archives that load before `patch-ZZZZY`, and the
+`--fresh` starts `patch-ZZZZZY` over. Both read their tables only from archives that load before `patch-ZZZZZY`, and the
 mirror tool reads the Twins model path from `CreatureModelData` row 901401, so it follows the model wherever it lives.
-Then copy the new `Data\patch-ZZZZY.MPQ`, `Data\patch-ZZZZZ-HD.MPQ` and `EsteriaAppearanceGeometry.bin` into the
+Then copy the new `Data\patch-ZZZZZY.MPQ`, `Data\patch-ZZZZZ-HD.MPQ` and `EsteriaAppearanceGeometry.bin` into the
 release.
 
 ## 5. Checks before publishing
@@ -130,7 +131,7 @@ def ids(table):
     count, _, size, _ = struct.unpack_from("<4I", table, 4)
     return {struct.unpack_from("<I", table, 20 + i * size)[0] for i in range(count)}
 
-y = Archive(GAME + r"\Data\patch-ZZZZY.MPQ")
+y = Archive(GAME + r"\Data\patch-ZZZZZY.MPQ")
 need = {"AnimationData": set(h.ANIMATION_NAMES), "SpellVisualKit": set(h.VAULT_KITS),
         "CreatureDisplayInfo": {977602}, "CreatureModelData": {901402}}
 for name, rows in need.items():
@@ -149,9 +150,10 @@ for table, row in (("dbc\\CreatureDisplayInfo.dbc", 977602), ("dbc\\CreatureMode
 
 Every line must say OK. Also check by hand:
 
-- `Data\patch-ZZZZV.MPQ` is gone from the client and the installer.
-- No archive sorting after `patch-ZZZZY` in the release carries `AnimationData.dbc` or `SpellVisualKit.dbc`. If one
-  must, rebuild it on a client that already has `patch-ZZZZY`, so it starts from our rows.
+- `Data\patch-ZZZZV.MPQ` and `Data\patch-ZZZZY.MPQ` are gone from the client and the installer (1.9.9 ships a
+  stale one-table `patch-ZZZZY.MPQ`; `patch-ZZZZZY.MPQ` replaces it).
+- No archive sorting after `patch-ZZZZZY` in the release carries `AnimationData.dbc` or `SpellVisualKit.dbc`. If one
+  must, rebuild it on a client that already has `patch-ZZZZZY`, so it starts from our rows.
 - The characters SQL folder in the package contains `2026_11_03_00_mod_subclass_twin_features.sql`.
 
 ## 6. In-game test
@@ -180,8 +182,8 @@ On a test realm with the new server and client:
 - Addon: a pet summoned through the subclass gets its own movable pet bar, like the subclass stance bar.
 - Server (`stefanw1337-subclassing-test`): dropping a Warlock or Paladin subclass unlearned every mount (now only the
   class's own mounts go); its summoned pet stayed out (now dismissed whenever the subclass is cleared or changed).
-- `races-extras/subclass/` is the 1.9.7 snapshot. Take the module, its SQL and the addon from the server branch, not
-  from there.
+- `races-extras/subclass/` is refreshed to the server branch as of 2026-11-07 (`8ff12d95`): module, SQL, addon, conf
+  template and core changes. Its README lists what changed since 1.9.7.
 
 ## 8. Known issues (not fixed)
 

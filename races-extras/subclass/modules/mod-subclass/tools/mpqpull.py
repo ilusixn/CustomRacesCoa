@@ -154,6 +154,9 @@ class Archive:
         if hi_block_at:
             self.high = list(struct.unpack(f"<{block_count}H", self.read(self.start + hi_block_at, block_count * 2)))
 
+    def close(self):
+        self.file.close()
+
     def find_header(self):
         position = 0
         while True:
@@ -233,13 +236,16 @@ def archives(data_folder):
     return sorted(found, key=patch_order, reverse=True)
 
 
-def main(data_folder, wanted_path, zip_path):
+def main(data_folder, wanted_path, zip_path, skipped=""):
+    skip = {stem.strip().lower() for stem in skipped.split(",") if stem.strip()}
     wanted = [line.strip() for line in Path(wanted_path).read_text().splitlines() if line.strip()]
     missing = {name.lower(): name for name in wanted}
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as bundle:
         for path in archives(data_folder):
             if not missing:
                 break
+            if path.stem.lower() in skip:
+                continue
             try:
                 archive = Archive(path)
             except (OSError, struct.error, ValueError) as problem:
