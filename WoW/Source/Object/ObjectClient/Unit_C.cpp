@@ -22,6 +22,7 @@
 #include "CoA/Source/Modules/NamePlatesClient.h"
 #include "CoA/Source/Modules/UnitSelect.h"
 #include "CoA/Source/Modules/UnitSelectClient.h"
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
@@ -12744,7 +12745,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
     }
 
     if (!(this->m_obj->m_type & TYPE_PLAYER) || !showTitle || static_cast<int32_t>(static_cast<CGPlayer_C*>(this)->m_player->m_playerChosenTitle) <= 0) {
-        SStrCopy(buffer, this->GetUnitName(nullptr, 1), size);
+        SStrCopy(buffer, CoA::JoinedNamesClient::BodyName(this), size);
         return buffer;
     }
 
@@ -12763,7 +12764,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
         strcpy(format, strcmp(title->m_name, "") ? title->m_name : title->m_name1);
     }
 
-    SStrPrintf(buffer, size, format, this->GetUnitName(nullptr, 1));
+    SStrPrintf(buffer, size, format, CoA::JoinedNamesClient::BodyName(this));
 
     uint8_t medal = static_cast<CGPlayer_C*>(this)->m_player->m_playerBytes3[2];
 
