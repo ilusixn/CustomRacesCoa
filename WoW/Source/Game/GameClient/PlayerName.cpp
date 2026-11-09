@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "PlayerName.h"
 #include <typeinfo>
 #include "Engine/Source/Base/CDataAllocator.h"
@@ -144,6 +145,7 @@ void PlayerNameUpdateDrawCallback(PLAYERNAMEDESC* desc) {
     }
 
     desc->m_renderFrame = s_lastRenderFrame;
+    CoA::JoinedNamesClient::RefreshName(object, desc);
     uint32_t raidTarget = GetRaidTargetIndexFromGuid(desc->m_guid);
 
     if (object->ShouldRenderObjectName(s_nameMask) || PLAYERNAMEDESC::ShouldRender(object, raidTarget)) {
