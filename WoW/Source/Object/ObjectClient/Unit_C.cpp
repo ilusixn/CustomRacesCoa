@@ -6388,6 +6388,10 @@ void CGUnit_C::SetMountModel(CM2Model* model) {
         return;
     }
 
+    if (model) {
+        CoA::CarriedMountClient::Note(this, "set-mount-model");
+    }
+
     this->CleanUpVehicleBoneAnimsBeforeObjectModelChange();
 
     if (model) {
@@ -22345,6 +22349,7 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
     // geoset display while the mount model is built; 0 after.
     CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldMountdisplayid);
     this->m_wheelMask = 0;
+    CoA::CarriedMountClient::Note(this, "create");
 
     if (!this->m_mountModel && CoA::CarriedMountClient::Carry(this)) {
         return;
