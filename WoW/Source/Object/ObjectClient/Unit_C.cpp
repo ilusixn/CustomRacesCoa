@@ -4337,6 +4337,8 @@ void CGUnit_C::UpdateVenthyrHoverAnimation() {
 // OFFSET: 0x007176F0
 uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
     // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7177F9) -- 506 is the loaded AnimationData row count.
+    uint32_t carrying = 0;
+    if (CoA::CarriedMountClient::CarryingAnim(this, animId, model, &carrying)) return carrying;
     CM2Model* venthyrModel = model ? model : this->GetObjectModel();
     const bool venthyrPlayer = (this->m_obj->m_type & TYPE_PLAYER)
         && this->m_unit->m_unitFieldBytes0[0] == 101 && !this->IsMounted()
@@ -22291,7 +22293,9 @@ void CGUnit_C::HandlePendingTrackEvents() {
 // VERIFY: 0f2f9494 manual
 // OFFSET: 0x0073D940
 void CGUnit_C::DestroyUnitMount(int32_t a2) {
-    CoA::CarriedMountClient::Drop(this);
+    if (CoA::CarriedMountClient::Drop(this) && this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) {
+        this->UpdateBaseAnimation(0, -1);
+    }
 
     if (!this->m_mountModel) {
         return;
@@ -22352,6 +22356,10 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
     CoA::CarriedMountClient::Note(this, "create");
 
     if (!this->m_mountModel && CoA::CarriedMountClient::Carry(this)) {
+        if (this->m_worldModel->IsLoaded(0, 0)) {
+            this->UpdateBaseAnimation(0, -1);
+        }
+
         return;
     }
 

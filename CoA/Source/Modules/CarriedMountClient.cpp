@@ -23,6 +23,15 @@ namespace CoA::CarriedMountClient {
             return s_carried;
         }
 
+        uint32_t CarryLink(CM2Model* model) {
+            if (model->IsLoaded(0, 0)) {
+                return model->HasAttachment(CarriedMount::kCarryLink) ? CarriedMount::kCarryLink : HeldGrip::kLink;
+            }
+
+            return model->m_shared && CarriedMount::CarryPointModel(model->m_shared->m_fileName)
+                ? CarriedMount::kCarryLink : HeldGrip::kLink;
+        }
+
         bool Carries(CGUnit_C* unit) {
             if (!unit->m_worldModel) {
                 return false;
@@ -32,6 +41,23 @@ namespace CoA::CarriedMountClient {
             return CarriedMount::CarriesMounts((unit->m_obj->m_type & TYPE_PLAYER) != 0, bytes[0], bytes[2])
                 && HeldGripClient::HasHeldGrip(unit->m_worldModel);
         }
+    }
+
+    bool CarryingAnim(CGUnit_C* unit, uint32_t anim, CM2Model* model, uint32_t* carrying) {
+        CM2Model* body = model ? model : unit->m_worldModel;
+
+        if (body != unit->m_worldModel || !body || !Carried().count(unit->m_obj->m_guid.m_guid)) {
+            return false;
+        }
+
+        const uint32_t swapped = CarriedMount::CarryingAnim(anim);
+
+        if (swapped == anim || !body->IsLoaded(0, 0) || !body->HasSequence(swapped)) {
+            return false;
+        }
+
+        *carrying = swapped;
+        return true;
     }
 
     bool Carry(CGUnit_C* unit) {
@@ -55,7 +81,7 @@ namespace CoA::CarriedMountClient {
 
         CCharacterComponent::ApplyMonsterGeosets(mount, displayInfo);
         CCharacterComponent::ReplaceMonsterSkin(mount, displayInfo, modelData);
-        mount->AttachToParent(unit->m_worldModel, HeldGrip::kLink, nullptr, 0);
+        mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
         mount->m_worldTransform = C44Matrix(CarriedMount::kScale * displayInfo->m_creatureModelScale);
         Carried()[unit->m_obj->m_guid.m_guid] = mount;
@@ -98,11 +124,11 @@ namespace CoA::CarriedMountClient {
         fclose(file);
     }
 
-    void Drop(CGUnit_C* unit) {
+    bool Drop(CGUnit_C* unit) {
         auto found = Carried().find(unit->m_obj->m_guid.m_guid);
 
         if (found == Carried().end()) {
-            return;
+            return false;
         }
 
         CM2Model* mount = found->second;
@@ -114,5 +140,6 @@ namespace CoA::CarriedMountClient {
 
         mount->Release();
         unit->m_clientFlags &= ~kMountHidden;
+        return true;
     }
 }
