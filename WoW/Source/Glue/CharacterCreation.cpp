@@ -88,7 +88,7 @@ constexpr uint32_t kTwinsRace = 96;
 
 struct TwinLook {
     uint32_t race = 0, sex = 0, classId = 0, skin = 0, face = 0, hairStyle = 0, hairColor = 0, facialHair = 0;
-    uint32_t worn[NUM_ITEM_SLOTS] = {}, hands[3] = {};
+    uint32_t worn[NUM_ITEM_SLOTS] = {};
     const void* model = nullptr;
     bool operator==(const TwinLook& o) const { return std::memcmp(this, &o, sizeof(TwinLook)) == 0; }
 };
@@ -101,24 +101,16 @@ TwinLook TwinLookOf(CCharacterComponent* c) {
     look.hairStyle = p.m_hairStyleId; look.hairColor = p.m_hairColorId; look.facialHair = p.m_facialHairId;
     look.model = c->m_data.m_model;
     std::memcpy(look.worn, c->m_itemDisplayID, sizeof(look.worn));
-    std::memcpy(look.hands, c->m_handItemDisplayID, sizeof(look.hands));
     return look;
 }
 
-// The second twin wears what the player's twin wears: the class preview's outfit, not CharStartOutfit.
+// The second twin wears the player's twin's armour (the class preview's outfit, not CharStartOutfit). Hand items stay
+// off: m_handItemDisplayID keeps the previous class's weapons and does not say which is a shield.
 void WearTheSame(CCharacterComponent* from, CCharacterComponent* to) {
     for (int32_t slot = 0; slot < NUM_ITEM_SLOTS; slot++) {
         if (from->m_itemDisplayID[slot]) {
             to->AddItem(static_cast<ITEM_SLOT>(slot), static_cast<int32_t>(from->m_itemDisplayID[slot]), 0);
         }
-    }
-
-    if (from->m_handItemDisplayID[0]) {
-        to->SetHandItemDisplay(static_cast<int32_t>(from->m_handItemDisplayID[0]), 0, INVSLOT_MAINHAND, false);
-    }
-
-    if (from->m_handItemDisplayID[1]) {
-        to->SetHandItemDisplay(static_cast<int32_t>(from->m_handItemDisplayID[1]), 1, INVSLOT_OFFHAND, false);
     }
 }
 }
