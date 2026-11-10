@@ -24741,6 +24741,16 @@ void CGUnit_C::OnReceiveMirrorImageDataFromServer(CDataStore* msg) {
         msg->Get(guildId);
 
         this->m_characterComponent = CCharacterComponent::AllocComponent();
+        {
+            // CoA: Dev Menu sends uint64 extra + 'DMX1' after the stock fields for custom-race looks.
+            unsigned long long extra = 0;
+            if (msg->m_size >= 80 && msg->m_data && *reinterpret_cast<uint32_t const*>(msg->m_data + msg->m_size - 4) == 0x31584D44)
+                extra = *reinterpret_cast<unsigned long long const*>(msg->m_data + msg->m_size - 12);
+            unsigned char const bytes[5] = { static_cast<unsigned char>(data.m_preferences.m_skinID), static_cast<unsigned char>(data.m_preferences.m_faceId),
+                static_cast<unsigned char>(data.m_preferences.m_hairStyleId), static_cast<unsigned char>(data.m_preferences.m_hairColorId),
+                static_cast<unsigned char>(data.m_preferences.m_facialHairId) };
+            CoA::Esteria::MirrorCapture(this, this->m_characterComponent, data.m_preferences.m_raceID, data.m_preferences.m_sexID, bytes, extra);
+        }
         data.m_model = this->m_worldModel;
         data.m_flags ^= (data.m_flags ^ (static_cast<uint32_t>(this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) << 1)) & 0x2;
         data.m_model->m_refCount++;

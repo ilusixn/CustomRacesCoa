@@ -26,6 +26,8 @@ namespace CoA::Esteria {
     void EnumExtra(void* packet);                               // CDataStore*: SMSG_ENUM_CHARACTERS_RESULT
     void SelectExtra(void* character);                          // CCharacterComponent* of a character-select entry
     void UnitExtra(void* unit);                                 // CGUnit_C*
+    // Dev Menu dressed NPCs (SMSG_MIRRORIMAGE_DATA): keep the full look bytes before stock validation clamps them.
+    void MirrorCapture(void* unit, void* character, unsigned race, unsigned gender, unsigned char const* bytes, unsigned long long extra);
     bool RestoreUnitLook(void* unit, unsigned char* out);                         // CGUnit_C*: the shapeshift ended, give the new component its real look back
     void Trace(char const* tag, unsigned a, unsigned b, unsigned c, unsigned d, unsigned e);
     bool SavedGender(void* unit, unsigned* gender);             // CGUnit_C*: sex of the component the shapeshift freed

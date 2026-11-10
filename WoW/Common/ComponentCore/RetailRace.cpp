@@ -978,6 +978,29 @@ void BindBody(CCharacterComponent* character, CM2Model* model, const Look& look,
                 }
             }
         }
+        // Dev Menu baking (local tool only): with C:\CoA-Build\bake\dump\on present, save each finished body sheet
+        // so dressed NPCs can be shipped as plain baked textures.
+        if (!belt && GetFileAttributesA("C:\\CoA-Build\\bake\\dump\\on") != INVALID_FILE_ATTRIBUTES) {
+            std::vector<uint8_t> blp;
+            Retail::BuildBlp(sheet, blp);
+            char file[256];
+            const auto& pr = character->m_data.m_preferences;
+            int n = std::snprintf(file, sizeof(file), "C:/CoA-Build/bake/dump/look_%u_%u_%u_%u_%u_%u_%u", pr.m_raceID, pr.m_sexID,
+                pr.m_skinID, pr.m_faceId, pr.m_hairStyleId, pr.m_hairColorId, pr.m_facialHairId);
+            for (uint32_t i = 0; i < 11 && n > 0 && n < int(sizeof(file)) - 12; ++i)
+                n += std::snprintf(file + n, sizeof(file) - n, "_%u", unsigned(character->m_itemDisplayID[i]));
+            if (FILE* out = std::fopen((std::string(file) + ".blp").c_str(), "wb")) {
+                std::fwrite(blp.data(), 1, blp.size(), out);
+                std::fclose(out);
+            }
+            if (FILE* out = std::fopen((std::string(file) + ".txt").c_str(), "w")) {
+                std::fprintf(out, "race %u\nsex %u\nitems", unsigned(character->m_data.m_preferences.m_raceID),
+                    unsigned(character->m_data.m_preferences.m_sexID));
+                for (uint32_t i = 0; i < 11; ++i) std::fprintf(out, " %u", unsigned(character->m_itemDisplayID[i]));
+                std::fprintf(out, "\nkey %s\n", name.c_str());
+                std::fclose(out);
+            }
+        }
         CTexture* texture = MakeTexture(name, sheet);
         Log("body %s: %zu item layers, texture %p, %lu ms, model flags %u", name.c_str(), layers.size(),
             static_cast<void*>(texture), GetTickCount() - start, unsigned(model->m_fFlags));

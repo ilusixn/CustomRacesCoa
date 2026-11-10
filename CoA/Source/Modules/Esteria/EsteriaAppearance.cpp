@@ -1999,6 +1999,11 @@ void EsteriaUnitExtra(void* unit)
     if (!character || !fields || !ExtendedRace(RaceOf(CC<unsigned>(character, 0x18))))
         return;
     unsigned race = RaceOf(CC<unsigned>(character, 0x18));
+    if (UnitTypeId(unit) == 3 && earthenNetworkAppearance.count(character))
+    {
+        HighmountainGeometry(character);   // dressed NPC: its look came with the mirror data (MirrorCapture)
+        return;
+    }
     highmountainExtra[character] = race == 20 || CreatureAppearance::Uses(race) ? 0 : race == 50 || race == 51
         ? UnitAppearanceExtra(unit) : Field<unsigned>(fields, 0x8D * 4) & 255;
     // Stock player initialization clamps packed choices against sparse ordinary DBC counts.
@@ -2248,6 +2253,17 @@ namespace CoA::Esteria {
     void EnumExtra(void* packet) { EsteriaEnumExtra(packet); }
     void SelectExtra(void* character) { EsteriaSelectExtra(character); }
     void UnitExtra(void* unit) { EsteriaUnitExtra(unit); }
+    void MirrorCapture(void* unit, void* character, unsigned race, unsigned gender, unsigned char const* bytes, unsigned long long extra)
+    {
+        if (!unit || !character || !bytes || !ExtendedRace(::RaceOf(race)))
+            return;
+        CC<unsigned>(character, 0x18) = race;
+        CC<unsigned>(character, 0x1C) = gender;
+        unsigned r = ::RaceOf(race);
+        highmountainExtra[character] = r == 20 || CreatureAppearance::Uses(r) ? 0 : r == 50 || r == 51 ? extra : extra & 255;
+        KvLog("mirror: race %u gender %u extra %llx", race, gender, extra);
+        CaptureEarthenAppearance(character, bytes, highmountainExtra[character]);
+    }
     bool RestoreUnitLook(void* unit, unsigned char* out) { return EsteriaRestoreUnitLook(unit, out); }
     void Trace(char const* tag, unsigned a, unsigned b, unsigned c, unsigned d, unsigned e) { KvLog("%s: %u %u %u %u %u", tag, a, b, c, d, e); }
     bool SavedGender(void* unit, unsigned* gender)

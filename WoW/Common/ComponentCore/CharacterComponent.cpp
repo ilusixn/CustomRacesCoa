@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <windows.h>
 #include "Engine/Source/Model2/EsteriaHooks.h"
 #include "CoA/Source/Modules/EsteriaRaces.h"
 #include <cstddef>
@@ -5020,6 +5022,18 @@ void CCharacterComponent::ProcessFinishedRequest() {
 
     this->UpdateSections();
     RetailRaceBody(this);
+    // Dev Menu baking: name the texture dumped for this request after the look it shows
+    if (this->m_request && GetFileAttributesA("C:/CoA-Build/bake/dump/on") != INVALID_FILE_ATTRIBUTES) {
+        char from[128], to[256];
+        std::snprintf(from, sizeof(from), "C:/CoA-Build/bake/dump/req_%p.raw", static_cast<void*>(this->m_request));
+        const auto& pr = this->m_data.m_preferences;
+        int n = std::snprintf(to, sizeof(to), "C:/CoA-Build/bake/dump/look_%u_%u_%u_%u_%u_%u_%u", pr.m_raceID, pr.m_sexID,
+            pr.m_skinID, pr.m_faceId, pr.m_hairStyleId, pr.m_hairColorId, pr.m_facialHairId);
+        for (uint32_t i = 0; i < 11 && n > 0 && n < int(sizeof(to)) - 12; ++i)
+            n += std::snprintf(to + n, sizeof(to) - n, "_%u", unsigned(this->m_itemDisplayID[i]));
+        std::snprintf(to + n, sizeof(to) - n, ".raw");
+        MoveFileExA(from, to, MOVEFILE_REPLACE_EXISTING);
+    }
     this->m_request->m_flags &= ~0x1;
     this->m_flags &= ~0x1;
     this->m_request = nullptr;
@@ -5045,6 +5059,16 @@ void CCharacterComponent::ProcessComponentRequest(CComponentRequest* request) {
 
     for (uint32_t i = 0; i < request->m_layerCount; i++) {
         CCharacterComponent::PasteToSection(static_cast<COMPONENT_SECTIONS>(request->m_layerSections[i]), request->m_layerTextures[i], dstMips);
+    }
+
+    // Dev Menu baking (local tool only): with C:\CoA-Buildake\dump\on present, save each composed body texture.
+    if (GetFileAttributesA("C:/CoA-Build/bake/dump/on") != INVALID_FILE_ATTRIBUTES && dstMips && dstMips->m_mip[0]) {
+        char file[128];
+        std::snprintf(file, sizeof(file), "C:/CoA-Build/bake/dump/req_%p.raw", static_cast<void*>(request));
+        if (FILE* out = std::fopen(file, "wb")) {
+            std::fwrite(dstMips->m_mip[0], 4, size_t(s_textureSize) * s_textureSize, out);
+            std::fclose(out);
+        }
     }
 
     if (request->m_format == GxTex_Dxt1) {
