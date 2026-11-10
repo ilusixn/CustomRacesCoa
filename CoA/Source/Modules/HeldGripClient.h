@@ -9,6 +9,8 @@ class CM2Model;
 // off-hand item uses. Covers the world, corpses and the creation preview, which all end in AddHandItem.
 namespace CoA::HeldGripClient {
     bool HeldDisplay(int32_t displayId);
+    // Without waiting for the model to load: its attachment table once loaded, its file name before.
+    bool HasHeldGrip(CM2Model* model);
     GEOCOMPONENTLINKS OffHandLink(CM2Model* model, int32_t displayId);
 }
 

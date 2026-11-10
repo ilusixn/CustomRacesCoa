@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/HeldGrip.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Model2/M2Shared.h"
 #include <unordered_set>
 
 namespace CoA::HeldGripClient {
@@ -32,11 +33,21 @@ namespace CoA::HeldGripClient {
         return displayId > 0 && HeldDisplays().count(displayId) != 0;
     }
 
-    GEOCOMPONENTLINKS OffHandLink(CM2Model* model, int32_t displayId) {
-        const auto held = static_cast<GEOCOMPONENTLINKS>(HeldGrip::kLink);
+    bool HasHeldGrip(CM2Model* model) {
+        if (!model || !model->m_shared) {
+            return false;
+        }
 
-        if (model && HeldDisplay(displayId) && model->HasAttachment(held)) {
-            return held;
+        if (model->IsLoaded(0, 0)) {
+            return model->HasAttachment(HeldGrip::kLink) != 0;
+        }
+
+        return HeldGrip::HeldGripModel(model->m_shared->m_fileName);
+    }
+
+    GEOCOMPONENTLINKS OffHandLink(CM2Model* model, int32_t displayId) {
+        if (HeldDisplay(displayId) && HasHeldGrip(model)) {
+            return static_cast<GEOCOMPONENTLINKS>(HeldGrip::kLink);
         }
 
         return ATTACH_HANDLEFT;

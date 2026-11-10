@@ -1,6 +1,7 @@
 #include "CoA/Source/Modules/CarriedMountClient.h"
 #include "CoA/Source/Modules/CarriedMount.h"
 #include "CoA/Source/Modules/HeldGrip.h"
+#include "CoA/Source/Modules/HeldGripClient.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
@@ -26,7 +27,7 @@ namespace CoA::CarriedMountClient {
 
             const uint8_t* bytes = unit->m_unit->m_unitFieldBytes0;
             return CarriedMount::CarriesMounts((unit->m_obj->m_type & TYPE_PLAYER) != 0, bytes[0], bytes[2])
-                && unit->m_worldModel->HasAttachment(HeldGrip::kLink);
+                && HeldGripClient::HasHeldGrip(unit->m_worldModel);
         }
     }
 
