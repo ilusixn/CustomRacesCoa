@@ -23206,7 +23206,7 @@ void CGUnit_C::OnMountDisplayChanged(int32_t displayId) {
         return;
     }
 
-    if (!displayId && this->m_vehicle && this->m_vehicle->m_passengers.Head()) {
+    if (!displayId && this->m_vehicle && this->m_vehicle->m_passengers.Head() && !CoA::JoinedNamesClient::SharesABody(this)) {
         this->m_clientFlags |= 0x10000000;
         return;
     }
