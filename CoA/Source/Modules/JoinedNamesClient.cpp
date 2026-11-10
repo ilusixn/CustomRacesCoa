@@ -33,6 +33,16 @@ namespace CoA::JoinedNamesClient {
         }
     }
 
+    bool SharesABody(const CGUnit_C* unit) {
+        if (!unit) {
+            return false;
+        }
+
+        const CGUnit_C* body = unit->GetVehicleUnit();
+        const VehicleRec* rec = (body ? body : unit)->GetVehicleRec();
+        return rec && rec->m_id == JoinedNames::kTwoPlayersVehicle;
+    }
+
     const char* BodyName(CGUnit_C* unit) {
         CGUnit_C* rider = SeatedRider(unit);
 

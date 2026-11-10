@@ -11,6 +11,8 @@ namespace CoA::JoinedNamesClient {
     const char* BodyName(CGUnit_C* unit);
     // PlayerNameUpdateDrawCallback (0x7E6390): rebuilds the name over a body when its rider sits down or leaves.
     void RefreshName(CGObject_C* object, PLAYERNAMEDESC* desc);
+    // A Two-Players body or its seated rider: the server decides gear and power for them (lent spells, shared gear).
+    bool SharesABody(const CGUnit_C* unit);
 }
 
 #endif

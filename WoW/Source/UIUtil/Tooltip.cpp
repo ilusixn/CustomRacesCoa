@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/TooltipScaling.h"
 #include "CoA/Source/Modules/TooltipScalingClient.h"
 #include "CoA/Source/Modules/SpellTokens.h"
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include <string>
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -2919,7 +2920,7 @@ static void AddSpellEquippedItemLine(CGTooltip* tooltip, const SpellRec* spell, 
     char format[128];
     char text[512];
 
-    if ((spell->m_targets & 0x10) || spell->m_equippedItemClass < 0 || !spell->m_equippedItemSubclass) {
+    if ((spell->m_targets & 0x10) || spell->m_equippedItemClass < 0 || !spell->m_equippedItemSubclass || CoA::JoinedNamesClient::SharesABody(player)) {
         return;
     }
 
