@@ -16,7 +16,8 @@ Not included: models, textures, DBC files, MPQs (large, and many are other autho
   - the Witch Hunter Vault for the 10 original races, male and female (standard models from patch-CHA), with the
     Vault rows in AnimationData.dbc (1792-1795) and SpellVisualKit.dbc (3455900, 3455901);
   - the Thin Twins brother's mirror image `custom\thintwins\native\male\thintwinsmirrormale.m2`, display 977602 /
-    model 901402 in CreatureDisplayInfo.dbc and CreatureModelData.dbc (1.9.8's patch-ZZZZS tables plus these rows).
+    model 999402 in CreatureDisplayInfo.dbc and CreatureModelData.dbc (1.9.8's patch-ZZZZS tables plus these rows;
+    999402, since 1.9.9 has the Qiraji male at 901402).
   It replaces patch-ZZZZV.MPQ (delete that one). The four tables are whole copies: if a release changes one of them
   in an earlier archive, rebuild this patch on that client so it does not hide the change.
 - `assets/mpq/patch-ZZZZZ-HD.MPQ`  the Vault's HD models (from patch-Q). The 64-bit client opens `patch-*-HD.MPQ`

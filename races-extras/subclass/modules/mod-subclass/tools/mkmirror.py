@@ -8,7 +8,7 @@ symmetric to, so the shield faces outward and still reaches the same way.
     python mkmirror.py <thinhumanmale.m2> <thinhumanmale00.skin> <out .m2> <out 00.skin>
     python mkmirror.py --client <Data folder> [<EsteriaAppearanceGeometry.bin>]
     python mkmirror.py --server <dbc folder> [<more dbc folders>]
-The client form builds the mirrored model from the client's own Thin Twins model, adds display 977602 (model 901402)
+The client form builds the mirrored model from the client's own Thin Twins model, adds display 977602 (model 999402)
 to CreatureDisplayInfo.dbc and CreatureModelData.dbc, merges all of it into patch-ZZZZZY.MPQ and gives the mirrored
 model its own copy of the Thin Twins entry in EsteriaAppearanceGeometry.bin. The server form adds the same two rows to
 CreatureDisplayInfo.dbc and CreatureModelData.dbc in each folder that has them (Data/dbc_races, Data/dbc_clientset)."""
@@ -240,19 +240,31 @@ def mirrored_skin(skin):
 MODEL = "custom\\thinhuman\\native\\male\\thinhumanmale.m2"
 MIRROR = "custom\\thinhuman\\native\\male\\thinhumanmirrormale.m2"
 MODEL_DATA, DISPLAY_INFO = "DBFilesClient\\CreatureModelData.dbc", "DBFilesClient\\CreatureDisplayInfo.dbc"
-MODEL_ROW, MIRROR_MODEL_ROW = 901401, 901402
+# 999402, not 901402: CoA Custom 1.9.9 has the Qiraji male at CreatureModelData 901402 (its display 977630), and a
+# mirror there made him draw the Twins' mirrored body (nearly invisible at creation).
+MODEL_ROW, MIRROR_MODEL_ROW = 901401, 999402
 DISPLAY_ROW, MIRROR_DISPLAY_ROW = 977601, 977602
 MODEL_NAME_FIELD, DISPLAY_MODEL_FIELD = 2, 1
 GEOMETRY_MAGIC, GEOMETRY_PATH = 0x4D474145, 128
 
 
-def with_cloned_row(dbc, source, clone, change):
+def text_at(dbc, offset):
+    magic, count, fields, size, text_size = struct.unpack_from("<4s4I", dbc, 0)
+    start = 20 + count * size + offset
+    return dbc[start:dbc.index(b"\0", start)].decode("latin1")
+
+
+def with_cloned_row(dbc, source, clone, change, ours=None):
+    """ours(row): whether an existing row with the clone's id is our own earlier clone (replaced); any other row there
+    belongs to someone else's data, and is refused rather than overwritten."""
     magic, count, fields, size, text_size = struct.unpack_from("<4s4I", dbc, 0)
     if magic != b"WDBC":
         raise ValueError("not a DBC table")
     rows = [list(struct.unpack_from(f"<{fields}I", dbc, 20 + index * size)) for index in range(count)]
     by_id = {row[0]: row for row in rows}
     if clone in by_id:
+        if ours and not ours(by_id[clone]):
+            raise ValueError(f"row {clone} is already used by other data; pick a free id for the mirror")
         rows.remove(by_id.pop(clone))
     if source not in by_id:
         raise ValueError(f"the table has no row {source} to copy")
@@ -263,6 +275,13 @@ def with_cloned_row(dbc, source, clone, change):
     rows.append(row)
     body = b"".join(struct.pack(f"<{fields}I", *row) for row in rows)
     return struct.pack("<4s4I", b"WDBC", len(rows), fields, size, len(texts)) + body + bytes(texts)
+
+
+def mirror_owned(table, name):
+    """For CreatureModelData: a row is ours if its model is a mirror model; display rows are always ours."""
+    if not str(name).endswith("CreatureModelData.dbc"):
+        return None
+    return lambda row: "mirror" in text_at(table, row[MODEL_NAME_FIELD]).lower()
 
 
 def mirror_model_row(mirror):
@@ -343,7 +362,7 @@ def client(data, geometry=None, backup_folder=None):
         table, _ = found.newest(name, archives)
         if table is None:
             raise SystemExit(f"no archive in Data has {name}")
-        additions[name] = with_cloned_row(table, row, clone, change)
+        additions[name] = with_cloned_row(table, row, clone, change, mirror_owned(table, name))
         print(f"{name}: row {clone} made from row {row}", flush=True)
     found.close()
     print(f"writing {patches.MERGED}", flush=True)
@@ -371,7 +390,8 @@ def server(folders):
             backup = path.with_name(path.name + ".before-mirror")
             if not backup.exists():
                 backup.write_bytes(path.read_bytes())
-            path.write_bytes(with_cloned_row(path.read_bytes(), row, clone, change))
+            table = path.read_bytes()
+            path.write_bytes(with_cloned_row(table, row, clone, change, mirror_owned(table, path.name)))
             print(f"{path}: row {clone} made from row {row}", flush=True)
 
 

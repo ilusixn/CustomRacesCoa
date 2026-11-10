@@ -13,7 +13,7 @@ Nothing here touches Stefan's Skinshifter class. It is a separate, unreleased pr
 
 | Area | Change | Where it is |
 |---|---|---|
-| Server | The Thin Twins brother is the player's mirror image (display 977602, model 901402) | `stefanw1337-subclassing-test` |
+| Server | The Thin Twins brother is the player's mirror image (display 977602, model 999402) | `stefanw1337-subclassing-test` |
 | Server | The brother can have his own face, hair style and beard (Wardrobe → "Hair & face") | same branch, new characters SQL |
 | Server | Hair and beard choices for races above 32 are read from CharSections directly | same branch |
 | Server | 1.9.5's server changes from `handover-ilusixn-2.0` are merged into the branch | same branch |
@@ -29,7 +29,7 @@ Two problems in the 1.9.8 package itself:
   no brother, and an older `thinhumanmale.m2` entry. Ship the one in `races-extras/assets/client_root/` instead
   (1.9.8's 26 entries plus those two; nothing of 1.9.8's is dropped).
 - Its server tables (`files/dbc/CreatureDisplayInfo.dbc`, `files/dbc/CreatureModelData.dbc` and
-  `files/dbc_clientset/CreatureDisplayInfo.dbc`) have no rows 977602 / 901402. See step 3.
+  `files/dbc_clientset/CreatureDisplayInfo.dbc`) have no rows 977602 / 999402. See step 3.
 
 ## 2. Server source
 
@@ -72,7 +72,7 @@ Add these to the release next to 1.9.8's files:
 
 `patch-ZZZZZY.MPQ` holds: the 20 standard Vault models of the original races, `AnimationData.dbc` (rows 1792–1795),
 `SpellVisualKit.dbc` (rows 3455900, 3455901), `CreatureDisplayInfo.dbc` (row 977602), `CreatureModelData.dbc` (row
-901402), `custom\thintwins\native\male\thintwinsmirrormale.m2` with its skin, and the subclass's client tables:
+999402), `custom\thintwins\native\male\thintwinsmirrormale.m2` with its skin, and the subclass's client tables:
 
 - `Spell.dbc`: 1.9.8's patch-ZZZZS table plus **24 103 subclass client spells it lacks** (the other head's casts and
   glows, among them) and our field changes on 308 spells. Without them a borrowed spell such as Create Soulstone
@@ -133,7 +133,7 @@ def ids(table):
 
 y = Archive(GAME + r"\Data\patch-ZZZZZY.MPQ")
 need = {"AnimationData": set(h.ANIMATION_NAMES), "SpellVisualKit": set(h.VAULT_KITS),
-        "CreatureDisplayInfo": {977602}, "CreatureModelData": {901402}}
+        "CreatureDisplayInfo": {977602}, "CreatureModelData": {999402}}
 for name, rows in need.items():
     table = y.extract(f"DBFilesClient\\{name}.dbc")
     print(name, "OK" if table and rows <= ids(table) else "MISSING")
@@ -143,7 +143,7 @@ geometry = open(GAME + r"\EsteriaAppearanceGeometry.bin", "rb").read()
 for path in (b"custom\\thintwins\\native\\male\\thintwinsmale.m2", b"custom\\thintwins\\native\\male\\thintwinsmirrormale.m2"):
     print(path.decode(), "OK" if path in geometry else "MISSING")
 
-for table, row in (("dbc\\CreatureDisplayInfo.dbc", 977602), ("dbc\\CreatureModelData.dbc", 901402),
+for table, row in (("dbc\\CreatureDisplayInfo.dbc", 977602), ("dbc\\CreatureModelData.dbc", 999402),
                    ("dbc_clientset\\CreatureDisplayInfo.dbc", 977602)):
     print(table, "OK" if row in ids(open(SRV + "\\files\\" + table, "rb").read()) else "MISSING")
 ```
