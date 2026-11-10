@@ -9,7 +9,10 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include <cstdio>
+#include <cstring>
 #include <unordered_map>
+#include <windows.h>
 
 namespace CoA::CarriedMountClient {
     namespace {
@@ -58,6 +61,41 @@ namespace CoA::CarriedMountClient {
         Carried()[unit->m_obj->m_guid.m_guid] = mount;
         unit->m_clientFlags |= kMountHidden;
         return true;
+    }
+
+    void Note(CGUnit_C* unit, const char* stage) {
+        const uint8_t* bytes = unit->m_unit->m_unitFieldBytes0;
+        const bool player = (unit->m_obj->m_type & TYPE_PLAYER) != 0;
+
+        if (!player || bytes[0] != CarriedMount::kTwoHeadedOgre) {
+            return;
+        }
+
+        char path[MAX_PATH] = {};
+        const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
+        char* slash = length && length < MAX_PATH ? strrchr(path, '\\') : nullptr;
+
+        if (!slash) {
+            return;
+        }
+
+        strcpy_s(slash + 1, MAX_PATH - (slash - path) - 1, "CarriedMount.log");
+        FILE* file = nullptr;
+
+        if (fopen_s(&file, path, "a") || !file) {
+            return;
+        }
+
+        CM2Model* model = unit->m_worldModel;
+        const bool loaded = model && model->IsLoaded(0, 0);
+        const char* name = model && model->m_shared ? model->m_shared->m_fileName : "-";
+        fprintf(file, "tick=%u stage=%s guid=%llx sex=%u model=%s loaded=%d grip=%d named=%d mountModel=%d "
+            "mountDisplay=%u fieldMount=%u flags=%08x carries=%d\n",
+            static_cast<uint32_t>(GetTickCount()), stage, static_cast<unsigned long long>(unit->m_obj->m_guid.m_guid),
+            bytes[2], name, loaded, loaded ? model->HasAttachment(HeldGrip::kLink) : -1,
+            model && model->m_shared ? HeldGrip::HeldGripModel(name) : -1, unit->m_mountModel != nullptr,
+            unit->m_mountDisplayId, unit->m_unit->m_unitFieldMountdisplayid, unit->m_clientFlags, Carries(unit));
+        fclose(file);
     }
 
     void Drop(CGUnit_C* unit) {

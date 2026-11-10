@@ -9,6 +9,7 @@ class CGUnit_C;
 namespace CoA::CarriedMountClient {
     bool Carry(CGUnit_C* unit);
     void Drop(CGUnit_C* unit);
+    void Note(CGUnit_C* unit, const char* stage);
 }
 
 #endif
