@@ -17,6 +17,8 @@
 #include "Engine/Source/Retail/RacePolicy.h"
 #include "CoA/Source/Modules/ItemCollections.h"
 #include "CoA/Source/Modules/TwoPlayersArt.h"
+#include "CoA/Source/Modules/HeldGrip.h"
+#include "CoA/Source/Modules/HeldGripClient.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Handle.h"
@@ -537,7 +539,7 @@ void CCharacterComponent::RemoveLinkpt(CM2Model* model, GEOCOMPONENTLINKS link) 
         return;
     }
 
-    if (link == ATTACH_SHIELD || link == ATTACH_HANDLEFT) {
+    if (link == ATTACH_SHIELD || link == ATTACH_HANDLEFT || link == CoA::HeldGrip::kLink) {
         for (uint32_t bone = 13; bone <= 17; bone++) {
             model->UnsetBoneSequence(bone, 0, 1);
         }
@@ -2141,7 +2143,7 @@ void CCharacterComponent::AddLink(CM2Model* parent, GEOCOMPONENTLINKS link, cons
 
     if (link == ATTACH_HANDRIGHT) {
         CCharacterComponent::ComponentCloseFingers(parent, COMP_HAND_RIGHT);
-    } else if (link == ATTACH_HANDLEFT) {
+    } else if (link == ATTACH_HANDLEFT || link == CoA::HeldGrip::kLink) {
         CCharacterComponent::ComponentCloseFingers(parent, COMP_HAND_LEFT);
     }
 
@@ -2218,6 +2220,9 @@ GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDi
         if (shield) {
             folder = "Item\\ObjectComponents\\Shield\\";
             hand = ATTACH_SHIELD;
+        } else {
+            CCharacterComponent::RemoveLinkpt(model, static_cast<GEOCOMPONENTLINKS>(CoA::HeldGrip::kLink));
+            hand = CoA::HeldGripClient::OffHandLink(model, displayRec->m_id);
         }
     } else if (invSlot == INVSLOT_RANGED) {
         hand = ATTACH_HANDLEFT;
@@ -2316,6 +2321,10 @@ void CCharacterComponent::RemoveHandItem(CM2Model* model, INVENTORY_SLOTS invSlo
 
     CCharacterComponent::RemoveLinkpt(model, hand);
     CCharacterComponent::RemoveLinkpt(model, sheath);
+
+    if (hand == ATTACH_HANDLEFT) {
+        CCharacterComponent::RemoveLinkpt(model, static_cast<GEOCOMPONENTLINKS>(CoA::HeldGrip::kLink));
+    }
 }
 
 // VERIFY: cdfacfc2 manual
