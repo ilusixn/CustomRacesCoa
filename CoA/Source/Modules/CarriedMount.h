@@ -10,7 +10,7 @@
 namespace CoA::CarriedMount {
     constexpr uint32_t kTwoHeadedOgre = 85;
     constexpr uint32_t kFemale = 1;
-    constexpr float kScale = 0.4f;
+    constexpr float kScale = 0.6f;
     constexpr int32_t kCarryLink = 48;
     constexpr uint32_t kCarryStand = 227;
     constexpr uint32_t kCarryMove = 228;

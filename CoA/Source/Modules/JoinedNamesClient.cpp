@@ -1,11 +1,13 @@
 #include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "CoA/Source/Modules/JoinedNames.h"
+#include "Engine/Source/FrameScript/FrameScript.h"
 #include "WoW/Source/DB/Rec/VehicleRec.h"
 #include "WoW/Source/Game/GameClient/PlayerName.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Object/ObjectClient/Vehicle_C.h"
 #include "WoW/Source/Object/Passenger.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include <cstring>
 #include <string>
 
 namespace CoA::JoinedNamesClient {
@@ -31,6 +33,17 @@ namespace CoA::JoinedNamesClient {
 
             return nullptr;
         }
+
+        bool NameKnown(CGUnit_C* rider) {
+            const char* name = rider->GetUnitName(nullptr, 1);
+            const char* unknown = FrameScript_GetText("UNKNOWNOBJECT", -1, GENDER_NOT_APPLICABLE);
+            return name && *name && strcmp(name, "Unknown Being") != 0 && !(unknown && strcmp(name, unknown) == 0);
+        }
+
+        CGUnit_C* NamedRider(CGUnit_C* body) {
+            CGUnit_C* rider = SeatedRider(body);
+            return rider && NameKnown(rider) ? rider : nullptr;
+        }
     }
 
     bool SharesABody(const CGUnit_C* unit) {
@@ -44,7 +57,7 @@ namespace CoA::JoinedNamesClient {
     }
 
     const char* BodyName(CGUnit_C* unit) {
-        CGUnit_C* rider = SeatedRider(unit);
+        CGUnit_C* rider = NamedRider(unit);
 
         if (!rider) {
             return unit->GetUnitName(nullptr, 1);
@@ -61,7 +74,7 @@ namespace CoA::JoinedNamesClient {
             return;
         }
 
-        CGUnit_C* rider = SeatedRider(static_cast<CGUnit_C*>(object));
+        CGUnit_C* rider = NamedRider(static_cast<CGUnit_C*>(object));
         uint64_t riderGuid = rider ? rider->m_obj->m_guid.m_guid : 0;
 
         if (JoinedNames::RiderChanged(object->m_obj->m_guid.m_guid, riderGuid)) {
