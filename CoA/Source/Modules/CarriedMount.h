@@ -7,7 +7,7 @@
 // mount. He tucks it under his arm, on the model's held grip, and runs at the mount's speed.
 namespace CoA::CarriedMount {
     constexpr uint32_t kTwoHeadedOgre = 85;
-    constexpr uint32_t kMale = 0;
+    constexpr uint32_t kFemale = 1;
     constexpr float kScale = 0.3f;
 
     bool CarriesMounts(bool player, uint32_t race, uint32_t sex);
