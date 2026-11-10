@@ -1,4 +1,6 @@
 #include "DetailDoodad.h"
+#include "WoW/Source/WorldClient/HD/HdDetailDoodad.h"
+#include <algorithm>
 #include <cmath>
 #include "CoA/Source/Modules/CrashContext.h"
 #include "Engine/Source/Base/Handle.h"
@@ -21,7 +23,13 @@
 #include "Engine/Source/Tempest/C33Matrix.h"
 #include "Engine/Source/Tempest/CImVector.h"
 #include <cstring>
+#include <unordered_map>
+#include <vector>
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/Ui/OptionCVars.h"
+#include "WoW/Source/WorldClient/GrassDensity.h"
+#include "WoW/Source/WorldClient/HD/HdGrassWind.h"
+#include "WoW/Source/WorldClient/WorldParam.h"
 #include "WoW/Source/WorldClient/CDetailDoodadData.h"
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
 #include "WoW/Source/WorldClient/DayNight.h"
@@ -49,6 +57,40 @@ static uint32_t unk_D1C4E8;
 
 // STATIC: 0x00D1C504
 TSGrowableArray<CGxBuf*> CDetailDoodad::s_freeGxBufs;
+
+// Not in the original binary: the client keeps 128 baked grass batches; past that a batch is baked into a stream buffer
+// again every frame it is drawn, which is what made long grass distances slow (seyris-living-azeroth's instanced grass
+// worked around it the same way: the plants drawn from buffers that stay filled). The pool now grows to the batches
+// in range, in groups of 128 pairs, each group a stock-sized pool of its own (a Vulkan dynamic pool copies itself
+// whole when a lock overlaps this frame's draws: small pools keep that cheap), up to grassBufferMemory.
+static CVar* s_cvarGrassBufferMemory;
+static std::vector<CGxPool*> s_extraPools;   // vertex, index, vertex, index ... for the groups after the first
+
+static bool GrassBufferMemoryChanged(CVar*, const char*, const char*, void*) {
+    CDetailDoodad::s_bPoolsDirty = 1;
+    return true;
+}
+
+void CDetailDoodad::RegisterCVars() {
+    s_cvarGrassBufferMemory = CVar::Register("grassBufferMemory", "Most memory (MB) the kept grass may use: grass reaches only as far as it holds at the current density", 1, "256", GrassBufferMemoryChanged, CATEGORY_GRAPHICS, false, nullptr, false);
+}
+
+// Not in the original binary: frames an undrawn chunk keeps its baked grass. The client gives it 10; while a quarter
+// of the pool is free, 300 (about 5 s), so turning around does not bake everything behind you again.
+// Not in the original binary: chunks baked again per frame for grass density, so walking does not hitch.
+static uint32_t s_rebakesLeft = 4;
+
+bool CDetailDoodad::TakeRebake() {
+    if (!s_rebakesLeft) {
+        return false;
+    }
+    s_rebakesLeft--;
+    return true;
+}
+
+uint32_t CDetailDoodad::KeepFrames() {
+    return CDetailDoodad::s_freeGxBufs.Count() * 4 > unk_D1C4DC ? 300 : 10;
+}
 
 // STATIC: 0x00D1C488
 CGxShader* CDetailDoodad::s_pixelShader[8];
@@ -123,15 +165,18 @@ static void AcquireBuffers(uint32_t vertexCount, CGxBuf** vertexBuf, uint32_t in
         (*vertexBuf)->m_hasData = 0;
         (*indexBuf)->m_hasData = 0;
     } else {
-        *vertexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPNCT), vertexCount);
-        *indexBuf = g_theGxDevicePtr->BufStream(GxPoolTarget_Index, sizeof(uint16_t), indexCount);
+        // Not in the original binary: no stream buffer baked again every frame. The pool is sized to the grass in reach
+        // (UpdatePools); a batch it cannot hold is not drawn this frame. At long distances the stream fallback grew the
+        // stream ring until the GPU ran out of memory.
+        *vertexBuf = nullptr;
+        *indexBuf = nullptr;
     }
 }
 
 // VERIFY: c83ff776 auto
 // OFFSET: 0x007B0D40
 int32_t CDetailDoodadInst::HasBatches() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         if (this->m_batches[i].m_vertexBuf) {
             return 1;
         }
@@ -157,6 +202,7 @@ void CDetailDoodad::SetupVertexShader(const C44Matrix& world, uint32_t index) {
 
     CDetailDoodad::s_shaderConstants.m_worldView = world * view;
     g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&CDetailDoodad::s_shaderConstants), sizeof(CDetailDoodad::s_shaderConstants) / sizeof(C4Vector));
+    HD::DetailDoodadVertexConstants(world);  // not in the original binary: our grass vertex shader's constants and wind
 }
 
 // VERIFY: f3428d3d manual
@@ -514,6 +560,7 @@ void CDetailDoodad::Initialize() {
     } else if (CDetailDoodad::s_bUseShaders) {
         g_theGxDevicePtr->ShaderCreate(CDetailDoodad::s_vertexShader, GxSh_Vertex, "Shaders\\Vertex", "DetailDoodad", sizeof(CDetailDoodad::s_vertexShader) / sizeof(CDetailDoodad::s_vertexShader[0]));
         g_theGxDevicePtr->ShaderCreate(CDetailDoodad::s_pixelShader, GxSh_Pixel, "Shaders\\Pixel", "DetailDoodad", sizeof(CDetailDoodad::s_pixelShader) / sizeof(CDetailDoodad::s_pixelShader[0]));
+        HD::DetailDoodadShadersStart();  // not in the original binary: compile Azeroth Remastered's grass shaders
     }
 }
 
@@ -530,6 +577,11 @@ void CDetailDoodad::FreeGxBufMat() {
 
     CDetailDoodad::s_freeGxBufs.SetCount(0);
     unk_D1C4DC = 0;
+
+    for (CGxPool* pool : s_extraPools) {
+        g_theGxDevicePtr->PoolDestroy(pool);
+    }
+    s_extraPools.clear();
 
     if (CDetailDoodad::s_gxVertexPool) {
         g_theGxDevicePtr->PoolDestroy(CDetailDoodad::s_gxVertexPool);
@@ -577,24 +629,59 @@ void CDetailDoodad::UpdatePools() {
     s_vertexBufferSize = sizeof(CGxVertexPNCT) * vertexItems;
     s_indexBufferSize = sizeof(uint16_t) * indexItems;
 
-    CDetailDoodad::s_gxVertexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Vertex, GxPoolUsage_Dynamic, 128 * sizeof(CGxVertexPNCT) * vertexItems, GxPoolHintBit_Unk3, "CDetailDoodad_vtx");
-    CDetailDoodad::s_gxIndexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Index, GxPoolUsage_Dynamic, 128 * sizeof(uint16_t) * indexItems, GxPoolHintBit_Unk0, "CDetailDoodad_idx");
+    // Not in the original binary: how many groups of 128 batches the grass in range needs. Up to 4 batches per 33-yard
+    // chunk, ~3 in practice, over the circle of the grass distance plus a chunk. The grass reaches only as far as
+    // grassBufferMemory holds at this density (a pair is up to 151 KB at the highest), so near grass always has buffers
+    // and nothing is baked into the stream pool every frame (at long distances that grew the stream ring past the GPU's
+    // memory).
+    const double kPi = 3.14159265358979;
+    const double chunk = 100.0 / 3.0;
+    const double groupBytes = 128.0 * (sizeof(CGxVertexPNCT) * vertexItems + sizeof(uint16_t) * indexItems);
+    const double budget = OptionCVars::Float(s_cvarGrassBufferMemory, 16.0f, 4096.0f, 256.0f) * 1048576.0;
+    const uint32_t affordableGroups = std::max<uint32_t>(1, static_cast<uint32_t>(budget / groupBytes));
+    // Grass density's copies near the player come out of the same budget first (GrassDensity.h).
+    const double denseReach = GrassDensity::MaxRadius() + chunk;
+    const double densePairs = 3.0 * kPi * denseReach * denseReach / (chunk * chunk) * (GrassDensity::MaxMultiplier() - 1.0);
+    const double plainPairs = std::max(128.0, affordableGroups * 128.0 - densePairs);
+    const float requested = CWorldParam::cvar_groundEffectDist ? CWorldParam::cvar_groundEffectDist->m_floatValue : CWorld::detailDoodadDist;
+    const float dist = std::max(0.0f, std::min(requested, static_cast<float>(chunk * std::sqrt(plainPairs / (3.0 * kPi)) - chunk)));
+    CWorld::detailDoodadDist = dist;
+    World::groundEffectDistValueSqr = dist * dist;
 
-    CDetailDoodad::s_freeGxBufs.Reserve(256, 0);
+    const double reach = dist + chunk;
+    const double wantedPairs = 3.0 * kPi * reach * reach / (chunk * chunk) + densePairs;
+    uint32_t groups = static_cast<uint32_t>(std::ceil(wantedPairs / 128.0));
+    groups = std::max<uint32_t>(1, std::min<uint32_t>(groups, affordableGroups));
 
-    for (uint32_t i = 0; i < 256; i += 2) {
-        *CDetailDoodad::s_freeGxBufs.New() = g_theGxDevicePtr->BufCreate(CDetailDoodad::s_gxVertexPool, sizeof(CGxVertexPNCT), CDetailDoodad::s_vtxBufItems, sizeof(CGxVertexPNCT) * CDetailDoodad::s_vtxBufItems * (i >> 1));
-        *CDetailDoodad::s_freeGxBufs.New() = g_theGxDevicePtr->BufCreate(CDetailDoodad::s_gxIndexPool, sizeof(uint16_t), CDetailDoodad::s_idxBufItems, sizeof(uint16_t) * CDetailDoodad::s_idxBufItems * (i >> 1));
-        unk_D1C4E8 += 2;
+    CDetailDoodad::s_freeGxBufs.Reserve(256 * groups, 0);
+
+    for (uint32_t g = 0; g < groups; g++) {
+        CGxPool* vertexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Vertex, GxPoolUsage_Dynamic, 128 * sizeof(CGxVertexPNCT) * vertexItems, GxPoolHintBit_Unk3, "CDetailDoodad_vtx");
+        CGxPool* indexPool = g_theGxDevicePtr->PoolCreate(GxPoolTarget_Index, GxPoolUsage_Dynamic, 128 * sizeof(uint16_t) * indexItems, GxPoolHintBit_Unk0, "CDetailDoodad_idx");
+
+        if (g == 0) {
+            CDetailDoodad::s_gxVertexPool = vertexPool;
+            CDetailDoodad::s_gxIndexPool = indexPool;
+        } else {
+            s_extraPools.push_back(vertexPool);
+            s_extraPools.push_back(indexPool);
+        }
+
+        for (uint32_t i = 0; i < 256; i += 2) {
+            *CDetailDoodad::s_freeGxBufs.New() = g_theGxDevicePtr->BufCreate(vertexPool, sizeof(CGxVertexPNCT), CDetailDoodad::s_vtxBufItems, sizeof(CGxVertexPNCT) * CDetailDoodad::s_vtxBufItems * (i >> 1));
+            *CDetailDoodad::s_freeGxBufs.New() = g_theGxDevicePtr->BufCreate(indexPool, sizeof(uint16_t), CDetailDoodad::s_idxBufItems, sizeof(uint16_t) * CDetailDoodad::s_idxBufItems * (i >> 1));
+            unk_D1C4E8 += 2;
+        }
     }
 
-    unk_D1C4DC = 256;
+    unk_D1C4DC = 256 * groups;
     CDetailDoodad::s_bPoolsDirty = 0;
 }
 
 // VERIFY: 564457f1 manual
 // OFFSET: 0x007B2D30
 int32_t CDetailDoodad::InitializeRenderState() {
+    s_rebakesLeft = 4;  // not in the original binary: the next frame's density rebakes
     GxRsSet(GxRs_Culling, 0);
     GxRsSet(GxRs_BlendingMode, 2);
     GxRsSet(GxRs_AlphaRef, CWorld::detailDoodadAlphaRef);
@@ -602,6 +689,8 @@ int32_t CDetailDoodad::InitializeRenderState() {
 
     if (CDetailDoodad::s_bUseShaders) {
         uint32_t shadow = CShadowCache::GetShadowValue();
+        // Not in the original binary: hdGrassLight puts our shader code (Forever lighting) into all the grass shaders.
+        HD::DetailDoodadShaders();
         g_theGxDevicePtr->RsSet(GxRs_PixelShader, CDetailDoodad::s_pixelShader[4 * ((CWorld::enables2 >> 1) & 1) + shadow]);
         CDetailDoodad::InitializeShaderConstants();
         CShadowCache::SetShadowMapDetailDoodad();
@@ -654,9 +743,45 @@ int32_t CDetailDoodadData::Load() {
 // VERIFY: 50911cf6 manual
 // OFFSET: 0x007B30D0
 void CDetailDoodadInst::FreeBuffers() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         this->m_batches[i].FreeBuffers();
     }
+}
+
+// Not in the original binary (seyris-living-azeroth's GrassDoodads.cpp): where a blade's root and tip are on its texture,
+// from the model's own geometry: the average texture V of the vertices in the lowest and in the highest 12% of its height.
+// False for a model with no height (a flat decal) or no usable V range.
+static bool ScanRootTip(CM2Model* model, float& rootV, float& tipV) {
+    M2Data* m2Data = model->m_shared->m_data;
+    M2SkinProfile* skin = model->m_shared->m_skinData;
+    const uint32_t count = skin->m_vertices.m_count;
+    if (count < 3) return false;
+    float minZ = 1e30f, maxZ = -1e30f;
+    for (uint32_t j = 0; j < count; j++) {
+        const float z = m2Data->m_vertices[skin->m_vertices[j]].m_position.z;
+        minZ = std::min(minZ, z);
+        maxZ = std::max(maxZ, z);
+    }
+    const float height = maxZ - minZ;
+    if (height < 0.05f) return false;
+    const float band = height * 0.12f;
+    float rootSum = 0.0f, tipSum = 0.0f;
+    uint32_t rootN = 0, tipN = 0;
+    for (uint32_t j = 0; j < count; j++) {
+        const M2Vertex& v = m2Data->m_vertices[skin->m_vertices[j]];
+        if (v.m_position.z <= minZ + band) {
+            rootSum += v.m_texcoord[0].y;
+            rootN++;
+        }
+        if (v.m_position.z >= maxZ - band) {
+            tipSum += v.m_texcoord[0].y;
+            tipN++;
+        }
+    }
+    if (!rootN || !tipN) return false;
+    rootV = rootSum / rootN;
+    tipV = tipSum / tipN;
+    return true;
 }
 
 // VERIFY: b905f512 manual
@@ -683,29 +808,41 @@ void CDetailDoodadInst::AddDoodad(uint32_t id, const C3Vector& position, float r
     M2SkinProfile* skin = model->m_shared->m_skinData;
     uint32_t vertexCount = skin->m_vertices.m_count;
     uint32_t indexCount = skin->m_indices.m_count;
+    // Not in the original binary: a doodad with a GroundEffectDoodadWind.cdbc row bends its own way (the batch's c68),
+    // so it shares a batch only with doodads of its class.
+    // Its mapping from the model's own geometry is read once per doodad.
+    static std::unordered_map<uint32_t, uint16_t> s_windClasses;
+    auto cached = s_windClasses.find(id);
+    if (cached == s_windClasses.end()) {
+        float rootV = 0.0f, tipV = 0.0f;
+        const bool mapped = ScanRootTip(model, rootV, tipV);
+        cached = s_windClasses.emplace(id, HD::GrassWindClassOf(id, mapped, rootV, tipV)).first;
+    }
+    const uint16_t windClass = cached->second;
 
     uint32_t i;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < kDetailDoodadBatches; i++) {
         CDetailDoodadInstBatch& batch = this->m_batches[i];
 
-        if (!HandleCompare(reinterpret_cast<HOBJECT>(batch.m_texture), reinterpret_cast<HOBJECT>(data->m_texture)) && vertexCount + batch.m_vertexCount < CDetailDoodad::s_vtxBufItems && indexCount + batch.m_indexCount < CDetailDoodad::s_idxBufItems) {
+        if (!HandleCompare(reinterpret_cast<HOBJECT>(batch.m_texture), reinterpret_cast<HOBJECT>(data->m_texture)) && batch.m_windClass == windClass && vertexCount + batch.m_vertexCount < CDetailDoodad::s_vtxBufItems && indexCount + batch.m_indexCount < CDetailDoodad::s_idxBufItems) {
             break;
         }
     }
 
-    if (i == 4) {
-        for (i = 0; i < 4; i++) {
+    if (i == kDetailDoodadBatches) {
+        for (i = 0; i < kDetailDoodadBatches; i++) {
             if (!this->m_batches[i].m_texture) {
                 break;
             }
         }
 
-        if (i == 4) {
+        if (i == kDetailDoodadBatches) {
             return;
         }
 
         this->m_batches[i].m_texture = data->m_texture;
+        this->m_batches[i].m_windClass = windClass;
     }
 
     CDetailDoodadInstBatch& batch = this->m_batches[i];
@@ -737,6 +874,10 @@ void CDetailDoodadInstBatch::Draw() {
 
     if (!this->m_vertexBuf || this->m_vertexBuf->m_pool->m_usage == GxPoolUsage_Stream) {
         AcquireBuffers(this->m_vertexCount, &this->m_vertexBuf, this->m_indexCount, &this->m_indexBuf);
+
+        if (!this->m_vertexBuf) {
+            return;
+        }
     }
 
     if (!this->m_vertexBuf->m_hasData || !this->m_vertexBuf->m_valid) {
@@ -751,6 +892,7 @@ void CDetailDoodadInstBatch::Draw() {
 
     g_theGxDevicePtr->PrimIndexPtr(this->m_indexBuf);
     g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+    HD::DetailDoodadBatchConstants(this->m_windClass);  // not in the original binary: how this batch's plant bends
 
     CGxBatch batch;
     batch.m_primType = GxPrim_Triangles;
@@ -778,6 +920,8 @@ void CDetailDoodad::Destroy() {
     }
 
     CDetailDoodad::s_instHeap = nullptr;
+
+    HD::DetailDoodadShadersForget();  // not in the original binary: Blizzard's code back before the shaders are released
 
     for (uint32_t i = 0; i < sizeof(CDetailDoodad::s_vertexShader) / sizeof(CDetailDoodad::s_vertexShader[0]); i++) {
         if (CDetailDoodad::s_vertexShader[i]) {
@@ -817,7 +961,7 @@ void CDetailDoodadInst::Free() {
         this->m_chunk = nullptr;
     }
 
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         this->m_batches[i].Free();
     }
 }
@@ -825,7 +969,7 @@ void CDetailDoodadInst::Free() {
 // VERIFY: 104e29d5 auto
 // OFFSET: 0x007B36B0
 void CDetailDoodadInst::DrawBatches() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         if (this->m_batches[i].m_texture) {
             this->m_batches[i].Draw();
         }
@@ -839,12 +983,14 @@ CDetailDoodadInstBatch::CDetailDoodadInstBatch() {
     this->m_indexCount = 0;
     this->m_vertexBuf = nullptr;
     this->m_indexBuf = nullptr;
+    this->m_windClass = 0;
 }
 
 // VERIFY: 9e2e57b8 manual
 // OFFSET: 0x007B36E0
 CDetailDoodadInst::CDetailDoodadInst() {
     this->m_age = 0;
+    this->m_densityLevel = 0;
     this->m_chunk = nullptr;
 }
 

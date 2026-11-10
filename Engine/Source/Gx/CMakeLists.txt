@@ -4,6 +4,9 @@ if (NOT WIN32)
     list(FILTER PRIVATE_SOURCES EXCLUDE REGEX "/CGxDevice(D3d|D3d9Ex|OpenGL)/")
 endif ()
 
+# The Vulkan backend is its own target (C++20; the rest of Gx is C++17).
+list(FILTER PRIVATE_SOURCES EXCLUDE REGEX "/CGxDeviceVulkan/")
+
 add_library(Gx STATIC
     ${PRIVATE_SOURCES}
 )
@@ -19,9 +22,13 @@ target_link_libraries(Gx
 )
 
 if (WIN32)
+    add_subdirectory(CGxDeviceVulkan)
+
     target_link_libraries(Gx
         PRIVATE
             nvapi
             opengl32.lib
+        PUBLIC
+            GxVulkan
     )
 endif ()

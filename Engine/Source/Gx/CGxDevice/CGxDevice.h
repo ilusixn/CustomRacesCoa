@@ -38,7 +38,8 @@ class CImVector;
 
 class ShadowConstants {
     public:
-    /* 0000 */ float constants[256 * 4];
+    static constexpr uint32_t Count = 256;   // Vulkan backend (Kalibros) sizes its shadows by this
+    /* 0000 */ float constants[Count * 4];
     /* 1000 */ uint32_t dirtyMax;
     /* 1004 */ uint32_t dirtyMin;
 };

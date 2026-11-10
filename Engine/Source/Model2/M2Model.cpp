@@ -34,6 +34,7 @@
 #include "Engine/Source/Model2/M2Cache.h"
 #include "Engine/Source/Model2/M2ModelLight.h"
 #include "Engine/Source/Model2/M2Scene.h"
+#include "Engine/Source/Model2/M2TreeWind.h"
 #include "Engine/Source/Services/AsyncFile.h"
 #include "Engine/Source/Services/Camera.h"
 #include "Engine/Source/Services/ParticleSystem2.h"
@@ -48,6 +49,7 @@
 #include "Engine/Source/Tempest/CMath.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Object/ObjectClient/Types.h"
+#include "WoW/Source/WorldClient/HD/HdLights.h"
 
 // STATIC: 0x00A45570
 static const uint32_t s_ribbonBlendModes[] = { 0, 1, 2, 10, 3, 4, 5 };
@@ -270,6 +272,7 @@ void CM2Model::DetachFromScene() {
             CM2Light* light = &this->m_lights[i].m_light;
             light->Unlink();
             light->m_scene = nullptr;
+            HD::LightsForget(light);  // HD: hdLights keeps a lamp's last state while its model is in the scene
         }
     }
 
@@ -736,6 +739,7 @@ void CM2Model::FreeExternalResources() {
     if (this->m_lights) {
         for (uint32_t i = 0; i < data->m_lights.m_count; i++) {
             this->m_lights[i].m_light.SetVisible(0);
+            HD::LightsForget(&this->m_lights[i].m_light);  // HD
         }
     }
 
@@ -4298,6 +4302,7 @@ void CM2Model::FreeInternalResources() {
     if (this->m_lights) {
         for (uint32_t i = 0; i < data->m_lights.m_count; i++) {
             this->m_lights[i].m_light.Unlink();
+            HD::LightsForget(&this->m_lights[i].m_light);  // HD
         }
 
         this->m_lights = nullptr;
@@ -5140,6 +5145,7 @@ void CM2Model::AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, c
     }
 
     this->m_matrixF4 = M2BodyWorld(this) * *view; // CoA: body sliders
+    TreeWind::Apply(this, *view);   // Kalibros: tree wind
 
     CM2Model* attachParent = this->m_attachParent;
 
@@ -5515,6 +5521,7 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
     }
 
     this->m_matrixF4 = M2BodyWorld(this) * *view; // CoA: body sliders
+    TreeWind::Apply(this, *view);   // Kalibros: tree wind
 
     CM2Model* attachParent = this->m_attachParent;
 

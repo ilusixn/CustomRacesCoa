@@ -52,6 +52,7 @@ target_link_libraries(Wow
         Gx
         Gxu
         Images
+        Lumenveil
         Model2
         Os
         Scrn

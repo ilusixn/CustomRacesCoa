@@ -249,6 +249,11 @@ static void SetupMultisampleFormats() {
         api = GxApi_D3d9Ex;
     }
 
+    // Vulkan backend: gxApi "Vulkan" is matched like every other name; "-vulkan" overrides it.
+    if (CmdLineGetBool(CMD_VULKAN) && GxApiSupported(GxApi_Vulkan)) {
+        api = GxApi_Vulkan;
+    }
+
     int32_t colorBits = 0;
     int32_t depthBits = 0;
 

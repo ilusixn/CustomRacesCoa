@@ -87,11 +87,23 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WorldClient/MapEntity.h"
 #include "WoW/Source/WorldClient/MapWeather.h"
+#include "Engine/Source/Lumenveil/Lumenveil.h"
+#include "WoW/Source/WorldClient/HD/HdAO.h"
+#include "WoW/Source/WorldClient/HD/HdBloom.h"
+#include "WoW/Source/WorldClient/HD/HdCamera.h"
+#include "WoW/Source/WorldClient/HD/HdContactShadow.h"
+#include "WoW/Source/WorldClient/HD/HdFog.h"
+#include "WoW/Source/WorldClient/HD/HdFrame.h"
+#include "WoW/Source/WorldClient/HD/HdGI.h"
+#include "WoW/Source/WorldClient/HD/HdGrade.h"
+#include "WoW/Source/WorldClient/HD/HdTime.h"
 #include "WoW/Source/WorldClient/World.h"
 #include <cfloat>
 #include <cmath>
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "Engine/Source/ShaderEffect/Types.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
 
 // STATIC: 0x009F9864
 static const CURSORMODE s_skinCursorModes[2] = { SKIN_ALLIANCE_CURSOR, SKIN_HORDE_CURSOR };
@@ -1630,6 +1642,9 @@ void CGWorldFrame::UpdateDayNight(float deltaSec) {
         }
     }
 
+    // Not in the original binary: Azeroth Remastered's hdTime (visuals 2 only).
+    HD::ApplyTimeOverride(info);
+
     info->m_weatherIntensity = World::s_weather->m_densityBlend * World::s_weather->m_fogIntensity;
 }
 
@@ -1790,7 +1805,13 @@ void CGWorldFrame::OnWorldRender() {
 
     scene->SetFloat18(-CWorld::s_unk_CD7758);
     scene->m_passMask = CWorld::m_M2PassMask;
+    // Not in the original binary: Lumenveil takes the world's camera and viewport as the opaque models leave them.
+    Lumenveil::OpaqueBegin();
     scene->Draw(M2PASS_0);
+    Lumenveil::OpaqueDone();
+    HD::CaptureCamera();
+    // Not in the original binary: Azeroth Remastered's ambient occlusion on the opaque world (visuals 2 only).
+    HD::AO::World();
 
     if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x200122);
@@ -1798,7 +1819,13 @@ void CGWorldFrame::OnWorldRender() {
 
     GxuSortDrawList(GxuCat_0, GxuSort_VtxStream, *World::GetCamPos());
     GxuFlushDrawList(GxuCat_0, *World::GetCamPos());
+    HD::ContactShadowPrepare();  // not in the original binary: the contact shadows' mask, from the depth without the grass
     CWorldScene::RenderDetailDoodads();
+    // Not in the original binary: Azeroth Remastered's contact shadows, then its one-bounce GI, on the opaque world and
+    // the grass, before the water and the transparent models (visuals 2 only).
+    HD::ContactShadowRenderOpaque();
+    HD::GIRenderOpaque();
+    HD::Frame::Close();
 
     // CoA64: render pipeline -- the opaque world is complete (the translucency mask compares against it).
     if (g_renderPipelineHook && g_renderPipelineHook->opaqueDone) {
@@ -1809,11 +1836,15 @@ void CGWorldFrame::OnWorldRender() {
         CWorldScene::RenderBarriers(this->m_elapsedSec);
         scene->Draw(M2PASS_1);
         CWorldScene::RenderWeather();
+        Lumenveil::LiquidBegin();
         CWorldScene::RenderLiquidPass();
+        Lumenveil::LiquidEnd();
         scene->Draw(M2PASS_2);
     } else {
         scene->Draw(M2PASS_2);
+        Lumenveil::LiquidBegin();
         CWorldScene::RenderLiquidPass();
+        Lumenveil::LiquidEnd();
         CWorldScene::RenderWeather();
         CWorldScene::RenderBarriers(this->m_elapsedSec);
         scene->Draw(M2PASS_1);
@@ -1823,6 +1854,9 @@ void CGWorldFrame::OnWorldRender() {
         DrawSpellCursorShadow(0x20000);
     }
 
+    // Not in the original binary: Azeroth Remastered's volumetric fog over the world, its liquids and weather, before
+    // the spells and particles (visuals 2 only).
+    HD::Fog::World();
     SpellVisualsTick();
     SpellVisualsRender();
     CGUnit_C::RenderMissileTrajectoryTargetingTexture();
@@ -1832,6 +1866,11 @@ void CGWorldFrame::OnWorldRender() {
     GxuFlushDrawList(GxuCat_1, *World::GetCamPos());
     DayNight::RenderGlares();
     PlayerNameUpdateLate();
+    // Not in the original binary: Azeroth Remastered's bloom and sun rays, then colour grading, over the finished
+    // world (visuals 2 only).
+    HD::Bloom::World();
+    HD::Grade::World();
+    HD::Frame::Close();
 
     if (CWorld::enables & 0x20000000) {
         GxMasterEnableSet(GxMasterEnable_PolygonFill, 1);
@@ -1847,6 +1886,9 @@ void CGWorldFrame::OnWorldRender() {
     SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    // Not in the original binary: Lumenveil's passes go onto the finished world, before the full-screen effects,
+    // where the stock-client mod hooked the call to FFX::Finish.
+    Lumenveil::WorldDone();
     FFX::Finish();
     CVehiclePassenger_C::PostRenderUpdateAll();
 }
@@ -2019,6 +2061,8 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
 // OFFSET: 0x004FA5F0
 void CGWorldFrame::OnWorldUpdate() {
     float elapsedSec = this->m_elapsedSec;
+    LivingWind::Update(elapsedSec);   // Kalibros: the world wind, before the world is animated
+    SurfaceCover::Update(elapsedSec); // Kalibros: the snow patch around the player and its trenches
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (CGUnit_C::s_activeMover) {
@@ -2159,7 +2203,11 @@ void CGWorldFrame::RenderWorld(void* param) {
 
     worldFrame->OnWorldUpdate();
     PlayerNameUpdateWorldText();
+    // Not in the original binary: Lumenveil brackets the world draw (it moves the stock fog out of the way while
+    // its own fog stands in for it).
+    Lumenveil::FrameBegin();
     worldFrame->OnWorldRender();
+    Lumenveil::FrameEnd();
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);

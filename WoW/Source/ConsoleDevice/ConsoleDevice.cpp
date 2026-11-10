@@ -401,6 +401,11 @@ void ConsoleDeviceInitialize(const char* title, bool unused_a2, bool unused_a3) 
         api = GxApi_D3d9Ex;
     }
 
+    // Vulkan backend: gxApi "Vulkan" is matched like every other name; "-vulkan" overrides it.
+    if (CmdLineGetBool(CMD_VULKAN) && GxApiSupported(GxApi_Vulkan)) {
+        api = GxApi_Vulkan;
+    }
+
     s_requestedFormat.m_fixLag = s_cvGxFixLag->m_intValue != 0;
     s_requestedFormat.m_hwTnL = !CmdLineGetBool(CMD_SW_TNL);
 

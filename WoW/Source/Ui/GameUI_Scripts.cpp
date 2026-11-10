@@ -1,5 +1,6 @@
 #include "WoW/Source/Ui/BodyShapeScripts.h"
 #include "GameUI.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
 #include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include <cmath>
@@ -6280,6 +6281,11 @@ static FrameScript_Method s_ScriptFunctions[] = {
     { "GetCVarMax", &Script_GetCVarMax },
     { "GetCVarAbsoluteMin", &Script_GetCVarAbsoluteMin },
     { "GetCVarAbsoluteMax", &Script_GetCVarAbsoluteMax },
+    { "LivingAzeroth_GetVersion", &LivingWind::Script_GetVersion },
+    { "LivingAzeroth_GetWind", &LivingWind::Script_GetWind },
+    { "LivingAzeroth_GetWeather", &LivingWind::Script_GetWeather },
+    { "LivingAzeroth_GetTemperature", &LivingWind::Script_GetTemperature },
+    { "LivingAzeroth_GetHumidity", &LivingWind::Script_GetHumidity },
     { "GetWaterDetail", &Script_GetWaterDetail },
     { "SetWaterDetail", &Script_SetWaterDetail },
     { "GetFarclip", &Script_GetFarclip },

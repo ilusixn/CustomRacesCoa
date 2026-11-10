@@ -12,6 +12,11 @@
 #include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Model2/M2Cache.h"
+#include "Engine/Source/Model2/M2TreeWind.h"
+#include "WoW/Source/WorldClient/DetailDoodad.h"
+#include "WoW/Source/WorldClient/GrassDensity.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
 #include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -22,6 +27,20 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
 #include "WoW/Source/Hardware.h"
+#include "Engine/Source/Lumenveil/Lumenveil.h"
+#include "WoW/Source/WorldClient/HD/HdAO.h"
+#include "WoW/Source/WorldClient/HD/HdBloom.h"
+#include "WoW/Source/WorldClient/HD/HdFog.h"
+#include "WoW/Source/WorldClient/HD/HdGrade.h"
+#include "WoW/Source/WorldClient/HD/HdTime.h"
+#include "WoW/Source/WorldClient/HD/HdContactShadow.h"
+#include "WoW/Source/WorldClient/HD/HdGI.h"
+#include "WoW/Source/WorldClient/HD/HdTerrain.h"
+#include "WoW/Source/WorldClient/HD/HdMapObj.h"
+#include "WoW/Source/WorldClient/HD/HdDetailDoodad.h"
+#include "WoW/Source/WorldClient/HD/HdSky.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 #include "WoW/Source/WowSysMessageOutput.h"
 
 // STATIC: 0x00AB6004
@@ -655,6 +674,11 @@ void ClientRegisterConsoleCommands() {
     s_cvMovieSubtitle = CVar::Register("movieSubtitle", "Show movie subtitles", 0, "0", nullptr, CATEGORY_GAME, false, nullptr, false);
     g_checkAddonVersionVar = CVar::Register("checkAddonVersion", "Check interface addon version number", 0, "1", nullptr, CATEGORY_GAME, false, nullptr, false);
 
+    TreeWind::RegisterCVars();
+    LivingWind::RegisterCVars();
+    CDetailDoodad::RegisterCVars();
+    GrassDensity::RegisterCVars();
+    SurfaceCover::RegisterCVars();
     char mouseSpeed[32];
     SStrPrintf(mouseSpeed, sizeof(mouseSpeed), "%1.1f", OsInputGetMouseSpeed());
     s_cvMouseSpeed = CVar::Register("mouseSpeed", nullptr, 0, mouseSpeed, MouseSpeedCallback, CATEGORY_GAME, false, nullptr, false);
@@ -676,6 +700,20 @@ void ClientRegisterConsoleCommands() {
     s_cvScreenshotFormat = CVar::Register("screenshotFormat", "Set the format of screenshots", 1, "jpeg", ScreenshotFormatCallback, CATEGORY_GRAPHICS, false, nullptr, false);
     s_cvScreenshotQuality = CVar::Register("screenshotQuality", "Set the quality of screenshots (1 - 10)", 1, "3", ScreenshotQualityCallback, CATEGORY_GRAPHICS, false, nullptr, false);
 
+    // Lumenveil's cvars, log and settings files (CoAVolFog.ini beside the executable).
+    Lumenveil::Startup();
+    HD::AO::RegisterCVars();
+    HD::Bloom::RegisterCVars();
+    HD::Fog::RegisterCVars();
+    HD::Grade::RegisterCVars();
+    HD::RegisterTimeCVars();
+    HD::RegisterContactShadowCVars();
+    HD::RegisterGICVars();
+    HD::RegisterTerrainCVars();
+    HD::RegisterMapObjCVars();
+    HD::RegisterDetailDoodadCVars();
+    HD::RegisterWaterCVars();
+    HD::RegisterSkyCVars();
     CVar* showToolsUI = CVar::Register("showToolsUI", "Display the launcher when starting the game", 0, "-1", nullptr, CATEGORY_GAME, false, nullptr, false);
 
     if (static_cast<uint32_t>(showToolsUI->m_intValue) >= 2) {

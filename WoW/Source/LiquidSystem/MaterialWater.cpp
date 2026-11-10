@@ -1,4 +1,5 @@
 #include "Liquid.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Model2/M2Light.h"
@@ -127,6 +128,7 @@ Liquid::CMaterialWaterFFP* Liquid::CMaterialWaterFFP::Create() {
 // VERIFY: a882be97 manual
 // OFFSET: 0x008A5590
 void Liquid::CMaterialWater::Render(Liquid::IEnvironment* environment, Liquid::IGeomFactory* geomFactory, Liquid::IWaveManager* waveManager, const C3Vector& cameraPos, const C44Matrix* transform, const CAaSphere* bounds, Liquid::CMaterialSettings* settings) {
+    HD::WaterSeen(1);  // not in the original binary: hdWaterInfo counts the materials drawn
     CGxTex* texture1 = settings->GetTexture(0, settings->GetInt(1));
 
     if (!texture1) {
@@ -185,8 +187,12 @@ void Liquid::CMaterialWater::Render(Liquid::IEnvironment* environment, Liquid::I
         lightCount = 3;
     }
 
-    g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialWater::s_vertexShaders[lightCount]);
-    g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialWater::s_pixelShader);
+    // Not in the original binary: hdWater draws this material with Azeroth Remastered's lake shaders (false = Blizzard's)
+    bool hdWater = HD::WaterBindLake(settings, Liquid::CMaterialWater::s_vertexShaders[lightCount], Liquid::CMaterialWater::s_pixelShader);
+    if (!hdWater) {
+        g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialWater::s_vertexShaders[lightCount]);
+        g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialWater::s_pixelShader);
+    }
 
     CGxBuf* vertexBuf = nullptr;
     CGxBuf* indexBuf = nullptr;
@@ -200,12 +206,14 @@ void Liquid::CMaterialWater::Render(Liquid::IEnvironment* environment, Liquid::I
     GxPrimVertexPtr(vertexBuf, GxVBF_PNCT2);
     g_theGxDevicePtr->PrimIndexPtr(indexBuf);
     g_theGxDevicePtr->Draw(&batch, 1);
+    if (hdWater) HD::WaterAfterDraw();
     g_theGxDevicePtr->RsPop();
 }
 
 // VERIFY: b899ce66 manual
 // OFFSET: 0x008A5900
 void Liquid::CMaterialWaterNoSpec::Render(Liquid::IEnvironment* environment, Liquid::IGeomFactory* geomFactory, Liquid::IWaveManager* waveManager, const C3Vector& cameraPos, const C44Matrix* transform, const CAaSphere* bounds, Liquid::CMaterialSettings* settings) {
+    HD::WaterSeen(2);  // not in the original binary: hdWaterInfo counts the materials drawn
     CGxTex* texture1 = settings->GetTexture(0, settings->GetInt(1));
 
     if (!texture1) {
@@ -264,8 +272,12 @@ void Liquid::CMaterialWaterNoSpec::Render(Liquid::IEnvironment* environment, Liq
         lightCount = 3;
     }
 
-    g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialWaterNoSpec::s_vertexShaders[lightCount]);
-    g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialWaterNoSpec::s_pixelShader);
+    // Not in the original binary: hdWater draws this material with Azeroth Remastered's lake shaders (false = Blizzard's)
+    bool hdWater = HD::WaterBindLake(settings, Liquid::CMaterialWaterNoSpec::s_vertexShaders[lightCount], Liquid::CMaterialWaterNoSpec::s_pixelShader);
+    if (!hdWater) {
+        g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialWaterNoSpec::s_vertexShaders[lightCount]);
+        g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialWaterNoSpec::s_pixelShader);
+    }
 
     CGxBuf* vertexBuf = nullptr;
     CGxBuf* indexBuf = nullptr;
@@ -279,12 +291,14 @@ void Liquid::CMaterialWaterNoSpec::Render(Liquid::IEnvironment* environment, Liq
     GxPrimVertexPtr(vertexBuf, GxVBF_PNCT2);
     g_theGxDevicePtr->PrimIndexPtr(indexBuf);
     g_theGxDevicePtr->Draw(&batch, 1);
+    if (hdWater) HD::WaterAfterDraw();
     g_theGxDevicePtr->RsPop();
 }
 
 // VERIFY: 556f1caa manual
 // OFFSET: 0x008A5C70
 void Liquid::CMaterialWaterFFP::Render(Liquid::IEnvironment* environment, Liquid::IGeomFactory* geomFactory, Liquid::IWaveManager* waveManager, const C3Vector& cameraPos, const C44Matrix* transform, const CAaSphere* bounds, Liquid::CMaterialSettings* settings) {
+    HD::WaterSeen(3);  // not in the original binary: hdWaterInfo counts the materials drawn
     CGxTex* texture1 = settings->GetTexture(0, settings->GetInt(1));
 
     if (!texture1) {

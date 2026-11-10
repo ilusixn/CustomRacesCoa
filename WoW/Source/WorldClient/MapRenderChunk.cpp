@@ -1,4 +1,5 @@
 #include "MapRenderChunk.h"
+#include "WoW/Source/WorldClient/HD/HdTerrain.h"
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/TerrainScaleClient.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
@@ -24,6 +25,7 @@
 #include "WoW/Source/WorldClient/MapArea.h"
 #include "WoW/Source/WorldClient/MapChunk.h"
 #include "WoW/Source/WorldClient/MapLight.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
 #include "WoW/Source/WorldClient/Types.h"
 #include "WoW/Source/WorldClient/World.h"
 #if defined(_MSC_VER)
@@ -567,6 +569,7 @@ CMapChunkBufBlock::~CMapChunkBufBlock() {
 // VERIFY: a8d77235 manual
 // OFFSET: 0x007B9D60
 CMapRenderChunk::~CMapRenderChunk() {
+    SurfaceCover::Forget(this);  // not in the original binary
     this->FreeBuf();
     this->FreeLayers();
 
@@ -624,6 +627,7 @@ void CMapRenderChunk::RenderPrepBufs(CGxBuf* vertexBuf, CGxBuf* indexBuf) {
     int32_t indexReady = indexBuf->m_hasData && indexBuf->m_valid;
 
     if (!vertexReady) {
+        SurfaceCover::Forget(this);  // not in the original binary: the cover is made from these vertices too
         C3Vector offset;
         char* vertices = g_theGxDevicePtr->BufLock(vertexBuf);
 
@@ -1956,7 +1960,9 @@ void CMapRenderChunk::AllocLayerTextures() {
 // VERIFY: 7488cd14 manual
 // OFFSET: 0x0079E470
 CGxShader* CMapRenderChunk::GetVertexShader(int32_t pointLights, int32_t layers, int32_t specular, int32_t vertexColor, int32_t a5, int32_t shadow) {
-    return CMap::vertexShader_Terrain[64 * pointLights + 16 * (layers - 1) + 8 * specular + 4 * vertexColor + 2 * a5 + (shadow != 0)];
+    int32_t index = 64 * pointLights + 16 * (layers - 1) + 8 * specular + 4 * vertexColor + 2 * a5 + (shadow != 0);
+    HD::TerrainShader(CMap::vertexShader_Terrain[index], HD::TerrainVertex, index);  // not in the original binary: hdTerrainLight
+    return CMap::vertexShader_Terrain[index];
 }
 
 // VERIFY: a33ed04d auto
@@ -2109,6 +2115,7 @@ void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t laye
     CGxShader* shader = CMapRenderChunk::GetVertexShader(pointLights, layerCount - 1, specular, vertexColor, a3, CShadowCache::GetShadowValue());
     g_theGxDevicePtr->RsSet(GxRs_VertexShader, shader);
     g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&consts), sizeof(SVertexShaderConstants) / sizeof(C4Vector));
+    HD::TerrainVertexConstants(&renderChunk->m_sphere, World::s_m2Scene, &CWorldScene::s_activeWorldView);  // not in the original binary: c49-c53 and pixel c16.. for our terrain shaders (Forever lighting, hdLights)
 
     // CoA: AscTerrainScale.cpp:FUN_1033bef0 (orig hook 0x7D0050) -- after the original: the layers' texture scale bits, then
     // the constants again.
@@ -2734,6 +2741,7 @@ void CMapRenderChunk::RenderSinglePassVertexPixelShader() {
 
     CMapRenderChunk::SetVertexShader(this, this->m_layersCount + 1, specular);
     g_theGxDevicePtr->Draw(&this->m_batch, 1);
+    SurfaceCover::DrawAfter(this);  // not in the original binary: snow (and sand, ash) on top, with this chunk's constants
 
     for (uint32_t j = 0; j < this->m_layersCount; j++) {
         if (this->m_layers[j].m_flags & 0x40) {

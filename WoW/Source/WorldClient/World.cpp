@@ -70,6 +70,7 @@
 #include "WoW/Source/WorldClient/Barrier.h"
 #include "WoW/Source/WorldClient/CChunkLiquid.h"
 #include "WoW/Source/WorldClient/CMapBaseObjLink.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
 #include "WoW/Source/WorldClient/CPortalView.h"
 #include "WoW/Source/WorldClient/CWorldMath.h"
 #include "WoW/Source/WorldClient/CWorldOcclusion.h"
@@ -103,6 +104,7 @@
 #include <cstring>
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Game/GameClient/ProjectTex.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 
 static const float dirLightScaleAmount = 0.5f;
 
@@ -1928,7 +1930,11 @@ void CWorldScene::RenderLiquidPass() {
     CWorldScene::ApplyFogState();
 
     if ((CWorld::enables & Enable_Water) && CWorldScene::s_liquidRenderer) {
+        // Not in the original binary: hdWater 1 takes the linear world depth and a copy of the world before the liquids
+        // (the camera under water keeps Blizzard's water)
+        HD::WaterBeginLiquidPass(World::SceneCamLiquidStatus(nullptr) != 0);
         CWorldScene::s_liquidRenderer->Flush(CWorldScene::s_activeWorldView, 1);
+        HD::WaterEndLiquidPass();
     }
 
     CMap::RenderWaterRipples();
@@ -3698,6 +3704,8 @@ void CWorldScene::RenderChunksSinglePass() {
             }
         }
     }
+
+    SurfaceCover::DrawNear();  // not in the original binary: the fine snow patch around the player, after all terrain
 
     g_theGxDevicePtr->RsSet(GxRs_VertexShader, static_cast<void*>(nullptr));
     g_theGxDevicePtr->RsSet(GxRs_PixelShader, static_cast<void*>(nullptr));
