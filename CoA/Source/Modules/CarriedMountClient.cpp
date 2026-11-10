@@ -4,6 +4,8 @@
 #include "CoA/Source/Modules/HeldGripClient.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/SpellRec.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -32,6 +34,22 @@ namespace CoA::CarriedMountClient {
                 ? CarriedMount::kCarryLink : HeldGrip::kLink;
         }
 
+        bool CastsAMount(CGUnit_C* unit) {
+            SpellRec spell;
+
+            if (!unit->m_castingSpellId || !g_spellDB.GetRecord(static_cast<int32_t>(unit->m_castingSpellId), &spell)) {
+                return false;
+            }
+
+            for (uint32_t i = 0; i < 3; i++) {
+                if (spell.m_effectAura[i] == SPELL_AURA_MOUNTED) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         bool Carries(CGUnit_C* unit) {
             if (!unit->m_worldModel) {
                 return false;
@@ -46,11 +64,17 @@ namespace CoA::CarriedMountClient {
     bool CarryingAnim(CGUnit_C* unit, uint32_t anim, CM2Model* model, uint32_t* carrying) {
         CM2Model* body = model ? model : unit->m_worldModel;
 
-        if (body != unit->m_worldModel || !body || !Carried().count(unit->m_obj->m_guid.m_guid)) {
+        if (body != unit->m_worldModel || !body) {
             return false;
         }
 
-        const uint32_t swapped = CarriedMount::CarryingAnim(anim);
+        uint32_t swapped = anim;
+
+        if (Carried().count(unit->m_obj->m_guid.m_guid)) {
+            swapped = CarriedMount::CarryingAnim(anim);
+        } else if (CastsAMount(unit) && Carries(unit)) {
+            swapped = CarriedMount::PickUpAnim(anim);
+        }
 
         if (swapped == anim || !body->IsLoaded(0, 0) || !body->HasSequence(swapped)) {
             return false;
