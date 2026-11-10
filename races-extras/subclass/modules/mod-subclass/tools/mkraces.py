@@ -255,7 +255,9 @@ def own_displays(source):
         chosen[race.race_id] = race.display_id
     for race, path, display_id, model_id in MIRRORS:
         for row in models.rows:
-            if models.value(row, 0) == model_id and "mirror" not in models.string(models.value(row, 2)).lower():
+            existing = models.string(models.value(row, 2)).lower()
+            if models.value(row, 0) == model_id and not (existing.startswith("custom\\thin") and
+                                                         existing.split(".")[0].endswith("mirrormale")):
                 raise SystemExit(f"CreatureModelData {model_id} is already used by other data; pick a free id for "
                                  "the mirror")
         models.rows = [row for row in models.rows if models.value(row, 0) != model_id]
