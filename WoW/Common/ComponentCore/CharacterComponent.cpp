@@ -16,7 +16,6 @@
 #include "WoW/Common/ComponentCore/RetailRace.h"
 #include "Engine/Source/Retail/RacePolicy.h"
 #include "CoA/Source/Modules/ItemCollections.h"
-#include "CoA/Source/Modules/TwoPlayersArt.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Handle.h"
@@ -82,16 +81,6 @@ static const char* s_componentSections[8] = { "ArmUpperTexture", "ArmLowerTextur
 
 // STATIC: 0x00AC46A0
 static const char* s_fileDecorations[3] = { "M", "F", "U" };
-
-static uint32_t ItemArtSex(const CharacterPreferences& preferences) {
-    const ChrRacesRec* race = g_chrRacesDB.GetRecord(preferences.m_raceID);
-
-    if (!race) {
-        return preferences.m_sexID;
-    }
-
-    return CoA::TwoPlayersArt::ItemSex(preferences.m_sexID, race->m_maleDisplayID, race->m_femaleDisplayID);
-}
 
 // STATIC: 0x00AC46D0
 static CStatus s_status;
@@ -272,7 +261,7 @@ HTEXTURECACHE CCharacterComponent::LoadItemComponentTexture(const ItemDisplayInf
     SStrPrintf(s_path, sizeof(s_path), "Item\\TextureComponents\\%s\\%s_%s.blp", s_componentSections[section], displayRec->m_texture[section], s_fileDecorations[2]);
 
     if (!SFile::FileExists(s_path)) {
-        s_path[strlen(s_path) - 5] = s_fileDecorations[ItemArtSex(this->m_data.m_preferences)][0];
+        s_path[strlen(s_path) - 5] = s_fileDecorations[this->m_data.m_preferences.m_sexID][0];
     }
 
     return TextureCacheCreateTexture(s_path);
@@ -502,7 +491,7 @@ int32_t CCharacterComponent::ComposeHelmModelFilePath(const ChrRacesRec* raceRec
     *ext = '_';
     if (const auto* donor = g_chrRacesDB.GetRecord(RetailRaceHelmetRace(this->m_data.m_preferences.m_raceID))) raceRec = donor;
     strcpy(ext + 1, raceRec->m_clientPrefix);
-    strcat(path, s_fileDecorations[ItemArtSex(this->m_data.m_preferences)]);
+    strcat(path, s_fileDecorations[this->m_data.m_preferences.m_sexID]);
     strcat(path, ".mdx");
     strcpy(buffer, path);
 
