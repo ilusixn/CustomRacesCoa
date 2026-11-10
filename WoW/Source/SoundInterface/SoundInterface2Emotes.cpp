@@ -80,6 +80,8 @@ void SI2::InitEmoteSounds() {
     }
 
     s_numTextEmotes = count;
+    // CoA: New() must not reallocate below; the lookup table keeps pointers into this array.
+    s_textEmoteLookups.Reserve(static_cast<uint32_t>(count), 0);
 
     for (int32_t i = 0; i < g_emotesTextSoundDB.m_numRecords; i++) {
         EmotesTextSoundRec* rec = (i < 0 || i >= g_emotesTextSoundDB.m_numRecords) ? nullptr : &g_emotesTextSoundDB.m_records[i];
