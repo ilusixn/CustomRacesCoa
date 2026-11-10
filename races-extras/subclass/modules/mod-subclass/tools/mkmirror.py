@@ -277,11 +277,41 @@ def with_cloned_row(dbc, source, clone, change, ours=None):
     return struct.pack("<4s4I", b"WDBC", len(rows), fields, size, len(texts)) + body + bytes(texts)
 
 
+def is_our_mirror(path):
+    """The Twins brother's mirrored model (any build's name for it), not other models with "mirror" in their name."""
+    path = path.lower().replace("/", "\\")
+    return path.startswith("custom\\thin") and path.rsplit("\\", 1)[-1].split(".")[0].endswith("mirrormale")
+
+
+def without_stale_mirrors(table, base, keep):
+    """CreatureModelData with every mirror row except `keep` put back to the base's row of that id (or dropped)."""
+    magic, count, fields, size, text_size = struct.unpack_from("<4s4I", table, 0)
+    rows = [list(struct.unpack_from(f"<{fields}I", table, 20 + index * size)) for index in range(count)]
+    texts = bytearray(table[20 + count * size:20 + count * size + text_size])
+    _, base_count, _, _, _ = struct.unpack_from("<4s4I", base, 0)
+    base_rows = {row[0]: row for row in (list(struct.unpack_from(f"<{fields}I", base, 20 + index * size))
+                                         for index in range(base_count))}
+    kept = []
+    for row in rows:
+        if row[0] != keep and is_our_mirror(text_at(table, row[MODEL_NAME_FIELD])):
+            restored = base_rows.get(row[0])
+            if restored is None:
+                print(f"{MODEL_DATA}: stale mirror row {row[0]} dropped", flush=True)
+                continue
+            row = list(restored)
+            row[MODEL_NAME_FIELD] = len(texts)
+            texts += text_at(base, restored[MODEL_NAME_FIELD]).encode("latin1") + b"\0"
+            print(f"{MODEL_DATA}: stale mirror row {row[0]} given back its own model", flush=True)
+        kept.append(row)
+    body = b"".join(struct.pack(f"<{fields}I", *row) for row in kept)
+    return struct.pack("<4s4I", b"WDBC", len(kept), fields, size, len(texts)) + body + bytes(texts)
+
+
 def mirror_owned(table, name):
     """For CreatureModelData: a row is ours if its model is a mirror model; display rows are always ours."""
     if not str(name).endswith("CreatureModelData.dbc"):
         return None
-    return lambda row: "mirror" in text_at(table, row[MODEL_NAME_FIELD]).lower()
+    return lambda row: is_our_mirror(text_at(table, row[MODEL_NAME_FIELD]))
 
 
 def mirror_model_row(mirror):
@@ -357,14 +387,21 @@ def client(data, geometry=None, backup_folder=None):
         raise SystemExit(f"no archive in Data has {model_path} and its skin")
     print(f"mirroring it from {source.name} into {mirror}", flush=True)
     additions = {mirror: mirrored_model(model), patches.skin_name(mirror): mirrored_skin(skin)}
+    merged = patches.Client([data / patches.MERGED]) if (data / patches.MERGED).exists() else None
     for name, row, clone, change in ((MODEL_DATA, MODEL_ROW, MIRROR_MODEL_ROW, mirror_model_row(mirror)),
                                      (DISPLAY_INFO, DISPLAY_ROW, MIRROR_DISPLAY_ROW, mirror_display_row)):
-        table, _ = found.newest(name, archives)
-        if table is None:
+        base, _ = found.newest(name, archives)
+        if base is None:
             raise SystemExit(f"no archive in Data has {name}")
+        # On top of the merged patch's own copy, so rows other builds put there (Two-Players) are kept; a mirror
+        # row left at another id by an older build gets the base row back (CoA Custom 1.9.9's Qiraji male at 901402).
+        table = merged.newest(name, [data / patches.MERGED])[0] if merged else None
+        table = without_stale_mirrors(table, base, clone) if table and name == MODEL_DATA else (table or base)
         additions[name] = with_cloned_row(table, row, clone, change, mirror_owned(table, name))
         print(f"{name}: row {clone} made from row {row}", flush=True)
     found.close()
+    if merged:
+        merged.close()
     print(f"writing {patches.MERGED}", flush=True)
     patches.merge_into_merged(data, additions, backup_folder / (patches.MERGED + ".before-mirror"))
     if geometry and geometry.exists():
