@@ -23,6 +23,7 @@
 #include "CoA/Source/Modules/UnitSelect.h"
 #include "CoA/Source/Modules/UnitSelectClient.h"
 #include "CoA/Source/Modules/JoinedNamesClient.h"
+#include "CoA/Source/Modules/CarriedMountClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
@@ -22286,6 +22287,8 @@ void CGUnit_C::HandlePendingTrackEvents() {
 // VERIFY: 0f2f9494 manual
 // OFFSET: 0x0073D940
 void CGUnit_C::DestroyUnitMount(int32_t a2) {
+    CoA::CarriedMountClient::Drop(this);
+
     if (!this->m_mountModel) {
         return;
     }
@@ -22342,6 +22345,10 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
     // geoset display while the mount model is built; 0 after.
     CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldMountdisplayid);
     this->m_wheelMask = 0;
+
+    if (!this->m_mountModel && CoA::CarriedMountClient::Carry(this)) {
+        return;
+    }
 
     if (!this->m_mountModel) {
         CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_mountDisplayId);
