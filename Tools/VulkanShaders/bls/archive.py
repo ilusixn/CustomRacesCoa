@@ -137,11 +137,18 @@ def enumerate_records(datadir):
             if data is None or len(data) < 12:
                 data = None
                 continue
+            try:
+                parsed = split(data)
+            except struct.error:
+                # CoA: a container this parser cannot read (Ascension's own format); the engine falls back one profile too
+                sys.stderr.write('!! %s (%s, %d bytes, magic %08x) unreadable, falling back' % (path, src, len(data), struct.unpack_from('<I', data)[0]) + chr(10))
+                data = None
+                continue
             prof = prof2
             break
         if data is None:
             continue
-        magic, ver, nperm, records, consumed = split(data)
+        magic, ver, nperm, records, consumed = parsed
         for rec in records:
             r = Record()
             r.kind, r.profile, r.name, r.perm = kind, prof, name, rec['i']
