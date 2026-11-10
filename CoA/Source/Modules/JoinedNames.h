@@ -8,6 +8,7 @@
 // name over the body, its tooltip and UnitPVPName join both as "Melee'Ranged"; chat keeps each head's own name.
 namespace CoA::JoinedNames {
     constexpr int32_t kTwoPlayersVehicle = 9600;
+    constexpr int32_t kTwinsTwoPlayersVehicle = 9601;
 
     std::string Joined(const std::string& body, const std::string& rider);
     // True when the rider on a body differs from the one last seen, so the body's name is built again.
