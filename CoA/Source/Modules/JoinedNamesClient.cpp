@@ -40,7 +40,7 @@ namespace CoA::JoinedNamesClient {
 
         const CGUnit_C* body = unit->GetVehicleUnit();
         const VehicleRec* rec = (body ? body : unit)->GetVehicleRec();
-        return rec && rec->m_id == JoinedNames::kTwoPlayersVehicle;
+        return rec && (rec->m_id == JoinedNames::kTwoPlayersVehicle || rec->m_id == JoinedNames::kTwinsTwoPlayersVehicle);
     }
 
     const char* BodyName(CGUnit_C* unit) {
