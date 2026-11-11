@@ -2108,7 +2108,8 @@ const char* CTexture::GetObjectName() {
 // VERIFY: e23c2bfb manual
 // OFFSET: [0x004B8830, 0x004B91D0]
 CTexture::~CTexture() {
-    if (this->m_gxTex) {
+    // CoA: at shutdown the device can already be gone (null device crash in the destructor)
+    if (this->m_gxTex && g_theGxDevicePtr) {
         TextureFreeGxTex(this->m_gxTex, this->m_filename);
     }
 

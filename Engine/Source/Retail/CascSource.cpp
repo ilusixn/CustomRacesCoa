@@ -677,8 +677,12 @@ bool CascSource::Read(const char* name, std::vector<uint8_t>& bytes, std::string
         success = bytes.size() >= 148 && std::memcmp(bytes.data(), "BLP2\1\0\0\0", 8) == 0;
         if (!success) error = "Retail texture is not a supported BLP2 file";
         if (success) PadBlpToPowerOfTwo(bytes);
+    } else if (ext == ".ogg" || ext == ".mp3") {
+        // CoA: sound files (mount sounds, SoundEntries DirectoryBase "retail") are served as they are
+        success = bytes.size() > 16;
+        if (!success) error = "Retail sound file is empty";
     } else {
-        success = Failure(error, "Retail runtime supports M2, SKIN, ANIM and BLP references only");
+        success = Failure(error, "Retail runtime supports M2, SKIN, ANIM, BLP and OGG references only");
     }
     if (!success) bytes.clear();
     else s.cachedSizes[key] = static_cast<uint32_t>(bytes.size());
