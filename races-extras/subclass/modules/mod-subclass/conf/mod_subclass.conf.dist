@@ -165,3 +165,74 @@ Subclass.Bots.Force = 0
 #        Default: 4 (0 keeps the first build)
 
 Subclass.Bots.RebuildHours = 4
+
+#    Subclass.TwoPlayers.Enable
+#        Two-Players: two players share one Two-Headed Ogre (the male) or one pair of Twins. 0 switches it
+#        off: no new Two-Players characters, no pairing, and existing pairs play as single characters.
+#        Default: 1
+
+Subclass.TwoPlayers.Enable = 1
+
+#    Subclass.TwoPlayers.Bots
+#        When one head of a Two-Players pair is offline, the head still playing gets a bot for the missing
+#        one through SQUID Playerbots (mod-playerbots for Conquest of Azeroth, by Zyth45). A bot Melee Head
+#        walks, fights and quests with the Ranged Head on its back (/pair stop holds it still, /pair go lets
+#        it roam again); a bot Ranged Head casts from the Melee Head's back. The bot leaves when its player
+#        logs in or when the head who called it logs out. Without SQUID Playerbots the Ranged Head waits
+#        in place for the Melee Head.
+#        Default: 1 - enabled
+#                 0 - disabled
+
+Subclass.TwoPlayers.Bots = 1
+
+#    Subclass.TwoPlayers.BotSeconds
+#        How many seconds the remaining head waits before the bot is called.
+#        Default: 10
+
+Subclass.TwoPlayers.BotSeconds = 10
+
+#    Subclass.TwoPlayers.Agree.MaxStacks
+#    Subclass.TwoPlayers.Disagree.MaxStacks
+#        Agree builds while both heads hit the same foe, Disagree while each hits its own. One stack is
+#        gained each time both heads have hit since the last stack, up to this many.
+#        Default: 3
+
+Subclass.TwoPlayers.Agree.MaxStacks = 3
+Subclass.TwoPlayers.Disagree.MaxStacks = 3
+
+#    Subclass.TwoPlayers.Agree.HitPerStack
+#    Subclass.TwoPlayers.Agree.DamagePerStack
+#    Subclass.TwoPlayers.Disagree.CritPerStack
+#        Percent per stack: Agree gives hit (melee) and damage against the shared foe, Disagree gives
+#        critical strike chance against each head's own foe.
+#        Default: 1
+
+Subclass.TwoPlayers.Agree.HitPerStack = 1
+Subclass.TwoPlayers.Agree.DamagePerStack = 1
+Subclass.TwoPlayers.Disagree.CritPerStack = 1
+
+#    Subclass.TwoPlayers.AgreeDisagree.Seconds
+#        The stacks fade this many seconds after the last stack was gained.
+#        Default: 5
+
+Subclass.TwoPlayers.AgreeDisagree.Seconds = 5
+
+#    Subclass.TwoPlayers.BonkHeads.SharedHits
+#        Bonk Heads! is ready after this many shared hits while the heads agree.
+#        Default: 20
+
+Subclass.TwoPlayers.BonkHeads.SharedHits = 20
+
+#    Subclass.Bots.QuestRoute.Enable
+#        Questing bots (new rpg) work through their quest log along one short route: every quest
+#        near them first, in the order that walks the least, re-planned whenever the log changes.
+#        Default: 1
+
+Subclass.Bots.QuestRoute.Enable = 1
+
+#    Subclass.Bots.QuestRoute.PreferQuests
+#        1: a questing bot with quests left on its route goes on with them instead of picking a
+#        random activity (grinding, wandering, the city). 0: only the quest it picks is steered.
+#        Default: 1
+
+Subclass.Bots.QuestRoute.PreferQuests = 1

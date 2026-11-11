@@ -39,8 +39,7 @@ THIN_HUMAN = Race(96, 32, "Thin Human", MALE, "custom\\thinhuman\\native\\male\\
 TWO_HEADED_OGRE = Race(85, 53, "Two-Headed Ogre", FEMALE, "Character\\Ogre\\Female\\TwoHeadedOgre.mdx", 977600, 901400,
                        1.0, tuple(eye_texture_name(index) for index in range(len(EYE_SETS))), "Tw")
 RACES = (THIN_HUMAN, TWO_HEADED_OGRE)
-# model 999402, not 901402: CoA Custom 1.9.9 has the Qiraji male at CreatureModelData 901402
-MIRRORS = ((THIN_HUMAN, "custom\\thinhuman\\native\\male\\thinhumanmirrormale.mdx", 977602, 999402),)
+MIRRORS = ((THIN_HUMAN, "custom\\thinhuman\\native\\male\\thinhumanmirrormale.mdx", 977602, 901402),)
 
 CHR_DISPLAYS = (4, 5)
 CHR_PREFIX = 6
@@ -92,10 +91,6 @@ class Dbc:
 
     def set(self, row, field, value):
         struct.pack_into("<I", row, field * 4, value)
-
-    def string(self, offset):
-        end = self.strings.index(b"\0", offset)
-        return self.strings[offset:end].decode("utf-8", "replace")
 
     def text(self, value):
         offset = len(self.strings)
@@ -254,12 +249,6 @@ def own_displays(source):
         displays.rows.append(copy)
         chosen[race.race_id] = race.display_id
     for race, path, display_id, model_id in MIRRORS:
-        for row in models.rows:
-            existing = models.string(models.value(row, 2)).lower()
-            if models.value(row, 0) == model_id and not (existing.startswith("custom\\thin") and
-                                                         existing.split(".")[0].endswith("mirrormale")):
-                raise SystemExit(f"CreatureModelData {model_id} is already used by other data; pick a free id for "
-                                 "the mirror")
         models.rows = [row for row in models.rows if models.value(row, 0) != model_id]
         displays.rows = [row for row in displays.rows if displays.value(row, 0) != display_id]
         model = bytearray(next(row for row in models.rows if models.value(row, 0) == race.model_id))

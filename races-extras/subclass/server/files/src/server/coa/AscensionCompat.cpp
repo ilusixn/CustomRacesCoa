@@ -596,6 +596,34 @@ std::map<uint32, VanityPrice> LoadVanityPrices()
   return prices;
 }
 
+struct AddedVanityRow
+{
+  uint32 Id = 0;
+  uint32 ItemId = 0;
+  uint32 TemplateItemId = 0;
+  uint32 CreatureId = 0;
+  uint32 LearnedSpell = 0;
+  std::string Description;
+  std::string AdditionalText;
+};
+
+std::vector<AddedVanityRow> LoadAddedVanityRows()
+{
+  std::vector<AddedVanityRow> rows;
+  QueryResult result = WorldDatabase.Query(
+      "SELECT `ID`, `ItemID`, `TemplateItemID`, `CreatureID`, `LearnedSpell`, `Description`, `AdditionalText` "
+      "FROM `coa_client_vanity_collection_added` ORDER BY `ID`");
+  if (!result)
+    return rows;
+
+  do {
+    Field const *fields = result->Fetch();
+    rows.push_back({fields[0].Get<uint32>(), fields[1].Get<uint32>(), fields[2].Get<uint32>(), fields[3].Get<uint32>(),
+                    fields[4].Get<uint32>(), fields[5].Get<std::string>(), fields[6].Get<std::string>()});
+  } while (result->NextRow());
+  return rows;
+}
+
 struct AppearanceInfo {
   uint32 SourceItem = 0;
   uint32 PrimaryCategory = 0;
@@ -4258,6 +4286,65 @@ public:
                onDemand.Rows, onDemand.SpellRows, onDemand.Bytes, player->GetName());
   }
 
+    void SendLoginRowsBeforeMap(Player* player)
+    {
+        if (!ReceivesPatchRows(player))
+            return;
+
+        PreparedPatchRows const& rows = GetPreparedPatchRows();
+        std::vector<uint32> displayIds;
+        for (uint16 field : { UNIT_FIELD_DISPLAYID, UNIT_FIELD_NATIVEDISPLAYID, UNIT_FIELD_MOUNTDISPLAYID })
+            displayIds.push_back(player->GetUInt32Value(field));
+        uint32 const mountSpellId = player->GetMountBlockId();
+        if (SpellInfo const* mountSpell = mountSpellId ? sSpellMgr->GetSpellInfo(mountSpellId) : nullptr)
+            for (SpellEffectInfo const& effect : mountSpell->GetEffects())
+                if (effect.ApplyAuraName == SPELL_AURA_MOUNTED)
+                    if (CreatureTemplate const* mount = sObjectMgr->GetCreatureTemplate(effect.MiscValue))
+                        for (CreatureModel const& model : mount->Models)
+                            displayIds.push_back(model.CreatureDisplayID);
+
+        std::unordered_set<uint32> sentDisplays;
+        for (uint32 displayId : displayIds)
+        {
+            if (!displayId || !sentDisplays.insert(displayId).second ||
+                std::find(rows.CreatureDisplayIds.begin(), rows.CreatureDisplayIds.end(), displayId) ==
+                    rows.CreatureDisplayIds.end())
+                continue;
+            CreatureDisplayInfoEntry const* entry = sCreatureDisplayInfoStore.LookupEntry(displayId);
+            if (!entry)
+                continue;
+            for (CreatureModelPatchRow const& row : rows.CreatureModels)
+                if (row.Values[0] == entry->ModelId)
+                    SendCreatureModelRow(player, row);
+            auto const names = rows.CreatureDisplayTextures.find(displayId);
+            SendDisplayInfoRow(player, *entry, names != rows.CreatureDisplayTextures.end() ? &names->second : nullptr);
+        }
+
+        bool known = false;
+        bool active = false;
+        for (uint32 spellId : rows.NewSpellIds)
+        {
+            known = known || player->HasSpell(spellId);
+            active = active || player->HasAura(spellId) || spellId == mountSpellId;
+        }
+        if (!known && !active)
+            return;
+
+        if (known)
+            for (SkillLineAbilityPatchRow const& row : rows.SkillLineAbilities)
+                SendSkillLineAbilityRow(player, row);
+        for (SpellPatchRow const& row : rows.Spells)
+            if (rows.NewSpellIds.contains(row.Values[0]) &&
+                (player->HasSpell(row.Values[0]) || player->HasAura(row.Values[0]) || row.Values[0] == mountSpellId))
+            {
+                SpellPatchRow sent = row;
+                ApplyServerSpellSelectors(sent);
+                SendSpellRow(player, sent);
+            }
+        if (known)
+            player->SendInitialSpells();
+    }
+
     void SendItemRowOnDemand(Player* player, uint32 itemId)
     {
         if (!ReceivesPatchRows(player))
@@ -4414,6 +4501,7 @@ public:
     std::vector<ItemPatchRow> itemRows;
     std::unordered_set<uint32> itemIds = CollectOwnedItemIds(player);
     itemIds.merge(CollectKnownRecipeItemIds(player));
+    itemIds.insert(rows.VanityItemIds.begin(), rows.VanityItemIds.end());
     for (uint32 itemId : itemIds)
         if (std::optional<ItemPatchRow> const row = FindItemRow(rows, itemId))
             itemRows.push_back(*row);
@@ -4429,7 +4517,9 @@ public:
     for (uint32 displayId : rows.CreatureDisplayIds) {
       if (CreatureDisplayInfoEntry const *entry =
               sCreatureDisplayInfoStore.LookupEntry(displayId)) {
-        bytes += SendDisplayInfoRow(player, *entry);
+        auto const names = rows.CreatureDisplayTextures.find(displayId);
+        bytes += SendDisplayInfoRow(player, *entry,
+                                    names != rows.CreatureDisplayTextures.end() ? &names->second : nullptr);
         ++sent;
       }
     }
@@ -4519,6 +4609,7 @@ private:
   static constexpr uint32 VANITY_COLLECTION_DESCRIPTION_FIELD = 42;
   static constexpr uint32 VANITY_COLLECTION_ADDITIONAL_TEXT_FIELD = 59;
   static constexpr uint32 VANITY_COLLECTION_LEARNED_SPELL_FIELD = 76;
+  static constexpr uint32 VANITY_COLLECTION_CREATURE_FIELD = 16;
 
   struct VanityCollectionPatchRow {
     std::array<uint32, VANITY_COLLECTION_DBC_FIELD_COUNT> Values{};
@@ -4591,14 +4682,18 @@ private:
     bool RequiresRegistration = false;
   };
 
+  using DisplayTextureNames = std::array<std::string, 4>;
+
   struct PreparedPatchRows {
     std::vector<uint32> CreatureDisplayIds;
+    std::unordered_map<uint32, DisplayTextureNames> CreatureDisplayTextures;
     std::vector<ItemDisplayInfoPatchRow> ItemDisplayInfos;
     std::vector<ItemPatchRow> Items;
     std::vector<std::size_t> ItemCapacityOrder;
     std::unordered_set<uint32> SqlItemIds;
     std::unordered_map<uint32, std::size_t> ItemRowIndexById;
     std::vector<SpellPatchRow> Spells;
+    std::unordered_set<uint32> NewSpellIds;
     std::unordered_map<uint32, std::size_t> SpellRowIndexById;
     std::vector<SuperTrackPatchRow> SuperTracks;
     std::vector<QuestSuperTrackPatchRow> QuestSuperTracks;
@@ -4606,6 +4701,7 @@ private:
     std::vector<ShapeshiftFormPatchRow> ShapeshiftForms;
     std::vector<CreatureModelPatchRow> CreatureModels;
     std::vector<VanityCollectionPatchRow> VanityCollections;
+    std::unordered_set<uint32> VanityItemIds;
   };
 
   static constexpr uint32 SPELL_ATTRIBUTES_FIELD = 4;
@@ -4874,7 +4970,8 @@ private:
 
     static std::optional<ItemPatchRow> FindItemRow(PreparedPatchRows const& rows, uint32 itemId)
     {
-        if (rows.SqlItemIds.contains(itemId) && !Ascension::ClientItemPatches::Instance().Contains(itemId))
+        if (rows.SqlItemIds.contains(itemId) && !Ascension::ClientItemPatches::Instance().Contains(itemId) &&
+            !rows.VanityItemIds.contains(itemId))
             return std::nullopt;
         if (auto const row = rows.ItemRowIndexById.find(itemId); row != rows.ItemRowIndexById.end())
             return rows.Items[row->second];
@@ -4940,7 +5037,8 @@ private:
   }
 
   std::size_t SendDisplayInfoRow(Player *player,
-                                 CreatureDisplayInfoEntry const &entry) const {
+                                 CreatureDisplayInfoEntry const &entry,
+                                 DisplayTextureNames const *names) const {
     WorldPacket packet(SMSG_PATCH_CREATURE_DISPLAY_INFO, 80);
 
     uint32 const soundId = 0;
@@ -4954,7 +5052,7 @@ private:
 
     packet.append(displayRow, sizeof(displayRow));
     for (uint8 stringIndex = 0; stringIndex < 4; ++stringIndex)
-      packet << uint32(0);
+      AppendSizedString(packet, names ? (*names)[stringIndex] : std::string());
 
     return SendRowPacket(player, packet);
   }
@@ -5093,7 +5191,8 @@ private:
   static std::vector<VanityCollectionPatchRow> LoadVanityCollectionPatchRows() {
     std::vector<VanityCollectionPatchRow> rows;
     std::map<uint32, VanityPrice> prices = LoadVanityPrices();
-    if (prices.empty())
+    std::vector<AddedVanityRow> const added = LoadAddedVanityRows();
+    if (prices.empty() && added.empty())
       return rows;
 
     ClientDBC vanity;
@@ -5103,9 +5202,11 @@ private:
       return rows;
     }
 
+    std::unordered_map<uint32, uint32> recordByItem;
     for (uint32 index = 0; index < vanity.GetRecordCount(); ++index)
     {
       ClientDBC::Record const record = vanity.GetRecord(index);
+      recordByItem.emplace(record.GetUInt32(1), index);
       auto const price = prices.find(record.GetUInt32(1));
       if (price == prices.end())
         continue;
@@ -5124,6 +5225,30 @@ private:
 
     for (auto const &[itemId, price] : prices)
       LOG_ERROR("coa", "coa_client_vanity_collection {} has no VanityCollection.dbc row", itemId);
+
+    for (AddedVanityRow const &entry : added)
+    {
+      auto const templateRecord = recordByItem.find(entry.TemplateItemId);
+      if (recordByItem.contains(entry.ItemId) || templateRecord == recordByItem.end())
+      {
+        LOG_ERROR("coa", "coa_client_vanity_collection_added {}: item {} already has a VanityCollection.dbc row or "
+                  "template item {} has none", entry.Id, entry.ItemId, entry.TemplateItemId);
+        continue;
+      }
+
+      ClientDBC::Record const record = vanity.GetRecord(templateRecord->second);
+      VanityCollectionPatchRow &row = rows.emplace_back();
+      for (uint32 field = 0; field < VANITY_COLLECTION_DBC_FIELD_COUNT; ++field)
+        row.Values[field] = record.GetUInt32(field);
+      row.Values[0] = entry.Id;
+      row.Values[1] = entry.ItemId;
+      row.Values[4] = row.Values[5] = row.Values[6] = 0;
+      row.Values[VANITY_COLLECTION_CREATURE_FIELD] = entry.CreatureId;
+      row.Values[VANITY_COLLECTION_LEARNED_SPELL_FIELD] = entry.LearnedSpell;
+      row.Artwork = std::string(record.GetString(3));
+      row.Description = entry.Description;
+      row.AdditionalText = entry.AdditionalText;
+    }
     return rows;
   }
 
@@ -5241,6 +5366,7 @@ private:
       std::filesystem::path const clientDbcDirectory =
           ResolveClientDbcDirectory();
       _rows.CreatureDisplayIds = BuildDisplayPatchRows(clientDbcDirectory);
+      _rows.CreatureDisplayTextures = LoadDisplayTextureNames(_rows.CreatureDisplayIds);
       _rows.ItemDisplayInfos =
           BuildItemDisplayInfoPatchRows(clientDbcDirectory);
       _rows.Items = BuildItemPatchRows(clientDbcDirectory, _rows.SqlItemIds);
@@ -5251,7 +5377,7 @@ private:
       }
       std::sort(_rows.ItemCapacityOrder.begin(), _rows.ItemCapacityOrder.end(),
           [this](std::size_t left, std::size_t right) { return _rows.Items[left][0] > _rows.Items[right][0]; });
-      _rows.Spells = BuildSpellPatchRows();
+      _rows.Spells = BuildSpellPatchRows(_rows.NewSpellIds);
       for (std::size_t index = 0; index < _rows.Spells.size(); ++index)
         _rows.SpellRowIndexById.emplace(_rows.Spells[index].Values[0], index);
       _rows.SuperTracks = LoadSuperTrackPatchRows();
@@ -5259,6 +5385,8 @@ private:
       _rows.SkillLineAbilities = LoadSkillLineAbilityPatchRows();
       _rows.ShapeshiftForms = LoadShapeshiftFormPatchRows();
       _rows.VanityCollections = LoadVanityCollectionPatchRows();
+      for (AddedVanityRow const &added : LoadAddedVanityRows())
+        _rows.VanityItemIds.insert(added.ItemId);
       _rows.CreatureModels = BuildCreatureModelPatchRows();
       _rowsPrepared = true;
     }
@@ -5339,6 +5467,92 @@ private:
     return rows;
   }
 
+  static std::filesystem::path ServerDbcFile(std::string const &file) {
+    std::filesystem::path const data(sWorld->GetDataPath());
+    std::filesystem::path const overlay = data / "dbc_races" / file;
+    return std::filesystem::exists(overlay) ? overlay : data / "dbc" / file;
+  }
+
+  static std::unordered_map<uint32, DisplayTextureNames>
+  LoadDisplayTextureNames(std::vector<uint32> const &displayIds) {
+    constexpr uint32 FIRST_TEXTURE_FIELD = 6;
+    std::unordered_map<uint32, DisplayTextureNames> names;
+    std::unordered_set<uint32> const wanted(displayIds.begin(), displayIds.end());
+    if (wanted.empty())
+      return names;
+
+    if (QueryResult result = WorldDatabase.Query(
+            "SELECT `ID`, `TextureVariation_1`, `TextureVariation_2`, `TextureVariation_3`, "
+            "`PortraitTextureName` FROM `creaturedisplayinfo_dbc`"))
+    {
+      do {
+        Field const *fields = result->Fetch();
+        uint32 const id = fields[0].Get<uint32>();
+        if (!wanted.contains(id))
+          continue;
+        DisplayTextureNames &row = names[id];
+        for (uint8 index = 0; index < row.size(); ++index)
+          row[index] = fields[1 + index].Get<std::string>();
+      } while (result->NextRow());
+    }
+
+    ClientDBC file;
+    if (file.Load(ServerDbcFile("CreatureDisplayInfo.dbc").string(), 16))
+    {
+      for (uint32 index = 0; index < file.GetRecordCount(); ++index) {
+        ClientDBC::Record const record = file.GetRecord(index);
+        uint32 const id = record.GetUInt32(0);
+        if (!wanted.contains(id) || names.contains(id))
+          continue;
+        DisplayTextureNames &row = names[id];
+        for (uint8 index2 = 0; index2 < row.size(); ++index2)
+          row[index2] = std::string(record.GetString(FIRST_TEXTURE_FIELD + index2));
+      }
+    }
+    return names;
+  }
+
+  static void AddNewCreatureModelRows(std::vector<CreatureModelPatchRow> &rows,
+                                      ClientDBC const &clientModels) {
+    std::unordered_set<uint32> clientIds;
+    clientIds.reserve(clientModels.GetRecordCount());
+    for (uint32 index = 0; index < clientModels.GetRecordCount(); ++index)
+      clientIds.insert(clientModels.GetRecord(index).GetUInt32(0));
+
+    QueryResult result = WorldDatabase.Query(
+        "SELECT `ID`, `Flags`, `ModelName`, `SizeClass`, `ModelScale`, `BloodID`, `FootprintTextureID`, "
+        "`FootprintTextureLength`, `FootprintTextureWidth`, `FootprintParticleScale`, `FoleyMaterialID`, "
+        "`FootstepShakeSize`, `DeathThudShakeSize`, `SoundID`, `CollisionWidth`, `CollisionHeight`, `MountHeight`, "
+        "`GeoBoxMinX`, `GeoBoxMinY`, `GeoBoxMinZ`, `GeoBoxMaxX`, `GeoBoxMaxY`, `GeoBoxMaxZ`, `WorldEffectScale`, "
+        "`AttachedEffectScale`, `MissileCollisionRadius`, `MissileCollisionPush`, `MissileCollisionRaise` "
+        "FROM `creaturemodeldata_dbc` ORDER BY `ID`");
+    if (!result)
+      return;
+
+    constexpr std::array<uint32, 18> FLOAT_FIELDS = {4, 7, 8, 9, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+                                                     26, 27};
+    uint32 added = 0;
+    do {
+      Field const *fields = result->Fetch();
+      uint32 const id = fields[0].Get<uint32>();
+      if (clientIds.contains(id))
+        continue;
+      CreatureModelPatchRow &row = rows.emplace_back();
+      for (uint32 field = 0; field < CREATURE_MODEL_DATA_FIELD_COUNT; ++field) {
+        if (field == CREATURE_MODEL_DATA_NAME_FIELD)
+          row.ModelName = fields[field].Get<std::string>();
+        else if (std::ranges::find(FLOAT_FIELDS, field) != FLOAT_FIELDS.end())
+          row.Values[field] = std::bit_cast<uint32>(fields[field].Get<float>());
+        else
+          row.Values[field] = static_cast<uint32>(fields[field].Get<int32>());
+      }
+      ++added;
+    } while (result->NextRow());
+
+    if (added)
+      LOG_INFO("coa", "Streaming {} new creature model(s) from creaturemodeldata_dbc", added);
+  }
+
   static std::vector<CreatureModelPatchRow> BuildCreatureModelPatchRows() {
     constexpr uint32 CORRUPTED_GRINNING_REAVER_MODEL = 100161;
     constexpr uint32 GRINNING_REAVER_SOUND = 2112;
@@ -5380,6 +5594,7 @@ private:
       row.ModelName = std::string(record.GetString(CREATURE_MODEL_DATA_NAME_FIELD));
     }
 
+    AddNewCreatureModelRows(rows, clientModels);
     return rows;
   }
 
@@ -5524,7 +5739,7 @@ private:
     return rows;
   }
 
-  static std::vector<SpellPatchRow> BuildSpellPatchRows() {
+  static std::vector<SpellPatchRow> BuildSpellPatchRows(std::unordered_set<uint32> &newSpellIds) {
     std::unordered_map<uint32, char const*> const blacksmithingTiers = {
         {2018, "Apprentice"}, {3100, "Journeyman"}, {3538, "Expert"},
         {9785, "Artisan"}, {29844, "Master"}, {51300, "Grand Master"}};
@@ -5547,6 +5762,28 @@ private:
     {
       requested.insert(id);
       descriptionIds.insert(id);
+    }
+    if (QueryResult sqlSpells = WorldDatabase.Query(
+            "SELECT DISTINCT `spell`.`ID` FROM `spell_dbc` AS `spell` "
+            "JOIN `skilllineability_dbc` AS `ability` ON `ability`.`Spell` = `spell`.`ID` "
+            "JOIN `coa_client_skill_line_ability` AS `streamed` ON `streamed`.`ID` = `ability`.`ID`"))
+    {
+      std::filesystem::path const clientSpells =
+          std::filesystem::path(sWorld->GetDataPath()) / "dbc" / "Spell.dbc";
+      if (std::optional<std::unordered_set<uint32>> const known = LoadDbcIds(clientSpells, SPELL_DBC_FIELD_COUNT))
+      {
+        uint32 added = 0;
+        do {
+          uint32 const id = sqlSpells->Fetch()[0].Get<uint32>();
+          if (known->contains(id))
+            continue;
+          newSpellIds.insert(id);
+          if (requested.insert(id).second)
+            ++added;
+        } while (sqlSpells->NextRow());
+        if (added)
+          LOG_INFO("coa", "Streaming {} new spell(s) from spell_dbc", added);
+      }
     }
     std::vector<SpellPatchRow> rows = LoadSqlSpellPatchRows(requested);
     std::unordered_map<uint32, std::size_t> overridden;
@@ -5653,7 +5890,7 @@ private:
     {
       if (auto const tier = blacksmithingTiers.find(row.Values[0]); tier != blacksmithingTiers.end())
         row.Strings[SPELL_WIRE_RANK] = tier->second;
-      row.RequiresRegistration = !descriptionIds.contains(row.Values[0]);
+      row.RequiresRegistration = !descriptionIds.contains(row.Values[0]) && !newSpellIds.contains(row.Values[0]);
     }
     return rows;
   }
@@ -5717,7 +5954,9 @@ private:
 
   static std::vector<ItemPatchRow> LoadItemPatchRows(std::unordered_set<uint32>& sqlIds) {
     std::vector<ItemPatchRow> rows;
-    std::unordered_set<uint32> const requested = Ascension::ClientItemPatches::Instance().GetIds(true);
+    std::unordered_set<uint32> requested = Ascension::ClientItemPatches::Instance().GetIds(true);
+    for (AddedVanityRow const &added : LoadAddedVanityRows())
+      requested.insert(added.ItemId);
     QueryResult result = WorldDatabase.Query(
         "SELECT `ID`, `ClassID`, `SubclassID`, `Sound_Override_Subclassid`, "
         "`Material`, `DisplayInfoID`, `InventoryType`, `SheatheType` "
@@ -6006,11 +6245,13 @@ public:
     bool vanityLoaded =
         vanity.Load(GetClientDBCPath("VanityCollection.dbc"), 77);
     std::map<uint32, VanityPrice> const prices = LoadVanityPrices();
+    std::unordered_map<uint32, uint32> vanityRecordByItem;
     for (uint32 row = 0; row < vanity.GetRecordCount(); ++row) {
       ClientDBC::Record record = vanity.GetRecord(row);
       uint32 itemId = record.GetUInt32(1);
       if (!itemId)
         continue;
+      vanityRecordByItem.emplace(itemId, row);
 
       VanityInfo info{
           record.GetUInt32(76), record.GetUInt32(12), record.GetUInt32(2)};
@@ -6025,6 +6266,18 @@ public:
 
       _vanityItems[itemId] = info;
       _allVanityItemIds.push_back(itemId);
+    }
+
+    for (AddedVanityRow const &added : LoadAddedVanityRows()) {
+      auto const templateItem = _vanityItems.find(added.TemplateItemId);
+      if (vanityRecordByItem.contains(added.ItemId) || templateItem == _vanityItems.end())
+        continue;
+
+      VanityInfo info = templateItem->second;
+      info.LearnedSpell = added.LearnedSpell;
+      info.BazaarTokenCost = 0;
+      _vanityItems[added.ItemId] = info;
+      _allVanityItemIds.push_back(added.ItemId);
     }
 
     std::sort(_allAppearanceIds.begin(), _allAppearanceIds.end());
@@ -9305,6 +9558,7 @@ public:
             AscensionCollectionService::Instance().PrepareOwnedCompanionsBeforeMap(player);
             AscensionCollectionService::Instance().PrepareOwnedBankSpellsBeforeMap(player);
             AscensionClassService::Instance().PrepareTaughtAbilitiesBeforeMap(player);
+            AscensionDisplayPatchService::Instance().SendLoginRowsBeforeMap(player);
             AscensionClassService::Instance().QueueCharacterAdvancementState(player);
         }
     }

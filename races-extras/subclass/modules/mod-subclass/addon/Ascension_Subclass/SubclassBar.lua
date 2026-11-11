@@ -358,12 +358,40 @@ local function HasAnything()
     return next(knownSpells) ~= nil
 end
 
-local function UpdateShown()
-    if bar and HasAnything() and not lent then
+local afterCombat = {}
+local combatWaiter = CreateFrame("Frame")
+combatWaiter:SetScript("OnEvent", function(self)
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    local waiting = afterCombat
+    afterCombat = {}
+    for _, apply in pairs(waiting) do
+        apply()
+    end
+end)
+
+local function OutOfCombat(key, apply)
+    if InCombatLockdown() then
+        afterCombat[key] = apply
+        combatWaiter:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    apply()
+end
+
+local function Hidden()
+    return Ascension_SubclassDump and Ascension_SubclassDump.subclassBarHidden
+end
+
+local function ApplyShown()
+    if bar and HasAnything() and not lent and not Hidden() then
         bar:Show()
     elseif bar then
         bar:Hide()
     end
+end
+
+local function UpdateShown()
+    OutOfCombat("shown", ApplyShown)
 end
 
 local function ClearSetPoint(button, ...)
@@ -371,24 +399,19 @@ local function ClearSetPoint(button, ...)
     button:SetPoint(...)
 end
 
-local function Lend(btBar)
-    lent = btBar
-    if not btBar or not bar then
+local function ApplyLending()
+    if not bar then
         return
     end
-    btBar.buttons = {}
-    for index, button in ipairs(buttons) do
-        button:SetParent(btBar)
-        button.ClearSetPoint = ClearSetPoint
-        btBar.buttons[index] = button
-    end
-    bar:Hide()
-    btBar:UpdateButtonLayout()
-end
-
-local function TakeBack()
-    lent = nil
-    if not bar then
+    if lent then
+        lent.buttons = {}
+        for index, button in ipairs(buttons) do
+            button:SetParent(lent)
+            button.ClearSetPoint = ClearSetPoint
+            lent.buttons[index] = button
+        end
+        bar:Hide()
+        lent:UpdateButtonLayout()
         return
     end
     for index, button in ipairs(buttons) do
@@ -396,7 +419,19 @@ local function TakeBack()
         button:ClearAllPoints()
         button:SetPoint("LEFT", bar, "LEFT", (index - 1) * (SIZE + GAP), 0)
     end
-    UpdateShown()
+    ApplyShown()
+end
+
+local function Lend(btBar)
+    lent = btBar
+    if btBar then
+        OutOfCombat("lending", ApplyLending)
+    end
+end
+
+local function TakeBack()
+    lent = nil
+    OutOfCombat("lending", ApplyLending)
 end
 
 local function CreateBar()
@@ -514,7 +549,7 @@ local function IsBorrowedSpell(spellId)
 end
 
 local function TakeBackBorrowedAutoPlacements()
-    if InCombatLockdown() or GetCursorInfo() or not next(autoPlaced) then
+    if Hidden() or InCombatLockdown() or GetCursorInfo() or not next(autoPlaced) then
         return
     end
     local now = GetTime()
@@ -550,6 +585,9 @@ placements:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 placements:SetScript("OnEvent", function(_, event, slot)
     if event == "ACTIONBAR_SLOT_CHANGED" then
         NoteAutoPlacement(slot)
+        if Ascension_Subclass.RememberLentSlot then
+            Ascension_Subclass.RememberLentSlot(slot)
+        end
     else
         learnedUntil = GetTime() + AUTO_PLACEMENT_AFTER_LEARNING
     end
@@ -583,6 +621,124 @@ function Ascension_Subclass.OnOtherSpells(list)
         RefreshAll()
         UpdateShown()
     end
+end
+
+local lentSpells = {}
+local pendingLent = {}
+local LENT_PLACEMENT_DELAY = 3
+local OWN_SLOT_ORDER = { 1, 61, 49, 25, 37, 13 }
+
+local function OnOwnBars(spellId)
+    for slot = 1, OWN_ACTION_SLOTS do
+        local kind, _, _, actionSpell = GetActionInfo(slot)
+        if kind == "spell" and actionSpell == spellId then
+            return true
+        end
+    end
+    return false
+end
+
+local function FreeOwnSlot()
+    for _, first in ipairs(OWN_SLOT_ORDER) do
+        for slot = first, first + 11 do
+            if not HasAction(slot) then
+                return slot
+            end
+        end
+    end
+end
+
+local lentWaiting = {}
+
+local function LentSlots()
+    local saved = Saved()
+    saved.lentSlots = saved.lentSlots or {}
+    return saved.lentSlots
+end
+
+local function RememberLentSlot(slot)
+    if not slot or slot < 1 or slot > OWN_ACTION_SLOTS then
+        return
+    end
+    local kind, _, _, spellId = GetActionInfo(slot)
+    if kind == "spell" and spellId and lentSpells[spellId] then
+        LentSlots()[spellId] = slot
+    end
+end
+
+local function SlotForLent(spellId)
+    local remembered = LentSlots()[spellId]
+    if remembered and not HasAction(remembered) then
+        return remembered
+    end
+    return FreeOwnSlot()
+end
+
+local function PlaceLentOnOwnBars()
+    if GetCursorInfo() then
+        return false
+    end
+    for spellId in pairs(lentWaiting) do
+        lentWaiting[spellId] = nil
+        local index = lentSpells[spellId] and not OnOwnBars(spellId) and SpellbookIndex(spellId)
+        local slot = index and SlotForLent(spellId)
+        if slot then
+            PickupSpell(index, BOOKTYPE_SPELL)
+            PlaceAction(slot)
+            ClearCursor()
+        end
+    end
+    return true
+end
+
+Ascension_Subclass.RememberLentSlot = RememberLentSlot
+
+local lentPlacer = CreateFrame("Frame")
+lentPlacer:Hide()
+lentPlacer:SetScript("OnUpdate", function(self, elapsed)
+    self.wait = self.wait - elapsed
+    if self.wait > 0 or InCombatLockdown() then
+        return
+    end
+    if PlaceLentOnOwnBars() then
+        self:Hide()
+    end
+end)
+
+local function ApplyLent()
+    local now = pendingLent
+    pendingLent = {}
+    local saved = Saved()
+    for index = 1, BUTTONS do
+        local spellId = saved[index]
+        if spellId and (lentSpells[spellId] or now[spellId]) then
+            saved[index] = nil
+        end
+    end
+    for spellId in pairs(now) do
+        if not lentSpells[spellId] then
+            lentWaiting[spellId] = true
+        end
+    end
+    lentSpells = now
+    if next(lentWaiting) then
+        lentPlacer.wait = LENT_PLACEMENT_DELAY
+        lentPlacer:Show()
+    end
+    if bar then
+        RefreshAll()
+        UpdateShown()
+    end
+end
+
+Ascension_Subclass.BarMessages.LENTSPELLS = function(rest)
+    for id in string.gmatch(rest or "", "%d+") do
+        pendingLent[tonumber(id)] = true
+    end
+end
+
+Ascension_Subclass.BarMessages.LENTDONE = function()
+    ApplyLent()
 end
 
 local function Forget(saved)
@@ -648,6 +804,12 @@ SlashCmdList.ASCENSIONSUBCLASSBAR = function(message)
     elseif message == "castbar" then
         castBarUnlocked = not castBarUnlocked
         Ascension_Subclass.UnlockCastBar(castBarUnlocked)
+    elseif message == "hide" or message == "show" then
+        Ascension_SubclassDump = Ascension_SubclassDump or {}
+        Ascension_SubclassDump.subclassBarHidden = message == "hide" or nil
+        UpdateShown()
+        DEFAULT_CHAT_FRAME:AddMessage(message == "hide" and "Subclass Bar 1 is hidden: borrowed spells go on your "
+            .. "own bars. /subclassbar show brings it back." or "Subclass Bar 1 is shown again.")
     elseif message == "clear" then
         Forget(Saved())
         RefreshAll()
@@ -656,8 +818,8 @@ SlashCmdList.ASCENSIONSUBCLASSBAR = function(message)
     else
         DEFAULT_CHAT_FRAME:AddMessage("Subclass Bar 1: /subclassbar reset (position), /subclassbar clear (refill "
             .. "the buttons with your subclass spells), /subclassbar castbar (show the subclass cast bar to Alt-drag "
-            .. "it, again to lock it). Alt-drag a button to move the bar. Bind keys under Key Bindings > Subclass "
-            .. "Bar 1.")
+            .. "it, again to lock it), /subclassbar hide or show (use your own bars instead). Alt-drag a button "
+            .. "to move the bar. Bind keys under Key Bindings > Subclass Bar 1.")
     end
 end
 
