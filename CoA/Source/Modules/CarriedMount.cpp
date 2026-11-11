@@ -87,6 +87,13 @@ namespace CoA::CarriedMount {
             fit.Z = kDriveZ;
         }
 
+        if (lower.find("nexagon") != std::string::npos) {
+            fit.Yaw = kDiscYaw;
+            fit.Roll = kDiscRoll;
+            fit.Y = kDiscY;
+            fit.Z = kDiscZ;
+        }
+
         return fit;
     }
 

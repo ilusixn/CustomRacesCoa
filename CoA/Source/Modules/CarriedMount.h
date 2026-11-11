@@ -24,6 +24,10 @@ namespace CoA::CarriedMount {
     constexpr float kDriveScale = 0.8f;
     constexpr float kDriveRoll = 90.0f;
     constexpr float kDriveZ = 1.3f;
+    constexpr float kDiscYaw = 0.7f;
+    constexpr float kDiscRoll = 90.0f;
+    constexpr float kDiscY = 0.3f;
+    constexpr float kDiscZ = 1.0f;
 
     struct CarryFit {
         float Scale = kScale;
