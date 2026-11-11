@@ -152,6 +152,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(surfboard.X == 0.0f);
     CHECK(surfboard.Y == -0.6f);
     CHECK(surfboard.Z == 0.5f);
+    CoA::CarriedMount::CarryFit const turtle = CoA::CarriedMount::DefaultFit(
+        "Creature\\HotSMounts\\MountTurtleRankSpr19Epic\\MountTurtleRankSpr19Epic.m2");
+    CHECK(turtle.Scale == 0.5f);
+    CHECK(turtle.Yaw == 10.0f);
+    CHECK(turtle.Roll == -90.0f);
+    CHECK(turtle.X == 0.0f);
+    CHECK(turtle.Y == -0.5f);
+    CHECK(turtle.Z == 0.5f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(

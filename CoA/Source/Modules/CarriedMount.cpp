@@ -196,6 +196,15 @@ namespace CoA::CarriedMount {
             fit.Z = kBattleBeastZ;
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountturtle") != std::string::npos) {
+            fit.Scale = kTurtleScale;
+            fit.Yaw = kHotsHorseYaw;
+            fit.Roll = kBattleBeastRoll;
+            fit.X = kBattleBeastX;
+            fit.Y = kTurtleY;
+            fit.Z = kBattleBeastZ;
+        }
+
         return fit;
     }
 
