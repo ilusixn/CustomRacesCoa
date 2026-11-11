@@ -101,6 +101,13 @@ namespace CoA::CarriedMount {
             fit.Z = kHotsHorseZ;
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("sheep") != std::string::npos) {
+            fit.Yaw = kHotsHorseYaw;
+            fit.X = kHotsHorseX;
+            fit.Y = kHotsHorseY;
+            fit.Z = kHotsSheepZ;
+        }
+
         return fit;
     }
 

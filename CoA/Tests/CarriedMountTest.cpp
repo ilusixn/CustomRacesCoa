@@ -64,6 +64,15 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
         CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountWarhorseChess\\MountWarhorseChess.m2");
     CHECK(warhorse.Yaw == 10.0f);
     CHECK(warhorse.Z == -0.6f);
+    for (char const* sheep : {"Creature\\HotSMounts\\MountPlushSheepToys21\\MountPlushSheepToys21.m2",
+                              "Creature\\HotSMounts\\MountSheepCraft20\\MountSheepCraft20.m2"}) {
+        CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(sheep);
+        CHECK(fit.Scale == 1.0f);
+        CHECK(fit.Yaw == 10.0f);
+        CHECK(fit.X == -0.2f);
+        CHECK(fit.Y == 0.0f);
+        CHECK(fit.Z == -0.3f);
+    }
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").As == 0);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").Y == CoA::CarriedMount::kOffsetY);
 }
