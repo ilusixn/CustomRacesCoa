@@ -86,6 +86,7 @@ namespace CoA::CarriedMount {
             "motorcycle", "navicar", "azucar" };
         static constexpr const char* kBillies[] = { "\\billiegoatmount\\", "\\billiegoatcelestial\\",
             "\\goatmount\\", "\\mountgoatbirthday19\\", "\\mounthellbillie\\" };
+        static constexpr const char* kSeekerLike[] = { "owlseeker", "raptor", "vulture", "raccoon" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
@@ -139,12 +140,13 @@ namespace CoA::CarriedMount {
             }
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && (lower.find("owlseeker") != std::string::npos
-            || lower.find("raptor") != std::string::npos)) {
-            fit.Scale = kSeekerScale;
-            fit.Yaw = kBillieYaw;
-            fit.Y = kSeekerY;
-            fit.Z = kSeekerZ;
+        for (const char* seekerLike : kSeekerLike) {
+            if (lower.find("hotsmounts") != std::string::npos && lower.find(seekerLike) != std::string::npos) {
+                fit.Scale = kSeekerScale;
+                fit.Yaw = kBillieYaw;
+                fit.Y = kSeekerY;
+                fit.Z = kSeekerZ;
+            }
         }
 
         return fit;

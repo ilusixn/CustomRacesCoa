@@ -106,7 +106,9 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(seeker.Y == 0.0f);
     CHECK(seeker.Z == -0.2f);
     for (char const* raptor : {"Creature\\HotSMounts\\MountRaptorCelestial\\MountRaptorCelestial.m2",
-                               "Creature\\HotSMounts\\MountRaptor_Rank17_01\\MountRaptor_Rank17_01.m2"}) {
+                               "Creature\\HotSMounts\\MountRaptor_Rank17_01\\MountRaptor_Rank17_01.m2",
+                               "Creature\\HotSMounts\\VultureMount\\VultureMount.m2",
+                               "Creature\\HotSMounts\\MountRaccoonMobster19\\MountRaccoonMobster19.m2"}) {
         CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(raptor);
         CHECK(fit.Scale == 0.8f);
         CHECK(fit.Yaw == 15.0f);
