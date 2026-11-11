@@ -33,7 +33,7 @@ namespace CoA::CarriedMount {
     constexpr float kHotsHorseY = 0.0f;
     constexpr float kHotsHorseZ = -0.6f;
     constexpr float kHotsSheepZ = -0.3f;
-    constexpr float kBattleBeastScale = 0.8f;
+    constexpr float kBattleBeastScale = 0.7f;
     constexpr float kBattleBeastRoll = -90.0f;
     constexpr float kBattleBeastX = 0.0f;
     constexpr float kBattleBeastY = -0.7f;
