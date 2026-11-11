@@ -72,6 +72,8 @@ namespace CoA::CarriedMount {
     CarryFit DefaultFit(std::string_view mountModel) {
         static constexpr const char* kVehicles[] = { "hotrod", "rocketcar", "goblincar", "goblinkart", "gokart",
             "motorcycle", "navicar", "azucar" };
+        static constexpr const char* kBillies[] = { "\\billiegoatmount\\", "\\billiegoatcelestial\\",
+            "\\goatmount\\", "\\mountgoatbirthday19\\", "\\mounthellbillie\\" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
@@ -115,6 +117,14 @@ namespace CoA::CarriedMount {
             fit.X = kBattleBeastX;
             fit.Y = kBattleBeastY;
             fit.Z = kBattleBeastZ;
+        }
+
+        for (const char* billie : kBillies) {
+            if (lower.find("hotsmounts") != std::string::npos && lower.find(billie) != std::string::npos) {
+                fit.Yaw = kBillieYaw;
+                fit.Y = kBillieY;
+                fit.Z = kBillieZ;
+            }
         }
 
         return fit;
