@@ -53,6 +53,17 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(disc.Roll == 90.0f);
     CHECK(disc.Y == 0.3f);
     CHECK(disc.Z == 1.0f);
+    CoA::CarriedMount::CarryFit const hotsHorse =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\HorseMount\\HorseMount.m2");
+    CHECK(hotsHorse.Scale == 1.0f);
+    CHECK(hotsHorse.Yaw == 10.0f);
+    CHECK(hotsHorse.X == -0.2f);
+    CHECK(hotsHorse.Y == 0.0f);
+    CHECK(hotsHorse.Z == -0.6f);
+    CoA::CarriedMount::CarryFit const warhorse =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountWarhorseChess\\MountWarhorseChess.m2");
+    CHECK(warhorse.Yaw == 10.0f);
+    CHECK(warhorse.Z == -0.6f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").As == 0);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").Y == CoA::CarriedMount::kOffsetY);
 }

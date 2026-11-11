@@ -28,6 +28,10 @@ namespace CoA::CarriedMount {
     constexpr float kDiscRoll = 90.0f;
     constexpr float kDiscY = 0.3f;
     constexpr float kDiscZ = 1.0f;
+    constexpr float kHotsHorseYaw = 10.0f;
+    constexpr float kHotsHorseX = -0.2f;
+    constexpr float kHotsHorseY = 0.0f;
+    constexpr float kHotsHorseZ = -0.6f;
 
     struct CarryFit {
         float Scale = kScale;
