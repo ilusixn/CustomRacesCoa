@@ -46,13 +46,14 @@ namespace CoA::CarriedMount {
         }
 
         float* FieldOf(CarryFit& fit, size_t field) {
-            float* fields[] = { &fit.Scale, &fit.Yaw, &fit.Pitch, &fit.Roll, &fit.X, &fit.Y, &fit.Z };
+            float* fields[] = { &fit.Scale, &fit.Yaw, &fit.Pitch, &fit.Roll, &fit.X, &fit.Y, &fit.Z, nullptr, &fit.Pose,
+                &fit.Frame };
             return field < sizeof(fields) / sizeof(fields[0]) ? fields[field] : nullptr;
         }
     }
 
     float FitValue(const CarryFit& fit, size_t field) {
-        if (field == kFitFieldCount - 1) {
+        if (field == kFitAs) {
             return static_cast<float>(fit.As);
         }
 
@@ -61,7 +62,7 @@ namespace CoA::CarriedMount {
     }
 
     void SetFitValue(CarryFit& fit, size_t field, float value) {
-        if (field == kFitFieldCount - 1) {
+        if (field == kFitAs) {
             fit.As = value > 0.0f ? static_cast<uint32_t>(value + 0.5f) : 0;
         } else if (float* target = FieldOf(fit, field)) {
             *target = value;

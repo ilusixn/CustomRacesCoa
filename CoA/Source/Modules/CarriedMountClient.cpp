@@ -26,7 +26,6 @@
 namespace CoA::CarriedMountClient {
     namespace {
         constexpr uint32_t kMountHidden = 0x10000000;
-        constexpr uint32_t kStillPose = 0;
 
         struct CarriedModel {
             CM2Model* Model;
@@ -196,7 +195,10 @@ namespace CoA::CarriedMountClient {
         mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
         mount->m_worldTransform = CarryTransform(fit, displayInfo->m_creatureModelScale);
-        mount->SetBoneSequence(0xFFFFFFFF, kStillPose, 0xFFFFFFFF, 0, 0.0f, 1, 1);
+        if (fit.Pose >= 0.0f) {
+            mount->SetBoneSequence(0xFFFFFFFF, static_cast<uint32_t>(fit.Pose), 0xFFFFFFFF,
+                static_cast<uint32_t>(fit.Frame > 0.0f ? fit.Frame : 0.0f), 0.0f, 1, 1);
+        }
         Carried()[unit->m_obj->m_guid.m_guid] = { mount, display };
         unit->m_clientFlags |= kMountHidden;
 
