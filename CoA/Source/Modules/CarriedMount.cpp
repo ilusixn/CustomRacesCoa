@@ -150,6 +150,15 @@ namespace CoA::CarriedMount {
             }
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("soapbar") != std::string::npos) {
+            fit.Scale = kSoapBarScale;
+            fit.Yaw = kSoapBarYaw;
+            fit.Roll = kSoapBarRoll;
+            fit.X = kSoapBarX;
+            fit.Y = kSoapBarY;
+            fit.Z = kSoapBarZ;
+        }
+
         return fit;
     }
 

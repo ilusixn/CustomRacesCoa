@@ -48,6 +48,12 @@ namespace CoA::CarriedMount {
     constexpr float kSeekerScale = 0.8f;
     constexpr float kSeekerY = 0.0f;
     constexpr float kSeekerZ = -0.2f;
+    constexpr float kSoapBarYaw = 15.0f;
+    constexpr float kSoapBarRoll = 90.0f;
+    constexpr float kSoapBarScale = 0.8f;
+    constexpr float kSoapBarX = -0.2f;
+    constexpr float kSoapBarY = 0.4f;
+    constexpr float kSoapBarZ = 0.7f;
 
     struct CarryFit {
         float Scale = kScale;
