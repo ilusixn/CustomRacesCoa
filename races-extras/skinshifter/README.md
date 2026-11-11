@@ -14,8 +14,8 @@ on their own: `Skinshifter.Class.Enable`, `Skinshifter.Advancement.Enable` (Char
 ## Contents
 - `mod-skinshifter/`: the server module (`src/`, `conf/`). Copy it into the server's `modules/`.
 - `skinshifter-core.patch`: class 33 in the server core (`CLASS_SKINSHIFTER`, `MAX_CLASSES` 34, class masks,
-  items, quests, skills). Apply it to the server source with `git apply` before building. Without the patch the
-  module does not build.
+  items, quests, skills). Apply it to the server source with `git apply` before building. Without it the server
+  has no class 33 to give players.
 - `addon/SkinCollection/`: the client addon (Skin Collection, tokens, slots, spellbook search, tooltips).
 - `tools/`: the client patch builder. `mkskinclient.py` builds `patch-ZZZZZZ-SKIN.MPQ` (class 33 in the class list,
   its class table, colours, icons and spells) from the client's own newest files; `Build-Skinshifter-Client.bat`
