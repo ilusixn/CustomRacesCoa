@@ -61,15 +61,24 @@ void Run() {
         }
     }
     Blizzard::Log::Printf(1, log, "done: %zu files, %zu failed\n", files, failed);
+    if (FILE* marker = std::fopen("Data/Retail/RetailPrefetch.done", "w")) { // the automatic start runs once; delete it to run again
+        std::fprintf(marker, "%zu entries, %zu files, %zu failed\n", names.size(), files, failed);
+        std::fclose(marker);
+    }
+}
+
+bool Start() {
+    static std::atomic<bool> running{false};
+    if (running.exchange(true)) return false;
+    std::thread([] { Run(); running = false; }).detach();
+    return true;
 }
 
 int32_t PrefetchCommand(const char*, const char*) {
-    static std::atomic<bool> running{false};
-    if (running.exchange(true)) {
+    if (!Start()) {
         ConsoleWrite("retailPrefetch is already running (Logs/RetailPrefetch.log)", ERROR_COLOR);
         return 1;
     }
-    std::thread([] { Run(); running = false; }).detach();
     ConsoleWrite("retailPrefetch started in the background: progress in Logs/RetailPrefetch.log", DEFAULT_COLOR);
     return 1;
 }
@@ -81,6 +90,9 @@ void RetailPrefetchRegister() {
     registered = true;
     ConsoleCommandRegister("retailPrefetch", PrefetchCommand, CATEGORY_GAME,
         "Downloads and caches every retail model listed in RetailPrefetch.txt (progress in Logs/RetailPrefetch.log)");
+    // Automatic first run: the list exists and has not been finished before.
+    if (std::ifstream("RetailPrefetch.txt").good() && !std::ifstream("Data/Retail/RetailPrefetch.done").good())
+        Start();
 }
 #else
 void RetailPrefetchRegister() {}
