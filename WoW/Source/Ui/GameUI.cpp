@@ -1,4 +1,5 @@
 #include "GameUI.h"
+#include "WoW/Source/Ui/ClientPlugins.h"
 #include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/Camera.h"
 #include "CoA/Source/Modules/GlobalsG.h"
@@ -1752,6 +1753,8 @@ void CGGameUI::InitializeFrameXML() {
     FrameScript_Destroy();
     FrameScript_Initialize(g_scriptProfileCVar->m_intValue);
     LoadScriptFunctions();
+    // NOT IN BINARY: Plugins\*.dll add their Lua functions (Living Voices) before add-ons load.
+    ClientPluginsOpenLua(FrameScript_GetContext());
     FrameScript_CreateEvents(g_scriptEvents, NUM_SCRIPT_EVENTS);
     CGGameUI::RegisterGameCVars();
     CGUIBindings::Initialize();
