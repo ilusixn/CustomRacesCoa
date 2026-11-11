@@ -240,6 +240,21 @@ bool Particles(std::vector<uint8_t>& b, const ModelFiles& files, std::string& re
                 }
             }
         }
+        // zSource: the legacy emitter sends particles away from (0, 0, zSource) when it is above 0. Retail writes 255 on
+        // emitters that have no source (the Cookout Campfire's fire and smoke), which the legacy emitter takes as a point
+        // 255 yd overhead, so everything streamed down. shortcut: values from 100 up are treated as that "none".
+        {
+            const size_t z = p + 0xf0;
+            for (uint32_t j = 0; j < U32(b, z + 12); ++j) {
+                const size_t pair = U32(b, z + 16) + size_t(j) * 8;
+                if (!Array(b, pair, 4)) continue;
+                for (uint32_t k = 0; k < U32(b, pair); ++k) {
+                    const size_t key = U32(b, pair + 4) + size_t(k) * 4;
+                    float value; uint32_t bits = U32(b, key); std::memcpy(&value, &bits, 4);
+                    if (value >= 100.0f) Put(b, key, 0);
+                }
+            }
+        }
         const size_t o = out.size();
         out.insert(out.end(), b.begin() + p, b.begin() + p + kLegacy);
         // 0x10000000: the texture field packs three 5-bit indices; draw the first.
@@ -409,14 +424,26 @@ bool Validate(const std::vector<uint8_t>& b, const ModelFiles& files, std::strin
             const auto found = std::find_if(files.animations.begin(), files.animations.end(), [&](const AnimationFile& f) {
                 return f.id == U16(b, p) && f.variation == U16(b, p + 2) && f.fileId;
             });
-            if (found == files.animations.end()) return Fail(error, "External animation has no AFID entry");
+            if (found == files.animations.end()) {
+                char message[96];
+                std::snprintf(message, sizeof(message), "External animation has no AFID entry (sequence %u: anim %u.%u, flags 0x%x)",
+                    unsigned(i), unsigned(U16(b, p)), unsigned(U16(b, p + 2)), unsigned(U32(b, p + 12)));
+                error = message;
+                return false;
+            }
         }
     }
     const Field lookups[] = {{0x24, 0x1c}, {0x34, 0x2c}, {0x78, 0x2c}, {0x80, 0x50}, {0x90, 0x58}, {0x98, 0x60}, {0xf8, 0xf0}};
     for (const auto& f : lookups) {
         for (uint32_t i = 0; i < U32(b, f.offset); ++i) {
             uint16_t v = U16(b, U32(b, f.offset + 4) + size_t(i) * 2);
-            if (v != 0xffff && v >= U32(b, f.stride)) return Fail(error, "M2 lookup index is out of range");
+            if (v != 0xffff && v >= U32(b, f.stride)) {
+                char message[96];
+                std::snprintf(message, sizeof(message), "M2 lookup index is out of range (lookup 0x%x[%u] = %u, count %u)",
+                    unsigned(f.offset), unsigned(i), unsigned(v), unsigned(U32(b, f.stride)));
+                error = message;
+                return false;
+            }
         }
     }
     for (uint32_t i = 0; i < U32(b, 0x2c); ++i) {
@@ -899,6 +926,26 @@ bool PrepareModel(const std::vector<uint8_t>& bytes, std::vector<uint8_t>& prepa
         if (!SpliceSkeleton(b, files, *skeleton, error)) return false;
     }
     if (!Array(b, 0x1c, 64)) return Fail(error, "Invalid sequence array");
+    {
+        // Retail lists some external sequences whose .anim it no longer ships (Brawler's Burly Basilisk's anim 101, the
+        // Vicious Warsabers' 75, the Gladiator's Slitherdrakes' 60). Alias them to the model's Stand instead of failing.
+        const auto shipped = [&](uint32_t i) {
+            const size_t p = U32(b, 0x20) + size_t(i) * 64;
+            return (U32(b, p + 12) & 0x20) || std::any_of(files.animations.begin(), files.animations.end(),
+                [&](const AnimationFile& f) { return f.id == U16(b, p) && f.variation == U16(b, p + 2) && f.fileId; });
+        };
+        uint32_t stand = U32(b, 0x1c);
+        for (uint32_t i = 0; i < U32(b, 0x1c) && stand == U32(b, 0x1c); ++i)
+            if (!U16(b, U32(b, 0x20) + size_t(i) * 64) && !(U32(b, U32(b, 0x20) + size_t(i) * 64 + 12) & 0x40) && shipped(i))
+                stand = i;
+        for (uint32_t i = 0; i < U32(b, 0x1c) && stand < U32(b, 0x1c); ++i) {
+            const size_t p = U32(b, 0x20) + size_t(i) * 64;
+            if (!(U32(b, p + 12) & (0x20 | 0x40)) && !shipped(i)) {
+                Put(b, p + 12, U32(b, p + 12) | 0x40);
+                b[p + 62] = uint8_t(stand); b[p + 63] = uint8_t(stand >> 8);
+            }
+        }
+    }
     // 0x200000 only marks chunked .anim files (AFM2 wraps the legacy payload); see StripAnimationChunk.
     // Retail particle emitters are repacked into the legacy layout; unreadable ones are omitted, the model kept.
     {
@@ -930,6 +977,22 @@ bool PrepareModel(const std::vector<uint8_t>& bytes, std::vector<uint8_t>& prepa
             b[p + 175] = 0;
         }
     }
+    // Retail marks "no bounds" with an inverted box (min +1e7, max -1e7), mostly on collision bounds; legacy models
+    // use zeros. CMapDoodadDef turns the collision box into its world box (MapDoodadDef.cpp:65-78), so the sentinel
+    // made a 20,000 km doodad: invisible tree leaves (12elw_elwynn_treeleaves02) and shadows thrown about.
+    for (const size_t box : {size_t(0xA0), size_t(0xBC)}) {
+        if (b.size() < box + 28) break;
+        float v[7];
+        std::memcpy(v, b.data() + box, sizeof(v)); // min xyz, max xyz, radius
+        if (v[0] > v[3] || v[1] > v[4] || v[2] > v[5]) std::memset(b.data() + box, 0, sizeof(v));
+    }
+    // Retail writes 0 in the texture-transform lookup of models with no transforms (6390443, 915383); legacy files
+    // say "none" with 0xffff, which is what the renderer checks for.
+    if (Array(b, 0x98, 2))
+        for (uint32_t i = 0; i < U32(b, 0x98); ++i) {
+            const size_t at = U32(b, 0x9c) + size_t(i) * 2;
+            if (U16(b, at) != 0xffff && U16(b, at) >= U32(b, 0x60)) { b[at] = 0xff; b[at + 1] = 0xff; }
+        }
     if (!Validate(b, files, error)) return false;
     if (U32(b, 0x50) > 256 || U32(b, 0x60) > 255) return Fail(error, "Retail texture/transform count exceeds legacy renderer limits");
     // Retail split the old 32-bit blend duration into two 16-bit durations.
@@ -1048,9 +1111,14 @@ bool ValidateSkin(const std::vector<uint8_t>& b, const std::vector<uint8_t>& m, 
         uint32_t n = U16(b, p + 14);
         uint16_t shader = U16(b, p + 2);
         if (!n || n > 3 || (n == 3 && shader != 0x8010) ||
-            ((shader & 0x8000) && !((shader >= 0x8001 && shader <= 0x8003 && n == 2) ||
+            ((shader & 0x8000) && shader != 0x8000 && !((shader >= 0x8001 && shader <= 0x8003 && n == 2) ||
                 (shader == 0x8010 && n == 3) || ((shader == 0x8011 || shader == 0x8012) && n == 2))))
-            return Fail(error, "Retail shader or texture count is not supported yet");
+        {
+            char text[96];
+            std::snprintf(text, sizeof(text), "Retail shader or texture count is not supported yet: 0x%04x with %u textures in batch %u",
+                unsigned(shader), unsigned(n), unsigned(i));
+            return Fail(error, text);
+        }
         // The batch geoset index (+6) is unused by the legacy renderer and may exceed the section count in newer models.
         const bool section = U16(b, p + 4) < U32(b, 28);
         const bool material = U16(b, p + 10) < U32(m, 0x70);
@@ -1168,6 +1236,23 @@ bool PrepareSkin(std::vector<uint8_t>& b, const std::vector<uint8_t>& m, std::st
     for (uint32_t i = 0; i < U32(b, 36); ++i) {
         size_t p = U32(b, 40) + size_t(i) * 24 + 2;
         uint16_t shader = U16(b, p);
+        // Retail reads both textures of a runtime two-texture shader from UV set 1 unless 0x4000 asks for set 2; the
+        // legacy combiners read set 2, which is often all zeros (Thrayir's glow card drew as a flat square). When both
+        // slots name the same texture, draw it once with the first op.
+        if (!(shader & 0xC088) && U16(b, p + 12) == 2 && Index(m, 0x80, U16(b, p + 14), 2)
+            && U16(m, U32(m, 0x84) + size_t(U16(b, p + 14)) * 2) == U16(m, U32(m, 0x84) + size_t(U16(b, p + 14)) * 2 + 2)) {
+            b[p] = uint8_t(shader & 0x70); b[p + 1] = 0;
+            b[p + 12] = 1; b[p + 13] = 0;
+            continue;
+        }
+        if (U16(b, p + 12) == 3 && shader != 0x8003 && shader != 0x8010) {
+            // Three-texture combiners other than Mod_Mod2x_Mod (the Mana Rays' and Electro Eels' 0x8011, the Wind
+            // Rider's 0x8009, Startouched Furline's runtime 0x4011) have no legacy equivalent: draw the base texture
+            // with the Mod combiner. shortcut: loses the overlay layers; map the combiner if one of these looks flat.
+            b[p] = 0x10; b[p + 1] = 0;
+            b[p + 12] = 1; b[p + 13] = 0;
+            continue;
+        }
         if (shader >= 0x8000 && shader <= 0x8002) {
             ++shader;
             b[p] = uint8_t(shader);
@@ -1175,6 +1260,17 @@ bool PrepareSkin(std::vector<uint8_t>& b, const std::vector<uint8_t>& m, std::st
         } else if (shader == 0x8003 || shader == 0x4014) {
             shader = shader == 0x8003 ? 0x8010 : 0x8011;
             b[p] = uint8_t(shader); b[p + 1] = uint8_t(shader >> 8);
+        } else if ((shader >= 0x8004 && shader <= 0x8007) || shader == 0x800a || shader == 0x800b || (shader >= 0x800d && shader <= 0x800f)
+            || shader == 0x8012 || shader == 0x8017) {
+            // A base texture plus an additive (glow) layer: Opaque/Mod_AddAlpha(_Alpha, _Wgt), Mod_Add_Alpha (retail
+            // M2ShaderTable 4-7, 10, 11, 13-15), 18 Mod_Dual_Crossfade and 23 Opaque_Alpha (a lerp to texture 2). The
+            // two-texture fallback below draws them Mod_Mod, multiplying the base by a mostly black glow map (the Cookout
+            // Campfire's stones, 0x800a) or by itself (Ratstallion's 0x8017 fur came out near black). Draw the base texture
+            // with the Mod combiner (0x10), which keeps its alpha: the Opaque one drew the Mechacycle's additive headlight
+            // beam (0x8006) as a solid panel. shortcut: no glow layer; write the additive combiners if an emissive piece
+            // looks flat.
+            b[p] = 0x10; b[p + 1] = 0;
+            b[p + 12] = 1; b[p + 13] = 0;
         } else if (shader == 0x8015) {
             // Diffuse_EdgeFade_T1_T2 / Combiners_Mod_Mod: the 3.3.5 client has no edge-fade vertex shader, so draw it without the fade.
             b[p] = 0x12; b[p + 1] = 0x80;
@@ -1183,6 +1279,17 @@ bool PrepareSkin(std::vector<uint8_t>& b, const std::vector<uint8_t>& m, std::st
             // Draw them with their first texture and the plain opaque combiner instead of failing the model.
             b[p] = b[p + 1] = 0;
             b[p + 12] = 1; b[p + 13] = 0;
+        } else if (shader == 0x8013) {
+            // Diffuse_EdgeFade_T1 / Combiners_Mod_Depth: soft cards for steam, dust and light rays (Generic_Steam_Cloud_Thin,
+            // 7VS_NightmareRays01), which rely on fading at their edges and where they meet geometry. Without that they are
+            // hard flat quads over waterfalls and hills, so the batch is off (0x8000 is the client's own disabled marker).
+            // shortcut: no mist or rays on these models; write an edge-fade and depth-fade shader to bring them back.
+            b[p] = 0; b[p + 1] = 0x80;
+        } else if ((shader & 0x8000) && U16(b, p + 12) == 1) {
+            // Other single-texture explicit shaders (0x8022 on Founder's Point doodads): draw the texture with
+            // the Mod combiner so its alpha still applies. shortcut: loses the retail combiner's extra term; map the
+            // shader exactly if one of these looks wrong.
+            b[p] = 0x10; b[p + 1] = 0;
         } else if ((shader & 0x8000) && U16(b, p + 12) == 2) {
             // Other two-texture explicit shaders (the skyriding speed aura's 0x8021): draw with Diffuse_T1_T2 /
             // Combiners_Mod_Mod. shortcut: approximate combiner, map the shader exactly if an effect looks wrong.

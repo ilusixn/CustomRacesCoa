@@ -55,6 +55,12 @@ private:
 // Lazy process-wide source, configured by WOW_RETAIL_CONFIG or RetailCasc.ini in the
 // working directory. Initialization does no network IO until a Retail reference is read.
 CascSource& Source();
+
+// Not in the 3.3.5a client (Kalibros, wowdecomp Esteria): decoded CDN originals packed into MPQs by
+// Tools/RetailAssets/pack_cache.py as EsteriaRetail\<product>-<build>\<locale>\<FileDataID>.bin. SFile installs the reader.
+// Non-null size asks for metadata only. 0 absent, 1 found, -1 corrupt/unreadable.
+using PackedAssetReader = int (*)(const char*, std::vector<uint8_t>&, std::string&, uint32_t* size);
+void SetPackedAssetReader(PackedAssetReader reader);
 CascSource& SourceForPath(const char* name);
 
 }

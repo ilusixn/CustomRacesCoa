@@ -9,6 +9,7 @@
 #include "Engine/Source/Retail/EtherealModel.h"
 #include <CascLib.h>
 #include <algorithm>
+#include <atomic>
 #include <charconv>
 #include <cstdio>
 #include <cstdlib>
@@ -22,6 +23,7 @@
 
 namespace Retail {
 namespace {
+std::atomic<PackedAssetReader> packedAssetReader{nullptr};
 std::string Normalize(std::string name) {
     for (auto& c : name) {
         if (c == '\\') c = '/';
@@ -98,6 +100,14 @@ struct Reference {
 
 struct CascSource::Impl {
     std::mutex mutex;
+    // Packed originals (see SetPackedAssetReader): 0 absent or no reader, 1 found, -1 unreadable.
+    int ReadPacked(const char* name, std::vector<uint8_t>& bytes, std::string& error, uint32_t* size) {
+        if (auto reader = packedAssetReader.load()) return reader(name, bytes, error, size);
+        return 0;
+    }
+    std::string PackedName(const Reference& ref) const {
+        return "EsteriaRetail\\" + product + "-" + build + "\\" + std::to_string(locale) + "\\" + std::to_string(ref.id) + ".bin";
+    }
     HANDLE storage = nullptr;
     HANDLE cacheMutex = nullptr;
     std::string path, product = "wow", region = "us", build, keys, tables, cache, tablePolicy = "tables";
@@ -171,6 +181,11 @@ struct CascSource::Impl {
     }
 
     bool Fetch(const Reference& ref, const std::string& internal, std::vector<uint8_t>& bytes, std::string& error, bool lenient = false) {
+        if (configured && ref.id && !build.empty() && !lenient) {
+            const int packed = ReadPacked(PackedName(ref).c_str(), bytes, error, nullptr);
+            if (packed < 0) return false;
+            if (packed > 0) { ++stats.reused; return true; }
+        }
         if (files) {
             if (!configured || !ref.id) return Failure(error, "Offline Retail packs require configured FileDataID references");
             std::ifstream input(std::filesystem::path(path) / (std::to_string(ref.id) + ".bin"), std::ios::binary | std::ios::ate);
@@ -503,6 +518,12 @@ bool CascSource::Exists(const char* name, std::string& error) {
     std::string internal;
     File file;
     if (!m_impl->Resolve(Normalize(name ? name : ""), ref, internal, error)) return false;
+    if (ref.id && !m_impl->build.empty()) {
+        std::vector<uint8_t> original;
+        uint32_t size = 0;
+        const int found = m_impl->ReadPacked(m_impl->PackedName(ref).c_str(), original, error, &size);
+        if (found) return found > 0;
+    }
     if (m_impl->files) return ref.id && std::filesystem::is_regular_file(std::filesystem::path(m_impl->path) / (std::to_string(ref.id) + ".bin"));
     std::vector<uint8_t> cached;
     const auto path = m_impl->CachePath(ref, internal, false);
@@ -684,6 +705,8 @@ CascSource::Statistics CascSource::Stats() {
     std::lock_guard<std::mutex> lock(m_impl->mutex);
     return m_impl->stats;
 }
+
+void SetPackedAssetReader(PackedAssetReader reader) { packedAssetReader.store(reader); }
 
 CascSource& Source() {
     static CascSource retail, forever(SourceKind::Forever);
