@@ -115,6 +115,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(soapBar.X == -0.2f);
     CHECK(soapBar.Y == 0.4f);
     CHECK(soapBar.Z == 0.7f);
+    CoA::CarriedMount::CarryFit const hare =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountRedHare\\MountRedHare.m2");
+    CHECK(hare.Scale == 0.8f);
+    CHECK(hare.Yaw == 15.0f);
+    CHECK(hare.Roll == 0.0f);
+    CHECK(hare.X == 0.0f);
+    CHECK(hare.Y == 0.0f);
+    CHECK(hare.Z == -0.5f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(
