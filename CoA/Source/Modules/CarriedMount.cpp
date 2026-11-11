@@ -71,7 +71,8 @@ namespace CoA::CarriedMount {
 
     CarryFit DefaultFit(std::string_view mountModel) {
         static constexpr const char* kVehicles[] = { "hotrod", "rocketcar", "goblincar", "goblinkart", "gokart",
-            "motorcycle", "navicar", "azucar" };
+            "motorcycle", "navicar", "azucar", "speederbike", "spectrebike", "meatwagon", "monowheel", "vulture",
+            "starbreaker" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
