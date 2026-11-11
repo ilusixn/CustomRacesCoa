@@ -77,7 +77,7 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
                               "Creature\\HotSMounts\\BattleBeastButcherMount\\BattleBeastButcherMount.m2",
                               "Creature\\HotSMounts\\MountBattleBeastRankEpic\\MountBattleBeastRankEpic.m2"}) {
         CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(beast);
-        CHECK(fit.Scale == 1.0f);
+        CHECK(fit.Scale == 0.8f);
         CHECK(fit.Yaw == 10.0f);
         CHECK(fit.Roll == -90.0f);
         CHECK(fit.X == 0.0f);
