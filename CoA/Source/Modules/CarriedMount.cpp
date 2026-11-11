@@ -169,6 +169,14 @@ namespace CoA::CarriedMount {
             fit.Z = kHareZ;
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountphoenix") != std::string::npos) {
+            fit.Scale = kSeekerScale;
+            fit.Yaw = kBillieYaw;
+            fit.X = kPhoenixX;
+            fit.Y = kPhoenixY;
+            fit.Z = kPhoenixZ;
+        }
+
         return fit;
     }
 

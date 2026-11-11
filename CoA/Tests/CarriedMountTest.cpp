@@ -125,6 +125,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(hare.X == 0.0f);
     CHECK(hare.Y == 0.0f);
     CHECK(hare.Z == -0.5f);
+    CoA::CarriedMount::CarryFit const phoenix =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountPhoenix\\MountPhoenix.m2");
+    CHECK(phoenix.Scale == 0.8f);
+    CHECK(phoenix.Yaw == 15.0f);
+    CHECK(phoenix.Roll == 0.0f);
+    CHECK(phoenix.X == -0.2f);
+    CHECK(phoenix.Y == -0.1f);
+    CHECK(phoenix.Z == -0.9f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(
