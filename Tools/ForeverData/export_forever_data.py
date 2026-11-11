@@ -42,8 +42,20 @@ FOG_FLAGS, FOG_LAYER, FOG_DRAWN = 22, 23, 8
 AMBIENT_BANDS = ((1, "AmbientColor"), (18, "HorizonAmbientColor"), (19, "GroundAmbientColor"))
 
 
+CASC = None   # CoA: --casc reads the install with wotlkconv's CascStorage instead of RetailAssetProbe
+
+
 def probe(exe, config, name, destination, table):
     destination.unlink(missing_ok=True)
+    if CASC is not None:
+        fid = int(name.split("/")[1].split(".")[0])
+        try:
+            data = CASC.read_file_id(fid)
+        except Exception as e:   # a key nobody has: its encrypted parts read as zeros (DB2: hidden rows)
+            print(f"{name}: {e}; encrypted parts zeroed", file=sys.stderr)
+            data = CASC.read_file_id(fid, zero_encrypted=True)
+        destination.write_bytes(data)
+        return
     flag = "--extract-table" if table else "--extract"
     done = subprocess.run([str(exe), str(config), name, flag, str(destination)], capture_output=True, text=True)
     if done.returncode:
@@ -63,9 +75,19 @@ def main():
     parser.add_argument("install", help="the WoW folder holding .build.info and Data")
     parser.add_argument("out", help="the forever_data folder to write (beside Wow.exe)")
     parser.add_argument("--probe", default=str(REPO / "build/retail-satchel/Release/RetailAssetProbe.exe"))
+    parser.add_argument("--casc", help="CoA: folder holding wotlkconv (read CASC with it, no RetailAssetProbe)")
+    parser.add_argument("--product", default="wowf")
+    parser.add_argument("--keys", help="CoA: TACT key list (name value per line) for encrypted files")
     args = parser.parse_args()
     exe, out = Path(args.probe), Path(args.out)
-    if not exe.is_file():
+    if args.casc:
+        global CASC
+        sys.path.insert(0, args.casc)
+        from wotlkconv.casc.storage import CascStorage
+        from wotlkconv.casc.keys import KeyRing
+        keys = KeyRing.load(args.keys) if args.keys else None
+        CASC = CascStorage.open(args.install, product=args.product, keys=keys)
+    elif not exe.is_file():
         sys.exit(f"no RetailAssetProbe at {exe}: build the RetailAssetProbe target")
     if not (Path(args.install) / ".build.info").is_file():
         sys.exit(f"{args.install} has no .build.info")
