@@ -66,3 +66,15 @@ COA_TEST(AHandWrittenFitNeedsOnlyTheChangedValues) {
     CHECK(loaded.at(36022).Y == CoA::CarriedMount::kOffsetY);
 }
 
+COA_TEST(EachMountKeepsItsOwnHeldPose) {
+    CoA::CarriedMount::CarryFit fish;
+    CHECK(fish.Pose == 0.0f && fish.Frame == 0.0f);
+    CoA::CarriedMount::SetFitValue(fish, 8, 41.0f);
+    CoA::CarriedMount::SetFitValue(fish, 9, 500.0f);
+    const auto loaded = CoA::CarriedMount::ParseCarryFits(CoA::CarriedMount::FormatCarryFits({ { 99004, fish } }));
+    CHECK(loaded.at(99004).Pose == 41.0f);
+    CHECK(loaded.at(99004).Frame == 500.0f);
+    CHECK(loaded.at(99004).As == 0);
+    CHECK(CoA::CarriedMount::ParseCarryFits("99004 pose=-1\n").at(99004).Pose == -1.0f);
+}
+

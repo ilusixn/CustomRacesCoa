@@ -31,9 +31,12 @@ namespace CoA::CarriedMount {
         float Y = kOffsetY;
         float Z = kOffsetZ;
         uint32_t As = 0;
+        float Pose = 0.0f;
+        float Frame = 0.0f;
     };
 
-    constexpr const char* kFitFields[] = { "scale", "yaw", "pitch", "roll", "x", "y", "z", "as" };
+    constexpr const char* kFitFields[] = { "scale", "yaw", "pitch", "roll", "x", "y", "z", "as", "pose", "frame" };
+    constexpr size_t kFitAs = 7;
     constexpr size_t kFitFieldCount = sizeof(kFitFields) / sizeof(kFitFields[0]);
 
     float FitValue(const CarryFit& fit, size_t field);
