@@ -39,6 +39,17 @@ namespace CoA::CarriedMountClient {
 
         bool s_mirroring = false;
 
+        const CarriedModel* LiveCarry(const CGUnit_C* unit) {
+            auto found = Carried().find(unit->m_obj->m_guid.m_guid);
+
+            if (found == Carried().end() || unit->m_mountDisplayId <= 0 || !unit->m_worldModel
+                || found->second.Model->m_attachParent != unit->m_worldModel) {
+                return nullptr;
+            }
+
+            return &found->second;
+        }
+
         bool BesideClient(const char* file, char (&path)[MAX_PATH]) {
             const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
             char* slash = length && length < MAX_PATH ? strrchr(path, '\\') : nullptr;
@@ -155,7 +166,7 @@ namespace CoA::CarriedMountClient {
 
         uint32_t swapped = anim;
 
-        if (Carried().count(unit->m_obj->m_guid.m_guid)) {
+        if (LiveCarry(unit)) {
             swapped = CarriedMount::CarryingAnim(anim);
         } else if (CastsAMount(unit) && Carries(unit)) {
             swapped = CarriedMount::PickUpAnim(anim);
@@ -237,12 +248,11 @@ namespace CoA::CarriedMountClient {
     }
 
     bool Carrying(CGUnit_C* unit) {
-        return Carried().count(unit->m_obj->m_guid.m_guid) != 0;
+        return LiveCarry(unit) != nullptr;
     }
 
     bool CountsAsMounted(const CGUnit_C* unit) {
-        return unit->m_mountDisplayId > 0
-            && (!(unit->m_clientFlags & kMountHidden) || Carried().count(unit->m_obj->m_guid.m_guid) != 0);
+        return unit->m_mountDisplayId > 0 && (!(unit->m_clientFlags & kMountHidden) || LiveCarry(unit));
     }
 
     bool Drop(CGUnit_C* unit) {
@@ -254,13 +264,14 @@ namespace CoA::CarriedMountClient {
 
         CM2Model* mount = found->second.Model;
         Carried().erase(found);
+        unit->m_clientFlags &= ~kMountHidden;
 
-        if (mount->m_attachParent) {
-            mount->DetachFromParent();
+        if (!unit->m_worldModel || mount->m_attachParent != unit->m_worldModel) {
+            return true;
         }
 
+        mount->DetachFromParent();
         mount->Release();
-        unit->m_clientFlags &= ~kMountHidden;
         return true;
     }
 
