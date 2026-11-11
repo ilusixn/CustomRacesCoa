@@ -29,6 +29,9 @@ class CharacterSelectionDisplay {
     static bool m_formMirrorIsTwin;
     static void ShowTwinMirror(CharacterSelectionDisplay& display);
     static void KeepTwinMirror(CharacterSelectionDisplay& display);
+    // Two-Players (mod-subclass): a body left in its Mutate Me look ('MUTD' payload) shows that look here too.
+    static void KeepMutatedLook(CharacterSelectionDisplay& display);
+    static void ClearMutatedLook();
     static int32_t SetSelectedCharacterInfo(CHARACTER_INFO* info);
 
     CharacterSelectionDisplay();
