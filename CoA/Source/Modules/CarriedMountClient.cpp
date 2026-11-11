@@ -20,6 +20,7 @@
 namespace CoA::CarriedMountClient {
     namespace {
         constexpr uint32_t kMountHidden = 0x10000000;
+        constexpr uint32_t kStillPose = 0;
 
         std::unordered_map<uint64_t, CM2Model*>& Carried() {
             static std::unordered_map<uint64_t, CM2Model*> s_carried;
@@ -131,6 +132,7 @@ namespace CoA::CarriedMountClient {
         mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
         mount->m_worldTransform = CarryTransform(displayInfo->m_creatureModelScale);
+        mount->SetBoneSequence(0xFFFFFFFF, kStillPose, 0xFFFFFFFF, 0, 0.0f, 1, 1);
         Carried()[unit->m_obj->m_guid.m_guid] = mount;
         unit->m_clientFlags |= kMountHidden;
         return true;
