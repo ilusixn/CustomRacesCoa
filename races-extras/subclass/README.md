@@ -2,7 +2,7 @@
 
 Stefan's (stefanw1337) server work for the subclass races: mod-subclass (subclassing, The Twins 96, Two-Headed Ogre 85,
 Two-Players), mod-livemon, and the core changes they need. Snapshot of `stefanw1337/azerothcore-wotlk-coa`, branch
-`stefanw1337-subclassing-test` at `d69e92c0` (2026-11-11). It carries the 1.9.5-1.9.7 server files from `../server`
+`stefanw1337-subclassing-test` at `d69e92c0` (2026-11-11), without the HotS mount stream commits (a separate project). It carries the 1.9.5-1.9.7 server files from `../server`
 and everything since; building the worldserver from that branch is the simplest route.
 
 - `modules/mod-subclass/`, `modules/mod-livemon/`: copy into the server's `modules/`.
@@ -21,8 +21,7 @@ New since the 8ff12d95 snapshot (2026-11-11), not tested properly yet:
   looting and resting unless told to stay, and its bot menu is on the player frame (addon `SubclassPairs.lua`).
 - `addon/CoAC_BotPlan`: `/botplan` shows what the group's bots plan to do, with "Do now". The quest route supplement
   (`src/SubclassBotQuestRoute.cpp`) steers bots between quest givers; it only adds to SquidBotsLite and is untested.
-- New world SQL under `server/files/data/sql/updates/pending_db_world/` (Two-Players racials, shared blood, bonk heads)
-  and the collection table `coa_client_vanity_collection_added` used by the patch stream for added mounts.
+- New world SQL under `server/files/data/sql/updates/pending_db_world/` (Two-Players racials, shared blood, bonk heads).
 - The client side of Two-Players (carrying a mount, the joined name, item art) is in the CoA64 source of this branch.
 
 New since the 1.9.7 snapshot (for 2.0):
