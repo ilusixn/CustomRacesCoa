@@ -166,6 +166,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(turtle.X == 0.0f);
     CHECK(turtle.Y == -0.5f);
     CHECK(turtle.Z == 0.5f);
+    CoA::CarriedMount::CarryFit const reaver =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountReaver\\MountReaver.m2");
+    CHECK(reaver.Scale == 0.7f);
+    CHECK(reaver.Yaw == 15.0f);
+    CHECK(reaver.Roll == 0.0f);
+    CHECK(reaver.X == -0.4f);
+    CHECK(reaver.Y == -0.2f);
+    CHECK(reaver.Z == -0.2f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(

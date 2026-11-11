@@ -208,6 +208,14 @@ namespace CoA::CarriedMount {
             fit.Z = kBattleBeastZ;
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountreaver") != std::string::npos) {
+            fit.Scale = kReaverScale;
+            fit.Yaw = kBillieYaw;
+            fit.X = kReaverX;
+            fit.Y = kReaverY;
+            fit.Z = kReaverZ;
+        }
+
         return fit;
     }
 

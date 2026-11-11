@@ -63,6 +63,10 @@ namespace CoA::CarriedMount {
     constexpr float kSurfboardY = -0.6f;
     constexpr float kTurtleScale = 0.5f;
     constexpr float kTurtleY = -0.5f;
+    constexpr float kReaverScale = 0.7f;
+    constexpr float kReaverX = -0.4f;
+    constexpr float kReaverY = -0.2f;
+    constexpr float kReaverZ = -0.2f;
 
     struct CarryFit {
         float Scale = kScale;
