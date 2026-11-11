@@ -71,8 +71,7 @@ namespace CoA::CarriedMount {
 
     CarryFit DefaultFit(std::string_view mountModel) {
         static constexpr const char* kVehicles[] = { "hotrod", "rocketcar", "goblincar", "goblinkart", "gokart",
-            "motorcycle", "navicar", "azucar", "speederbike", "spectrebike", "meatwagon", "monowheel", "vulture",
-            "starbreaker" };
+            "motorcycle", "navicar", "azucar" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
@@ -80,6 +79,12 @@ namespace CoA::CarriedMount {
             if (lower.find(vehicle) != std::string::npos) {
                 fit.As = kStandInHorse;
             }
+        }
+
+        if (lower.find("drivemount") != std::string::npos) {
+            fit.Scale = kDriveScale;
+            fit.Roll = kDriveRoll;
+            fit.Z = kDriveZ;
         }
 
         return fit;
