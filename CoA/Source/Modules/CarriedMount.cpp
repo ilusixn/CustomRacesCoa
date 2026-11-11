@@ -134,18 +134,6 @@ namespace CoA::CarriedMount {
             fit.Z = kHotsSheepZ;
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && (lower.find("battlebeast") != std::string::npos
-            || lower.find("voidspeeder") != std::string::npos
-            || lower.find("mountsurfmecha19") != std::string::npos
-            || lower.find("mountbearrank21s1") != std::string::npos)) {
-            fit.Yaw = kHotsHorseYaw;
-            fit.Scale = kBattleBeastScale;
-            fit.Roll = kBattleBeastRoll;
-            fit.X = kBattleBeastX;
-            fit.Y = kBattleBeastY;
-            fit.Z = kBattleBeastZ;
-        }
-
         for (const char* billie : kBillies) {
             if (lower.find("hotsmounts") != std::string::npos && lower.find(billie) != std::string::npos) {
                 fit.Yaw = kBillieYaw;
@@ -161,6 +149,19 @@ namespace CoA::CarriedMount {
                 fit.Y = kSeekerY;
                 fit.Z = kSeekerZ;
             }
+        }
+
+        if (lower.find("hotsmounts") != std::string::npos && (lower.find("battlebeast") != std::string::npos
+            || lower.find("voidspeeder") != std::string::npos
+            || lower.find("mountsurfmecha19") != std::string::npos
+            || lower.find("mountbearrank21s1") != std::string::npos
+            || lower.find("mountwolfdark18") != std::string::npos)) {
+            fit.Yaw = kHotsHorseYaw;
+            fit.Scale = kBattleBeastScale;
+            fit.Roll = kBattleBeastRoll;
+            fit.X = kBattleBeastX;
+            fit.Y = kBattleBeastY;
+            fit.Z = kBattleBeastZ;
         }
 
         if (lower.find("hotsmounts") != std::string::npos && lower.find("hearthstonecard") != std::string::npos) {
