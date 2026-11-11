@@ -107,7 +107,7 @@ namespace CoA::CarriedMountClient {
             return found != Fits().end() ? found->second : CarriedMount::DefaultFit(ModelOf(display));
         }
 
-        void Mirror(const CarriedMount::CarryFit& fit);
+        void Mirror(uint32_t display, const CarriedMount::CarryFit& fit);
 
         uint32_t CarryLink(CM2Model* model) {
             if (model->IsLoaded(0, 0)) {
@@ -218,7 +218,7 @@ namespace CoA::CarriedMountClient {
         unit->m_clientFlags |= kMountHidden;
 
         if (unit->m_obj->m_guid.m_guid == ClntObjMgrGetActivePlayer().m_guid) {
-            Mirror(fit);
+            Mirror(display, fit);
         }
 
         return true;
@@ -280,30 +280,70 @@ namespace CoA::CarriedMountClient {
     }
 
     namespace {
-        bool Retune(CVar*, const char*, const char* value, void* arg) {
+        CGUnit_C* CarryingPlayer(uint32_t* display) {
             if (s_mirroring) {
-                return true;
+                return nullptr;
             }
 
-            const uint64_t guid = ClntObjMgrGetActivePlayer().m_guid;
-            auto found = Carried().find(guid);
-            CGUnit_C* unit = found != Carried().end()
-                ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_UNIT, __FILE__, __LINE__))
-                : nullptr;
+            auto found = Carried().find(ClntObjMgrGetActivePlayer().m_guid);
+
+            if (found == Carried().end()) {
+                return nullptr;
+            }
+
+            *display = found->second.Display;
+            const WOWGUID player = ClntObjMgrGetActivePlayer();
+            return static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(player, TYPE_UNIT, __FILE__, __LINE__));
+        }
+
+        bool Retune(CVar*, const char*, const char* value, void* arg) {
+            uint32_t display = 0;
+            CGUnit_C* unit = CarryingPlayer(&display);
 
             if (!unit) {
                 return true;
             }
 
-            CarriedMount::CarryFit fit = FitOf(found->second.Display);
+            CarriedMount::CarryFit fit = FitOf(display);
             CarriedMount::SetFitValue(fit, reinterpret_cast<uintptr_t>(arg), static_cast<float>(atof(value)));
-            Fits()[found->second.Display] = fit;
+            Fits()[display] = fit;
             SaveFits();
             Carry(unit);
             return true;
         }
 
-        void Mirror(const CarriedMount::CarryFit& fit) {
+        bool ResetFit(CVar*, const char*, const char* value, void*) {
+            uint32_t display = 0;
+            CGUnit_C* unit = atoi(value) ? CarryingPlayer(&display) : nullptr;
+
+            if (!unit) {
+                return true;
+            }
+
+            Fits().erase(display);
+            SaveFits();
+            Carry(unit);
+            return true;
+        }
+
+        bool ShowOnly(CVar*, const char*, const char*, void*) {
+            return true;
+        }
+
+        void MirrorVar(const char* name, const char* value, bool (*callback)(CVar*, const char*, const char*, void*),
+            void* arg) {
+            CVar* var = CVar::Lookup(name);
+
+            if (!var || var->m_callback != callback) {
+                var = CVar::Register(name, "", 0, value, callback, 0, false, arg, false);
+            }
+
+            if (var) {
+                var->Set(value, true, false, false, true);
+            }
+        }
+
+        void Mirror(uint32_t display, const CarriedMount::CarryFit& fit) {
             s_mirroring = true;
 
             for (size_t field = 0; field < CarriedMount::kFitFieldCount; ++field) {
@@ -312,17 +352,13 @@ namespace CoA::CarriedMountClient {
                 snprintf(name, sizeof(name), "coaCarry%c%s", static_cast<char>(toupper(CarriedMount::kFitFields[field][0])),
                     CarriedMount::kFitFields[field] + 1);
                 snprintf(value, sizeof(value), "%g", CarriedMount::FitValue(fit, field));
-                CVar* var = CVar::Lookup(name);
-
-                if (!var || var->m_callback != Retune) {
-                    var = CVar::Register(name, "", 0, value, Retune, 0, false, reinterpret_cast<void*>(field), false);
-                }
-
-                if (var) {
-                    var->Set(value, true, false, false, true);
-                }
+                MirrorVar(name, value, Retune, reinterpret_cast<void*>(field));
             }
 
+            char shown[16];
+            snprintf(shown, sizeof(shown), "%u", display);
+            MirrorVar("coaCarryDisplay", shown, ShowOnly, nullptr);
+            MirrorVar("coaCarryReset", "0", ResetFit, nullptr);
             s_mirroring = false;
         }
     }
