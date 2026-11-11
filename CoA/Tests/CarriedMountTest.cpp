@@ -40,6 +40,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(CoA::CarriedMount::DefaultFit("CREATURE\\GOBLINHOTROD\\GOBLINHOTROD.M2").As == CoA::CarriedMount::kStandInHorse);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\MotorcycleVehicle\\MotorcycleVehicle.mdx").As == 2404);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\Gokart\\Gokart.m2").As == 2404);
+    for (const char* bike : { "Creature\\HotSMounts\\MountSpeederBikeOni\\MountSpeederBikeOni.m2",
+             "Creature\\HotSMounts\\SpectreBike\\SpectreBike.m2", "Creature\\HotSMounts\\MountMeatWagon\\MountMeatWagon.m2",
+             "Creature\\HotSMounts\\MountMonoWheelMadAxe19\\MountMonoWheelMadAxe19.m2",
+             "Creature\\HotSMounts\\MountVultureCraft20\\MountVultureCraft20.m2",
+             "Creature\\HotSMounts\\Starbreaker\\Starbreaker.m2" }) {
+        CHECK(CoA::CarriedMount::DefaultFit(bike).As == CoA::CarriedMount::kStandInHorse);
+    }
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountRaven\\MountRaven.m2").As == 0);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").As == 0);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").Y == CoA::CarriedMount::kOffsetY);
 }
