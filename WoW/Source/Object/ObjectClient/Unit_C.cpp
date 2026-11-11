@@ -4745,7 +4745,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
 
     AnimationDataRec* rec = g_animationDataDB.GetRecord(sequence);
 
-    if (rec && (rec->m_weaponflags & 0x4) && !force) {
+    if (((rec && (rec->m_weaponflags & 0x4)) || CoA::CarriedMountClient::Carrying(this)) && !force) {
         this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
 
         if (this->m_clientFlags & 0x10000) {
@@ -12537,7 +12537,7 @@ bool CGUnit_C::CanAttackNow(const CGUnit_C* unit) const {
         }
     }
 
-    if (this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !(this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x800)) && !this->CanAutoDismount()) {
+    if (CoA::CarriedMountClient::CountsAsMounted(this) && !(this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x800)) && !this->CanAutoDismount()) {
         return false;
     }
 
@@ -16929,12 +16929,12 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
         return false;
     }
 
-    if (((auraInterrupt & 0x40) && (this->m_mountDisplayId <= 0 || (this->m_clientFlags & 0x10000000))) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x40) && !this->IsMounted())) {
+    if (((auraInterrupt & 0x40) && !CoA::CarriedMountClient::CountsAsMounted(this)) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x40) && !CoA::CarriedMountClient::CountsAsMounted(this))) {
         Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_MOUNTED, -1, -1, false);
         return false;
     }
 
-    if (!(spell->m_attributes & 0x1000000) && this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
+    if (!(spell->m_attributes & 0x1000000) && CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
         Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_MOUNTED, -1, -1, false);
         return false;
     }
@@ -18134,7 +18134,7 @@ int32_t CGUnit_C::VerifyAttackIconPressed(WOWGUID* target, int32_t useGiven, int
             }
         }
 
-        if (this->IsMounted() && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
+        if (CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
             if (showErrors) {
                 CGGameUI::DisplayError(ERR_ATTACK_MOUNTED);
             }
@@ -22358,6 +22358,7 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
     if (!this->m_mountModel && CoA::CarriedMountClient::Carry(this)) {
         if (this->m_worldModel->IsLoaded(0, 0)) {
             this->UpdateBaseAnimation(0, -1);
+            this->UpdateHandItemAnimEffects(false);
         }
 
         return;

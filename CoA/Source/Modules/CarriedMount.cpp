@@ -1,6 +1,8 @@
 #include "CoA/Source/Modules/CarriedMount.h"
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 
 namespace CoA::CarriedMount {
@@ -32,6 +34,116 @@ namespace CoA::CarriedMount {
     bool CarryPointModel(std::string_view fileName) {
         std::string lower(fileName);
         std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        return lower.find("twoheadedogremale.m2") != std::string::npos;
+        return (lower.find("twoheadedogremale.m2") != std::string::npos
+            || lower.find("\\chogall.m2") != std::string::npos);
+    }
+
+    namespace {
+        std::string Lower(std::string_view text) {
+            std::string lower(text);
+            std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            return lower;
+        }
+
+        float* FieldOf(CarryFit& fit, size_t field) {
+            float* fields[] = { &fit.Scale, &fit.Yaw, &fit.Pitch, &fit.Roll, &fit.X, &fit.Y, &fit.Z };
+            return field < sizeof(fields) / sizeof(fields[0]) ? fields[field] : nullptr;
+        }
+    }
+
+    float FitValue(const CarryFit& fit, size_t field) {
+        if (field == kFitFieldCount - 1) {
+            return static_cast<float>(fit.As);
+        }
+
+        const float* value = FieldOf(const_cast<CarryFit&>(fit), field);
+        return value ? *value : 0.0f;
+    }
+
+    void SetFitValue(CarryFit& fit, size_t field, float value) {
+        if (field == kFitFieldCount - 1) {
+            fit.As = value > 0.0f ? static_cast<uint32_t>(value + 0.5f) : 0;
+        } else if (float* target = FieldOf(fit, field)) {
+            *target = value;
+        }
+    }
+
+    CarryFit DefaultFit(std::string_view mountModel) {
+        static constexpr const char* kVehicles[] = { "hotrod", "rocketcar", "goblincar", "goblinkart", "gokart",
+            "motorcycle", "navicar", "azucar" };
+        const std::string lower = Lower(mountModel);
+        CarryFit fit;
+
+        for (const char* vehicle : kVehicles) {
+            if (lower.find(vehicle) != std::string::npos) {
+                fit.As = kStandInHorse;
+            }
+        }
+
+        return fit;
+    }
+
+    std::map<uint32_t, CarryFit> ParseCarryFits(std::string_view text) {
+        std::map<uint32_t, CarryFit> fits;
+        size_t start = 0;
+
+        while (start < text.size()) {
+            size_t end = text.find('\n', start);
+            end = end == std::string_view::npos ? text.size() : end;
+            const std::string line(text.substr(start, end - start));
+            start = end + 1;
+            char* rest = nullptr;
+            const unsigned long display = std::strtoul(line.c_str(), &rest, 10);
+
+            if (!display || rest == line.c_str()) {
+                continue;
+            }
+
+            CarryFit fit;
+            std::string token;
+
+            for (const char* c = rest;; ++c) {
+                if (*c && !std::isspace(static_cast<unsigned char>(*c))) {
+                    token += *c;
+                    continue;
+                }
+
+                const size_t equals = token.find('=');
+
+                for (size_t field = 0; equals != std::string::npos && field < kFitFieldCount; ++field) {
+                    if (Lower(token.substr(0, equals)) == kFitFields[field]) {
+                        SetFitValue(fit, field, std::strtof(token.c_str() + equals + 1, nullptr));
+                    }
+                }
+
+                token.clear();
+
+                if (!*c) {
+                    break;
+                }
+            }
+
+            fits[static_cast<uint32_t>(display)] = fit;
+        }
+
+        return fits;
+    }
+
+    std::string FormatCarryFits(const std::map<uint32_t, CarryFit>& fits) {
+        std::string text;
+
+        for (const auto& [display, fit] : fits) {
+            text += std::to_string(display);
+
+            for (size_t field = 0; field < kFitFieldCount; ++field) {
+                char value[32];
+                std::snprintf(value, sizeof(value), " %s=%g", kFitFields[field], FitValue(fit, field));
+                text += value;
+            }
+
+            text += "\n";
+        }
+
+        return text;
     }
 }

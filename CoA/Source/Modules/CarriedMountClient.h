@@ -12,6 +12,8 @@ class CM2Model;
 namespace CoA::CarriedMountClient {
     bool Carry(CGUnit_C* unit);
     bool Drop(CGUnit_C* unit);
+    bool Carrying(CGUnit_C* unit);
+    bool CountsAsMounted(const CGUnit_C* unit);
     void Note(CGUnit_C* unit, const char* stage);
     bool CarryingAnim(CGUnit_C* unit, uint32_t anim, CM2Model* model, uint32_t* carrying);
 }

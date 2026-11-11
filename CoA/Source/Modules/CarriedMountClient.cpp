@@ -6,14 +6,20 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/SpellRec.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#include <cctype>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <map>
+#include <string>
 #include <unordered_map>
 #include <windows.h>
 
@@ -22,10 +28,76 @@ namespace CoA::CarriedMountClient {
         constexpr uint32_t kMountHidden = 0x10000000;
         constexpr uint32_t kStillPose = 0;
 
-        std::unordered_map<uint64_t, CM2Model*>& Carried() {
-            static std::unordered_map<uint64_t, CM2Model*> s_carried;
+        struct CarriedModel {
+            CM2Model* Model;
+            uint32_t Display;
+        };
+
+        std::unordered_map<uint64_t, CarriedModel>& Carried() {
+            static std::unordered_map<uint64_t, CarriedModel> s_carried;
             return s_carried;
         }
+
+        bool s_mirroring = false;
+
+        bool BesideClient(const char* file, char (&path)[MAX_PATH]) {
+            const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
+            char* slash = length && length < MAX_PATH ? strrchr(path, '\\') : nullptr;
+
+            if (!slash) {
+                return false;
+            }
+
+            strcpy_s(slash + 1, MAX_PATH - (slash - path) - 1, file);
+            return true;
+        }
+
+        std::map<uint32_t, CarriedMount::CarryFit>& Fits() {
+            static std::map<uint32_t, CarriedMount::CarryFit> s_fits = [] {
+                char path[MAX_PATH] = {};
+                FILE* file = nullptr;
+                std::string text;
+
+                if (BesideClient("CarriedMounts.txt", path) && !fopen_s(&file, path, "rb") && file) {
+                    char chunk[4096];
+
+                    for (size_t read; (read = fread(chunk, 1, sizeof(chunk), file)) > 0;) {
+                        text.append(chunk, read);
+                    }
+
+                    fclose(file);
+                }
+
+                return CarriedMount::ParseCarryFits(text);
+            }();
+            return s_fits;
+        }
+
+        void SaveFits() {
+            char path[MAX_PATH] = {};
+            FILE* file = nullptr;
+
+            if (!BesideClient("CarriedMounts.txt", path) || fopen_s(&file, path, "wb") || !file) {
+                return;
+            }
+
+            const std::string text = CarriedMount::FormatCarryFits(Fits());
+            fwrite(text.data(), 1, text.size(), file);
+            fclose(file);
+        }
+
+        const char* ModelOf(uint32_t display) {
+            CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(display);
+            CreatureModelDataRec* modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : nullptr;
+            return modelData ? modelData->m_modelName : "";
+        }
+
+        CarriedMount::CarryFit FitOf(uint32_t display) {
+            auto found = Fits().find(display);
+            return found != Fits().end() ? found->second : CarriedMount::DefaultFit(ModelOf(display));
+        }
+
+        void Mirror(const CarriedMount::CarryFit& fit);
 
         uint32_t CarryLink(CM2Model* model) {
             if (model->IsLoaded(0, 0)) {
@@ -36,25 +108,15 @@ namespace CoA::CarriedMountClient {
                 ? CarriedMount::kCarryLink : HeldGrip::kLink;
         }
 
-        float Tuned(const char* name, float fallback) {
-            CVar* var = CVar::Lookup(name);
-
-            if (!var) {
-                char value[32];
-                snprintf(value, sizeof(value), "%g", fallback);
-                var = CVar::Register(name, "", 0, value, nullptr, 0, false, nullptr, false);
-            }
-
-            return var ? var->m_floatValue : fallback;
-        }
-
-        C44Matrix CarryTransform(float modelScale) {
+        C44Matrix CarryTransform(const CarriedMount::CarryFit& fit, float modelScale) {
             constexpr float kDegrees = 3.14159265f / 180.0f;
-            C44Matrix transform = C44Matrix(Tuned("coaCarryScale", CarriedMount::kScale) * modelScale)
-                * C44Matrix::RotationAroundZ(Tuned("coaCarryYaw", 0.0f) * kDegrees);
-            transform.d0 = Tuned("coaCarryX", 0.0f);
-            transform.d1 = Tuned("coaCarryY", CarriedMount::kOffsetY);
-            transform.d2 = Tuned("coaCarryZ", CarriedMount::kOffsetZ);
+            C44Matrix transform = C44Matrix(fit.Scale * modelScale)
+                * C44Matrix::RotationAroundX(fit.Roll * kDegrees)
+                * C44Matrix::RotationAroundY(fit.Pitch * kDegrees)
+                * C44Matrix::RotationAroundZ(fit.Yaw * kDegrees);
+            transform.d0 = fit.X;
+            transform.d1 = fit.Y;
+            transform.d2 = fit.Z;
             return transform;
         }
 
@@ -114,7 +176,9 @@ namespace CoA::CarriedMountClient {
         }
 
         Drop(unit);
-        CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(unit->m_mountDisplayId);
+        const uint32_t display = unit->m_mountDisplayId;
+        const CarriedMount::CarryFit fit = FitOf(display);
+        CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(fit.As ? fit.As : display);
         CreatureModelDataRec* modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : nullptr;
 
         if (!modelData) {
@@ -131,10 +195,15 @@ namespace CoA::CarriedMountClient {
         CCharacterComponent::ReplaceMonsterSkin(mount, displayInfo, modelData);
         mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
-        mount->m_worldTransform = CarryTransform(displayInfo->m_creatureModelScale);
+        mount->m_worldTransform = CarryTransform(fit, displayInfo->m_creatureModelScale);
         mount->SetBoneSequence(0xFFFFFFFF, kStillPose, 0xFFFFFFFF, 0, 0.0f, 1, 1);
-        Carried()[unit->m_obj->m_guid.m_guid] = mount;
+        Carried()[unit->m_obj->m_guid.m_guid] = { mount, display };
         unit->m_clientFlags |= kMountHidden;
+
+        if (unit->m_obj->m_guid.m_guid == ClntObjMgrGetActivePlayer().m_guid) {
+            Mirror(fit);
+        }
+
         return true;
     }
 
@@ -147,17 +216,9 @@ namespace CoA::CarriedMountClient {
         }
 
         char path[MAX_PATH] = {};
-        const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
-        char* slash = length && length < MAX_PATH ? strrchr(path, '\\') : nullptr;
-
-        if (!slash) {
-            return;
-        }
-
-        strcpy_s(slash + 1, MAX_PATH - (slash - path) - 1, "CarriedMount.log");
         FILE* file = nullptr;
 
-        if (fopen_s(&file, path, "a") || !file) {
+        if (!BesideClient("CarriedMount.log", path) || fopen_s(&file, path, "a") || !file) {
             return;
         }
 
@@ -173,6 +234,15 @@ namespace CoA::CarriedMountClient {
         fclose(file);
     }
 
+    bool Carrying(CGUnit_C* unit) {
+        return Carried().count(unit->m_obj->m_guid.m_guid) != 0;
+    }
+
+    bool CountsAsMounted(const CGUnit_C* unit) {
+        return unit->m_mountDisplayId > 0
+            && (!(unit->m_clientFlags & kMountHidden) || Carried().count(unit->m_obj->m_guid.m_guid) != 0);
+    }
+
     bool Drop(CGUnit_C* unit) {
         auto found = Carried().find(unit->m_obj->m_guid.m_guid);
 
@@ -180,7 +250,7 @@ namespace CoA::CarriedMountClient {
             return false;
         }
 
-        CM2Model* mount = found->second;
+        CM2Model* mount = found->second.Model;
         Carried().erase(found);
 
         if (mount->m_attachParent) {
@@ -190,5 +260,53 @@ namespace CoA::CarriedMountClient {
         mount->Release();
         unit->m_clientFlags &= ~kMountHidden;
         return true;
+    }
+
+    namespace {
+        bool Retune(CVar*, const char*, const char* value, void* arg) {
+            if (s_mirroring) {
+                return true;
+            }
+
+            const uint64_t guid = ClntObjMgrGetActivePlayer().m_guid;
+            auto found = Carried().find(guid);
+            CGUnit_C* unit = found != Carried().end()
+                ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_UNIT, __FILE__, __LINE__))
+                : nullptr;
+
+            if (!unit) {
+                return true;
+            }
+
+            CarriedMount::CarryFit fit = FitOf(found->second.Display);
+            CarriedMount::SetFitValue(fit, reinterpret_cast<uintptr_t>(arg), static_cast<float>(atof(value)));
+            Fits()[found->second.Display] = fit;
+            SaveFits();
+            Carry(unit);
+            return true;
+        }
+
+        void Mirror(const CarriedMount::CarryFit& fit) {
+            s_mirroring = true;
+
+            for (size_t field = 0; field < CarriedMount::kFitFieldCount; ++field) {
+                char name[32];
+                char value[32];
+                snprintf(name, sizeof(name), "coaCarry%c%s", static_cast<char>(toupper(CarriedMount::kFitFields[field][0])),
+                    CarriedMount::kFitFields[field] + 1);
+                snprintf(value, sizeof(value), "%g", CarriedMount::FitValue(fit, field));
+                CVar* var = CVar::Lookup(name);
+
+                if (!var || var->m_callback != Retune) {
+                    var = CVar::Register(name, "", 0, value, Retune, 0, false, reinterpret_cast<void*>(field), false);
+                }
+
+                if (var) {
+                    var->Set(value, true, false, false, true);
+                }
+            }
+
+            s_mirroring = false;
+        }
     }
 }
