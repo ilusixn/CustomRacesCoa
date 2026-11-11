@@ -115,7 +115,9 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(soapBar.Y == 0.4f);
     CHECK(soapBar.Z == 0.7f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
-        == 0.0f);
+        == 90.0f);
+    CHECK(CoA::CarriedMount::DefaultFit(
+        "Creature\\HotSMounts\\MountHearthstoneCardMedivh\\MountHearthstoneCardMedivh.m2").Z == 0.7f);
     for (char const* raptor : {"Creature\\HotSMounts\\MountRaptorCelestial\\MountRaptorCelestial.m2",
                                "Creature\\HotSMounts\\MountRaptor_Rank17_01\\MountRaptor_Rank17_01.m2",
                                "Creature\\HotSMounts\\VultureMount\\VultureMount.m2",

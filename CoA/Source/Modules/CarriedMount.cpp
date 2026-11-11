@@ -150,7 +150,7 @@ namespace CoA::CarriedMount {
             }
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && lower.find("soapbar") != std::string::npos) {
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("hearthstonecard") != std::string::npos) {
             fit.Scale = kSoapBarScale;
             fit.Yaw = kSoapBarYaw;
             fit.Roll = kSoapBarRoll;
