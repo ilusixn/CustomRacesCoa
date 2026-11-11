@@ -47,11 +47,11 @@ namespace {
     }
 }
 
-COA_TEST(Dxvk_NoDxvkSkipsTheLoadAndLeavesHdOff) {
+COA_TEST(Dxvk_NoDxvkSkipsTheLoadAndHdStaysOn) {
     CoA::Dxvk::Preload(Fakes(true, 0));
     CHECK(s_loads.empty());
     CHECK(!CoA::Dxvk::Active());
-    CHECK(!CoA::Hd::Available());
+    CHECK(CoA::Hd::Available());
     CHECK(s_logs.size() == 1 && s_logs[0] == "DXVK disabled (-nodxvk)");
     Done();
 }
@@ -66,11 +66,11 @@ COA_TEST(Dxvk_LoadsX64D3d9NextToTheExeAndTurnsHdOn) {
 }
 
 // 193 = ERROR_BAD_EXE_FORMAT: the install's own (32-bit) DXVK in the x64 folder.
-COA_TEST(Dxvk_LoadFailureKeepsSystemD3d9AndHdOff) {
+COA_TEST(Dxvk_LoadFailureKeepsSystemD3d9AndHdOn) {
     CoA::Dxvk::Preload(Fakes(false, 193));
     CHECK(s_loads.size() == 1);
     CHECK(!CoA::Dxvk::Active());
-    CHECK(!CoA::Hd::Available());
+    CHECK(CoA::Hd::Available());
     CHECK(s_logs.size() == 1 && s_logs[0] == "DXVK not loaded (error 193), using system d3d9");
     CHECK(CoA::Dxvk::D3d9Library() == nullptr);
     Done();
