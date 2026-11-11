@@ -1,3 +1,4 @@
+#include "CoA/Source/Modules/CarriedMountClient.h"
 #include "GameObject_C.h"
 #include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -4165,7 +4166,7 @@ bool CGGameObject_C_TypeBase::CanUseNow(GAME_ERROR_TYPE* error, float* distance,
     }
 
     if (!this->m_owner->GetLockRec()) {
-        if (player->IsMounted() && !this->m_owner->IsUsableMounted() && !player->CanAutoDismount()) {
+        if (CoA::CarriedMountClient::CountsAsMounted(player) && !this->m_owner->IsUsableMounted() && !player->CanAutoDismount()) {
             if (error) {
                 *error = static_cast<GAME_ERROR_TYPE>(ERR_NOT_WHILE_MOUNTED);
             }

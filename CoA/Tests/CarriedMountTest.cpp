@@ -29,8 +29,40 @@ COA_TEST(TheMountCastPlaysThePickUp) {
     CHECK(CoA::CarriedMount::PickUpAnim(5) == 5);
 }
 
-COA_TEST(OnlyTheTwoPlayersOgreBodyHasTheCarryPoint) {
+COA_TEST(BothTwoPlayersBodiesHaveTheCarryPoint) {
     CHECK(CoA::CarriedMount::CarryPointModel("Creature\\TwoHeadedOgre\\TwoHeadedOgreMale.m2"));
+    CHECK(CoA::CarriedMount::CarryPointModel("Creature\\ChoGall\\ChoGall.m2"));
     CHECK(!CoA::CarriedMount::CarryPointModel("Creature\\TwoHeadedOgre\\TwoHeadedOgreMaleHeld.m2"));
-    CHECK(!CoA::CarriedMount::CarryPointModel("Creature\\ChoGall\\ChoGall.m2"));
+    CHECK(!CoA::CarriedMount::CarryPointModel("Creature\\ChoGall\\ChoGallHeld.m2"));
 }
+
+COA_TEST(VehicleMountsAreCarriedAsAHorse) {
+    CHECK(CoA::CarriedMount::DefaultFit("CREATURE\\GOBLINHOTROD\\GOBLINHOTROD.M2").As == CoA::CarriedMount::kStandInHorse);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\MotorcycleVehicle\\MotorcycleVehicle.mdx").As == 2404);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\Gokart\\Gokart.m2").As == 2404);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").As == 0);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").Y == CoA::CarriedMount::kOffsetY);
+}
+
+COA_TEST(EachMountKeepsItsOwnFit) {
+    CoA::CarriedMount::CarryFit car;
+    CoA::CarriedMount::SetFitValue(car, 3, 90.0f);
+    CoA::CarriedMount::SetFitValue(car, 6, -0.25f);
+    CoA::CarriedMount::CarryFit horse;
+    CoA::CarriedMount::SetFitValue(horse, 7, 2404.0f);
+    const std::string saved = CoA::CarriedMount::FormatCarryFits({ { 31988, car }, { 2410, horse } });
+    const auto loaded = CoA::CarriedMount::ParseCarryFits(saved + "garbage line\n\n");
+    CHECK(loaded.size() == 2);
+    CHECK(loaded.at(31988).Roll == 90.0f);
+    CHECK(loaded.at(31988).Z == -0.25f);
+    CHECK(loaded.at(31988).As == 0);
+    CHECK(loaded.at(2410).As == 2404);
+    CHECK(loaded.at(2410).Scale == CoA::CarriedMount::kScale);
+}
+
+COA_TEST(AHandWrittenFitNeedsOnlyTheChangedValues) {
+    const auto loaded = CoA::CarriedMount::ParseCarryFits("36022 PITCH=-90 as=0\r\n");
+    CHECK(loaded.at(36022).Pitch == -90.0f);
+    CHECK(loaded.at(36022).Y == CoA::CarriedMount::kOffsetY);
+}
+
