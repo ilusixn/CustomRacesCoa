@@ -8,6 +8,7 @@
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/WorldClient/World.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
@@ -32,6 +33,28 @@ namespace CoA::CarriedMountClient {
 
             return model->m_shared && CarriedMount::CarryPointModel(model->m_shared->m_fileName)
                 ? CarriedMount::kCarryLink : HeldGrip::kLink;
+        }
+
+        float Tuned(const char* name, float fallback) {
+            CVar* var = CVar::Lookup(name);
+
+            if (!var) {
+                char value[32];
+                snprintf(value, sizeof(value), "%g", fallback);
+                var = CVar::Register(name, "", 0, value, nullptr, 0, false, nullptr, false);
+            }
+
+            return var ? var->m_floatValue : fallback;
+        }
+
+        C44Matrix CarryTransform(float modelScale) {
+            constexpr float kDegrees = 3.14159265f / 180.0f;
+            C44Matrix transform = C44Matrix(Tuned("coaCarryScale", CarriedMount::kScale) * modelScale)
+                * C44Matrix::RotationAroundZ(Tuned("coaCarryYaw", 0.0f) * kDegrees);
+            transform.d0 = Tuned("coaCarryX", 0.0f);
+            transform.d1 = Tuned("coaCarryY", 0.0f);
+            transform.d2 = Tuned("coaCarryZ", 0.0f);
+            return transform;
         }
 
         bool CastsAMount(CGUnit_C* unit) {
@@ -107,7 +130,7 @@ namespace CoA::CarriedMountClient {
         CCharacterComponent::ReplaceMonsterSkin(mount, displayInfo, modelData);
         mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
-        mount->m_worldTransform = C44Matrix(CarriedMount::kScale * displayInfo->m_creatureModelScale);
+        mount->m_worldTransform = CarryTransform(displayInfo->m_creatureModelScale);
         Carried()[unit->m_obj->m_guid.m_guid] = mount;
         unit->m_clientFlags |= kMountHidden;
         return true;
