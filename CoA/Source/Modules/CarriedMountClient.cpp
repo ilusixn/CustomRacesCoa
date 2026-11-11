@@ -52,8 +52,8 @@ namespace CoA::CarriedMountClient {
             C44Matrix transform = C44Matrix(Tuned("coaCarryScale", CarriedMount::kScale) * modelScale)
                 * C44Matrix::RotationAroundZ(Tuned("coaCarryYaw", 0.0f) * kDegrees);
             transform.d0 = Tuned("coaCarryX", 0.0f);
-            transform.d1 = Tuned("coaCarryY", 0.0f);
-            transform.d2 = Tuned("coaCarryZ", 0.0f);
+            transform.d1 = Tuned("coaCarryY", CarriedMount::kOffsetY);
+            transform.d2 = Tuned("coaCarryZ", CarriedMount::kOffsetZ);
             return transform;
         }
 
