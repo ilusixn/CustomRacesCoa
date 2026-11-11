@@ -85,7 +85,8 @@ namespace CoA::CarriedMount {
         static constexpr const char* kVehicles[] = { "hotrod", "rocketcar", "goblincar", "goblinkart", "gokart",
             "motorcycle", "navicar", "azucar" };
         static constexpr const char* kBillies[] = { "\\billiegoatmount\\", "\\billiegoatcelestial\\",
-            "\\goatmount\\", "\\mountgoatbirthday19\\", "\\mounthellbillie\\", "\\mountspiderenforcer\\" };
+            "\\goatmount\\", "\\mountgoatbirthday19\\", "\\mounthellbillie\\", "\\mountspiderenforcer\\",
+            "\\moneypig" };
         static constexpr const char* kSeekerLike[] = { "owlseeker", "raptor", "vulture", "raccoon", "speederbike",
             "mountdogsummer18", "cerberus", "pigpinata" };
         const std::string lower = Lower(mountModel);
