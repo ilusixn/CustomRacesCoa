@@ -69,8 +69,19 @@ def type_rows(row):
     ]
 
 
+CASC = None   # CoA: --casc reads the install with wotlkconv's CascStorage instead of RetailAssetProbe
+
+
 def probe(exe, config, file_id, destination):
     destination.unlink(missing_ok=True)
+    if CASC is not None:
+        try:
+            data = CASC.read_file_id(file_id)
+        except Exception as e:   # key nobody has: encrypted parts read as zeros
+            print(f"{file_id}: {e}; encrypted parts zeroed", file=sys.stderr)
+            data = CASC.read_file_id(file_id, zero_encrypted=True)
+        destination.write_bytes(data)
+        return
     done = subprocess.run([str(exe), str(config), f"forever/{file_id}.db2", "--extract-table", str(destination)], capture_output=True, text=True)
     if done.returncode:
         sys.exit(f"{file_id}: {(done.stderr or done.stdout).strip()}")
@@ -81,9 +92,18 @@ def main():
     parser.add_argument("install", help="the WoW folder holding .build.info and Data")
     parser.add_argument("out", help="the forever_data folder to write (beside Wow.exe)")
     parser.add_argument("--probe", default=str(REPO / "build/retail-assets/Release/RetailAssetProbe.exe"))
+    parser.add_argument("--casc", help="CoA: folder holding wotlkconv")
+    parser.add_argument("--product", default="wowf")
+    parser.add_argument("--keys", help="CoA: TACT key list")
     args = parser.parse_args()
     exe, out = Path(args.probe), Path(args.out)
-    if not exe.is_file():
+    if args.casc:
+        global CASC
+        sys.path.insert(0, args.casc)
+        from wotlkconv.casc.storage import CascStorage
+        from wotlkconv.casc.keys import KeyRing
+        CASC = CascStorage.open(args.install, product=args.product, keys=KeyRing.load(args.keys) if args.keys else None)
+    elif not exe.is_file():
         sys.exit(f"no RetailAssetProbe at {exe}: build the RetailAssetProbe target")
     if not (Path(args.install) / ".build.info").is_file():
         sys.exit(f"{args.install} has no .build.info")

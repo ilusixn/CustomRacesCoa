@@ -55,6 +55,10 @@
 #include "WoW/Source/DB/Rec/ChrRacesRec.h"
 #include "WoW/Source/DB/Rec/CreatureDisplayInfoRec.h"
 #include "WoW/Source/DB/Rec/CreatureModelDataRec.h"
+#if defined(COA_MOUNT_SKINS)
+#include "Engine/Source/Retail/MountOverrides.h"
+const Retail::MountSkin* EsteriaMountSkin(uint32_t display); // CharacterComponent.cpp
+#endif
 #include "WoW/Source/DB/Rec/CreatureMovementInfoRec.h"
 #include "WoW/Source/DB/Rec/CreatureSoundDataRec.h"
 #include "WoW/Source/DB/Rec/EmotesRec.h"
@@ -5011,8 +5015,7 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         }
 
         if (this->m_mountAnimBehaviorId != GetAnimBehaviorId(base.m_sequenceId)) {
-            baseSlot.m_sequenceId = this->ResolveAnimForModel(this->m_mountAnimBehaviorId, this->m_worldModel);
-            baseSlot.m_speed = 1.0f;
+            baseSlot.m_sequenceId = this->ResolveAnimForModel(this->m_mountAnimBehaviorId, this->m_worldModel);            baseSlot.m_speed = 1.0f;
             baseSlot.m_variationIndex = 0xFFFFFFFF;
             baseSlot.m_time = 0;
             blendBase = 0;
@@ -17377,6 +17380,27 @@ void CGUnit_C::ScanAuraSpellsOnDisplayUpdate() {
 
 // VERIFY: 975b5867 manual
 // OFFSET: 0x00724820
+#if defined(COA_MOUNT_SKINS)
+// Retail rider poses (boards, carpets, discs, wide saddles). They win over the donor spell's state kit,
+// whichever of mount creation and the mount aura arrives last; a later mount without one drops back.
+// shortcut: keyed by unit address; a reused address can at worst reset a pose to Mount.
+static void ApplyRetailRiderPose(CGUnit_C* unit, uint32_t display) {
+    static std::map<const CGUnit_C*, int32_t> applied;
+    const auto previous = applied.find(unit);
+    if (previous != applied.end()) {
+        if (unit->m_mountAnimBehaviorId == previous->second)
+            unit->m_mountAnimBehaviorId = ANIM_MOUNT;
+        applied.erase(previous);
+    }
+    const Retail::MountSkin* skin = display ? EsteriaMountSkin(display) : nullptr;
+    if (!skin || skin->riderAnim < 0)
+        return;
+    const bool known = static_cast<uint32_t>(skin->riderAnim) < ANIM_COUNT
+        || (unit->m_worldModel && unit->m_worldModel->HasSequence(skin->riderAnim));
+    unit->m_mountAnimBehaviorId = known ? skin->riderAnim : static_cast<int32_t>(skin->riderFallback);
+    applied[unit] = unit->m_mountAnimBehaviorId;}
+#endif
+
 void CGUnit_C::AddAuraEffect(uint32_t index, const SpellRec* spell) {
     // CoA: AscRuntime.cpp:Detour724820 (orig hook 0x724820) -- the first false from the list skips the call.
     if (!CoA::ClientHooks::addAuraEffect.AllPass(this, index, spell)) {
@@ -17475,6 +17499,10 @@ store:
                     this->m_mountAnimBehaviorId = kit->m_animID;
                 }
             }
+#if defined(COA_MOUNT_SKINS)
+            if (this->m_mountModel)
+                ApplyRetailRiderPose(this, static_cast<uint32_t>(this->m_mountDisplayId));
+#endif
         } else if (spell->m_effectAura[i] == SPELL_AURA_INITIALIZE_IMAGES) {
             WOWGUID guid = this->m_obj->m_guid;
             CGGameUI::UnitNameUpdate(guid);
@@ -22369,6 +22397,9 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
         mount->m_worldTransform = transform;
         CCharacterComponent::ApplyMonsterGeosets(mount, displayInfo);
         CCharacterComponent::ReplaceMonsterSkin(mount, displayInfo, modelData);
+#if defined(COA_MOUNT_SKINS)
+        ApplyRetailRiderPose(this, static_cast<uint32_t>(displayInfo->m_id));
+#endif
         this->SetMountModel(mount);
         mount->Release();
         this->m_mountFootprintTextureId = modelData->m_footprintTextureID;
