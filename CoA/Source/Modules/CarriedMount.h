@@ -41,6 +41,9 @@ namespace CoA::CarriedMount {
     constexpr float kBillieYaw = 15.0f;
     constexpr float kBillieY = -0.1f;
     constexpr float kBillieZ = 0.0f;
+    constexpr float kSeekerScale = 0.8f;
+    constexpr float kSeekerY = 0.0f;
+    constexpr float kSeekerZ = -0.2f;
 
     struct CarryFit {
         float Scale = kScale;

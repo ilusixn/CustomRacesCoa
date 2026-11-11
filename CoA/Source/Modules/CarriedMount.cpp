@@ -127,6 +127,13 @@ namespace CoA::CarriedMount {
             }
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("owlseeker") != std::string::npos) {
+            fit.Scale = kSeekerScale;
+            fit.Yaw = kBillieYaw;
+            fit.Y = kSeekerY;
+            fit.Z = kSeekerZ;
+        }
+
         return fit;
     }
 
