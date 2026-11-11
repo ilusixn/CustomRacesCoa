@@ -206,7 +206,11 @@ namespace CoA::CarriedMountClient {
         mount->AttachToParent(unit->m_worldModel, CarryLink(unit->m_worldModel), nullptr, 0);
         mount->m_fFlags |= 0x8000;
         mount->m_worldTransform = CarryTransform(fit, displayInfo->m_creatureModelScale);
-        if (fit.Pose >= 0.0f) {
+        const bool flying = CarriedMount::FlyingModel(mount->HasSequence(CarriedMount::kAnimFly),
+            mount->HasSequence(CarriedMount::kAnimFlyStand), mount->HasSequence(CarriedMount::kAnimWalk),
+            mount->HasSequence(CarriedMount::kAnimRun));
+
+        if (CarriedMount::HoldsStill(fit, flying)) {
             mount->SetBoneSequence(0xFFFFFFFF, static_cast<uint32_t>(fit.Pose), 0xFFFFFFFF,
                 static_cast<uint32_t>(fit.Frame > 0.0f ? fit.Frame : 0.0f), 0.0f, 1, 1);
         }

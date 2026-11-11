@@ -143,3 +143,22 @@ COA_TEST(EachMountKeepsItsOwnHeldPose) {
     CHECK(CoA::CarriedMount::ParseCarryFits("99004 pose=-1\n").at(99004).Pose == -1.0f);
 }
 
+COA_TEST(OnlyFlyingMountsHoldStillByDefault) {
+    using CoA::CarriedMount::FlyingModel;
+    using CoA::CarriedMount::HoldsStill;
+    CHECK(FlyingModel(true, false, true, true));
+    CHECK(FlyingModel(false, true, true, true));
+    CHECK(FlyingModel(false, false, false, false));
+    CHECK(!FlyingModel(false, false, true, true));
+    CoA::CarriedMount::CarryFit fit;
+    CHECK(HoldsStill(fit, true));
+    CHECK(!HoldsStill(fit, false));
+    fit.Pose = -1.0f;
+    CHECK(!HoldsStill(fit, true));
+    fit.Pose = 0.0f;
+    fit.Frame = 1.0f;
+    CHECK(HoldsStill(fit, false));
+    fit.Frame = 0.0f;
+    fit.Pose = 41.0f;
+    CHECK(HoldsStill(fit, false));
+}

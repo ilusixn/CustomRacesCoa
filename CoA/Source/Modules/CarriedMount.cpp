@@ -38,6 +38,18 @@ namespace CoA::CarriedMount {
             || lower.find("\\chogall.m2") != std::string::npos);
     }
 
+    bool FlyingModel(bool flies, bool hovers, bool walks, bool runs) {
+        return flies || hovers || (!walks && !runs);
+    }
+
+    bool HoldsStill(const CarryFit& fit, bool flyingModel) {
+        if (fit.Pose < 0.0f) {
+            return false;
+        }
+
+        return fit.Pose > 0.0f || fit.Frame > 0.0f || flyingModel;
+    }
+
     namespace {
         std::string Lower(std::string_view text) {
             std::string lower(text);

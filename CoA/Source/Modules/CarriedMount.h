@@ -20,6 +20,10 @@ namespace CoA::CarriedMount {
     constexpr uint32_t kCarryStand = 227;
     constexpr uint32_t kCarryMove = 228;
     constexpr uint32_t kPickUp = 226;
+    constexpr uint32_t kAnimWalk = 4;
+    constexpr uint32_t kAnimRun = 5;
+    constexpr uint32_t kAnimFly = 135;
+    constexpr uint32_t kAnimFlyStand = 229;
     constexpr uint32_t kStandInHorse = 2404;
     constexpr float kDriveScale = 0.8f;
     constexpr float kDriveRoll = 90.0f;
@@ -72,6 +76,8 @@ namespace CoA::CarriedMount {
     uint32_t CarryingAnim(uint32_t anim);
     uint32_t PickUpAnim(uint32_t anim);
     bool CarryPointModel(std::string_view fileName);
+    bool FlyingModel(bool flies, bool hovers, bool walks, bool runs);
+    bool HoldsStill(const CarryFit& fit, bool flyingModel);
 }
 
 #endif
