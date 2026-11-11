@@ -73,6 +73,17 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
         CHECK(fit.Y == 0.0f);
         CHECK(fit.Z == -0.3f);
     }
+    for (char const* beast : {"Creature\\HotSMounts\\BattleBeastNexusMount\\BattleBeastNexusMount.m2",
+                              "Creature\\HotSMounts\\BattleBeastButcherMount\\BattleBeastButcherMount.m2",
+                              "Creature\\HotSMounts\\MountBattleBeastTriceratops_01\\MountBattleBeastTriceratops_01.m2"}) {
+        CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(beast);
+        CHECK(fit.Scale == 1.0f);
+        CHECK(fit.Yaw == 10.0f);
+        CHECK(fit.Roll == -90.0f);
+        CHECK(fit.X == 0.0f);
+        CHECK(fit.Y == -0.7f);
+        CHECK(fit.Z == 0.5f);
+    }
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").As == 0);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\RidingHorse\\RidingHorse.mdx").Y == CoA::CarriedMount::kOffsetY);
 }
