@@ -6,8 +6,8 @@
 #>
 param(
     [string]$Work = $PSScriptRoot,
-    [string]$Build = 'L:\coa-build',
-    [string]$Client = 'L:\CoA Client'
+    [string]$Build = '<build folder>',
+    [string]$Client = '<game folder>'
 )
 $ErrorActionPreference = 'Stop'
 function Step($text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }

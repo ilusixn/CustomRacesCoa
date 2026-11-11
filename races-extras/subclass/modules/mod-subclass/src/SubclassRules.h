@@ -9,6 +9,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Subclass
@@ -531,6 +535,312 @@ inline float SplitShare(float his, std::uint32_t before, std::uint32_t total, fl
         his -= hisSpend ? std::min(spent, his) : std::max(0.0f, spent - mine);
     }
     return std::clamp(his, std::max(0.0f, float(total) - half), std::min(half, float(total)));
+}
+
+constexpr std::uint8_t MaxPairLevelGap = 3;
+
+inline bool IsTwoPlayersBody(std::uint8_t race, std::uint8_t gender)
+{
+    return (race == TwoHeadedOgreRace && gender == 0) || (race == ThinHumanRace && gender == 1);
+}
+
+inline bool HasAnyRole(SpecializationRoles const& roles)
+{
+    return roles.Melee || roles.Ranged || roles.Caster || roles.Tank || roles.Healer;
+}
+
+inline SpecializationRoles Joined(SpecializationRoles const& first, SpecializationRoles const& second)
+{
+    return { first.Melee || second.Melee, first.Ranged || second.Ranged, first.Caster || second.Caster,
+        first.Tank || second.Tank, first.Healer || second.Healer };
+}
+
+inline bool FitsLeftHead(SpecializationRoles const& roles)
+{
+    return roles.Melee || roles.Tank;
+}
+
+inline bool FitsRightHead(SpecializationRoles const& roles)
+{
+    return roles.Caster || roles.Ranged || roles.Healer;
+}
+
+struct PairHead
+{
+    bool TwoPlayers = false;
+    bool Paired = false;
+    std::uint8_t Level = 0;
+    SpecializationRoles Roles;
+    bool CoAClass = true;
+};
+
+enum class PairRefusal
+{
+    None,
+    LeftNotTwoPlayers,
+    RightNotTwoPlayers,
+    LeftPaired,
+    RightPaired,
+    LevelGap,
+    LeftSpecialization,
+    RightSpecialization,
+    LeftClass,
+    RightClass
+};
+
+inline PairRefusal CheckPair(PairHead const& left, PairHead const& right)
+{
+    if (!left.TwoPlayers)
+        return PairRefusal::LeftNotTwoPlayers;
+    if (!right.TwoPlayers)
+        return PairRefusal::RightNotTwoPlayers;
+    if (left.Paired)
+        return PairRefusal::LeftPaired;
+    if (right.Paired)
+        return PairRefusal::RightPaired;
+    if (!left.CoAClass)
+        return PairRefusal::LeftClass;
+    if (!right.CoAClass)
+        return PairRefusal::RightClass;
+    std::uint8_t const gap = left.Level > right.Level ? left.Level - right.Level : right.Level - left.Level;
+    if (gap > MaxPairLevelGap)
+        return PairRefusal::LevelGap;
+    if (!FitsLeftHead(left.Roles))
+        return PairRefusal::LeftSpecialization;
+    if (!FitsRightHead(right.Roles))
+        return PairRefusal::RightSpecialization;
+    return PairRefusal::None;
+}
+
+constexpr std::uint8_t EquipmentSlotCount = 19;
+constexpr std::uint8_t ShirtSlot = 3;
+constexpr std::uint8_t TabardSlot = 18;
+
+inline bool IsEchoSlot(std::uint8_t slot)
+{
+    return slot < EquipmentSlotCount && slot != ShirtSlot && slot != TabardSlot;
+}
+
+constexpr std::uint32_t TwoPlayersBodyDisplay = 985001;
+constexpr std::uint32_t MutatedBodyDisplay = 985002;
+
+constexpr std::uint32_t TwoPlayersVehicle = 9600;
+constexpr std::uint32_t TwinsTwoPlayersVehicle = 9601;
+
+inline std::uint32_t BodyVehicleFor(std::uint8_t race)
+{
+    return race == ThinHumanRace ? TwinsTwoPlayersVehicle : TwoPlayersVehicle;
+}
+
+enum class Borrow
+{
+    None,
+    Movement,
+    Melee,
+    Ranged
+};
+
+struct SpellShape
+{
+    std::array<std::uint32_t, 3> Effects{};
+    std::array<std::uint32_t, 3> Auras{};
+    std::array<std::int32_t, 3> AuraValues{};
+    std::array<std::uint32_t, 3> TargetsA{};
+    bool Passive = false;
+    std::int32_t EquippedClass = -1;
+    std::uint32_t EquippedSubClassMask = 0;
+    std::uint32_t DamageClass = 0;
+    float MaxRange = 0.0f;
+    std::int32_t CastTime = 0;
+    bool Channeled = false;
+    std::int32_t Duration = 0;
+    bool Positive = false;
+};
+
+constexpr float MeleeReach = 6.0f;
+constexpr std::int32_t LongBuff = 60000;
+
+inline bool MovesTheBody(SpellShape const& spell)
+{
+    constexpr std::uint32_t Teleport = 5, Leap = 29, Jump = 41, JumpDest = 42, Charge = 96, LeapBack = 138,
+        ChargeDest = 149;
+    constexpr std::uint32_t Fear = 7, IncreaseSpeed = 31, Mounted = 32, SpeedAlways = 129, SpeedNotStack = 171;
+    constexpr std::uint32_t Caster = 1, CasterParty = 20;
+    bool fears = false;
+    bool mounts = false;
+    for (std::uint32_t aura : spell.Auras)
+    {
+        fears = fears || aura == Fear;
+        mounts = mounts || aura == Mounted;
+    }
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        std::uint32_t const effect = spell.Effects[i];
+        if (effect == Leap || effect == Jump || effect == JumpDest || effect == Charge || effect == LeapBack ||
+            effect == ChargeDest || (effect == Teleport && spell.TargetsA[i] == Caster))
+            return true;
+        std::uint32_t const aura = spell.Auras[i];
+        bool const own = spell.TargetsA[i] == Caster || spell.TargetsA[i] == CasterParty;
+        if (!fears && !mounts && own && (aura == IncreaseSpeed || aura == SpeedAlways || aura == SpeedNotStack))
+            return true;
+    }
+    return false;
+}
+
+inline bool ChangesForm(SpellShape const& spell)
+{
+    constexpr std::uint32_t Shapeshift = 36, MountedSpeed = 32, Mounted = 78;
+    return std::any_of(spell.Auras.begin(), spell.Auras.end(),
+        [](std::uint32_t aura) { return aura == Shapeshift || aura == MountedSpeed || aura == Mounted; });
+}
+
+inline bool FightsUpClose(SpellShape const& spell)
+{
+    constexpr std::uint32_t MeleeDamage = 2, AttackMe = 114;
+    constexpr std::uint32_t DamageShield = 15, Taunt = 11, ModStat = 29, Parry = 47, Dodge = 49, Block = 51,
+        WeaponCrit = 52, HitChance = 54, AttackPower = 99, MeleeHaste = 138, Expertise = 240;
+    constexpr std::int32_t Strength = 0;
+    constexpr std::int32_t WeaponClass = 2;
+    constexpr std::uint32_t RangedWeapons = (1u << 2) | (1u << 3) | (1u << 16) | (1u << 18) | (1u << 19);
+    if (spell.DamageClass == MeleeDamage)
+        return true;
+    if (spell.EquippedClass == WeaponClass && spell.EquippedSubClassMask &&
+        !(spell.EquippedSubClassMask & RangedWeapons))
+        return true;
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        std::uint32_t const aura = spell.Auras[i];
+        if (spell.Effects[i] == AttackMe || aura == Taunt || aura == DamageShield || aura == Parry || aura == Dodge ||
+            aura == Block || aura == WeaponCrit || aura == HitChance || aura == AttackPower || aura == MeleeHaste ||
+            aura == Expertise || (aura == ModStat && spell.AuraValues[i] == Strength))
+            return true;
+    }
+    return false;
+}
+
+inline bool WorksFromAfar(SpellShape const& spell)
+{
+    constexpr std::uint32_t RangedDamage = 3;
+    constexpr std::int32_t WeaponClass = 2;
+    constexpr std::uint32_t RangedWeapons = (1u << 2) | (1u << 3) | (1u << 16) | (1u << 18) | (1u << 19);
+    if (spell.EquippedClass == WeaponClass && (spell.EquippedSubClassMask & RangedWeapons) &&
+        !(spell.EquippedSubClassMask & ~RangedWeapons))
+        return true;
+    if (spell.DamageClass == RangedDamage || spell.CastTime > 0 || spell.Channeled || spell.MaxRange > MeleeReach)
+        return true;
+    bool const buff = spell.Positive && std::any_of(spell.Auras.begin(), spell.Auras.end(),
+        [](std::uint32_t aura) { return aura != 0; });
+    return buff && (spell.Duration < 0 || spell.Duration >= LongBuff);
+}
+
+inline Borrow BorrowOf(SpellShape const& spell)
+{
+    if (spell.Passive)
+        return Borrow::None;
+    if (MovesTheBody(spell))
+        return Borrow::Movement;
+    if (ChangesForm(spell))
+        return Borrow::None;
+    if (FightsUpClose(spell))
+        return Borrow::Melee;
+    if (WorksFromAfar(spell))
+        return Borrow::Ranged;
+    return Borrow::None;
+}
+
+inline bool BodyCasts(Borrow borrow, bool pressedByLeftHead)
+{
+    return ((borrow == Borrow::Movement || borrow == Borrow::Melee) && pressedByLeftHead) ||
+        (borrow == Borrow::Ranged && !pressedByLeftHead);
+}
+
+inline std::uint32_t ShareOfOwnPower(std::uint32_t cost, std::uint32_t ownerMax, std::uint32_t payerMax)
+{
+    if (!cost || !ownerMax)
+        return 0;
+    return std::uint32_t((std::uint64_t(cost) * payerMax + ownerMax - 1) / ownerMax);
+}
+
+enum class AccordMode
+{
+    None,
+    Agree,
+    Disagree
+};
+
+struct Accord
+{
+    AccordMode Mode = AccordMode::None;
+    std::uint32_t Stacks = 0;
+    std::uint64_t MeleeTarget = 0;
+    std::uint64_t RangedTarget = 0;
+    bool MeleeHit = false;
+    bool RangedHit = false;
+    std::uint32_t LastStackAt = 0;
+};
+
+struct AccordSettings
+{
+    std::uint32_t AgreeMaxStacks = 3;
+    std::uint32_t DisagreeMaxStacks = 3;
+    std::uint32_t HoldMs = 5000;
+};
+
+inline bool AccordExpired(Accord const& accord, std::uint32_t now, AccordSettings const& settings)
+{
+    return accord.Mode != AccordMode::None && now - accord.LastStackAt > settings.HoldMs;
+}
+
+inline Accord AccordAfterHit(Accord accord, bool byMeleeHead, std::uint64_t target, std::uint32_t now,
+    AccordSettings const& settings)
+{
+    if (AccordExpired(accord, now, settings))
+        accord = Accord{ AccordMode::None, 0, accord.MeleeTarget, accord.RangedTarget, false, false, 0 };
+    (byMeleeHead ? accord.MeleeTarget : accord.RangedTarget) = target;
+    (byMeleeHead ? accord.MeleeHit : accord.RangedHit) = true;
+    if (!accord.MeleeHit || !accord.RangedHit)
+        return accord;
+    AccordMode const mode = accord.MeleeTarget == accord.RangedTarget ? AccordMode::Agree : AccordMode::Disagree;
+    std::uint32_t const most = mode == AccordMode::Agree ? settings.AgreeMaxStacks : settings.DisagreeMaxStacks;
+    accord.Stacks = mode == accord.Mode ? std::min(most, accord.Stacks + 1) : std::min<std::uint32_t>(most, 1);
+    accord.Mode = mode;
+    accord.MeleeHit = false;
+    accord.RangedHit = false;
+    accord.LastStackAt = now;
+    return accord;
+}
+
+inline std::int32_t QuestGoldShare(std::int32_t money, bool meleeHead)
+{
+    if (money <= 0)
+        return money;
+    return meleeHead ? money - money / 2 : money / 2;
+}
+
+inline std::pair<std::uint32_t, std::uint32_t> SharedPool(std::uint32_t first, std::uint32_t firstMax,
+    std::uint32_t second, std::uint32_t secondMax)
+{
+    std::uint64_t const most = std::uint64_t(firstMax) + secondMax;
+    if (!most)
+        return { first, second };
+    std::uint64_t const held = std::uint64_t(first) + second;
+    std::uint32_t const firstShare = std::uint32_t((held * firstMax + most / 2) / most);
+    return { std::min(firstShare, firstMax), std::uint32_t(std::min<std::uint64_t>(held - firstShare, secondMax)) };
+}
+
+inline bool RangedHeadMayNeed(std::uint32_t itemClass)
+{
+    constexpr std::uint32_t Weapon = 2, Armor = 4;
+    return itemClass != Weapon && itemClass != Armor;
+}
+
+inline std::optional<std::pair<std::string, std::string>> SplitJoinedName(std::string_view joined)
+{
+    std::size_t const mark = joined.find('\'');
+    if (mark == std::string_view::npos || mark == 0 || mark + 1 >= joined.size() ||
+        joined.find('\'', mark + 1) != std::string_view::npos)
+        return std::nullopt;
+    return std::make_pair(std::string(joined.substr(0, mark)), std::string(joined.substr(mark + 1)));
 }
 
 inline Choice Trimmed(std::vector<Pair> const& pairs, Character const& character, Choice const& choice)

@@ -91,6 +91,10 @@ void PostponeOffer(Player const* player, bool postponed);
 void ShowSubclassPrompt(Player* player, ObjectGuid source);
 bool AnswerSubclassPrompt(Player* player, uint32 sender, uint32 action);
 void ShowQuestOnTwin(Player* player, bool offered);
+uint32 TwoPlayersPartnerOf(uint32 guid);
+bool TwoPlayersIsLeftHead(uint32 guid);
+Player* TwoPlayersSeatedPartner(Player const* head);
+bool ArrivalPending(Player const* player);
 
 void SendSubclassMessage(Player* player, std::string const& message);
 uint32 StowBorrowedGear(Player* player);
@@ -253,6 +257,7 @@ std::unordered_map<uint32, Motion>& motions = *new std::unordered_map<uint32, Mo
 std::unordered_map<uint32, uint32>& sentHome = *new std::unordered_map<uint32, uint32>;
 std::unordered_map<uint32, uint32>& auraTicks = *new std::unordered_map<uint32, uint32>;
 std::unordered_map<uint32, uint32>& arrivals = *new std::unordered_map<uint32, uint32>;
+std::unordered_set<uint32>& aloneTwoPlayersTwins = *new std::unordered_set<uint32>;
 std::unordered_map<uint32, uint8>& sips = *new std::unordered_map<uint32, uint8>;
 std::unordered_map<uint32, bool>& hangovers = *new std::unordered_map<uint32, bool>;
 
@@ -2120,9 +2125,21 @@ void SummonTwin(Player* player)
     ShowQuestOnTwin(player, SubclassQuestOffered(player));
 }
 
+bool TwoPlayersTwinStandsAlone(Player const* player)
+{
+    uint32 const guid = player->GetGUID().GetCounter();
+    if (!Subclass::IsTwoPlayersBody(player->getRace(true), StoryGenderOf(player)))
+        return false;
+    if (!TwoPlayersPartnerOf(guid))
+        return true;
+    return TwoPlayersIsLeftHead(guid) && !TwoPlayersSeatedPartner(player);
+}
+
 bool HasTwin(Player const* player)
 {
-    return player->getRace() == TwinRace && StoryGenderOf(player) == GENDER_MALE && SubclassRaceEnabled(TwinRace);
+    if (player->getRace() != TwinRace || !SubclassRaceEnabled(TwinRace))
+        return false;
+    return StoryGenderOf(player) == GENDER_MALE || TwoPlayersTwinStandsAlone(player);
 }
 
 void RefreshTwin(Player* player)
@@ -2327,6 +2344,25 @@ bool HasSecondHead(Player const* player)
 bool LonelyTwin(Player const* player)
 {
     return HasTwin(player) && !WardrobeOf(player).Enabled;
+}
+
+void KeepTwoPlayersBrother(Player* player)
+{
+    if (player->getRace() != TwinRace || StoryGenderOf(player) == GENDER_MALE || ArrivalPending(player) ||
+        player->IsBeingTeleported())
+        return;
+    uint32 const guid = player->GetGUID().GetCounter();
+    bool const alone = HasTwin(player);
+    bool changed;
+    {
+        std::lock_guard<std::mutex> lock(twinMutex);
+        changed = alone ? aloneTwoPlayersTwins.insert(guid).second : aloneTwoPlayersTwins.erase(guid) != 0;
+    }
+    bool const wanted = alone && WardrobeOf(player).Enabled;
+    if (wanted != (TwinOf(player) != nullptr))
+        RefreshTwin(player);
+    if (changed)
+        SendSubclassMessage(player, TwinState(player));
 }
 
 void OfferStoryLater(Player* player);
@@ -3475,6 +3511,12 @@ void ArriveLater(Player const* player, uint32 delay)
     arrivals[player->GetGUID().GetCounter()] = delay;
 }
 
+bool ArrivalPending(Player const* player)
+{
+    std::lock_guard<std::mutex> lock(twinMutex);
+    return arrivals.count(player->GetGUID().GetCounter()) != 0;
+}
+
 bool Arrives(Player const* player, uint32 diff)
 {
     std::lock_guard<std::mutex> lock(twinMutex);
@@ -3720,20 +3762,20 @@ void TickSelfAura(Player* player, uint32 diff)
     HoldYourDrink(player);
 }
 
+void KeepRacial(Player* player, uint32 spell, bool wanted)
+{
+    if (wanted && !player->HasSpell(spell))
+        player->learnSpell(spell, false);
+    else if (!wanted && player->HasSpell(spell))
+        player->removeSpell(spell, SPEC_MASK_ALL, false);
+}
+
 void LearnRacials(Player* player)
 {
-    if (HasTwin(player) && !player->HasSpell(BrotherSpell))
-        player->learnSpell(BrotherSpell, false);
-    if (HasSecondHead(player) && !player->HasSpell(HeadsSpell))
-        player->learnSpell(HeadsSpell, false);
-    if (HasTwin(player) && !player->HasSpell(CowboySpell))
-        player->learnSpell(CowboySpell, false);
-    if (HasSecondHead(player) && !player->HasSpell(HalfBrainSpell))
-        player->learnSpell(HalfBrainSpell, false);
-    if (HasTwin(player) && !player->HasSpell(TwinLinkedSpell))
-        player->learnSpell(TwinLinkedSpell, false);
-    if (HasTwin(player) && !player->HasSpell(OwnPoolSpell))
-        player->learnSpell(OwnPoolSpell, false);
+    for (uint32 spell : { BrotherSpell, CowboySpell, TwinLinkedSpell, OwnPoolSpell })
+        KeepRacial(player, spell, HasTwin(player));
+    for (uint32 spell : { HeadsSpell, HalfBrainSpell })
+        KeepRacial(player, spell, HasSecondHead(player));
     if (HasSecondHead(player) && !player->HasSpell(SharedBloodSpell))
         player->learnSpell(SharedBloodSpell, false);
     if (player->getRace() == OgreRace && SubclassRaceEnabled(OgreRace) && !player->HasSpell(ToleranceSpell))
@@ -4603,6 +4645,7 @@ public:
         }
         DismissTwin(player);
         std::lock_guard<std::mutex> lock(twinMutex);
+        aloneTwoPlayersTwins.erase(player->GetGUID().GetCounter());
         wardrobes.erase(player->GetGUID().GetCounter());
         questMarks.erase(player->GetGUID().GetCounter());
         gunStillSince.erase(player->GetGUID().GetCounter());

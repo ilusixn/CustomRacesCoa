@@ -3756,6 +3756,11 @@ SpellMissInfo Unit::MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     uint32 missChance = uint32(MeleeSpellMissChance(victim, attType, skillDiff, spellInfo->Id) * 100.0f);
     if (IsPlayer() && getClass() == CLASS_STARCALLER && HasAura(802203))
         missChance = 0;
+    {
+        int32 scriptedMissChance = int32(missChance);
+        sScriptMgr->ModifySpellMissChance(this, victim, spellInfo, scriptedMissChance);
+        missChance = uint32(std::max(0, scriptedMissChance));
+    }
     // Roll miss
     uint32 tmp = missChance;
     if (roll < tmp)
@@ -4001,6 +4006,8 @@ SpellMissInfo Unit::MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo
     int32 tmp = 10000 - HitChance;
     if (IsPlayer() && getClass() == CLASS_STARCALLER && HasAura(802203))
         tmp = 0;
+    sScriptMgr->ModifySpellMissChance(this, victim, spellInfo, tmp);
+    tmp = std::max(0, tmp);
 
     int32 rand = irand(1, 10000); // Needs to be  1 to 10000 to avoid the 1/10000 chance to miss on 100% hit rating
 
@@ -11609,6 +11616,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
         {
             if (CreateVehicleKit(VehicleId, creatureEntry))
             {
+                GetVehicleKit()->MarkMountKit();
                 GetVehicleKit()->Reset();
 
                 // Send others that we now have a vehicle
@@ -11678,8 +11686,8 @@ void Unit::Dismount()
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 
-    // dismount as a vehicle
-    if (IsPlayer() && GetVehicleKit())
+    // dismount as a vehicle; a vehicle kit the mount did not create stays
+    if (IsPlayer() && GetVehicleKit() && GetVehicleKit()->IsMountKit())
     {
         // Send other players that we are no longer a vehicle
         data.Initialize(SMSG_PLAYER_VEHICLE_DATA, 8 + 4);

@@ -449,3 +449,330 @@ TEST(Subclass, TheThinTwinsBrotherOnlyTakesFeaturesTheRaceOffers)
     EXPECT_FALSE(BrotherFeatureFits(4, 4));
     EXPECT_FALSE(BrotherFeatureFits(0, 0));
 }
+
+namespace
+{
+SpecializationRoles const MeleeRoles = { true, false, false, false, false };
+SpecializationRoles const TankRoles = { false, false, false, true, false };
+SpecializationRoles const CasterRoles = { false, false, true, false, false };
+SpecializationRoles const RangedRoles = { false, true, false, false, false };
+SpecializationRoles const HealerRoles = { false, false, false, false, true };
+PairHead const MeleeHead = { true, false, 20, MeleeRoles };
+PairHead const CasterHead = { true, false, 20, CasterRoles };
+}
+
+TEST(Subclass, TheMaleOgreAndTheFemaleSlotOfTheTwinsAreTwoPlayersBodies)
+{
+    EXPECT_TRUE(IsTwoPlayersBody(TwoHeadedOgreRace, 0));
+    EXPECT_FALSE(IsTwoPlayersBody(TwoHeadedOgreRace, 1));
+    EXPECT_FALSE(IsTwoPlayersBody(ThinHumanRace, 0));
+    EXPECT_TRUE(IsTwoPlayersBody(ThinHumanRace, 1));
+}
+
+TEST(Subclass, TheLeftHeadFightsUpCloseAndTheRightHeadFromAfar)
+{
+    EXPECT_TRUE(FitsLeftHead(MeleeRoles));
+    EXPECT_TRUE(FitsLeftHead(TankRoles));
+    EXPECT_FALSE(FitsLeftHead(CasterRoles));
+    EXPECT_FALSE(FitsLeftHead(HealerRoles));
+    EXPECT_TRUE(FitsRightHead(CasterRoles));
+    EXPECT_TRUE(FitsRightHead(RangedRoles));
+    EXPECT_FALSE(FitsRightHead(MeleeRoles));
+    EXPECT_TRUE(FitsRightHead(HealerRoles));
+}
+
+TEST(Subclass, AMeleeLeftHeadAndACasterRightHeadPairUp)
+{
+    EXPECT_EQ(CheckPair(MeleeHead, CasterHead), PairRefusal::None);
+    EXPECT_EQ(CheckPair({ true, false, 20, TankRoles }, { true, false, 20, RangedRoles }), PairRefusal::None);
+}
+
+TEST(Subclass, BothHeadsMustBeFreeTwoPlayersBodies)
+{
+    EXPECT_EQ(CheckPair({ false, false, 20, MeleeRoles }, CasterHead), PairRefusal::LeftNotTwoPlayers);
+    EXPECT_EQ(CheckPair(MeleeHead, { false, false, 20, CasterRoles }), PairRefusal::RightNotTwoPlayers);
+    EXPECT_EQ(CheckPair({ true, true, 20, MeleeRoles }, CasterHead), PairRefusal::LeftPaired);
+    EXPECT_EQ(CheckPair(MeleeHead, { true, true, 20, CasterRoles }), PairRefusal::RightPaired);
+}
+
+TEST(Subclass, HeadsPairOnlyWithinThreeLevels)
+{
+    EXPECT_EQ(CheckPair({ true, false, 23, MeleeRoles }, CasterHead), PairRefusal::None);
+    EXPECT_EQ(CheckPair(MeleeHead, { true, false, 17, CasterRoles }), PairRefusal::None);
+    EXPECT_EQ(CheckPair({ true, false, 24, MeleeRoles }, CasterHead), PairRefusal::LevelGap);
+    EXPECT_EQ(CheckPair(MeleeHead, { true, false, 16, CasterRoles }), PairRefusal::LevelGap);
+}
+
+TEST(Subclass, EachHeadNeedsASpecializationThatFitsIt)
+{
+    EXPECT_EQ(CheckPair(CasterHead, CasterHead), PairRefusal::LeftSpecialization);
+    EXPECT_EQ(CheckPair(MeleeHead, MeleeHead), PairRefusal::RightSpecialization);
+    EXPECT_EQ(CheckPair(MeleeHead, { true, false, 20, HealerRoles }), PairRefusal::None);
+    EXPECT_EQ(CheckPair({ true, false, 20, HealerRoles }, CasterHead), PairRefusal::LeftSpecialization);
+}
+
+TEST(Subclass, TheEchoKeepsEveryWornSlotWithStatsButNotShirtOrTabard)
+{
+    std::vector<std::uint8_t> echoed;
+    for (std::uint8_t slot = 0; slot < 40; ++slot)
+        if (IsEchoSlot(slot))
+            echoed.push_back(slot);
+    EXPECT_EQ(echoed, (std::vector<std::uint8_t>{ 0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 }));
+}
+
+TEST(Subclass, MovementGoesToTheBodyAndRangedWeaponAttacksToTheRangedHead)
+{
+    SpellShape blink;
+    blink.Effects = { 5, 0, 0 };
+    blink.TargetsA = { 1, 0, 0 };
+    EXPECT_EQ(BorrowOf(blink), Borrow::Movement);
+    SpellShape charge;
+    charge.Effects = { 96, 0, 0 };
+    EXPECT_EQ(BorrowOf(charge), Borrow::Movement);
+    SpellShape sprint;
+    sprint.Effects = { 6, 0, 0 };
+    sprint.Auras = { 31, 0, 0 };
+    sprint.TargetsA = { 1, 0, 0 };
+    EXPECT_EQ(BorrowOf(sprint), Borrow::Movement);
+    SpellShape throwWeapon;
+    throwWeapon.EquippedClass = 2;
+    throwWeapon.EquippedSubClassMask = 1u << 16;
+    EXPECT_EQ(BorrowOf(throwWeapon), Borrow::Ranged);
+}
+
+TEST(Subclass, MeleeAbilitiesAndMeleeBuffsGoToTheMeleeHead)
+{
+    SpellShape wildclaw;
+    wildclaw.Effects = { 2, 0, 0 };
+    wildclaw.DamageClass = 2;
+    wildclaw.MaxRange = 5.0f;
+    EXPECT_EQ(BorrowOf(wildclaw), Borrow::Melee);
+    SpellShape needsAnAxe;
+    needsAnAxe.EquippedClass = 2;
+    needsAnAxe.EquippedSubClassMask = (1u << 0) | (1u << 1);
+    EXPECT_EQ(BorrowOf(needsAnAxe), Borrow::Melee);
+    SpellShape battleShout;
+    battleShout.Effects = { 6, 0, 0 };
+    battleShout.Auras = { 99, 0, 0 };
+    battleShout.TargetsA = { 20, 0, 0 };
+    battleShout.Duration = 120000;
+    battleShout.Positive = true;
+    EXPECT_EQ(BorrowOf(battleShout), Borrow::Melee);
+    SpellShape strength;
+    strength.Effects = { 6, 0, 0 };
+    strength.Auras = { 29, 0, 0 };
+    strength.AuraValues = { 0, 0, 0 };
+    strength.Duration = 1800000;
+    strength.Positive = true;
+    EXPECT_EQ(BorrowOf(strength), Borrow::Melee);
+    SpellShape taunt;
+    taunt.Effects = { 114, 6, 0 };
+    taunt.Auras = { 0, 11, 0 };
+    taunt.MaxRange = 30.0f;
+    EXPECT_EQ(BorrowOf(taunt), Borrow::Melee);
+}
+
+TEST(Subclass, RangedCastChanneledAndLongNonMeleeBuffsGoToTheRangedHead)
+{
+    SpellShape bolt;
+    bolt.Effects = { 2, 0, 0 };
+    bolt.DamageClass = 1;
+    bolt.MaxRange = 30.0f;
+    bolt.CastTime = 2500;
+    EXPECT_EQ(BorrowOf(bolt), Borrow::Ranged);
+    SpellShape selfHealWithCast;
+    selfHealWithCast.Effects = { 10, 0, 0 };
+    selfHealWithCast.CastTime = 1500;
+    EXPECT_EQ(BorrowOf(selfHealWithCast), Borrow::Ranged);
+    SpellShape channel;
+    channel.Effects = { 6, 0, 0 };
+    channel.Auras = { 3, 0, 0 };
+    channel.Channeled = true;
+    EXPECT_EQ(BorrowOf(channel), Borrow::Ranged);
+    SpellShape intellect;
+    intellect.Effects = { 6, 0, 0 };
+    intellect.Auras = { 29, 0, 0 };
+    intellect.AuraValues = { 3, 0, 0 };
+    intellect.Duration = 1800000;
+    intellect.Positive = true;
+    EXPECT_EQ(BorrowOf(intellect), Borrow::Ranged);
+    SpellShape aura;
+    aura.Effects = { 35, 0, 0 };
+    aura.Auras = { 22, 0, 0 };
+    aura.Duration = -1;
+    aura.Positive = true;
+    EXPECT_EQ(BorrowOf(aura), Borrow::Ranged);
+}
+
+TEST(Subclass, StancesFormsAndShortInstantSelfSpellsStayWithTheirOwner)
+{
+    SpellShape stance;
+    stance.Effects = { 6, 0, 0 };
+    stance.Auras = { 36, 0, 0 };
+    stance.Duration = -1;
+    stance.Positive = true;
+    EXPECT_EQ(BorrowOf(stance), Borrow::None);
+    SpellShape enrage;
+    enrage.Effects = { 6, 0, 0 };
+    enrage.Auras = { 79, 0, 0 };
+    enrage.Duration = 12000;
+    enrage.Positive = true;
+    EXPECT_EQ(BorrowOf(enrage), Borrow::None);
+    SpellShape mount;
+    mount.Effects = { 6, 3, 3 };
+    mount.Auras = { 78, 0, 0 };
+    mount.CastTime = 1500;
+    mount.Duration = -1;
+    mount.Positive = true;
+    EXPECT_EQ(BorrowOf(mount), Borrow::None);
+}
+
+TEST(Subclass, FearsTeleportsOfOthersPassivesAndMeleeWeaponsAreNotBorrowed)
+{
+    SpellShape fear;
+    fear.Effects = { 6, 6, 0 };
+    fear.Auras = { 7, 31, 0 };
+    fear.TargetsA = { 6, 1, 0 };
+    EXPECT_EQ(BorrowOf(fear), Borrow::None);
+    SpellShape summon;
+    summon.Effects = { 5, 0, 0 };
+    summon.TargetsA = { 6, 0, 0 };
+    EXPECT_EQ(BorrowOf(summon), Borrow::None);
+    SpellShape fleetFooted;
+    fleetFooted.Passive = true;
+    fleetFooted.Auras = { 31, 0, 0 };
+    fleetFooted.TargetsA = { 1, 0, 0 };
+    EXPECT_EQ(BorrowOf(fleetFooted), Borrow::None);
+    SpellShape anyWeapon;
+    anyWeapon.EquippedClass = 2;
+    anyWeapon.EquippedSubClassMask = (1u << 16) | (1u << 7);
+    EXPECT_EQ(BorrowOf(anyWeapon), Borrow::None);
+}
+
+TEST(Subclass, TheBodyCastsBorrowedSpellsAndThePresserPaysItsOwnShare)
+{
+    EXPECT_TRUE(BodyCasts(Borrow::Movement, true));
+    EXPECT_TRUE(BodyCasts(Borrow::Ranged, false));
+    EXPECT_TRUE(BodyCasts(Borrow::Melee, true));
+    EXPECT_FALSE(BodyCasts(Borrow::Melee, false));
+    EXPECT_FALSE(BodyCasts(Borrow::Ranged, true));
+    EXPECT_FALSE(BodyCasts(Borrow::Movement, false));
+    EXPECT_FALSE(BodyCasts(Borrow::None, true));
+    EXPECT_EQ(ShareOfOwnPower(210, 2100, 1000), 100u);
+    EXPECT_EQ(ShareOfOwnPower(45, 100, 1000), 450u);
+    EXPECT_EQ(ShareOfOwnPower(1, 3000, 100), 1u);
+    EXPECT_EQ(ShareOfOwnPower(0, 100, 100), 0u);
+}
+
+TEST(Subclass, BeforeASpecializationIsChosenTheClassRolesDecideTheHead)
+{
+    EXPECT_FALSE(HasAnyRole(SpecializationRoles{}));
+    SpecializationRoles const both = Joined(MeleeRoles, CasterRoles);
+    EXPECT_TRUE(HasAnyRole(both));
+    EXPECT_TRUE(FitsLeftHead(both));
+    EXPECT_TRUE(FitsRightHead(both));
+    EXPECT_EQ(CheckPair({ true, false, 1, MeleeRoles }, { true, false, 1, Joined(CasterRoles, HealerRoles) }),
+        PairRefusal::None);
+}
+
+TEST(Subclass, AJoinedBodyNameSplitsIntoTheMeleeAndRangedHeads)
+{
+    auto const heads = SplitJoinedName("Grogh'Rogh");
+    ASSERT_TRUE(heads.has_value());
+    EXPECT_EQ(heads->first, "Grogh");
+    EXPECT_EQ(heads->second, "Rogh");
+    EXPECT_FALSE(SplitJoinedName("Grogh").has_value());
+    EXPECT_FALSE(SplitJoinedName("'Rogh").has_value());
+    EXPECT_FALSE(SplitJoinedName("Grogh'").has_value());
+    EXPECT_FALSE(SplitJoinedName("Gro'gh'Rogh").has_value());
+}
+
+TEST(Subclass, BothHeadsOnOneFoeAgreeAndStackUpToTheLimit)
+{
+    AccordSettings const settings;
+    Accord accord;
+    accord = AccordAfterHit(accord, true, 7, 1000, settings);
+    EXPECT_EQ(accord.Mode, AccordMode::None);
+    accord = AccordAfterHit(accord, false, 7, 1500, settings);
+    EXPECT_EQ(accord.Mode, AccordMode::Agree);
+    EXPECT_EQ(accord.Stacks, 1u);
+    accord = AccordAfterHit(accord, true, 7, 2000, settings);
+    EXPECT_EQ(accord.Stacks, 1u);
+    accord = AccordAfterHit(accord, false, 7, 2500, settings);
+    accord = AccordAfterHit(accord, true, 7, 3000, settings);
+    accord = AccordAfterHit(accord, false, 7, 3500, settings);
+    accord = AccordAfterHit(accord, true, 7, 4000, settings);
+    accord = AccordAfterHit(accord, false, 7, 4500, settings);
+    EXPECT_EQ(accord.Stacks, 3u);
+}
+
+TEST(Subclass, HeadsOnDifferentFoesDisagreeAndASwitchStartsAtOneStack)
+{
+    AccordSettings const settings;
+    Accord accord;
+    accord = AccordAfterHit(accord, true, 7, 1000, settings);
+    accord = AccordAfterHit(accord, false, 7, 1100, settings);
+    accord = AccordAfterHit(accord, true, 7, 1200, settings);
+    accord = AccordAfterHit(accord, false, 7, 1300, settings);
+    EXPECT_EQ(accord.Stacks, 2u);
+    accord = AccordAfterHit(accord, true, 8, 1400, settings);
+    accord = AccordAfterHit(accord, false, 7, 1500, settings);
+    EXPECT_EQ(accord.Mode, AccordMode::Disagree);
+    EXPECT_EQ(accord.Stacks, 1u);
+}
+
+TEST(Subclass, AnAccordFadesAfterFiveSecondsWithoutSharedHits)
+{
+    AccordSettings const settings;
+    Accord accord;
+    accord = AccordAfterHit(accord, true, 7, 1000, settings);
+    accord = AccordAfterHit(accord, false, 7, 1100, settings);
+    EXPECT_FALSE(AccordExpired(accord, 6100, settings));
+    EXPECT_TRUE(AccordExpired(accord, 6101, settings));
+    accord = AccordAfterHit(accord, true, 7, 7000, settings);
+    EXPECT_EQ(accord.Mode, AccordMode::None);
+    EXPECT_EQ(accord.Stacks, 0u);
+}
+
+TEST(Subclass, QuestGoldIsSplitWithTheOddCopperToTheMeleeHead)
+{
+    EXPECT_EQ(QuestGoldShare(101, true), 51);
+    EXPECT_EQ(QuestGoldShare(101, false), 50);
+    EXPECT_EQ(QuestGoldShare(0, true), 0);
+    EXPECT_EQ(QuestGoldShare(-50, false), -50);
+}
+
+TEST(Subclass, ASharedPoolSpreadsWhatBothHeadsHoldOverBothMaxima)
+{
+    EXPECT_EQ(SharedPool(100, 100, 0, 100), (std::pair<std::uint32_t, std::uint32_t>(50, 50)));
+    EXPECT_EQ(SharedPool(30, 100, 60, 200), (std::pair<std::uint32_t, std::uint32_t>(30, 60)));
+    EXPECT_EQ(SharedPool(0, 0, 0, 0), (std::pair<std::uint32_t, std::uint32_t>(0, 0)));
+}
+
+TEST(Subclass, TheRangedHeadNeedsNoGearButMayNeedEverythingElse)
+{
+    EXPECT_FALSE(RangedHeadMayNeed(2));
+    EXPECT_FALSE(RangedHeadMayNeed(4));
+    EXPECT_TRUE(RangedHeadMayNeed(0));
+    EXPECT_TRUE(RangedHeadMayNeed(9));
+    EXPECT_TRUE(RangedHeadMayNeed(12));
+}
+
+TEST(Subclass, TheTwinsCarryTheSecondBrotherOnTheirOwnVisibleSeat)
+{
+    EXPECT_EQ(BodyVehicleFor(TwoHeadedOgreRace), TwoPlayersVehicle);
+    EXPECT_EQ(BodyVehicleFor(ThinHumanRace), TwinsTwoPlayersVehicle);
+}
+
+TEST(Subclass, OnlyCoAClassesPairUpAsHeads)
+{
+    SpecializationRoles melee;
+    melee.Melee = true;
+    SpecializationRoles caster;
+    caster.Caster = true;
+    PairHead const left{ true, false, 10, melee, true };
+    PairHead const right{ true, false, 10, caster, true };
+    EXPECT_EQ(CheckPair(left, right), PairRefusal::None);
+    EXPECT_EQ(CheckPair(PairHead{ true, false, 10, melee, false }, right), PairRefusal::LeftClass);
+    EXPECT_EQ(CheckPair(left, PairHead{ true, false, 10, caster, false }), PairRefusal::RightClass);
+}
