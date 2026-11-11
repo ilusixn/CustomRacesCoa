@@ -21,6 +21,9 @@ namespace CoA::CarriedMount {
     constexpr uint32_t kCarryMove = 228;
     constexpr uint32_t kPickUp = 226;
     constexpr uint32_t kStandInHorse = 2404;
+    constexpr float kDriveScale = 0.8f;
+    constexpr float kDriveRoll = 90.0f;
+    constexpr float kDriveZ = 1.3f;
 
     struct CarryFit {
         float Scale = kScale;
