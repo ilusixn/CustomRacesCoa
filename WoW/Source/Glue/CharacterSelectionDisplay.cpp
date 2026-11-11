@@ -9,6 +9,8 @@
 #include "WoW/Source/Glue/CSimpleModelFFX.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include "CoA/Source/Modules/Json.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/CreatureDisplayInfoRec.h"
 #include "WoW/Source/DB/Rec/CreatureModelDataRec.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include <cstdlib>
@@ -81,6 +83,21 @@ void ApplyTwinLook(ComponentData& data, const std::string& name, const std::stri
     feature(0, data.m_preferences.m_faceId);
     feature(1, data.m_preferences.m_hairStyleId);
     feature(2, data.m_preferences.m_facialHairId);
+}
+
+constexpr uint32_t kMutatedPayload = 0x4D555444;
+CM2Model* s_mutatedLook;
+uint64_t s_mutatedGuid;
+uint32_t s_mutatedDisplay;
+
+uint32_t MutatedDisplay(const char* name) {
+    nlohmann::json root = nlohmann::json::parse(CoA::Json::Get("MISC_PLAYER_DATA_PAYLOAD", kMutatedPayload), nullptr,
+        false);
+    if (root.is_discarded() || !root.is_object()) {
+        return 0;
+    }
+    auto found = root.find(name);
+    return found != root.end() && found->is_number_unsigned() ? found->get<uint32_t>() : 0;
 }
 
 void TwinMirrorOffset(float& x, float& y) {
@@ -221,6 +238,63 @@ void CharacterSelectionDisplay::KeepTwinMirror(CharacterSelectionDisplay& displa
     if (!m_formMirror || !m_formMirrorIsTwin || TwinPayload() != s_twinPayload) {
         ShowTwinMirror(display);
     }
+}
+
+void CharacterSelectionDisplay::ClearMutatedLook() {
+    CM2Model* look = s_mutatedLook;
+    s_mutatedLook = nullptr;
+    s_mutatedGuid = 0;
+    s_mutatedDisplay = 0;
+
+    if (!look) {
+        return;
+    }
+
+    if (look->m_attachParent) {
+        look->DetachFromParent();
+    }
+
+    look->Release();
+}
+
+void CharacterSelectionDisplay::KeepMutatedLook(CharacterSelectionDisplay& display) {
+    const CHARACTER_INFO& info = display.m_characterInfo;
+    CM2Model* body = display.m_component ? display.m_component->m_data.m_model : nullptr;
+    const uint32_t shown = body ? MutatedDisplay(info.m_name) : 0;
+
+    if (!shown || !CCharacterSelection::m_modelFrame || !CCharacterSelection::m_modelFrame->m_model) {
+        if (s_mutatedLook && body) {
+            body->m_fadeAlpha = 1.0f;
+        }
+        ClearMutatedLook();
+        return;
+    }
+
+    if (!s_mutatedLook || s_mutatedGuid != info.m_guid.m_guid || s_mutatedDisplay != shown) {
+        ClearMutatedLook();
+        CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(shown);
+        CreatureModelDataRec* modelRec = displayRec ? g_creatureModelDataDB.GetRecord(displayRec->m_modelID) : nullptr;
+        CM2Model* look = modelRec ? CCharacterSelection::m_modelFrame->GetScene()->CreateModel(modelRec->m_modelName, 0)
+                                  : nullptr;
+
+        if (!look) {
+            return;
+        }
+
+        look->m_lightingCallback = &CCharacterSelection::GenericLightingCallback;
+        look->m_lightingArg = CCharacterSelection::m_modelFrame->m_lightArray2;
+        look->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+        CCharacterComponent::ApplyMonsterGeosets(look, displayRec);
+        CCharacterComponent::ReplaceMonsterSkin(look, displayRec, modelRec);
+        look->AttachToParent(CCharacterSelection::m_modelFrame->m_model, 0, nullptr, 0);
+        s_mutatedLook = look;
+        s_mutatedGuid = info.m_guid.m_guid;
+        s_mutatedDisplay = shown;
+    }
+
+    body->m_fadeAlpha = 0.0f;
+    s_mutatedLook->SetWorldTransform(C3Vector(0.0f, 0.0f, 0.0f), CCharacterSelection::s_charFacing,
+        RetailRacePreviewScale(info.m_raceID));
 }
 
 // INLINED

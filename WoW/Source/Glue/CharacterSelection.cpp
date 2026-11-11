@@ -76,6 +76,7 @@ void CCharacterSelection::Initialize() {
 // OFFSET: 0x004E38F0
 void CCharacterSelection::Shutdown() {
     CharacterSelectionDisplay::ClearFormMirror();
+    CharacterSelectionDisplay::ClearMutatedLook();
     LoadingScreenMiniDisable();
 
     if (CCharacterComponent::m_activePlayerComponent) {
@@ -328,6 +329,7 @@ int32_t CCharacterSelection::Idle(const void* data, void* param) {
 
     CGlueLoading::Idle(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component);
     CharacterSelectionDisplay::KeepTwinMirror(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex]);
+    CharacterSelectionDisplay::KeepMutatedLook(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex]);
     return 1;
 }
 
@@ -497,6 +499,7 @@ void CCharacterSelection::ShowCharacter() {
     // display's geoset overrides.
     auto geosets = CoA::ClientHooks::OnScopeExit([] { CoA::GeosetsClient::AfterShowCharacter(); });
     CharacterSelectionDisplay::ClearFormMirror();
+    CharacterSelectionDisplay::ClearMutatedLook();
     if (CCharacterSelection::s_selectionIndex < 0 || CCharacterSelection::s_selectionIndex >= static_cast<int32_t>(CCharacterSelection::s_characterList.Count())) {
         return;
     }
