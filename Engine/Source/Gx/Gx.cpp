@@ -115,7 +115,7 @@ static int (*s_drawListSorters[GxuSorts_Last])(const void*, const void*) = { Dra
 // VERIFY: 0b88acbc auto
 // OFFSET: 0x008C8DE0
 EGxApi GxDefaultApi() {
-    return GxApi_D3d9;
+    return GxApi_Vulkan;   // CoA: the graphics port runs on Vulkan; pick Direct3D 9 in the options to go back
 }
 
 // VERIFY: cef2b995 auto

@@ -20,7 +20,7 @@ inline CVar*& Cvar() {
 
 inline void Register() {
     if (!Cvar()) {
-        Cvar() = OptionCVars::Register("visuals", "Visual pack: 0 stock, 1 Lumenveil, 2 Azeroth Remastered", "1");
+        Cvar() = OptionCVars::Register("visuals", "Visual pack: 0 stock, 1 Lumenveil, 2 Azeroth Remastered", "2");
     }
 }
 
