@@ -133,6 +133,14 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(phoenix.X == -0.2f);
     CHECK(phoenix.Y == -0.1f);
     CHECK(phoenix.Z == -0.9f);
+    CoA::CarriedMount::CarryFit const surfboard =
+        CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountSurfboardBite\\MountSurfboardBite.m2");
+    CHECK(surfboard.Scale == 1.0f);
+    CHECK(surfboard.Yaw == 10.0f);
+    CHECK(surfboard.Roll == -90.0f);
+    CHECK(surfboard.X == 0.0f);
+    CHECK(surfboard.Y == -0.6f);
+    CHECK(surfboard.Z == 0.5f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(

@@ -58,6 +58,7 @@ namespace CoA::CarriedMount {
     constexpr float kPhoenixX = -0.2f;
     constexpr float kPhoenixY = -0.1f;
     constexpr float kPhoenixZ = -0.9f;
+    constexpr float kSurfboardY = -0.6f;
 
     struct CarryFit {
         float Scale = kScale;
