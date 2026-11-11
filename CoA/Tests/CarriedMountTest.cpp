@@ -147,7 +147,8 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
                                "Creature\\HotSMounts\\MountCerberusMyth20\\MountCerberusMyth20.m2",
                                "Creature\\HotSMounts\\MountPigPinata\\MountPigPinata.m2",
                                "Creature\\HotSMounts\\MountPig_Rank18_01\\MountPig_Rank18_01.m2",
-                               "Creature\\HotSMounts\\MountTigerAltered20\\MountTigerAltered20.m2"}) {
+                               "Creature\\HotSMounts\\MountTigerAltered20\\MountTigerAltered20.m2",
+                               "Creature\\HotSMounts\\MountDogBandage19\\MountDogBandage19.m2"}) {
         CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(raptor);
         CHECK(fit.Scale == 0.8f);
         CHECK(fit.Yaw == 15.0f);

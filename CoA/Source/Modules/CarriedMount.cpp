@@ -89,7 +89,7 @@ namespace CoA::CarriedMount {
             "\\moneypig" };
         static constexpr const char* kSeekerLike[] = { "owlseeker", "raptor", "vulture", "raccoon", "speederbike",
             "mountdogsummer18", "cerberus", "pigpinata", "mountpig_rank18",
-            "mounttigeraltered20" };
+            "mounttigeraltered20", "mountdogbandage19" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
