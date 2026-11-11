@@ -34,6 +34,8 @@ public:
     // Like Inspect, but encrypted blocks without a key are zero-filled instead of failing.
     bool ReadTable(const char* name, std::vector<uint8_t>& bytes, std::string& error);
     void ReleaseModel(const char* name);
+    // Names of the skins/animations a model published when it was Read (CoA: RetailPrefetch).
+    std::vector<std::string> Dependencies(const char* modelName);
     bool CachedSize(const char* name, uint32_t& size);
     // Locality/progress checks may use durable original size before client preparation.
     // CachedSize above remains the exact prepared size for SFile reads.

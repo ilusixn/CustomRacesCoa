@@ -193,6 +193,7 @@ static const float TARGET_NEAREST_FRONT_MAX_DISTANCE_SQUARED = 1681.0f;
 static const float TARGET_NEAREST_BACK_MAX_DISTANCE_SQUARED = 100.0f;
 
 void GraphicsInitializeOptions();   // WoW/Source/UIUtil/GraphicsOptions.cpp
+void RetailPrefetchRegister();   // WoW/Common/ComponentCore/RetailPrefetch.cpp
 
 // STATIC: 0x00ACC3F8
 CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
@@ -1811,6 +1812,7 @@ void CGGameUI::InitializeFrameXML() {
         SErrDisplayAppFatalMessage("", "", 0);
     }
 
+    RetailPrefetchRegister();
     GraphicsInitializeOptions();   // Kalibros' graphics port: Visuals dropdown + Lumenveil pages in the Video options
     BugReportRegister();
     LoadAddOns(&status);

@@ -716,6 +716,16 @@ bool CascSource::CachedOriginalSize(const char* name, uint32_t& size) {
     return true;
 }
 
+std::vector<std::string> CascSource::Dependencies(const char* modelName) {
+    std::lock_guard<std::mutex> lock(m_impl->mutex);
+    std::string base = Normalize(modelName ? modelName : "");
+    base = base.substr(0, base.find_last_of('.'));
+    std::vector<std::string> names;
+    for (const auto& dep : m_impl->dependencies)
+        if (dep.first.compare(0, base.size(), base) == 0) names.push_back(dep.first);
+    return names;
+}
+
 void CascSource::ReleaseModel(const char* name) {
     std::lock_guard<std::mutex> lock(m_impl->mutex);
     const auto model = m_impl->models.find(Normalize(name ? name : ""));
