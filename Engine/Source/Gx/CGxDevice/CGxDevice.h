@@ -38,7 +38,8 @@ class CImVector;
 
 class ShadowConstants {
     public:
-    static constexpr uint32_t Count = 256;   // Vulkan backend (Kalibros) sizes its shadows by this
+    // Not in the 3.3.5a binary: 256 rows there. Native retail bone palettes and the Vulkan backend's XL vertex class read up to 1024.
+    static constexpr uint32_t Count = 1024;
     /* 0000 */ float constants[Count * 4];
     /* 1000 */ uint32_t dirtyMax;
     /* 1004 */ uint32_t dirtyMin;
