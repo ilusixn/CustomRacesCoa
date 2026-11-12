@@ -103,6 +103,10 @@ namespace CoA::CarriedMount {
             }
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountcloud_") != std::string::npos) {
+            fit.As = kStandInHorse;
+        }
+
         if (lower.find("drivemount") != std::string::npos) {
             fit.Scale = kDriveScale;
             fit.Roll = kDriveRoll;
