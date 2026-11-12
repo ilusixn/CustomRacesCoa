@@ -203,7 +203,8 @@ namespace CoA::CarriedMount {
         }
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("charger") != std::string::npos
-            || lower.find("mountdeer") != std::string::npos || lower.find("reigndeer") != std::string::npos)) {
+            || lower.find("mountdeer") != std::string::npos || lower.find("reigndeer") != std::string::npos
+            || lower.find("mountantelope") != std::string::npos)) {
             fit.Scale = kSeekerScale;
             fit.Yaw = kBillieYaw;
             fit.X = kPhoenixX;
