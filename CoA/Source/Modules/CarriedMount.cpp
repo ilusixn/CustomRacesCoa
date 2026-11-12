@@ -87,7 +87,7 @@ namespace CoA::CarriedMount {
         static constexpr const char* kBillies[] = { "\\billiegoatmount\\", "\\billiegoatcelestial\\",
             "\\goatmount\\", "\\mountgoatbirthday19\\", "\\mounthellbillie\\", "\\mountspiderenforcer\\",
             "\\moneypig", "\\mountcat", "\\mountsurfnexusshark\\", "\\mountsurfshark18\\",
-            "\\mountdogfoo" };
+            "\\mountdogfoo", "\\mountmousesummer20\\" };
         static constexpr const char* kSeekerLike[] = { "owlseeker", "raptor", "vulture", "raccoon", "speederbike",
             "mountdogsummer18", "cerberus", "pigpinata", "mountpig_rank18",
             "mounttigeraltered20", "mountdogbandage19", "liongreymane", "mountpigfel", "mountpigspring19",
