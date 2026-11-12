@@ -208,6 +208,8 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
         "Creature\\HotSMounts\\MountHearthstoneCardMedivh\\MountHearthstoneCardMedivh.m2").Z == 0.7f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountDollarBill\\MountDollarBill.m2").Roll == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountCrabRank18Epic\\MountCrabRank18Epic.m2").Z == 0.7f);
+    CHECK(CoA::CarriedMount::DefaultFit(
+        "Creature\\HotSMounts\\MountSurfRedPocketLunar20\\MountSurfRedPocketLunar20.m2").Roll == 90.0f);
     for (char const* raptor : {"Creature\\HotSMounts\\MountRaptorCelestial\\MountRaptorCelestial.m2",
                                "Creature\\HotSMounts\\MountRaptor_Rank17_01\\MountRaptor_Rank17_01.m2",
                                "Creature\\HotSMounts\\VultureMount\\VultureMount.m2",
