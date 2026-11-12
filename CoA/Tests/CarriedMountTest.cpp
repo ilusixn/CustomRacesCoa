@@ -203,6 +203,7 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(reaver.X == -0.4f);
     CHECK(reaver.Y == -0.2f);
     CHECK(reaver.Z == -0.2f);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\LunarDragon\\LunarDragon.m2").X == -0.4f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);
     CHECK(CoA::CarriedMount::DefaultFit(
