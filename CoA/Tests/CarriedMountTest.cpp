@@ -159,7 +159,7 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(unicorn.Scale == 1.0f);
     CHECK(unicorn.Yaw == 15.0f);
     CHECK(unicorn.Roll == 0.0f);
-    CHECK(unicorn.X == 0.0f);
+    CHECK(unicorn.X == -0.2f);
     CHECK(unicorn.Y == 0.0f);
     CHECK(unicorn.Z == -0.5f);
     CoA::CarriedMount::CarryFit const phoenix =
@@ -220,6 +220,11 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(fitOf("StarChariot").Roll == 90.0f && fitOf("StarChariot").Z == 0.7f);
     CHECK(fitOf("SpiderMount").Scale == 0.5f && fitOf("SpiderMount").Roll == -90.0f);
     CHECK(fitOf("MountSpiderEnforcer").Yaw == 15.0f && fitOf("MountSpiderEnforcer").Scale == 1.0f);
+    CHECK(fitOf("MountDogArmy19").Z == -0.2f && fitOf("MountDogArmy19").Scale == 0.8f);
+    for (char const* serpent : {"MountSnake", "MountSnakeCelestial"}) {
+        CHECK(fitOf(serpent).Scale == 1.0f && fitOf(serpent).Yaw == 0.0f && fitOf(serpent).Roll == 0.0f);
+        CHECK(fitOf(serpent).X == -0.2f && fitOf(serpent).Y == 0.0f && fitOf(serpent).Z == -0.5f);
+    }
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\LunarDragon\\LunarDragon.m2").X == -0.4f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);

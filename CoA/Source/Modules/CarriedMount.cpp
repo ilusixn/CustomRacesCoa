@@ -92,7 +92,8 @@ namespace CoA::CarriedMount {
             "mountdogsummer18", "cerberus", "pigpinata", "mountpig_rank18",
             "mounttigeraltered20", "mountdogbandage19", "liongreymane", "mountpigfel", "mountpigspring19",
             "mountpignexus", "wolf", "lunarfestivalrocket", "mountram", "tiger", "lion",
-            "felstalker", "mountrooster", "mountraven", "zergling", "starbreaker", "mounttrainengine" };
+            "felstalker", "mountrooster", "mountraven", "zergling", "starbreaker", "mounttrainengine",
+            "mountdogarmy19" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
@@ -192,7 +193,7 @@ namespace CoA::CarriedMount {
             || lower.find("\\mountbottle\\") != std::string::npos)) {
             fit.Scale = kSeekerScale;
             fit.Yaw = kBillieYaw;
-            fit.X = kUnicornX;
+            fit.X = kHareX;
             fit.Y = kSeekerY;
             fit.Z = kHareZ;
         }
@@ -203,6 +204,12 @@ namespace CoA::CarriedMount {
             fit.X = kPhoenixX;
             fit.Y = kPhoenixY;
             fit.Z = kPhoenixZ;
+        }
+
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountsnake") != std::string::npos) {
+            fit.X = kSerpentX;
+            fit.Y = kSerpentY;
+            fit.Z = kHareZ;
         }
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("charger") != std::string::npos

@@ -55,7 +55,10 @@ namespace CoA::CarriedMount {
     constexpr float kSoapBarY = 0.4f;
     constexpr float kSoapBarZ = 0.7f;
     constexpr float kHareZ = -0.5f;
-    constexpr float kUnicornX = 0.0f;
+    constexpr float kHareX = 0.0f;
+    constexpr float kUnicornX = -0.2f;
+    constexpr float kSerpentX = -0.2f;
+    constexpr float kSerpentY = 0.0f;
     constexpr float kUnicornY = 0.0f;
     constexpr float kPhoenixX = -0.2f;
     constexpr float kPhoenixY = -0.1f;
