@@ -159,6 +159,16 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(phoenix.X == -0.2f);
     CHECK(phoenix.Y == -0.1f);
     CHECK(phoenix.Z == -0.9f);
+    for (char const* charger : {"Creature\\HotSMounts\\NexusChargerGold\\NexusChargerGold.m2",
+                                "Creature\\HotSMounts\\TyraelsCharger\\TyraelsCharger.m2"}) {
+        CoA::CarriedMount::CarryFit const fit = CoA::CarriedMount::DefaultFit(charger);
+        CHECK(fit.Scale == 0.8f);
+        CHECK(fit.Yaw == 15.0f);
+        CHECK(fit.Roll == 0.0f);
+        CHECK(fit.X == -0.2f);
+        CHECK(fit.Y == -0.1f);
+        CHECK(fit.Z == -0.4f);
+    }
     CoA::CarriedMount::CarryFit const surfboard =
         CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountSurfboardBite\\MountSurfboardBite.m2");
     CHECK(surfboard.Scale == 1.0f);

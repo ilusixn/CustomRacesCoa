@@ -192,6 +192,14 @@ namespace CoA::CarriedMount {
             fit.Z = kPhoenixZ;
         }
 
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("charger") != std::string::npos) {
+            fit.Scale = kSeekerScale;
+            fit.Yaw = kBillieYaw;
+            fit.X = kPhoenixX;
+            fit.Y = kPhoenixY;
+            fit.Z = kChargerZ;
+        }
+
         if (lower.find("hotsmounts") != std::string::npos && lower.find("mountsurfboard") != std::string::npos) {
             fit.Yaw = kHotsHorseYaw;
             fit.Roll = kBattleBeastRoll;
