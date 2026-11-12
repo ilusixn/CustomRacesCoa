@@ -93,7 +93,7 @@ namespace CoA::CarriedMount {
             "mounttigeraltered20", "mountdogbandage19", "liongreymane", "mountpigfel", "mountpigspring19",
             "mountpignexus", "wolf", "lunarfestivalrocket", "mountram", "tiger", "lion",
             "felstalker", "mountrooster", "mountraven", "zergling", "starbreaker", "mounttrainengine",
-            "mountdogarmy19" };
+            "mountdogarmy19", "treasuregoblin" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 

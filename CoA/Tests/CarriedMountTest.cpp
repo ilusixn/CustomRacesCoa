@@ -221,6 +221,7 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(fitOf("SpiderMount").Scale == 0.5f && fitOf("SpiderMount").Roll == -90.0f);
     CHECK(fitOf("MountSpiderEnforcer").Yaw == 15.0f && fitOf("MountSpiderEnforcer").Scale == 1.0f);
     CHECK(fitOf("MountDogArmy19").Z == -0.2f && fitOf("MountDogArmy19").Scale == 0.8f);
+    CHECK(fitOf("TreasureGoblinWinterMount").Z == -0.2f && fitOf("TreasureGoblinMount").Scale == 0.8f);
     for (char const* serpent : {"MountSnake", "MountSnakeCelestial"}) {
         CHECK(fitOf(serpent).Scale == 1.0f && fitOf(serpent).Yaw == 0.0f && fitOf(serpent).Roll == 0.0f);
         CHECK(fitOf(serpent).X == -0.2f && fitOf(serpent).Y == 0.0f && fitOf(serpent).Z == -0.5f);
