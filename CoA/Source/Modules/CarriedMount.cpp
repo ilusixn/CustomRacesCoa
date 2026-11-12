@@ -173,7 +173,7 @@ namespace CoA::CarriedMount {
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("hearthstonecard") != std::string::npos
             || lower.find("mountdollarbill") != std::string::npos || lower.find("mountcrab") != std::string::npos
             || lower.find("mountsurfredpocketlunar20") != std::string::npos
-            || lower.find("mountbanner") != std::string::npos)) {
+            || lower.find("mountbanner") != std::string::npos || lower.find("mountmeatwagon") != std::string::npos)) {
             fit.Scale = kSoapBarScale;
             fit.Yaw = kSoapBarYaw;
             fit.Roll = kSoapBarRoll;
