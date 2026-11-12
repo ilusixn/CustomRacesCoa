@@ -1,5 +1,6 @@
 #include "CoA/Source/Modules/CarriedMount.h"
 #include "CoA/Tests/TestMain.h"
+#include <string>
 
 COA_TEST(OnlyTheMaleTwoHeadedOgrePlayerCarriesHisMount) {
     CHECK(CoA::CarriedMount::CarriesMounts(true, 85, 0));
@@ -209,6 +210,16 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(reaver.X == -0.4f);
     CHECK(reaver.Y == -0.2f);
     CHECK(reaver.Z == -0.2f);
+    auto const fitOf = [](char const* model) {
+        return CoA::CarriedMount::DefaultFit(std::string("Creature\\HotSMounts\\") + model + "\\" + model + ".m2");
+    };
+    CHECK(fitOf("MountBottle").Z == -0.5f && fitOf("MountBottle").Scale == 0.8f);
+    CHECK(fitOf("Starbreaker").Z == -0.2f && fitOf("Starbreaker").Scale == 0.8f);
+    CHECK(fitOf("MountTrainEngineToys19").Z == -0.2f && fitOf("MountTrainEngineToys19").Scale == 0.8f);
+    CHECK(fitOf("MountAzmodanMadAxe18").Z == -0.3f && fitOf("MountAzmodanMadAxe18").X == -0.2f);
+    CHECK(fitOf("StarChariot").Roll == 90.0f && fitOf("StarChariot").Z == 0.7f);
+    CHECK(fitOf("SpiderMount").Scale == 0.5f && fitOf("SpiderMount").Roll == -90.0f);
+    CHECK(fitOf("MountSpiderEnforcer").Yaw == 15.0f && fitOf("MountSpiderEnforcer").Scale == 1.0f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\LunarDragon\\LunarDragon.m2").X == -0.4f);
     CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountHearthstoneCard\\MountHearthstoneCard.m2").Roll
         == 90.0f);

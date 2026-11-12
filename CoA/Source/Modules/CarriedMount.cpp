@@ -92,7 +92,7 @@ namespace CoA::CarriedMount {
             "mountdogsummer18", "cerberus", "pigpinata", "mountpig_rank18",
             "mounttigeraltered20", "mountdogbandage19", "liongreymane", "mountpigfel", "mountpigspring19",
             "mountpignexus", "wolf", "lunarfestivalrocket", "mountram", "tiger", "lion",
-            "felstalker", "mountrooster", "mountraven", "zergling" };
+            "felstalker", "mountrooster", "mountraven", "zergling", "starbreaker", "mounttrainengine" };
         const std::string lower = Lower(mountModel);
         CarryFit fit;
 
@@ -129,7 +129,8 @@ namespace CoA::CarriedMount {
             fit.Z = kHareZ;
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && lower.find("sheep") != std::string::npos) {
+        if (lower.find("hotsmounts") != std::string::npos && (lower.find("sheep") != std::string::npos
+            || lower.find("mountazmodanmadaxe18") != std::string::npos)) {
             fit.Yaw = kHotsHorseYaw;
             fit.X = kHotsHorseX;
             fit.Y = kHotsHorseY;
@@ -173,7 +174,8 @@ namespace CoA::CarriedMount {
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("hearthstonecard") != std::string::npos
             || lower.find("mountdollarbill") != std::string::npos || lower.find("mountcrab") != std::string::npos
             || lower.find("mountsurfredpocketlunar20") != std::string::npos
-            || lower.find("mountbanner") != std::string::npos || lower.find("mountmeatwagon") != std::string::npos)) {
+            || lower.find("mountbanner") != std::string::npos || lower.find("mountmeatwagon") != std::string::npos
+            || lower.find("starchariot") != std::string::npos)) {
             fit.Scale = kSoapBarScale;
             fit.Yaw = kSoapBarYaw;
             fit.Roll = kSoapBarRoll;
@@ -186,7 +188,8 @@ namespace CoA::CarriedMount {
             || lower.find("mounthorsecraft20") != std::string::npos
             || lower.find("mounthorseghost") != std::string::npos
             || lower.find("mountgoatadultbillie") != std::string::npos
-            || lower.find("nazeebra") != std::string::npos || lower.find("spectrebike") != std::string::npos)) {
+            || lower.find("nazeebra") != std::string::npos || lower.find("spectrebike") != std::string::npos
+            || lower.find("\\mountbottle\\") != std::string::npos)) {
             fit.Scale = kSeekerScale;
             fit.Yaw = kBillieYaw;
             fit.X = kUnicornX;
@@ -223,7 +226,7 @@ namespace CoA::CarriedMount {
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("mountturtle") != std::string::npos
             || lower.find("mounteyepaddark18") != std::string::npos
-            || lower.find("\\mounteye\\") != std::string::npos)) {
+            || lower.find("\\mounteye\\") != std::string::npos || lower.find("\\spidermount\\") != std::string::npos)) {
             fit.Scale = kTurtleScale;
             fit.Yaw = kHotsHorseYaw;
             fit.Roll = kBattleBeastRoll;
