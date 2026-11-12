@@ -1,5 +1,6 @@
 #include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "PlayerName.h"
+#include "Engine/Source/Gx/LuxVelum.h"
 #include <typeinfo>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Base/Handle.h"
@@ -386,7 +387,9 @@ void PLAYERNAMEDESC::Render() {
             GxuFontAddToBatch(s_playerNameBatch, this->m_string);
             position.z = this->m_zOffset + position.z;
             GxuFontSetStringPosition(this->m_string, position);
+            LuxHook(&LuxCallbacks::worldTextBegin);
             GxuFontRenderBatch(s_playerNameBatch);
+            LuxHook(&LuxCallbacks::worldTextEnd);
         }
     } else if (this->m_string) {
         GxuFontDestroyString(this->m_string);

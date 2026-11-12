@@ -1,3 +1,4 @@
+#include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cfloat>
 #include <cmath>
@@ -885,9 +886,9 @@ void CM2Scene::SelectLights(CM2Lighting* lighting) {
             while (light) {
                 CM2Light* next = light->m_lightNext;
 
-                // CoA: AscGraphics.cpp:FUN_102613f0 / FUN_10260f90 (Extensions.dll patch 0x81E548) -- lightCulling other than
-                // "1", or a light attenuation other than 1.0, makes the stamp test's je a jmp: every grid light is added.
-                if (!light->m_scene || (g_m2LightStampCullingHook && !g_m2LightStampCullingHook()) || light->m_stamp == this->m_frameStamp) {
+                // CoA: AscGraphics.cpp:FUN_102613f0 / FUN_10260f90 (patch 0x81E548) -- lightCulling != "1" or attenuation != 1.0
+                // adds every grid light; so does LuxVelum's keepStaleLights (off-screen lights stay in its fog).
+                if (!light->m_scene || (g_m2LightStampCullingHook && !g_m2LightStampCullingHook()) || (g_luxVelum && g_luxVelum->keepStaleLights) || light->m_stamp == this->m_frameStamp) {
                     lighting->AddLight(light);
                 } else {
                     light->SetVisible(0);
@@ -1885,9 +1886,8 @@ int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
 
             M2Material* material = &data->m_materials[batch->m_materialIndex];
             int32_t projected = (batch->m_flags & 4) && this->m_projectTextureCallback;
-            // x64: the original indexes m_materials[index - layer] with 32-bit wrap-around, which for a layer past the index
-            // lands layer materials before this one; as a u32 index on x64 it reads 16 GB away. Pointer arithmetic keeps
-            // the original address.
+            // x64: the original's u32 index (index - layer) wraps to the layer material before this one; on x64 that reads
+            // 16 GB away, so step back by pointer instead.
             M2Material* baseMaterial = batch->m_materialLayer ? material - batch->m_materialLayer : material;
             int32_t transparent = baseMaterial->m_blendMode > M2BLEND_ALPHA_KEY || alpha < 0.99998999f;
             CShaderEffect* effect = optimized ? model->m_optGeo->m_effects[i] : model->m_shared->m_effects[i];

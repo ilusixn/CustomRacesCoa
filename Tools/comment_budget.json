@@ -197,7 +197,7 @@
   "Engine/Source/Gxu/IGxuFontGlyph.cpp": 4,
   "Engine/Source/Model2/M2Model.cpp": 3,
   "Engine/Source/Model2/M2Model.h": 3,
-  "Engine/Source/Model2/M2Scene.cpp": 3,
+  "Engine/Source/Model2/M2Scene.cpp": 2,
   "Engine/Source/Model2/M2Shared.cpp": 3,
   "Engine/Source/Os/Win64/Input.cpp": 5,
   "Engine/Source/SoundEngine/fmodex/lib/freeverb/revmodel.cpp": 4,
@@ -285,5 +285,5 @@
   "WoW/Source/Ui/Types.h": 3,
   "WoW/Source/WorldClient/DayNight.cpp": 3,
   "WoW/Source/WorldClient/MapObj.cpp": 3,
-  "WoW/Source/WorldClient/World.cpp": 3
+  "WoW/Source/WorldClient/World.cpp": 2
 }

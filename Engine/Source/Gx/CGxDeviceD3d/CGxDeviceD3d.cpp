@@ -8,6 +8,7 @@
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/Os/Error.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -16,6 +17,8 @@
 #include "GameVersion.h"
 
 typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT sdkVersion);
+
+LuxCallbacks* g_luxVelum = nullptr;
 
 static const float MaxLightRange = 10000.0f;
 
@@ -529,6 +532,11 @@ int32_t CGxDeviceD3d::ILoadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d) {
 
     if (d3dLib) {
         Direct3DCreate9Proc d3dCreateProc = reinterpret_cast<Direct3DCreate9Proc>(GetProcAddress(d3dLib, "Direct3DCreate9"));
+
+        // LuxVelum wraps the device to read the depth buffer.
+        if (d3dCreateProc && g_luxVelum && g_luxVelum->filterD3D9Proc) {
+            d3dCreateProc = reinterpret_cast<Direct3DCreate9Proc>(g_luxVelum->filterD3D9Proc("Direct3DCreate9", reinterpret_cast<void*>(d3dCreateProc)));
+        }
 
         if (d3dCreateProc) {
             d3d = d3dCreateProc(D3D_SDK_VERSION);

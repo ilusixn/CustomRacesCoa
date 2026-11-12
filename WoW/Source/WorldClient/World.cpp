@@ -2,6 +2,7 @@
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/ZoneLightClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
+#include "Engine/Source/Gx/LuxVelum.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
@@ -1329,10 +1330,10 @@ void World::SetDetailDoodadDist(float dist) {
 // VERIFY: 5f5281b3 auto
 // OFFSET: 0x00780770
 float World::ValidateFarClip(float farClip, int32_t mapID) {
-    // CoA: AscGraphics.cpp:FUN_1026ad40 (orig hook 0x780770) -- replaced (Extensions.dll's ReplaceFunction): 183.33 ..
-    // 791.66 on maps 0 / 1 / 530 / 571, .. 700 on 909, .. 1583.33 elsewhere. The stock body capped at 4750 / 3 (2375 / 3
-    // below map 530 and on 575 / 543 unless farClipOverride >= 1, or with 1 GB of memory or less), floor 550 / 3.
-    return CoA::Graphics::FarClipClamp(farClip, static_cast<uint32_t>(mapID));
+    // CoA: AscGraphics.cpp:FUN_1026ad40 (orig hook 0x780770) replaces the stock clamp (CoA::Graphics::FarClipClamp has the
+    // ranges); LuxVelum may widen the result.
+    float clamped = CoA::Graphics::FarClipClamp(farClip, static_cast<uint32_t>(mapID));
+    return g_luxVelum && g_luxVelum->farClipClamp ? g_luxVelum->farClipClamp(farClip, mapID, clamped) : clamped;
 }
 
 // VERIFY: 1f595043 auto
@@ -1928,7 +1929,15 @@ void CWorldScene::RenderLiquidPass() {
     CWorldScene::ApplyFogState();
 
     if ((CWorld::enables & Enable_Water) && CWorldScene::s_liquidRenderer) {
+        if (g_luxVelum && g_luxVelum->waterPassBegin) {
+            g_luxVelum->waterPassBegin(CWorldScene::s_liquidRenderer->m_instances[1].Count() != 0);
+        }
+
         CWorldScene::s_liquidRenderer->Flush(CWorldScene::s_activeWorldView, 1);
+
+        if (g_luxVelum && g_luxVelum->waterPassEnd) {
+            g_luxVelum->waterPassEnd();
+        }
     }
 
     CMap::RenderWaterRipples();
@@ -2350,9 +2359,8 @@ void CWorldScene::CullEntitys(CSortEntry* entry) {
 
         CAaSphere sphere = entity->m_sphere;
 
-        // CoA: AscGraphics.cpp:FUN_1025d520 (Extensions.dll patch 0x793115 / 0x793126 / 0x79313F) -- entityCulling other
-        // than "1" NOPs the three cull jumps: all three queries run, the entity is never culled, and m_culled takes the
-        // buffer query's low byte (the store after it that the stock path only reaches with 0).
+        // CoA: AscGraphics.cpp:FUN_1025d520 (patch 0x793115/0x793126/0x79313F) -- entityCulling != "1" NOPs the cull jumps:
+        // never culled, and m_culled takes the buffer query's low byte.
         if (!CoA::Graphics::EntityCulling()) {
             CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere);
             CWorldOcclusion::QueryVolumes(&entity->m_sphere);

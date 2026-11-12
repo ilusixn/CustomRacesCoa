@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cmath>
 #include <cstdint>
@@ -256,7 +257,13 @@ void CM2SceneRender::SetupLighting() {
                 break;
         }
 
-        CShaderEffect::SetFogParams(this->m_curLighting->m_fogStart, this->m_curLighting->m_fogEnd, this->m_curLighting->m_fogDensity, *reinterpret_cast<CImVector*>(&color));
+        LuxM2Fog fog = { this->m_curLighting->m_fogStart, this->m_curLighting->m_fogEnd, this->m_curLighting->m_fogDensity, &color };
+
+        if (g_luxVelum && g_luxVelum->observeM2Fog && g_luxVelum->m2BatchFog) {
+            g_luxVelum->m2BatchFog(&fog);
+        }
+
+        CShaderEffect::SetFogParams(fog.start, fog.end, fog.exponent, *reinterpret_cast<const CImVector*>(fog.colour));
         CShaderEffect::SetFogEnabled(1);
     } else {
         CShaderEffect::SetFogEnabled(0);

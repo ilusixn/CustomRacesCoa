@@ -70,6 +70,11 @@ float s_wideAspect = 1.6f;
 // STATIC: 0x00AB63BC
 static int32_t s_simpleMapID = -1;
 
+// The map the loading screen last showed, for LuxVelum (CoA/Source/Runtime/LuxVelumClient.cpp).
+int32_t LoadingScreenMapId() {
+    return s_simpleMapID;
+}
+
 // STATIC: 0x00AB63C0
 static uint16_t s_indices[4] = { 0, 1, 2, 3 };
 

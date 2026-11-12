@@ -26,6 +26,7 @@
 #include "Engine/Source/Services/Camera.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
@@ -1775,6 +1776,7 @@ void CGWorldFrame::OnWorldRender() {
     scene->SetFloat18(-CWorld::s_unk_CD7758);
     scene->m_passMask = CWorld::m_M2PassMask;
     scene->Draw(M2PASS_0);
+    LuxHook(&LuxCallbacks::opaqueDone);
 
     if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x200122);
@@ -1792,7 +1794,9 @@ void CGWorldFrame::OnWorldRender() {
         scene->Draw(M2PASS_2);
     } else {
         scene->Draw(M2PASS_2);
+        LuxHook(&LuxCallbacks::liquidBegin);
         CWorldScene::RenderLiquidPass();
+        LuxHook(&LuxCallbacks::liquidEnd);
         CWorldScene::RenderWeather();
         CWorldScene::RenderBarriers(this->m_elapsedSec);
         scene->Draw(M2PASS_1);
@@ -1809,7 +1813,13 @@ void CGWorldFrame::OnWorldRender() {
     CWorldScene::RenderParticulate();
     GxuSortDrawList(GxuCat_1, GxuSort_B2F, *World::GetCamPos());
     GxuFlushDrawList(GxuCat_1, *World::GetCamPos());
-    DayNight::RenderGlares();
+
+    // LuxVelum draws the sun and moon glare itself when it returns non-zero.
+    if (!(g_luxVelum && g_luxVelum->glareBegin && g_luxVelum->glareBegin())) {
+        DayNight::RenderGlares();
+    }
+
+    LuxHook(&LuxCallbacks::glareEnd);
     PlayerNameUpdateLate();
 
     if (CWorld::enables & 0x20000000) {
@@ -1820,6 +1830,7 @@ void CGWorldFrame::OnWorldRender() {
     SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+    LuxHook(&LuxCallbacks::worldDone);
     FFX::Finish();
     CVehiclePassenger_C::PostRenderUpdateAll();
 }
@@ -2132,7 +2143,9 @@ void CGWorldFrame::RenderWorld(void* param) {
 
     worldFrame->OnWorldUpdate();
     PlayerNameUpdateWorldText();
+    LuxHook(&LuxCallbacks::frameBegin);
     worldFrame->OnWorldRender();
+    LuxHook(&LuxCallbacks::frameEnd);
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);
