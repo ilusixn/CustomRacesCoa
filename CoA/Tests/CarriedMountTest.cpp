@@ -190,6 +190,7 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(turtle.X == 0.0f);
     CHECK(turtle.Y == -0.5f);
     CHECK(turtle.Z == 0.5f);
+    CHECK(CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountEyePadDark18\\MountEyePadDark18.m2").Scale == 0.5f);
     CoA::CarriedMount::CarryFit const reaver =
         CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\MountReaver\\MountReaver.m2");
     CHECK(reaver.Scale == 0.7f);
