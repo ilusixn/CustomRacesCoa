@@ -103,7 +103,8 @@ namespace CoA::CarriedMount {
             }
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountcloud_") != std::string::npos) {
+        if (lower.find("hotsmounts") != std::string::npos && lower.find("mountcloud_") != std::string::npos
+            && lower.find("mountcloud_whimsy_01") == std::string::npos) {
             fit.As = kStandInHorse;
         }
 
@@ -247,7 +248,8 @@ namespace CoA::CarriedMount {
         }
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("mountreaver") != std::string::npos
-            || lower.find("lunardragon") != std::string::npos)) {
+            || lower.find("lunardragon") != std::string::npos
+            || lower.find("mountcloud_whimsy_01") != std::string::npos)) {
             fit.Scale = kReaverScale;
             fit.Yaw = kBillieYaw;
             fit.X = kReaverX;

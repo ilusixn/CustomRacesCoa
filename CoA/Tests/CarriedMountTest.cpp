@@ -222,7 +222,8 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(fitOf("MountSpiderEnforcer").Yaw == 15.0f && fitOf("MountSpiderEnforcer").Scale == 1.0f);
     CHECK(fitOf("MountDogArmy19").Z == -0.2f && fitOf("MountDogArmy19").Scale == 0.8f);
     CHECK(fitOf("TreasureGoblinWinterMount").Z == -0.2f && fitOf("TreasureGoblinMount").Scale == 0.8f);
-    for (char const* cloud : {"MountCloud_Base_00", "MountCloud_Whimsy_01", "MountCloud_Whimsy_04"}) {
+    CHECK(fitOf("MountCloud_Whimsy_01").As == 0 && fitOf("MountCloud_Whimsy_01").X == -0.4f);
+    for (char const* cloud : {"MountCloud_Base_00", "MountCloud_Whimsy_00", "MountCloud_Whimsy_04"}) {
         CHECK(fitOf(cloud).As == CoA::CarriedMount::kStandInHorse);
         CHECK(fitOf(cloud).Y == CoA::CarriedMount::kOffsetY && fitOf(cloud).Z == CoA::CarriedMount::kOffsetZ);
     }
