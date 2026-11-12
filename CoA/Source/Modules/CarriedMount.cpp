@@ -167,7 +167,8 @@ namespace CoA::CarriedMount {
             fit.Z = kBattleBeastZ;
         }
 
-        if (lower.find("hotsmounts") != std::string::npos && lower.find("hearthstonecard") != std::string::npos) {
+        if (lower.find("hotsmounts") != std::string::npos && (lower.find("hearthstonecard") != std::string::npos
+            || lower.find("mountdollarbill") != std::string::npos)) {
             fit.Scale = kSoapBarScale;
             fit.Yaw = kSoapBarYaw;
             fit.Roll = kSoapBarRoll;
