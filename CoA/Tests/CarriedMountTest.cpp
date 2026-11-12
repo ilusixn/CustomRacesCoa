@@ -134,6 +134,11 @@ COA_TEST(VehicleMountsAreCarriedAsAHorse) {
     CHECK(invincilisk.Scale == 0.8f);
     CHECK(invincilisk.X == 0.0f);
     CHECK(invincilisk.Z == -0.5f);
+    CoA::CarriedMount::CarryFit const stallion = CoA::CarriedMount::DefaultFit(
+        "Creature\\HotSMounts\\MountHorseGhostInvisible\\MountHorseGhostInvisible.m2");
+    CHECK(stallion.Scale == 0.8f);
+    CHECK(stallion.X == 0.0f);
+    CHECK(stallion.Z == -0.5f);
     CoA::CarriedMount::CarryFit const unicorn =
         CoA::CarriedMount::DefaultFit("Creature\\HotSMounts\\HorseUnicornRainbow\\HorseUnicornRainbow.m2");
     CHECK(unicorn.Scale == 1.0f);

@@ -175,7 +175,8 @@ namespace CoA::CarriedMount {
         }
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("redhare") != std::string::npos
-            || lower.find("mounthorsecraft20") != std::string::npos)) {
+            || lower.find("mounthorsecraft20") != std::string::npos
+            || lower.find("mounthorseghost") != std::string::npos)) {
             fit.Scale = kSeekerScale;
             fit.Yaw = kBillieYaw;
             fit.X = kUnicornX;
