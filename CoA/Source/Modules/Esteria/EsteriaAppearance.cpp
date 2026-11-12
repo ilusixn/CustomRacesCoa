@@ -51,6 +51,19 @@ unsigned RaceOf(unsigned race)
         case 98: return 70; // Drakonid (Horde)
         case 99: return 66; // Drakkin (Alliance)
         case 100: return 69; // Drakonid (Alliance)
+        // AllRaces v12 pack: the client race ids the pack's tables use (ids 80..91 are the Esteria side).
+        case 86: return 80;  // Sureki
+        case 89: return 81;  // Dreadlord
+        case 91: return 82;  // Titan
+        case 92: return 83;  // Wretched
+        case 93: return 84;  // Fungarian
+        case 111: return 85; // Sporeling
+        case 114: return 86; // Stormforged
+        case 119: return 87; // Mo'arg
+        case 120: return 88; // Nerubian
+        case 122: return 89; // Lich
+        case 123: return 90; // Mogu
+        case 125: return 91; // Lost One
         default: return 127;
     }
 }
@@ -1197,6 +1210,58 @@ namespace
                 : HighmountainControl(state, command, character, CreatureAppearance::QirajiControls,
                     CreatureAppearance::QirajiLabels, requirements);
         }
+        // AllRaces v12 pack races (ids 80..91): one colour control, a second where the bank has one.
+        {
+            unsigned const packRace = RaceOf(CC<unsigned>(character, 0x18));
+            if (packRace >= 80 && packRace <= 91)
+            {
+                constexpr std::array<VulperaAppearance::Requirement, 0> requirements{};
+                bool const female = CC<unsigned>(character, 0x1C) != 0;
+                switch (packRace)
+                {
+                    case 80: // Sureki: skin, female also hair
+                        return female ? HighmountainControl(state, command, character, CreatureAppearance::SurekiFemaleControls,
+                                CreatureAppearance::SurekiFemaleLabels, requirements)
+                            : HighmountainControl(state, command, character, CreatureAppearance::SurekiMaleControls,
+                                CreatureAppearance::SurekiMaleLabels, requirements);
+                    case 81: // Dreadlord
+                        return HighmountainControl(state, command, character, CreatureAppearance::DreadlordControls,
+                            CreatureAppearance::DreadlordLabels, requirements);
+                    case 82: // Titan: male also armour colour
+                        return female ? HighmountainControl(state, command, character, CreatureAppearance::TitanFemaleControls,
+                                CreatureAppearance::TitanFemaleLabels, requirements)
+                            : HighmountainControl(state, command, character, CreatureAppearance::TitanMaleControls,
+                                CreatureAppearance::TitanMaleLabels, requirements);
+                    case 83: // Wretched
+                        return HighmountainControl(state, command, character, CreatureAppearance::WretchedControls,
+                            CreatureAppearance::WretchedLabels, requirements);
+                    case 84: // Fungarian
+                        return HighmountainControl(state, command, character, CreatureAppearance::FungarianControls,
+                            CreatureAppearance::FungarianLabels, requirements);
+                    case 85: // Sporeling
+                        return HighmountainControl(state, command, character, CreatureAppearance::SporelingControls,
+                            CreatureAppearance::SporelingLabels, requirements);
+                    case 86: // Stormforged: skin and hair
+                        return HighmountainControl(state, command, character, CreatureAppearance::StormforgedControls,
+                            CreatureAppearance::StormforgedLabels, requirements);
+                    case 87: // Mo'arg
+                        return HighmountainControl(state, command, character, CreatureAppearance::MoargControls,
+                            CreatureAppearance::MoargLabels, requirements);
+                    case 88: // Nerubian
+                        return HighmountainControl(state, command, character, CreatureAppearance::NerubianControls,
+                            CreatureAppearance::NerubianLabels, requirements);
+                    case 89: // Lich
+                        return HighmountainControl(state, command, character, CreatureAppearance::LichControls,
+                            CreatureAppearance::LichLabels, requirements);
+                    case 90: // Mogu
+                        return HighmountainControl(state, command, character, CreatureAppearance::MoguControls,
+                            CreatureAppearance::MoguLabels, requirements);
+                    case 91: // Lost One: skin and glow
+                        return HighmountainControl(state, command, character, CreatureAppearance::LostOneControls,
+                            CreatureAppearance::LostOneLabels, requirements);
+                }
+            }
+        }
         if (RaceOf(CC<unsigned>(character, 0x18)) == 60 || RaceOf(CC<unsigned>(character, 0x18)) == 61)
         {
             constexpr std::array<VulperaAppearance::Requirement, 0> requirements{};
@@ -1337,6 +1402,18 @@ namespace
         static auto const banshee = ReadSelections(L"EsteriaBanshee.bin");
         static auto const faceless = ReadSelections(L"EsteriaFaceless.bin");
         static auto const qiraji = ReadSelections(L"EsteriaQiraji.bin");
+        static auto const sureki = ReadSelections(L"EsteriaSureki.bin");
+        static auto const dreadlord = ReadSelections(L"EsteriaDreadlord.bin");
+        static auto const titan = ReadSelections(L"EsteriaTitan.bin");
+        static auto const wretched = ReadSelections(L"EsteriaWretched.bin");
+        static auto const fungarian = ReadSelections(L"EsteriaFungarian.bin");
+        static auto const sporeling = ReadSelections(L"EsteriaSporeling.bin");
+        static auto const stormforged = ReadSelections(L"EsteriaStormforged.bin");
+        static auto const moarg = ReadSelections(L"EsteriaMoarg.bin");
+        static auto const nerubian = ReadSelections(L"EsteriaNerubian.bin");
+        static auto const lich = ReadSelections(L"EsteriaLich.bin");
+        static auto const mogu = ReadSelections(L"EsteriaMogu.bin");
+        static auto const lostone = ReadSelections(L"EsteriaLostOne.bin");
         switch (race)
         {
             case 54: return naga;
@@ -1359,6 +1436,18 @@ namespace
             case 77: return banshee;
             case 78: return faceless;
             case 79: return qiraji;
+            case 80: return sureki;
+            case 81: return dreadlord;
+            case 82: return titan;
+            case 83: return wretched;
+            case 84: return fungarian;
+            case 85: return sporeling;
+            case 86: return stormforged;
+            case 87: return moarg;
+            case 88: return nerubian;
+            case 89: return lich;
+            case 90: return mogu;
+            case 91: return lostone;
             case 66: return tarasek;
             case 69:
             case 70: return drakonid;
@@ -1391,6 +1480,18 @@ namespace
             case 77: return L"EsteriaBansheeTextures.bin";
             case 78: return L"EsteriaFacelessTextures.bin";
             case 79: return L"EsteriaQirajiTextures.bin";
+            case 80: return L"EsteriaSurekiTextures.bin";
+            case 81: return L"EsteriaDreadlordTextures.bin";
+            case 82: return L"EsteriaTitanTextures.bin";
+            case 83: return L"EsteriaWretchedTextures.bin";
+            case 84: return L"EsteriaFungarianTextures.bin";
+            case 85: return L"EsteriaSporelingTextures.bin";
+            case 86: return L"EsteriaStormforgedTextures.bin";
+            case 87: return L"EsteriaMoargTextures.bin";
+            case 88: return L"EsteriaNerubianTextures.bin";
+            case 89: return L"EsteriaLichTextures.bin";
+            case 90: return L"EsteriaMoguTextures.bin";
+            case 91: return L"EsteriaLostOneTextures.bin";
             case 66: return L"EsteriaTarasekTextures.bin";
             case 69:
             case 70: return L"EsteriaDrakonidTextures.bin";
@@ -1423,6 +1524,18 @@ namespace
             case 77: return "Banshee";
             case 78: return "Faceless";
             case 79: return "Qiraji";
+            case 80: return "Sureki";
+            case 81: return "Dreadlord";
+            case 82: return "Titan";
+            case 83: return "Wretched";
+            case 84: return "Fungarian";
+            case 85: return "Sporeling";
+            case 86: return "Stormforged";
+            case 87: return "Moarg";
+            case 88: return "Nerubian";
+            case 89: return "Lich";
+            case 90: return "Mogu";
+            case 91: return "LostOne";
             default: return "Haranir";
         }
     }

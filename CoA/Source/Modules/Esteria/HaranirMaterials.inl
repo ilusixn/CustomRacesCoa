@@ -476,8 +476,8 @@ void SetHaranirMaterials(void* character)
         KvFacelessBind(character);
         return;
     }
-    if (RaceOf(CC<unsigned>(character, 0x18)) == 79)
-        return;       // plain colour skins from the selection bank
+    if (RaceOf(CC<unsigned>(character, 0x18)) >= 79 && RaceOf(CC<unsigned>(character, 0x18)) <= 91)
+        return;       // plain colour skins from the selection bank (Qiraji and the AllRaces v12 pack)
     if (RaceOf(CC<unsigned>(character, 0x18)) == 68)
     {
         KvCentaurBind(character);

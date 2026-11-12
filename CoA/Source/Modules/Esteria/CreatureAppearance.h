@@ -398,6 +398,63 @@ namespace CreatureAppearance
     inline constexpr std::array<Option, 5> QirajiFemale = {{ {0, 8, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
     inline constexpr std::array<Option, 1> QirajiFemaleControls = {{ {0, 8, 1} }};
 
+    // AllRaces v12 pack races (Esteria ids 80..91): colours come from the race's own selection bank, the
+    // counts below are the variant numbers that bank holds. Fields not listed stay stock.
+    inline constexpr std::array<Option, 5> SurekiMale = {{ {0, 18, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 5> SurekiFemale = {{ {0, 18, 1}, {1, 4, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> SurekiMaleControls = {{ {0, 18, 1} }};
+    inline constexpr std::array<Option, 2> SurekiFemaleControls = {{ {0, 18, 1}, {1, 4, 1} }};
+    inline constexpr std::array<char const*, 1> SurekiMaleLabels = {{"Skin Color"}};
+    inline constexpr std::array<char const*, 2> SurekiFemaleLabels = {{"Skin Color", "Hair Color"}};
+
+    inline constexpr std::array<Option, 5> DreadlordMale = {{ {0, 10, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> DreadlordControls = {{ {0, 10, 1} }};
+    inline constexpr std::array<char const*, 1> DreadlordLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> TitanMale = {{ {0, 9, 1}, {1, 4, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 5> TitanFemale = {{ {0, 9, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 2> TitanMaleControls = {{ {0, 9, 1}, {1, 4, 1} }};
+    inline constexpr std::array<Option, 1> TitanFemaleControls = {{ {0, 9, 1} }};
+    inline constexpr std::array<char const*, 2> TitanMaleLabels = {{"Skin Color", "Armor Color"}};
+    inline constexpr std::array<char const*, 1> TitanFemaleLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> WretchedMale = {{ {0, 64, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> WretchedControls = {{ {0, 64, 1} }};
+    inline constexpr std::array<char const*, 1> WretchedLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> FungarianMale = {{ {0, 11, 1}, {1, 8, 1}, {2, 3, 1}, {3, 5, 1}, {4, 4, 1} }};
+    inline constexpr std::array<Option, 5> FungarianControls = {{ {0, 11, 1}, {1, 8, 1}, {2, 3, 1}, {3, 5, 1}, {4, 4, 1} }};
+    inline constexpr std::array<char const*, 5> FungarianLabels = {
+        {"Skin Color", "Features", "Cap", "Beard", "Eye Color"}};
+
+    inline constexpr std::array<Option, 5> SporelingMale = {{ {0, 11, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> SporelingControls = {{ {0, 11, 1} }};
+    inline constexpr std::array<char const*, 1> SporelingLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> StormforgedMale = {{ {0, 13, 1}, {1, 3, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 2> StormforgedControls = {{ {0, 13, 1}, {1, 3, 1} }};
+    inline constexpr std::array<char const*, 2> StormforgedLabels = {{"Skin Color", "Hair Color"}};
+
+    inline constexpr std::array<Option, 5> MoargMale = {{ {0, 8, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> MoargControls = {{ {0, 8, 1} }};
+    inline constexpr std::array<char const*, 1> MoargLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> NerubianMale = {{ {0, 8, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> NerubianControls = {{ {0, 8, 1} }};
+    inline constexpr std::array<char const*, 1> NerubianLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> LichMale = {{ {0, 7, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> LichControls = {{ {0, 7, 1} }};
+    inline constexpr std::array<char const*, 1> LichLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> MoguMale = {{ {0, 12, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 1> MoguControls = {{ {0, 12, 1} }};
+    inline constexpr std::array<char const*, 1> MoguLabels = {{"Skin Color"}};
+
+    inline constexpr std::array<Option, 5> LostOneMale = {{ {0, 9, 1}, {1, 5, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 2> LostOneControls = {{ {0, 9, 1}, {1, 5, 1} }};
+    inline constexpr std::array<char const*, 2> LostOneLabels = {{"Skin Color", "Glow Color"}};
+
     inline constexpr std::array<Option, 5> CentaurMale = {{
         {0, 16, 1},
         {1, 4, 1},
@@ -430,13 +487,14 @@ namespace CreatureAppearance
     constexpr bool Uses(unsigned race)
     {
         return (race >= 54 && race <= 61) || race == 65 || race == 68 || race == 62 || race == 63 || race == 64
-            || race == 66 || race == 69 || race == 70 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79;
+            || race == 66 || race == 69 || race == 70 || race == 73 || race == 74 || race == 75 || race == 76
+            || race == 77 || race == 78 || race == 79 || (race >= 80 && race <= 91);
     }
 
     constexpr bool GenderAllowed(unsigned race, unsigned gender)
     {
         return Uses(race) && (gender == 0
-            || ((race == 68 || race == 60 || race == 61 || race == 54 || race == 56 || race == 57 || race == 62 || race == 66 || race == 65 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79) && gender == 1));
+            || ((race == 68 || race == 60 || race == 61 || race == 54 || race == 56 || race == 57 || race == 62 || race == 66 || race == 65 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79 || (race >= 80 && race <= 91)) && gender == 1));
     }
 
     constexpr bool UsesPlayerVrykul(unsigned race, unsigned gender)
@@ -492,8 +550,54 @@ namespace CreatureAppearance
             case 69:
             case 70:
                 return DrakonidMale;
+            case 80:
+                return gender ? SurekiFemale : SurekiMale;
+            case 81:
+                return DreadlordMale;
+            case 82:
+                return gender ? TitanFemale : TitanMale;
+            case 83:
+                return WretchedMale;
+            case 84:
+                return FungarianMale;
+            case 85:
+                return SporelingMale;
+            case 86:
+                return StormforgedMale;
+            case 87:
+                return MoargMale;
+            case 88:
+                return NerubianMale;
+            case 89:
+                return LichMale;
+            case 90:
+                return MoguMale;
+            case 91:
+                return LostOneMale;
             default:
                 return NagaMale;
+        }
+    }
+
+    // Pack races: only the listed leading fields carry colour variants; the stock face / hair values are unused.
+    constexpr unsigned PackFields(unsigned race, unsigned gender)
+    {
+        switch (race)
+        {
+            case 77:
+                return 2; // Banshee: skin and hair colour
+            case 80:
+                return gender ? 2 : 1; // Sureki: female also hair
+            case 82:
+                return gender ? 1 : 2; // Titan male: also armour
+            case 84:
+                return 5; // Fungarian
+            case 86:
+                return 2; // Stormforged: skin and hair
+            case 91:
+                return 2; // Lost One: skin and glow
+            default:
+                return 1;
         }
     }
 
@@ -505,10 +609,9 @@ namespace CreatureAppearance
             return fields[0] < 17 && fields[1] < 4 && fields[2] < 6
                 && fields[3] < 76 && fields[4] == 0;
         auto const& options = Options(race, gender);
-        if (race >= 77 && race <= 79)
+        if (race >= 77 && race <= 91)
         {
-            // pack races: the stock face / hair / facial-hair values are unused, only the skin (and Banshee hair) colour count
-            for (unsigned i = 0; i < (race == 77 ? 2u : 1u); ++i)
+            for (unsigned i = 0; i < PackFields(race, gender); ++i)
                 if (fields[i] >= options[i].count)
                     return false;
             return true;
