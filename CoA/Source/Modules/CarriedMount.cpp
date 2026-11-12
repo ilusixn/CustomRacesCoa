@@ -156,7 +156,8 @@ namespace CoA::CarriedMount {
             || lower.find("mountsurfmecha19") != std::string::npos
             || lower.find("mountbear") != std::string::npos
             || lower.find("mountwolfdark18") != std::string::npos
-            || lower.find("\\mountheart\\") != std::string::npos)) {
+            || lower.find("\\mountheart\\") != std::string::npos
+            || lower.find("\\carpet\\") != std::string::npos)) {
             fit.Yaw = kHotsHorseYaw;
             fit.Scale = kBattleBeastScale;
             fit.Roll = kBattleBeastRoll;
