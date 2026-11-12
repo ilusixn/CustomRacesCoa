@@ -29,6 +29,13 @@ skins come from the selection bank, so there is no per-race armour fit to port.
 Verified: the rebuilt exe's `RaceOf` switch and its two string switches now read the same 38 race mappings as
 ilusixn's exe, byte for byte as far as the switch tables go.
 
+A second gap turned up while diffing the two binaries: his build indexes **two** skin banks, `EsteriaKvSkins.bin`
+(the authored Esteria races) and `EsteriaPackSkins.bin` (282 entries under `creature\` and `naked\creature\` — the
+pack races' skins, e.g. `creature\nerubianevolved\surekif_body_white.blp`). The pack's per-race
+`Esteria<Name>Textures.bin` files are empty stubs, so without the second bank the new races resolve their selection
+records but find no skin image. `KvSkin()` now indexes both.
+
 Open, none of it needed for the bodies to be textured: the labels are ours (his exact control labels for the new races
 were not attributed to an id, only their tables), `EsteriaSkillRace()` leaves these ids unmapped so the stock race
 masks apply, and the character-creation screen lists races from the server's tables rather than from this module.
+

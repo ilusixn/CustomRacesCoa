@@ -104,31 +104,35 @@ std::array<int, 3> KvItemGeoset(unsigned display)
     return none;
 }
 
-// The bank is indexed once and every skin is read and decoded on demand: it holds ~120 MB of compressed skins, too much to keep
-// resident in the 32-bit client.
+// The banks are indexed once and every skin is read and decoded on demand: they hold ~260 MB of compressed skins, too much to
+// keep resident in the 32-bit client. EsteriaKvSkins carries the authored Esteria races, EsteriaPackSkins the AllRaces pack.
 KvBodySkin const* KvSkin(char const* path)
 {
     struct Entry { std::string name; unsigned width, height, size; long offset; };
-    static std::vector<Entry> index;
-    static FILE* file = nullptr;
+    struct Bank { FILE* file = nullptr; std::vector<Entry> index; };
+    static Bank banks[2];
     static bool loaded = false;
     static std::unordered_map<std::string, KvBodySkin> cache;
     if (!loaded)
     {
         loaded = true;
-        file = CatalogFile(L"EsteriaKvSkins.bin");
-        unsigned head[2]{};
-        if (file && std::fread(head, sizeof(head), 1, file) == 1 && head[0] == 0x3153564B)
+        wchar_t const* const names[2] = {L"EsteriaKvSkins.bin", L"EsteriaPackSkins.bin"};
+        for (unsigned b = 0; b < 2; ++b)
         {
+            Bank& bank = banks[b];
+            bank.file = CatalogFile(names[b]);
+            unsigned head[2]{};
+            if (!bank.file || std::fread(head, sizeof(head), 1, bank.file) != 1 || head[0] != 0x3153564B)
+                continue;
             for (unsigned i = 0; i < head[1]; ++i)
             {
                 char header[144]{};
-                if (std::fread(header, sizeof(header), 1, file) != 1)
+                if (std::fread(header, sizeof(header), 1, bank.file) != 1)
                     break;
                 Entry entry{std::string(header, strnlen(header, 128)), Field<unsigned>(header, 128), Field<unsigned>(header, 132),
-                    Field<unsigned>(header, 136), std::ftell(file)};
-                index.push_back(entry);
-                if (std::fseek(file, static_cast<long>(entry.size), SEEK_CUR))
+                    Field<unsigned>(header, 136), std::ftell(bank.file)};
+                bank.index.push_back(entry);
+                if (std::fseek(bank.file, static_cast<long>(entry.size), SEEK_CUR))
                     break;
             }
         }
@@ -144,26 +148,29 @@ KvBodySkin const* KvSkin(char const* path)
     auto& entry = cache[key];
     auto decompress = reinterpret_cast<LONG(WINAPI*)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, PULONG)>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlDecompressBuffer"));
-    for (auto const& item : index)
+    for (Bank const& bank : banks)
     {
-        if (item.name != key)
-            continue;
-        if (!decompress || !file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
-            return nullptr;
-        std::vector<unsigned char> packed(item.size);
-        if (std::fseek(file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), file) != packed.size())
-            return nullptr;
-        entry.rgba.resize(static_cast<std::size_t>(item.width) * item.height * 4);
-        ULONG final = 0;
-        if (decompress(2, entry.rgba.data(), static_cast<ULONG>(entry.rgba.size()), packed.data(), item.size, &final) != 0
-            || final != entry.rgba.size())
+        for (auto const& item : bank.index)
         {
-            entry.rgba.clear();
-            return nullptr;
+            if (item.name != key)
+                continue;
+            if (!decompress || !bank.file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
+                return nullptr;
+            std::vector<unsigned char> packed(item.size);
+            if (std::fseek(bank.file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), bank.file) != packed.size())
+                return nullptr;
+            entry.rgba.resize(static_cast<std::size_t>(item.width) * item.height * 4);
+            ULONG final = 0;
+            if (decompress(2, entry.rgba.data(), static_cast<ULONG>(entry.rgba.size()), packed.data(), item.size, &final) != 0
+                || final != entry.rgba.size())
+            {
+                entry.rgba.clear();
+                return nullptr;
+            }
+            entry.width = item.width;
+            entry.height = item.height;
+            return &entry;
         }
-        entry.width = item.width;
-        entry.height = item.height;
-        return &entry;
     }
     return nullptr;
 }
