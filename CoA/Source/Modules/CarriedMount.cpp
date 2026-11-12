@@ -214,7 +214,8 @@ namespace CoA::CarriedMount {
         }
 
         if (lower.find("hotsmounts") != std::string::npos && (lower.find("mountturtle") != std::string::npos
-            || lower.find("mounteyepaddark18") != std::string::npos)) {
+            || lower.find("mounteyepaddark18") != std::string::npos
+            || lower.find("\\mounteye\\") != std::string::npos)) {
             fit.Scale = kTurtleScale;
             fit.Yaw = kHotsHorseYaw;
             fit.Roll = kBattleBeastRoll;
