@@ -1,5 +1,6 @@
 #include "CoA/Source/Runtime/Visuals.h"
 #include "CoA/Source/Runtime/Log.h"
+#include "CoA/Source/Runtime/Lumenveil.h"
 #include "CoA/Source/Runtime/LuxVelum.h"
 #include <windows.h>
 #include <shellapi.h>
@@ -132,8 +133,7 @@ bool CoA::Visuals::Set(unsigned choice) {
 void CoA::Visuals::Start() {
     switch (Current()) {
         case Lumenveil:
-            // No x64 Lumenveil module ships with this build yet; the choice is kept so a future one is picked up here.
-            CoA::Log::Printf("Visuals: Lumenveil selected; no Lumenveil module in this build, the game renders stock");
+            CoA::Lumenveil::Load();
             return;
         case LuxVelum:
             CoA::LuxVelum::Load();
@@ -143,3 +143,4 @@ void CoA::Visuals::Start() {
             return;
     }
 }
+

@@ -26,6 +26,7 @@
 #include "Engine/Source/Services/Camera.h"
 #include "Engine/Source/Services/SysMessage.h"
 #include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
@@ -1777,6 +1778,7 @@ void CGWorldFrame::OnWorldRender() {
     scene->m_passMask = CWorld::m_M2PassMask;
     scene->Draw(M2PASS_0);
     LuxHook(&LuxCallbacks::opaqueDone);
+    LumenHook(&LumenveilCallbacks::opaqueDone);
 
     if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x200122);
@@ -1795,8 +1797,10 @@ void CGWorldFrame::OnWorldRender() {
     } else {
         scene->Draw(M2PASS_2);
         LuxHook(&LuxCallbacks::liquidBegin);
+        LumenHook(&LumenveilCallbacks::liquidBegin);
         CWorldScene::RenderLiquidPass();
         LuxHook(&LuxCallbacks::liquidEnd);
+        LumenHook(&LumenveilCallbacks::liquidEnd);
         CWorldScene::RenderWeather();
         CWorldScene::RenderBarriers(this->m_elapsedSec);
         scene->Draw(M2PASS_1);
@@ -1831,6 +1835,7 @@ void CGWorldFrame::OnWorldRender() {
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
     LuxHook(&LuxCallbacks::worldDone);
+    LumenHook(&LumenveilCallbacks::worldDone);
     FFX::Finish();
     CVehiclePassenger_C::PostRenderUpdateAll();
 }
@@ -2144,8 +2149,10 @@ void CGWorldFrame::RenderWorld(void* param) {
     worldFrame->OnWorldUpdate();
     PlayerNameUpdateWorldText();
     LuxHook(&LuxCallbacks::frameBegin);
+    LumenHook(&LumenveilCallbacks::frameBegin);
     worldFrame->OnWorldRender();
     LuxHook(&LuxCallbacks::frameEnd);
+    LumenHook(&LumenveilCallbacks::frameEnd);
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);
@@ -2576,3 +2583,4 @@ CGWorldFrame::~CGWorldFrame() {
 
     FFX::Destroy();
 }
+
