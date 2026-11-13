@@ -9,7 +9,7 @@ errors left in the Plan 6 capture (`GetEntryBySpellID`, `GetTalentsByClass`, `Ha
 
 **Split:** three sub-plans, each its own branch, review and local merge.
 - **7a, engine:** rows, entry index, spell tags, SpellCustomAttr, known-spell sets, Build and its costs and rules,
-  the manager, packets 0x725 / 0x726 / 0x728..0x72C / 0x659 / 0x65B / 0x926 / 0x64A, the once-a-second Update, the
+  the manager, packets 0x725 / 0x726 / 0x728..0x72C / 0x659 / 0x65B / 0x926 / 064-bitA, the once-a-second Update, the
   glue reset, the five spell-packet hooks, the 0x5AAB90 hook, the cast-requirement check after 0x80B5D0, the rune
   regeneration patch, the global IsItemAction, and wiring into GameMode (active spec), MysticEnchant (investment) and
   SpellText (CA spell questions).
@@ -50,7 +50,7 @@ ValidateApply's codes, unlearn / purge costs.
 
 ### 7a Task 2: Packets, Update, glue, hooks
 
-Packets 0x725 / 0x726 / 0x728..0x72C / 0x659 / 0x65B / 0x926 / 0x64A; Update (parameter sync, auto-learn, the pending
+Packets 0x725 / 0x726 / 0x728..0x72C / 0x659 / 0x65B / 0x926 / 064-bitA; Update (parameter sync, auto-learn, the pending
 signal); the glue reset; the known-spell hooks on the five spell packets and 0x5AAB90; the cast requirement; IsItemAction;
 the rune patch. Tests: each packet's events and state, Update's sync and auto-learn, the glue reset. Client half:
 `CAClient.cpp` and the decomp edits.

@@ -12,7 +12,7 @@ Task 2: Ruling: no log buffering — CoA::Attach (Log::Init, opens Logs\Extensio
 Task 2: Ruling: hasArg is a bare-flag parser in DxvkClient.cpp (CommandLineToArgvW; -x, /x, --x; case-insensitive) — CoA::Script::CommandLineArg only matches flags followed by a value, so "-nodxvk" as the last argument would be missed; Storm's SCmdProcessCommandLine ignores unknown flags — cost if wrong: -nodxvk not honoured (Task 3 run 2 shows it).
 Task 2: Ruling: added CoA::Dxvk::Reset() (tests only, house convention) beyond the plan's interface, and a fifth test (D3d9Library takes a new load of the same path = review focus 4 refcount); Dxvk_D3d9LibraryNullWhenInactive was already green against the empty stub (the stub returned nullptr), the other four were RED — cost if wrong: none.
 Task 2: Ruling: the "DXVK loaded: <path>" line narrows the wide path with non-ASCII characters as '?' (keeps Dxvk.cpp free of Win32) — cost if wrong: an odd log line on a non-ASCII install path.
-Task 1: complete (commits 6c2bfac..ca71d17, tests: check.bat → green; dumpbin x64 Direct3DCreate9/Ex)
+Task 1: complete (commits 6c2bfac..ca71d17, tests: check.bat → green; dumpbin 64-bit Direct3DCreate9/Ex)
 Task 2: complete (commits ca71d17..8254d5b, tests: check.bat → 776 tests, 0 failed; mutants -nodxvk 4 tests / failure 3 tests)
 Task 3: complete (live: DXVK loaded, 65 archives / -nodxvk 57 / missing dll error 126)
 Final review: no Critical/Important.

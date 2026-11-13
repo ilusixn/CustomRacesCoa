@@ -24,9 +24,9 @@ Input: `docs/superpowers/plans/2026-10-25-coa64-world-findings.md`. Earlier ruli
 
 - Reproduce the genuine DLL's behaviour **including its bugs**. Every reproduced bug gets a ledger `Ruling:` line
   and a test (user decision, 2026-10-25).
-- An x64-only failure the 32-bit original survives (heap, pointer width) is not "bug included". Deviate there,
+- An 64-bit-only failure the 32-bit original survives (heap, pointer width) is not "bug included". Deviate there,
   and ledger the deviation.
-- No raw 32-bit address or `ptr + 0xNN` field access into client objects in x64 code. Everything resolves to
+- No raw 32-bit address or `ptr + 0xNN` field access into client objects in 64-bit code. Everything resolves to
   decomp symbols and members, and DLL DBCs go through `CoA::Dbc`.
 - No runtime self-patching. Every decomp edit is marked `// CoA: <file:function> (orig hook 0xADDR)` or
   `(Extensions.dll patch 0xADDR)`.
@@ -235,7 +235,7 @@ with a "Plan 4 result" section.
 - [ ] **Step 1: CombatLog "Corrupt".** `IsAddOnLoadable` returns `UIADDON_CORRUPT` when `addon->m_signed` is
   set, which happens when `FrameXML_CheckSignature(toc, bindings, publicKey, digest)` returns 2
   (`WoW/Source/UIUtil/AddOns.cpp:720`).
-  - Find why the x64 check fails for `Blizzard_CombatLog` but the 32-bit one passes: digest, key, file read, or
+  - Find why the 64-bit check fails for `Blizzard_CombatLog` but the 32-bit one passes: digest, key, file read, or
     pointer width. Use superpowers:systematic-debugging.
   - Write a pure test of the failing computation where possible, fix it, and ledger the cause.
 - [ ] **Step 2: Sound Kit Player frame.**

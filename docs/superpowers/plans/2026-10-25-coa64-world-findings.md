@@ -170,7 +170,7 @@ Capture 2026-10-25, `-extlog 1`, about 2 minutes in world in Northshire, after 7
 filters, C_Spell). Every character advancement and spell API error is gone: `GetEntryBySpellID`, `GetTalentsByClass`,
 `HasRuneUI`, `IsPendingBuildAvailable`, `IsHelpfulSpell`. CharacterAdvancement.dbc loads 10,255 rows. The first 7b run
 crashed about 20 s in, in `CM2Scene::Animate`. A layered batch whose material layer is past its index read
-`m_materials[index - layer]` through a u32 index, which is 16 GB away on x64. It is fixed (pointer arithmetic, the
+`m_materials[index - layer]` through a u32 index, which is 16 GB away on 64-bit. It is fixed (pointer arithmetic, the
 original's address), and two later runs stayed up.
 
 | Error                                        | Plan 6 | Plan 7 |
@@ -285,7 +285,7 @@ Live 2026-10-26, x64 DXVK v2.5.3 (MSVC build) installed at D:\WoW\Coa\x64\d3d9.d
   open); no HDPatch.xml missing-file line; world entered, same 2 Lua errors as Plan 14, client responsive
   (out/baseline/dxvk_world.png). HD content visible; some colour banding on dark terrain to compare with Ascension.exe.
 - -nodxvk: "DXVK disabled (-nodxvk)", 57 archives, HDPatch line back, no DXVK log written.
-- x64 folder missing: "DXVK not loaded (error 126), using system d3d9", 57 archives, no crash.
+- 64-bit folder missing: "DXVK not loaded (error 126), using system d3d9", 57 archives, no crash.
 
 ## Plan 15 result
 
@@ -324,24 +324,24 @@ tests, RegisterPacket refs across UI reloads.
 
 ### LootCollector "WR mode" (resolved 2026-10-26)
 
-Cause: an x64 number conversion, not a missing native. LootCollector falls back to C_Player:IsCustomClass(), which is
+Cause: an 64-bit number conversion, not a missing native. LootCollector falls back to C_Player:IsCustomClass(), which is
 Ascension's SharedConstants.lua `bit.contains(Enum.ClassMask.COA, UnitClassMask(unit))` with COA = 0xFFFFF800. The
 32-bit client converts Lua numbers through __ftol2 / fistp qword and keeps the low dword (numbers past 2^31 wrap); the
-x64 build's direct (int) cast gave 0x80000000, so the mask test failed. lbitlib.c and string.format's integer cases
+64-bit build's direct (int) cast gave 0x80000000, so the mask test failed. lbitlib.c and string.format's integer cases
 now convert through 64 bits (LuaNumberConversionTest). Live: "Realm capabilities mapped: COA mode".
 Follow-up (user: fix all): the 481 `static_cast<int32_t/int/int16_t/...>(lua_tonumber/FrameScript_GetNumber/...)` sites
-in WoW / Engine now convert through int64 (Tools/coa/tests/test_x64_casts.py guards it), and lua_number2int uses
+in WoW / Engine now convert through int64 (Tools/coa/tests/test_64-bit_casts.py guards it), and lua_number2int uses
 cvtsd2si like the 32-bit client's "fld; fistp dword" (round to nearest even). Live: 0 Lua errors, COA mode.
 
 ### Discord SDK (resolved 2026-10-26)
 
-The install's discord_game_sdk.dll is Ascension.exe's 32-bit SDK (error 193 in x64). The user placed the x64 SDK in
+The install's discord_game_sdk.dll is Ascension.exe's 32-bit SDK (error 193 in 64-bit). The user placed the 64-bit SDK in
 D:\WoW\Coa\x64\ beside DXVK's d3d9.dll; DiscordClient now tries <exe dir>\x64\ first (Discord::SdkPaths). Live: the
 x64 SDK is loaded from x64\, a core is created (no "not loadable" / "no core" lines), 0 Lua errors.
 
 ### Discord status (resolved 2026-10-26)
 
-The 2019 Discord Game SDK (Ascension's x86 DLL is byte-identical to the official 2.5.6 build; its x64 twin too) still
+The 2019 Discord Game SDK (Ascension's x86 DLL is byte-identical to the official 2.5.6 build; its 64-bit twin too) still
 creates a core with current Discord apps but never completes its session: no current user, no visible activity.
 CoA64 now speaks the app's local IPC protocol itself (DiscordIpc.{h,cpp}, DiscordClient.cpp; no discord_game_sdk.dll),
 reports the Discord user (CMSG 0x52A, which the SDK never managed) and, since this server sends no 0x90C / 0x90D, builds

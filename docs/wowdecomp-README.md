@@ -10,7 +10,7 @@ Every function is reconstructed from the original binary and keeps the address i
 `// OFFSET:` tag, so each one can be compared against the original. The source tree follows the layout
 of the original client (`Engine/Source/<Module>`, `WoW/Source/<Module>`, original file names).
 
-x64 is the main target. Win32 still builds and is used to check struct layouts against the 32-bit
+64-bit is the main target. Win32 still builds and is used to check struct layouts against the 32-bit
 original.
 
 ## Progress
@@ -41,7 +41,7 @@ parts of FMOD Ex).
 - CMake 3.10 or newer (the one that ships with Visual Studio works)
 - For Win32 builds only: [NASM](https://www.nasm.us/), on `PATH` or passed as `-DNASM_EXECUTABLE=<path>`, and
   `DivxDecoder.dll` from your 3.3.5a client copied to `ThirdParty/DivxDecoder/` (the build copies it next to the
-  executables; the x64 build uses its own decoder instead)
+  executables; the 64-bit build uses its own decoder instead)
 - A World of Warcraft **3.3.5a (12340)** client. No game data is included in this repository.
 
 ## Building
@@ -52,7 +52,7 @@ From a Developer PowerShell or any shell with `cmake` on `PATH`:
 git clone https://github.com/SatyPardus/wowdecomp.git
 cd wowdecomp
 
-# x64 (main target)
+# 64-bit (main target)
 cmake -S . -B build/x64 -G "Visual Studio 17 2022" -A x64
 cmake --build build/x64 --config Release --target WowClient --parallel
 
@@ -65,7 +65,7 @@ In-source builds are refused, so keep the build directory separate (`build/` abo
 
 The client is written to `bin/Win/`:
 
-| Target | x64 | Win32 |
+| Target | 64-bit | Win32 |
 |---|---|---|
 | `WowClient` | `WowClient64.exe` | `WowClient32.exe` |
 | `Wow` | `Wow64.exe` | `Wow32.exe` |
@@ -97,7 +97,7 @@ logger off in `WowClient` with `-DWOWCLIENT_CRASH_LOG=OFF`.
 | `WoW/Common/` | Code shared by the game modules |
 | `ThirdParty/` | Libraries linked from their upstream sources |
 | `Tools/WowClient/` | The `WowClient` executable target |
-| `Tools/XvidDecoder/` | x64 movie decoder that replaces the original 32-bit `DivxDecoder.dll` |
+| `Tools/XvidDecoder/` | 64-bit movie decoder that replaces the original 32-bit `DivxDecoder.dll` |
 
 ## Special thanks
 

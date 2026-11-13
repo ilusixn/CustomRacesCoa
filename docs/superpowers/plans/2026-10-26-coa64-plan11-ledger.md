@@ -22,7 +22,7 @@ Task 2: Ruling: FUN_10308830 mapped to ClientHooks::suppressLearnMessages — co
 Task 2: complete (commits a3fea35..9c1b938, tests: check.bat → 508 tests, 0 failed; mutants 26/26 caught)
 Task 2: Ruling: WildcardMgr glue reset (FUN_10a33b10) zeroes the session id and clears quick-roll configs, unlike the reconstruction — DLL verified by the final reviewer — cost: none.
 Task 2: Ruling: unknown stop code (FUN_10a2f5e0) logged and treated as 1; double parse/log on 0x621 is original — cost: none.
-Final: Ruling: kept original stuck-cancel bug — cancel then 0x644 OK then 0x621 code 0 with no bonus exits before the drain (0x10a35666), InFlight stays true until world entry/glue — cost: rolling blocked for a session, as on genuine.
+Final: Ruling: kept original stuck-cancel bug — cancel then 064-bit4 OK then 0x621 code 0 with no bonus exits before the drain (0x10a35666), InFlight stays true until world entry/glue — cost: rolling blocked for a session, as on genuine.
 Final: Ruling: kept original TemporalContracts timer leak — tick re-arms without storing the id, glue cancel stops only the first; each world entry adds a 50 ms chain — cost: duplicate queued activations, as on genuine.
 Final: minor (deferred): link test vectors are Perl-zlib generated, not a genuine client ExportBuild capture — golden vector from genuine pending.
 Final review: opus, no Critical/Important.

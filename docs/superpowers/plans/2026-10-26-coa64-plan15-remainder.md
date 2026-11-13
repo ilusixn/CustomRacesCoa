@@ -21,9 +21,9 @@ COA_EVENT, packets with COA_PACKET; client detours only through ClientHooks list
 ## Global Constraints
 
 - Reproduce the original exactly, bugs included; every deviation is a ledgered Ruling with its cost if wrong.
-- A hook whose whole purpose cannot exist in the x64 single-image client (32-bit address-space workarounds, crash
-  reporter plumbing that has no x64 counterpart) gets its marker only with a Ruling that names what the original does
-  and why the x64 site needs nothing / what it does instead. No marker without either a port or such a ruling.
+- A hook whose whole purpose cannot exist in the 64-bit single-image client (32-bit address-space workarounds, crash
+  reporter plumbing that has no 64-bit counterpart) gets its marker only with a Ruling that names what the original does
+  and why the 64-bit site needs nothing / what it does instead. No marker without either a port or such a ruling.
 - 64-bit: no pointer truncation; packet / CDataStore layouts keep the 32-bit wire sizes.
 - `cmd //c "Tools\\coa\\check.bat"` green after every task; `python Tools/coa/inventory.py --recon
   F:/WorkDir/ascension-extensions-reconstruction` regenerated and committed per task.
@@ -34,7 +34,7 @@ COA_EVENT, packets with COA_PACKET; client detours only through ClientHooks list
 2. PacketApi: CDataStore natives never read past the packet end; Send only builds client opcodes the original allows.
 3. SpellMods / MovementForce packets with short or malformed payloads do not crash (7a guard convention).
 4. SpellQueueWindow 0x805F60 replacement: no player / no cast end -> false; elapsed -> true; else window compare.
-5. CrashContext / InitHooks / LargeAlloc rulings: nothing that changes allocation or init order on x64 without proof.
+5. CrashContext / InitHooks / LargeAlloc rulings: nothing that changes allocation or init order on 64-bit without proof.
 
 ---
 
@@ -53,7 +53,7 @@ SetAttackCursor. Tests: every CVar row, callbacks, packets, each hook at default
 
 ### Task 2: SpellMods, MovementForce
 
-AscSpellMods: packet 0x64F; hooks 0x71AF90 0x71B820 0x7FD970 0x7FDC60 0x7FF100 0x7FF180 0x8012F0 0x802C30 0x806200
+AscSpellMods: packet 064-bitF; hooks 0x71AF90 0x71B820 0x7FD970 0x7FDC60 0x7FF100 0x7FF180 0x8012F0 0x802C30 0x806200
 0x80CCE0. AscMovementForce: packets 0x761 0x762 0x765 0x766; hooks 0x403B70 0x6EB730 0x6F09F0 0x6F1490 0x762E00
 0x987D00. Tests: packet parsing incl. short payloads, mod application, force lifecycle and glue reset.
 
@@ -71,8 +71,8 @@ AscCrashContext (23 hooks: 0x4D7750 0x57ABC0 0x65C290 0x682200 0x6AFFD0 0x717A20
 AscInitHooks (23: 0x401A80 0x52E4D0 0x54D010 0x59D0B0 0x5E0420 0x5E0D20 0x61E5C0 0x6DE330 0x6E4950 0x6E9600 0x6FDA20
 0x710390 0x717910 0x720BF0 0x7234D0 0x740450 0x744030 0x7441D0 0x7512B0 0x755130 0x756240 0x7FF070 0x8D2400);
 AscLargeAlloc 0x4B9760 0x6348B0 0x83CF00; AscClientGuards 0x68E4AD 0x8540D0; AscMemoryBridge 0x4067F0; AscRegistry
-0x855060. Port behavior wherever it is observable on x64 (crash context strings, guards, init side effects);
-x64-inapplicable hooks per the Global Constraint.
+0x855060. Port behavior wherever it is observable on 64-bit (crash context strings, guards, init side effects);
+64-bit-inapplicable hooks per the Global Constraint.
 
 ### Task 5: Single leftovers
 

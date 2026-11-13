@@ -8,7 +8,7 @@ AscCallboardCache, AscFriendsMetadata, AscChatCheck and AscDiscord. Removes the 
 
 **Architecture:** as in Plans 4..11: pure modules with `*Client.cpp` Deps halves; containers via
 `CoA::Filter::Container`; timers via `CoA/Source/Runtime/Timer.h`. Discord loads `discord_game_sdk.dll` at run time
-through `LoadLibrary` / `GetProcAddress("DiscordCreate")` (the install ships the x86 SDK, which an x64 process cannot
+through `LoadLibrary` / `GetProcAddress("DiscordCreate")` (the install ships the x86 SDK, which an 64-bit process cannot
 load, so the "no core" path runs: CMSG 0x52E) -- a ledgered ruling; the SDK callback thread is kept.
 
 **Spec:** `docs/superpowers/specs/2026-10-25-coa64-client-design.md`. Reference:

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `CoA64.exe` (x64) builds from this repo, loads the CoA install's data from `D:\WoW\Coa` to the CoA
+**Goal:** `CoA64.exe` (64-bit) builds from this repo, loads the CoA install's data from `D:\WoW\Coa` to the CoA
 login screen, carries Ascension's exe patches, and has a `CoA` module with the runtime plumbing every later
 Extensions.dll port uses (attach, logging, custom opcode routing, custom events, Lua registration, CVar lists),
 plus the tools that measure porting coverage.
@@ -13,7 +13,7 @@ point into `CoA`, marked `// CoA: <recon file:function> (orig hook 0xADDR)`. Pyt
 (stdlib only, `unittest`) map 32-bit addresses to decomp symbols and diff the CoA registrations against the
 reconstruction's inventory.
 
-**Tech Stack:** C++ (MSVC v143, VS 2022), CMake ≥ 3.10 with Ninja or the VS generator, x64; Python 3 stdlib.
+**Tech Stack:** C++ (MSVC v143, VS 2022), CMake ≥ 3.10 with Ninja or the VS generator, 64-bit; Python 3 stdlib.
 
 **Spec:** `docs/superpowers/specs/2026-10-25-coa64-client-design.md`
 
@@ -26,7 +26,7 @@ task granularity before the address map exists.
 
 - Behaviour reference: `F:\WorkDir\ascension-extensions-reconstruction` at commit `1b9ebca`. Reproduce its
   behaviour including bugs. Do not modify that repo or `F:\WorkDir\WoWClients\wowdecomp`.
-- No raw 32-bit client addresses or 32-bit struct offsets in x64 code; resolve to decomp symbols/members.
+- No raw 32-bit client addresses or 32-bit struct offsets in 64-bit code; resolve to decomp symbols/members.
 - No runtime detours, `VirtualProtect` or byte writes into our own image; edit the source.
 - Every edit to decomp code (outside `CoA/`) carries `// CoA:` with the reconstruction file:function and the
   original hook/patch address.
@@ -90,7 +90,7 @@ task granularity before the address map exists.
   `cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B out/build/x64-Release` then
   `cmake --build out/build/x64-Release --target Wow`. Expected: `bin/Win/Wow64.exe` exists. If it fails, fix only
   what the copy broke (paths) — record anything else and stop.
-- [ ] **Step 2:** Set `WOW_OUTPUT_NAME` to `CoA64` for x64, `CLIENT_NAME` to `"CoA64"`; rebuild. Expected:
+- [ ] **Step 2:** Set `WOW_OUTPUT_NAME` to `CoA64` for 64-bit, `CLIENT_NAME` to `"CoA64"`; rebuild. Expected:
   `bin/Win/CoA64.exe`.
 - [ ] **Step 3:** Copy `CoA64.exe`/`.pdb` to `D:\WoW\Coa`, launch with cwd `D:\WoW\Coa`. Expected: window opens and
   reaches a login screen or a recorded failure. Screenshot it; note archive-related errors. This is the baseline

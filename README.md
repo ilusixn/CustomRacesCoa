@@ -1,16 +1,36 @@
-> ## CoA Custom: extra races, vanilla classes, more incarnations
-> This is the build of **CoA Custom** for the Jealous-Sound CoA repack updated to CoA Bots: extra playable races
-> including Murloc, every race x every class, the classic classes next to the CoA classes, more Wardrobe incarnations,
-> and random bots that play the extra races too. This repo adds the CoaCustomrace.exe (`CoaCustomrace.exe`) with Retail Worgen and
-> Dracthyr forms. **Development stage: test build.**
->
-> - **Download:** [latest release](https://github.com/ilusixn/CoA64/releases/latest): every zip on that page, one folder,
->   then `Install-Custom.bat` (see `INSTALL-GUIDE.txt` there).
-> - **Install guide, known problems, rebuilding:** [CoA Custom README](https://github.com/ilusixn/azerothcore-wotlk-coa/blob/main/apps/coa-custom/README.md)
-> - **Credits:** [CREDITS.md](CREDITS.md)
-> - **Bugs:** open an issue, with race, class, gender, what you did and a screenshot.
->
-> The original project README follows. The CoaCustomRace client README is at the end.
+> **Download:** the [latest release](../../releases/latest) (V2): every zip on that page, one folder, then `Install-Custom.bat`.
+
+# CoA Custom Races V2
+
+![Character creation](docs/creation-screen.png)
+
+Every custom race for Conquest of Azeroth (AzerothCore server + the CoA custom client), plus everything built since 1.9.9:
+Gilgoblin, the restored Fading Island (boats, elevators, NPCs), Lumenveil graphics, retail mounts and pets, the in-game dev menu,
+class incarnations and a lot of fixes.
+
+**Video:** [docs/showcase.mp4](docs/showcase.mp4) (5 minutes, 1080p)
+
+## Download
+Releases page, **V2**: `CoA-Custom-V2-Server.zip` + `CoA-Custom-V2-Client-1..9.zip`. Extract all of them into one folder and run
+`CoA-Custom\Install-Custom.bat`. Start the game with `CoACustomRace.exe`. Steps: [docs/INSTALL-GUIDE.txt](docs/INSTALL-GUIDE.txt).
+Back up your characters first. What changed: [docs/PATCH-NOTES-V2.txt](docs/PATCH-NOTES-V2.txt).
+
+## What is in V2
+- **One client**: `CoACustomRace.exe`. Vulkan renderer with Lumenveil lighting / fog and the HD water and material passes.
+- **80 race entries**, every id and credit in [RACES.md](RACES.md) and [docs/CoA-Custom-Races-V2-Credits.xlsx](docs/CoA-Custom-Races-V2-Credits.xlsx).
+- **Gilgoblin** (the Unshackled, race 105) with racials.
+- **Fading Island restore**: 2 boats (Booty Bay and Ratchet to Hardluck), 4 elevators, goblin passengers, spirit healer, teleports.
+- **Retail mounts and pets**: about 1700 mounts, 2600 battle pets.
+- **Dev menu**: `/dev` in-game editor for NPCs, items, quests, shops, paths and objects.
+- **Incarnations**: every slot open to every class; Venomancer, Bloodmage, Reaper, Starcaller, Felsworn, Pyromancer, Necromancer,
+  Cultist, Primalist, Tinker, Witch Hunter, Barbarian and Stormbringer forms and pets. See the release's `INCARNATIONS.md`.
+- **Vanilla class health** matched to the CoA classes (levels 2 to 60).
+- **Fixes**: Sylvari, Centaur and Faceless animations, Tuskarr ankle, white / green Saberon and Drakonid, bot freezes.
+
+This repo is the source of the **CoACustomRace** client (based on Sven Bledt's CoA client port, shared here with written permission) and the
+tools around it. The development notes of the original project follow below.
+
+---
 
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
@@ -112,14 +132,14 @@ It's important to note that AzerothCore is not an official Blizzard Entertainmen
 
 ---
 
-# CoA64 (x64 client)
+# CoA64 (client)
 
 A native 64-bit client for Conquest of Azeroth: the WoW 3.3.5a (build 12340) client with the functionality of
 CoA's `Extensions.dll` built in.
 
 It is built on two upstream sources (see `UPSTREAM.md`):
 
-- **wowdecomp**, a C++ decompilation of the 3.3.5a client whose x64 build is a complete client. Every function
+- **wowdecomp**, a C++ decompilation of the 3.3.5a client whose 64-bit build is a complete client. Every function
   keeps its original address in an `// OFFSET:` tag. Its README is kept at `docs/wowdecomp-README.md`.
 - **ascension-extensions-reconstruction**, the function-by-function reconstruction of `Extensions.dll`.
   Its features are ported into `CoA/Source`. Each place where decomp code was changed for CoA carries a
@@ -130,7 +150,7 @@ client: `CoA/DIFFERENCES.md`.
 
 ## Building
 
-Visual Studio 2022 (Desktop development with C++), from an x64 developer prompt:
+Visual Studio 2022 (Desktop development with C++), from an 64-bit developer prompt:
 
 ```bat
 cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B out\build\x64-Release

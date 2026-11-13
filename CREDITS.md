@@ -9,7 +9,7 @@ Taken from the CoA Custom 1.9.2 patch notes and README, plus the race ports adde
 - **AzerothCore**: the server, plus mod-ah-bot and mod-playerbots.
 - **SQUID / Zyth45**: CoA playerbots (mod-playerbots).
 - **Corfirean**: CoA Server Manager, CoA Companions, coa-bots core.
-- **Westen / Sven Bledt**: the CoA64 x64 client decomp this fork is based on (https://github.com/Westen-CoACore/CoA64).
+- **Westen / Sven Bledt**: the CoA client decomp this fork is based on (https://github.com/Westen-CoACore/CoA64).
 - **Project Ascension**: race models, textures and client data come from the Project Ascension client.
 
 ## Races
@@ -29,3 +29,10 @@ Taken from the CoA Custom 1.9.2 patch notes and README, plus the race ports adde
 
 ## This fork
 - **ilusixn**: CoA Custom and the custom race module (Retail adapter, Worgen / Dracthyr forms, Kyrian / Venthyr, Vorkai / Mantid / Hozen and the other ports).
+
+## Added in V2
+- **ilusixn**: Gilgoblin, the Fading Island restore (boats, elevators, goblin NPCs, spirit healer), Retail mounts and pets, class incarnations
+  and class health, the dev menu, animation repairs (Sylvari, Centaur, Faceless One), bot fixes, the CoACustomRace client build and its
+  graphics integration, release engineering (built with Claude Code).
+- **Lumenveil** and the **HD water / material passes**: GPL graphics code (Lumenveil GPL-2.0, HD passes GPL-3.0+), integrated into the client.
+- Every race with its credit: [RACES.md](RACES.md) and `docs/CoA-Custom-Races-V2-Credits.xlsx`.

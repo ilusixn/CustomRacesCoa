@@ -11,14 +11,14 @@ Task 1: complete (commits 759cb1f..1e91668, tests: check.bat → 543 tests, 0 fa
 Task 2: Ruling: forEachCompletion is a TemporalContracts Dep (brief said Wildcard); Callboard fills it — cost: none.
 Task 2: Ruling: count loops stop when no bytes are left (recovery, store, callboard, 0x730) — original overreads — cost: malformed packets only.
 Task 2: Ruling: missing/unloadable discord_game_sdk.dll → CMSG 0x52E result 4 (InternalError) — original links statically — cost: server sees 4 instead of e.g. NotRunning.
-Task 2: Ruling: SDK loaded via LoadLibraryW/GetProcAddress with x64 C-ABI structs — x86 DLL unloadable — cost: core path untested at runtime.
+Task 2: Ruling: SDK loaded via LoadLibraryW/GetProcAddress with 64-bit C-ABI structs — x86 DLL unloadable — cost: core path untested at runtime.
 Task 2: Ruling: 0x90C activity unset fields zeroed (original: uninitialised stack) — cost: none visible.
 Task 2: Ruling: Discord callback thread is a std::thread — cost: none.
 Task 2: Ruling: kept original recovery-result bug marking the view entry at the all-list index (FUN_103060b0) — cost: as genuine.
 Task 2: complete (commits 1e91668..db4adb3, tests: check.bat → 573 tests, 0 failed; mutants 39/39 caught)
 Final review: opus — 1 Important, 3 Minor.
 Final: fixed filter-table readers not reproducing FrameScript::lua_totable (bad key/value empties the map; map order) — shared CoA::Script::ToBoolMap used in CustomStore, GMTicket and (DLL-verified to reach 0x100BED80 / 0x1011FC10 / 0x10131480) WildcardSets, TrialCreator, ChallengeNatives, AppearanceBrowser — tests CustomStore_Filters, GMTicket_Filters, TrialCreator_Filter, Challenge_Container, WildcardSets_DesiredBrowser, AppearanceBrowser_Filter RED→GREEN, suite 573/573, 2/2 mutants caught.
-Final: minor (deferred): DiscordClient targets SDK 2.x x64 ABI; a 3.x SDK needs DISCORD_VERSION 3 / overlay v2 — comment only.
+Final: minor (deferred): DiscordClient targets SDK 2.x 64-bit ABI; a 3.x SDK needs DISCORD_VERSION 3 / overlay v2 — comment only.
 Final: minor (deferred): GMTicket sorts table read per value with StringAt; FUN_1011f710 invalid-value handling not decompiled.
 Final: minor (deferred): diagnostics use printf %d where the original uses fmt {} — log text only.
 Final: minor (deferred): detour 0x10A46350's once-only FUN_10228d30 registers SMSG 0x904/0x92A/0x92C/0x92D (another module) — check ownership in Plan 15.

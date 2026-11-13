@@ -2,7 +2,7 @@
 Pre-flight: tasks share no interfaces except ClientHooks lists and CVar registration (existing runtime)
 Task 1: Ruling: 0x52ADCC as ClientHooks::options.frameXmlRegistersUiScale cleared by ClientOptions::Init; CGGameUI::Initialize (uiScale/useUiScale) runs from the glue-list callback (DLL 0x10A67D5E) — cost: none.
 Task 1: Ruling: 24 runtime callback byte patches as ClientHooks::options flags at decomp sites (Plan 13 pattern) — cost: none.
-Task 1: Ruling: 0x731720 skips only the store; the original's x87 stack leak/shifted compare not reproduced (no x87 on x64) — cost: flags2&8 tracking-turn compare differs.
+Task 1: Ruling: 0x731720 skips only the store; the original's x87 stack leak/shifted compare not reproduced (no x87 on 64-bit) — cost: flags2&8 tracking-turn compare differs.
 Task 1: Ruling: BuildSelectionRotMatrix made a const member (object in ecx) — cost: none.
 Task 1: Ruling: null CombatLogMelee/autoAcceptTrades/cameraM2Collision slots treated as stock (DLL derefs null; pre-world only) — cost: none in practice.
 Task 1: Ruling: TerrainScale null MCLY skips, layer count clamped to 4 (original reads past) — cost: malformed ADTs only.
@@ -30,6 +30,6 @@ Task 3: Ruling: Geosets CreateModel capture via shared afterCreateModel list (DL
 Task 3: complete (commits d4ae32f..9f055bb, tests: check.bat → 770 tests, 0 failed; mutants 63/63)
 Task 4: complete (live: 2 Lua errors, was 5; findings 'Plan 14 result')
 Final: fixed LoadingScreen DBC path "DBFilesClient\L..." (invalid escape, variation never applied) — LoadingScreen_PicksANonZeroVariation (fake reader now exact-path) RED→GREEN, suite 771/771
-Final: Ruling: NamePlates — Unit_C teardown releases the plate inline (bypasses 0x725840), leaving the original's registry pointing at the freed unit; CoA64 calls NamePlates::ForgetUnit there (drops entries, no REMOVED event, as the original fires none) — x64 freed-memory read would crash — cost if wrong: a token that in the original returned a garbage GUID now returns no unit. Test NamePlates_ForgetUnitDropsDanglingEntries RED→GREEN, suite 771/771
+Final: Ruling: NamePlates — Unit_C teardown releases the plate inline (bypasses 0x725840), leaving the original's registry pointing at the freed unit; CoA64 calls NamePlates::ForgetUnit there (drops entries, no REMOVED event, as the original fires none) — 64-bit freed-memory read would crash — cost if wrong: a token that in the original returned a garbage GUID now returns no unit. Test NamePlates_ForgetUnitDropsDanglingEntries RED→GREEN, suite 771/771
 Final: Ruling: NamePlateClearAll (plates toggled off) also bypasses 0x725840 — units stay alive, so kept as the original: re-enabling plates gives a new id and a second ADDED without REMOVED — cost if wrong: addon sees duplicate ADDED
 Final: Ruling (declined-to-judge items): low-byte-0 plate re-added every frame, FreeType shutdown with cached faces, SpellShadow style index past 2 textures when no player in state 2/3, raw CM2Model* across frames, tooltip s_compare after luaL_error, sscanf EOF match, Spell_C_BeginCast always-true — all faithful to the DLL — cost if wrong: as in the original

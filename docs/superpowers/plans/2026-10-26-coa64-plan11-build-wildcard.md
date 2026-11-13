@@ -27,7 +27,7 @@ Exports mirror the reconstruction's AscBuildCreator.hpp / AscWildcardRapid.hpp /
 1. The build link round-trips: ExportBuildOf -> DecodeLink -> SeedFromLink reproduces the build (URL decode, base64, raw
    inflate) and matches a link the original produces.
 2. CA natives that consult BuildCreator / Wildcard now behave as in the original (the Plan 7 Deps are filled).
-3. Rapid rolling's phases, the cancel path and the reroll-pending flag across SMSG 0x61E / 0x644 and the glue reset.
+3. Rapid rolling's phases, the cancel path and the reroll-pending flag across SMSG 0x61E / 064-bit4 and the glue reset.
 4. The roll-ready poll's timing (50 ms for a second, then 1 s) and the edge-triggered WILDCARD_ROLL_READY.
 5. TemporalContracts keeps its empty type list (the filler is in the VM-protected part) and the queued activation timer.
 

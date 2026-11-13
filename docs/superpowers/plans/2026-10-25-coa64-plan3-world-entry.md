@@ -23,7 +23,7 @@ what is still missing (unhandled packets, Lua errors, missing natives) into the 
 ## Global Constraints
 
 - Reproduce the genuine DLL's behaviour **including its bugs**; known original defects are recorded, not fixed.
-- No raw 32-bit address (`0x4xxxxx`–`0xDxxxxx`) or `ptr + 0xNN` field access into client objects in x64 code;
+- No raw 32-bit address (`0x4xxxxx`–`0xDxxxxx`) or `ptr + 0xNN` field access into client objects in 64-bit code;
   everything resolves to decomp symbols/members.
 - No runtime self-patching (detours, `VirtualProtect`, byte writes): a byte patch is an equivalent source
   change; a detour is a call at the function's start/end; `ReplaceFunction` makes the decomp body dispatch to
@@ -39,7 +39,7 @@ what is still missing (unhandled packets, Lua errors, missing natives) into the 
 ## Review Focus
 
 1. **A patch whose bytes encode a 32-bit address or a code cave** (0x86A62C → 0x9296A2 camera cave, 0x869DB0,
-   jmp/call rel32 rows): copying the intent, not the bytes — the x64 edit reproduces what the cave computes.
+   jmp/call rel32 rows): copying the intent, not the bytes — the 64-bit edit reproduces what the cave computes.
    Task 1 pins the camera clamp with `AttachPatches_CameraClampFiftyPixels`.
 2. **Patches a later module changes again** (AFK logout jmp 0x52B27A ↔ SetAFKLogoutTimer, rune-UI class
    0x728AA3 ↔ AscCAMgr): the attach value is a variable the later module can set, not a constant. Task 1 tests
@@ -64,7 +64,7 @@ what is still missing (unhandled packets, Lua errors, missing natives) into the 
 - `CoA/Source/Modules/AnimationCount.h/.cpp`: the runtime AnimationData row count.
 - Decomp files edited at the patch/hook sites (located per row with `scratchpad`-style lookup:
   `python Tools/coa/addrmap.py` output `CoA/addrmap.tsv` gives `0xADDR → file:symbol`).
-- `CoA/DIFFERENCES.md`: any x64-forced difference found.
+- `CoA/DIFFERENCES.md`: any 64-bit-forced difference found.
 - `docs/superpowers/plans/2026-10-25-coa64-world-findings.md`: Task 8's measured list.
 
 ## Translating a byte patch (all of Tasks 1–3, 6)
@@ -144,7 +144,7 @@ one-to-one constant/branch change.
 
 ### Task 3: AscAttachInline (27 rows)
 
-**Files:** Modify the 27 sites of `AscAttachInline.generated.inc`; `CoA/DIFFERENCES.md` if any is x64-forced.
+**Files:** Modify the 27 sites of `AscAttachInline.generated.inc`; `CoA/DIFFERENCES.md` if any is 64-bit-forced.
 
 - [ ] **Step 1: Coverage test:** run inventory. Expected: the 27 addresses listed as missing (RED).
 - [ ] **Step 2: Translate** every row per "Translating a byte patch".

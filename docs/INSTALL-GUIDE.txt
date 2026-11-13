@@ -1,0 +1,38 @@
+CoA Custom Races V2 - install guide
+===================================
+V2 is COMPLETE: this release alone is enough (Server zip + Client-1 .. Client-9). Close the game first. The installer also dumps
+your characters. Changes since the last version: PATCH-NOTES-V2.txt. Checksums: SHA256SUMS.txt.
+
+A) With the installer (recommended, Windows)
+--------------------------------------------
+1. Download ALL the zips of this release into ONE folder:
+       CoA-Custom-V2-Server.zip
+       CoA-Custom-V2-Client-1.zip ... CoA-Custom-V2-Client-9.zip      (ten zips)
+   Already on 1.9.9 or V1.x? You only need Server + Client-6 (Client-7..9 are the Retail form data, same as 1.9.9).
+2. Extract ALL the zips into THE SAME folder (next to Start_All_Server.bat; overwrite if asked).
+3. Run CoA-Custom\Install-Custom.bat. Point it at the repack folder and at the game folder (Data folder inside).
+4. With the servers STOPPED, run CoA-Custom\Apply-Subclass.bat once (database backup + subclass SQL) if you come from 1.9.5 or older.
+5. Start the servers (Start_All_Server.bat, or CoA-Bots\Start_All_Bots.bat for bots).
+6. Start the game with CoACustomRace.exe (game folder) or Start-CoACustomRace.bat. Do not use Ascension.exe.
+
+B) Manual install
+-----------------
+Server: CoA-Custom\files\worldserver.exe -> CoA-Bots\Core\worldserver.exe (keep the old one), files\dbc\*.dbc -> Data\dbc\,
+  run files\sql\*.sql in numeric order, each ONCE (the ones marked repeatable can run again: 16, 40-61).
+  Bots: set  AiPlayerbot.ExcludedBotRaces = "65"  in playerbots.conf (Test Race). The worldserver also deletes Test Race bots on start.
+Client, from Client-1..9:
+  files\client\*.MPQ -> <game>\Data\
+  files\client_root\* (keep the folder layout; it holds CoACustomRace.exe, the Vulkan folder, VulkanShaders, forever_data, Data\Retail ...)
+     -> next to Ascension.exe
+  files\addons\* -> <game>\Interface\AddOns\
+
+Graphics
+--------
+Default look is set by the cvar "visuals" (0 stock, 1 Lumenveil, 2 Azeroth Remastered). Presets: <game>\presets\README.md.
+If the screen is black or white, start with Start-CoACustomRace.bat once; it forces the Vulkan renderer.
+
+Troubleshooting
+---------------
+- Crash on the character screen or in the world: send Errors\*.txt, Logs\AnimBad.log and Logs\RetailRace.log.
+- Characters made before 1.9.3 have no saved Retail look: make a new Worgen / Dracthyr to test forms.
+- Female Drakonid / Grummle characters made earlier have no body: the server switches them to male at the next start.

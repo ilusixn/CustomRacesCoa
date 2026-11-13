@@ -1,0 +1,68 @@
+CoA Custom Races V2 - patch notes (everything since 1.9.9 / V1.1)
+==================================================================
+Back up your characters before updating the server. Install steps: INSTALL-GUIDE.txt.
+
+NEW CLIENT
+- One client executable: CoACustomRace.exe (your logo as icon). Start it from the game folder, or run Start-CoACustomRace.bat.
+  Ascension.exe is no longer needed to play.
+- Vulkan renderer with Lumenveil lighting / volumetric fog and the HD water and material passes (cvar "visuals": 0 stock,
+  1 Lumenveil, 2 Azeroth Remastered style). Graphics presets are in the "presets" folder, options in the in-game menu.
+  Data files: VulkanShaders, forever_data, lampdata.bin, liquiddata.bin, CoAVolFog*.ini.
+- The Vulkan files live in the folder "Vulkan" next to the exe.
+- Animation safety: a model with a broken animation link can no longer freeze the client when a bot spawns, and a model with
+  a corrupt event list is skipped (and logged in Logs\AnimBad.log) instead of crashing.
+
+NEW RACES
+- Gilgoblin (race 105, the Unshackled), with racials and its own creature looks.
+- Race list with every id and credit: RACES.md and CoA-Custom-Races-V2-Credits.xlsx.
+
+FADING ISLAND RESTORE
+- Map 907 restored: 2 working boats (Booty Bay <-> Hardluck, Ratchet <-> Hardluck), 4 working elevators, goblin passenger NPCs
+  on the boats, a spirit healer, teleport points (.tele FadingIsland), cleaned map tiles.
+- Server SQL: 41_fading_islands_ferries.sql, 42_fading_islands_teleports.sql, 43_fading_islands_spirit_healer.sql,
+  44_fading_islands_hostile_remove.sql. Core fixes (island graveyards, transport start, ferry detach) are in worldserver.exe.
+
+RETAIL MOUNTS AND PETS
+- About 1700 retail mounts and 2600 retail battle pets as companions (50_retail_mounts.sql, 51_retail_pets.sql). Models and
+  icons come through the Retail adapter on demand.
+
+DEV MENU
+- /dev in game: NPC, item, quest, shop, path and object editor with a custom item creator and heirlooms (addon CoA_DevMenu +
+  server module built into worldserver.exe). Also: CoA_Teleports addon.
+
+INCARNATIONS (Wardrobe > Incarnations)
+- Every incarnation slot is open to every class.
+- Venomancer forms wear the druid incarnations (Spider = Cat, Beetle = Bear, Venomwing = Travel, Sea Serpent = Aquatic,
+  Vizier = Moonkin) and Weaver Form can be Moonkin or Tree of Life.
+- Bloodmage, Reaper, Starcaller, Felsworn (Inner Demon variants, Hellfire), Pyromancer Draconic Form and Necromancer Lich Form
+  take their incarnation. Cultist Madness forms use Metamorphosis.
+- Pet classes (Primalist, Tinker, Witch Hunter, Barbarian ancestors, Stormbringer elemental) can dress their pets in any pet
+  look: pet, demon, undead, dragonkin or elemental. Necromancer guardians are split over the pet categories.
+- Full list per class: INCARNATIONS.md.
+
+CLASSES
+- Vanilla classes now have CoA-average base health from level 2 to 60 (60_vanilla_class_health.sql, repeatable).
+
+BOTS
+- Test Race bots are deleted at the next start and no longer created. Drakonid and Grummle bots are always male (those races
+  have no female body); existing female ones are switched to male. New bots can no longer roll Test Race.
+
+FIXES
+- Sylvari, Centaur and Faceless One player models: broken animation data repaired (exploding mesh, event crash).
+- Saberon and Drakonid shown white or green: appearance values are folded into range; Drakonid is male only.
+- Tuskarr: invisible ankle fixed (the model and skin files did not match).
+- Worgen / Dracthyr retail forms, seating, jump and mount animations carried over from 1.9.9.
+
+KNOWN ISSUES
+- Female Mechagnome bots can look broken.
+- Grummle uses its creature mesh: no armour geosets.
+- Class forms for Chronomancer, Runemaster and Necromancer Rime have no incarnation yet.
+- Lumenveil and the HD passes are new: if the world looks wrong, set "visuals" to 0 (stock) in the console.
+- Mounts and pets are untested in long play; report crashes with Errors\*.txt and Logs\AnimBad.log.
+
+LICENCE NOTE
+The Lumenveil and HD graphics passes are GPL code (Lumenveil GPL-2.0, HD passes GPL-3.0+) built into CoACustomRace.exe, and
+the client is based on CoA64 by Sven Bledt (proprietary, shared here with credit). Third-party assets keep their authors' terms.
+
+CREDITS
+Full list with every race: RACES.md and CoA-Custom-Races-V2-Credits.xlsx (the last section of this file repeats the credit line).

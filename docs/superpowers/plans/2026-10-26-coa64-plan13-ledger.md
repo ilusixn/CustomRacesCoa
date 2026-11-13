@@ -4,7 +4,7 @@ Task 0: Ruling: Script_LoadAddOn reason locals start at UIADDON_LOADABLE — ori
 Task 0: Ruling: loadUnknownAddOns half of the 0x5F7E90 gate sits at its two callers (0x5F8071 / 0x5F80FA) instead of a return-address check — cost: none observable.
 Task 0: Ruling: three C++ cleared functions restore taint via scope-exit; Lua ones restore explicitly before each return (a Lua error skips it, as in original) — cost: only if those three raise Lua errors.
 Task 0: complete (commits 33d0a67..abede97, tests: check.bat → 591 tests, 0 failed; mutants 20/20 caught)
-Task 1: Ruling: count loops (0x648/649/653/654/655/624) stop when a record's minimum size isn't left; 0x624/0x625 indices >= 0x10000 dropped; fixed fields past end read 0 — original overreads / failed alloc — malformed packets only.
+Task 1: Ruling: count loops (064-bit8/649/653/654/655/624) stop when a record's minimum size isn't left; 0x624/0x625 indices >= 0x10000 dropped; fixed fields past end read 0 — original overreads / failed alloc — malformed packets only.
 Task 1: Ruling: ReloadItemDisplayInfoCollections rebuilds from the patched table, not a file reload (FUN_101e7b10 not fully traced) — cost: patched rows may survive a reload.
 Task 1: Ruling: collection model paths passed from DLL strings instead of copied into 260-byte client buffers — cost: only if client reads those buffers later.
 Task 1: Ruling: collection removal skips a component with no model (original derefs null); quiver slot 11 folder "" (original reads past table) — cost: crash-only paths.

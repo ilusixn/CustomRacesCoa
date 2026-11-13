@@ -14,6 +14,6 @@ Task 3: complete (commits b64d0ae..957b220, tests: check.bat → 385 tests, 0 fa
 Final review: Opus reviewer — no Critical, no Important, 5 Minor.
 Final: fixed truncated 0x753 adding zero picks (re-graded from M1: violates the plan's count-guard constraint) — DraftMode_ShortPacket RED→GREEN, suite 386/386
 Final: Ruling: 0x6AA / 0x6AB inflated record loops stop at the inflated data's end (reference guard; the genuine loop reads n records unchecked) — cost if wrong: none for well-formed data.
-Final: minor (deferred): Read::Inflate resizes to the declared u32 size before inflating; a lying size can allocate up to 4 GB on x64 (malformed packets only).
+Final: minor (deferred): Read::Inflate resizes to the declared u32 size before inflating; a lying size can allocate up to 4 GB on 64-bit (malformed packets only).
 Final: minor (deferred): tests do not pin 0x6AA firing nothing, the <4-byte 0x6AA case, or Seasonal custom points / achievements surviving the glue screen.
 Final: fixed plan Review Focus #1 wording (failed inflate clears first) — doc only.
