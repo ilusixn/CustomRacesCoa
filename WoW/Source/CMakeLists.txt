@@ -9,7 +9,7 @@ endif ()
 add_executable(Wow WIN32 ${PRIVATE_SOURCES} ${PLATFORM_SOURCES})
 
 if (WOWDECOMP_ARCH_64)
-    set(WOW_OUTPUT_NAME CoA64)
+    set(WOW_OUTPUT_NAME AFK64)
 else ()
     set(WOW_OUTPUT_NAME Wow32)
 endif ()
@@ -78,3 +78,4 @@ target_link_libraries(Wow
         WowServices
         WowSvcs
 )
+

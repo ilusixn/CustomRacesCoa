@@ -37,14 +37,14 @@ cmake --build "%BUILD%" --target dxvk
 if errorlevel 1 goto :fail
 :nodxvk
 
-if not exist "%BIN%\Win\CoA64.exe" goto :missing
-if not exist "%BIN%\Win\CoA64.map" goto :missing
+if not exist "%BIN%\Win\AFK64.exe" goto :missing
+if not exist "%BIN%\Win\AFK64.map" goto :missing
 if not exist "%BIN%\Win\XvidDecoder.dll" goto :missing
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%"
-copy /y "%BIN%\Win\CoA64.exe" "%STAGE%\CoA64.exe" >nul
-copy /y "%BIN%\Win\CoA64.map" "%STAGE%\CoA64.map" >nul
+copy /y "%BIN%\Win\AFK64.exe" "%STAGE%\AFK64.exe" >nul
+copy /y "%BIN%\Win\AFK64.map" "%STAGE%\AFK64.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
 if exist "%BIN%\Win\x64\d3d9.dll" (
     mkdir "%STAGE%\x64"
@@ -53,7 +53,7 @@ if exist "%BIN%\Win\x64\d3d9.dll" (
     echo WARNING: %BIN%\Win\x64\d3d9.dll missing, the zip has no DXVK
 )
 
-set "ZIP=%BIN%\CoA64-%HASH%.zip"
+set "ZIP=%BIN%\AFK64-%HASH%.zip"
 powershell -NoProfile -Command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%ZIP%' -Force"
 if errorlevel 1 goto :fail
 rmdir /s /q "%STAGE%"
@@ -76,3 +76,4 @@ exit /b 1
 :fail
 echo ERROR: build or packaging failed
 exit /b 1
+
