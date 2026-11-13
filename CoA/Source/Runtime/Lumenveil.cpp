@@ -7,12 +7,14 @@
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
 #include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Os/Gui.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/WorldClient/World.h"
 #include <windows.h>
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -29,6 +31,9 @@ namespace {
     EventFn s_opaqueDone;
     EventFn s_liquidBegin;
     EventFn s_liquidEnd;
+    EventFn s_liquidInstancesDone;
+    LiquidMaterialFn s_liquidMaterial;
+    FarClipFn s_farClipLift;
     EventFn s_worldDone;
     EventFn s_present;
     DepthSurfaceFn s_depthSurface;
@@ -113,7 +118,8 @@ namespace {
     }
 
     bool CameraInLiquid(void*) {
-        return false;
+        float depth = 0.0f;
+        return World::SceneCamLiquidStatus(&depth) != 0 && depth > 0.0f;
     }
 
     bool OpaqueViewport(void*, D3DVIEWPORT9* out) {
@@ -177,7 +183,7 @@ namespace {
         out->lightParams.screenEffectSlot = static_cast<int>(info.m_overrideLightParamsId);
         out->farClip = World::s_farClip;
         out->clientFarClip = World::s_farClip;
-        out->inLiquid = false;
+        out->inLiquid = CameraInLiquid(nullptr);
         out->mapId = LoadingScreenMapId();
         return true;
     }
@@ -225,6 +231,17 @@ namespace {
     }
 
     void RefreshFarClip(void*) {}
+
+    void SetFarClip(void*, float setting) {
+        char text[32];
+        snprintf(text, sizeof(text), "%.1f", setting);
+
+        if (CVar* cvar = CVar::Lookup("farclip")) {
+            cvar->Set(text, true, false, false, true);
+        }
+
+        World::SetFarClip(setting);
+    }
 
     void* Device(void*) {
         if (s_device) {
@@ -281,6 +298,11 @@ namespace {
         }
         static void OnLiquidBegin() { if (s_liquidBegin) s_liquidBegin(); }
         static void OnLiquidEnd() { if (s_liquidEnd) s_liquidEnd(); }
+        static void OnLiquidInstancesDone() { if (s_liquidInstancesDone) s_liquidInstancesDone(); }
+        static void OnLiquidMaterial(int index, int begin) { if (s_liquidMaterial) s_liquidMaterial(index, begin); }
+        static float OnFarClipClamp(float requested, int mapId, float clamped) {
+            return s_farClipLift ? s_farClipLift(requested, mapId, clamped) : clamped;
+        }
         static void OnWorldDone() {
             // A late pass (water, portraits) may have left another depth bound; the engine needs its own.
             if (s_depthSurface) {
@@ -341,6 +363,9 @@ void CoA::Lumenveil::Load() {
     s_opaqueDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_opaque_done"));
     s_liquidBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_begin"));
     s_liquidEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_end"));
+    s_liquidInstancesDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_instances_done"));
+    s_liquidMaterial = reinterpret_cast<LiquidMaterialFn>(GetProcAddress(module, "vf_on_liquid_material"));
+    s_farClipLift = reinterpret_cast<FarClipFn>(GetProcAddress(module, "vf_far_clip_lift"));
     s_worldDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_world_done"));
     s_present = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_present"));
     s_depthSurface = reinterpret_cast<DepthSurfaceFn>(GetProcAddress(module, "vf_host_depth_surface"));
@@ -369,7 +394,9 @@ void CoA::Lumenveil::Load() {
     s_host.device = Device;
     s_host.window = Window;
     s_host.readStockFog = ReadStockFog;
-    setHost(&s_host);    init();
+    s_host.setFarClip = SetFarClip;
+    setHost(&s_host);
+    init();
 
     s_callbacks.frameBegin = &LumenveilHost::OnFrameBegin;
     s_callbacks.frameEnd = &LumenveilHost::OnFrameEnd;
@@ -377,6 +404,9 @@ void CoA::Lumenveil::Load() {
     s_callbacks.opaqueDone = &LumenveilHost::OnOpaqueDone;
     s_callbacks.liquidBegin = &LumenveilHost::OnLiquidBegin;
     s_callbacks.liquidEnd = &LumenveilHost::OnLiquidEnd;
+    s_callbacks.liquidInstancesDone = &LumenveilHost::OnLiquidInstancesDone;
+    s_callbacks.liquidMaterial = &LumenveilHost::OnLiquidMaterial;
+    s_callbacks.farClipClamp = &LumenveilHost::OnFarClipClamp;
     s_callbacks.worldDone = &LumenveilHost::OnWorldDone;
     s_callbacks.present = &LumenveilHost::OnPresent;
     g_lumenveil = &s_callbacks;

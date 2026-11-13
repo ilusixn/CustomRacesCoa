@@ -105,6 +105,7 @@ namespace CoA::Lumenveil::Abi {
         void* (*device)(void* context);
         void* (*window)(void* context);
         void (*readStockFog)(void* context, StockFog* fog);
+        void (*setFarClip)(void* context, float setting);
     };
 
     // The engine's exports.
@@ -113,6 +114,7 @@ namespace CoA::Lumenveil::Abi {
     using EventFn = void(__cdecl*)();
     using DepthSurfaceFn = IDirect3DSurface9*(__cdecl*)();
     using WrapD3D9Fn = IDirect3D9*(__cdecl*)(IDirect3D9*);
+    using FarClipFn = float(__cdecl*)(float requested, int mapId, float clamped);
     using LiquidMaterialFn = void(__cdecl*)(int index, int begin);
 }
 

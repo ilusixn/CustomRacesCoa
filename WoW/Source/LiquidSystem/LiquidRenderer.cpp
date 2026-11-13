@@ -2,7 +2,22 @@
 #include <cstdlib>
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxLight.h"
+#include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Storm/H/storm.h"
+
+namespace
+{
+int LumenveilLiquidMaterialIndex(const Liquid::IMaterial* material)
+{
+    auto& materials = Liquid::CMaterialBank::s_materials;
+    for (uint32_t i = 0; i < materials.Count(); ++i)
+    {
+        if (materials[i] == material)
+            return i == 2 ? 3 : 1; // index 3 is the engine's magma class; any other index is water
+    }
+    return 1;
+}
+} // namespace
 
 // STATIC: 0x00B23F6C
 Liquid::CRenderer::DrawListSorter Liquid::CRenderer::s_drawListSorter[2] = {
@@ -122,7 +137,18 @@ void Liquid::CRenderer::Flush(const C3Vector& cameraPos, uint32_t pass) {
 
     for (uint32_t i = 0; i < count; i++) {
         Liquid::CInstance* instance = instances.m_data[i];
+        const int materialIndex = pass == 1 ? LumenveilLiquidMaterialIndex(instance->m_material) : 0;
+
+        if (pass == 1) {
+            LumenLiquidMaterial(materialIndex, 1);
+        }
+
         instance->m_material->Render(instance->m_environment, instance->m_geomFactory, instance->m_waveManager, cameraPos, &instance->m_transform, &instance->m_bounds, instance->m_settings);
+
+        if (pass == 1) {
+            LumenLiquidMaterial(materialIndex, 0);
+        }
+
         instance->m_queued = 0;
     }
 

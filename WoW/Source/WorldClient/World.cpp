@@ -3,6 +3,7 @@
 #include "CoA/Source/Modules/ZoneLightClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Gx/LuxVelum.h"
+#include "Engine/Source/Gx/Lumenveil.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
@@ -1333,6 +1334,7 @@ float World::ValidateFarClip(float farClip, int32_t mapID) {
     // CoA: AscGraphics.cpp:FUN_1026ad40 (orig hook 0x780770) replaces the stock clamp (CoA::Graphics::FarClipClamp has the
     // ranges); LuxVelum may widen the result.
     float clamped = CoA::Graphics::FarClipClamp(farClip, static_cast<uint32_t>(mapID));
+    clamped = LumenFarClipClamp(farClip, mapID, clamped);
     return g_luxVelum && g_luxVelum->farClipClamp ? g_luxVelum->farClipClamp(farClip, mapID, clamped) : clamped;
 }
 
@@ -1934,6 +1936,8 @@ void CWorldScene::RenderLiquidPass() {
         }
 
         CWorldScene::s_liquidRenderer->Flush(CWorldScene::s_activeWorldView, 1);
+
+        LumenLiquidInstancesDone();
 
         if (g_luxVelum && g_luxVelum->waterPassEnd) {
             g_luxVelum->waterPassEnd();
