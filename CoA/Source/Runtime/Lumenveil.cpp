@@ -8,6 +8,12 @@
 #include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
+#include "WoW/Source/Object/Movement.h"
+#include "WoW/Source/Object/ObjectClient/Object_C.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/Object/ObjectClient/Unit_C.h"
+#include "WoW/Source/Object/Types.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
@@ -16,6 +22,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <cmath>
 #include <string>
 
 int32_t LoadingScreenMapId();
@@ -144,6 +151,230 @@ namespace {
         return SUCCEEDED(device->GetViewport(out));
     }
 
+    constexpr float kUnitScanYards = 80.0f;
+    constexpr float kCorpseScanYards = 60.0f;
+    constexpr int kMaxVisibleObjects = 4096;
+    constexpr uint32_t kUnitDynamicLootable = 0x1;
+
+    WOWGUID s_playerGuid = {};
+    WOWGUID s_targetGuid = {};
+
+    struct VisibleUnits {
+        CoA::Lumenveil::Abi::FrameInputs* out;
+        WOWGUID unitTargets[CoA::Lumenveil::Abi::kMaxUnitInputs];
+        int visited;
+    };
+
+    int __cdecl VisitVisibleUnit(WOWGUID guid, void* param) {
+        auto& scan = *static_cast<VisibleUnits*>(param);
+
+        if (++scan.visited > kMaxVisibleObjects) {
+            return 0;
+        }
+
+        auto* object = ClntObjMgrObjectPtr(guid, TYPE_UNIT, "Lumenveil.cpp", __LINE__);
+
+        if (!object || !object->m_obj) {
+            return 1;
+        }
+
+        const OBJECT_TYPE_ID typeId = object->m_typeId;
+
+        if (typeId != ID_UNIT && typeId != ID_PLAYER) {
+            return 1;
+        }
+
+        auto* unit = static_cast<CGUnit_C*>(object);
+
+        if (!unit->m_unit) {
+            return 1;
+        }
+
+        const C3Vector at = unit->GetPosition();
+
+        if (!std::isfinite(at.x) || !std::isfinite(at.y) || !std::isfinite(at.z)) {
+            return 1;
+        }
+
+        const float dx = at.x - scan.out->camPos[0];
+        const float dy = at.y - scan.out->camPos[1];
+        const float dz = at.z - scan.out->camPos[2];
+        const float squared = dx * dx + dy * dy + dz * dz;
+        const bool alive = unit->m_unit->m_unitFieldHealth != 0;
+        const bool creature = typeId == ID_UNIT;
+        const bool lootable = creature && !alive && (unit->m_unit->m_unitDynamicFlags & kUnitDynamicLootable) != 0;
+
+        if (alive) {
+            if (squared > kUnitScanYards * kUnitScanYards ||
+                scan.out->unitCount >= CoA::Lumenveil::Abi::kMaxUnitInputs) {
+                return 1;
+            }
+
+            auto& input = scan.out->units[scan.out->unitCount];
+            input.feet[0] = at.x;
+            input.feet[1] = at.y;
+            input.feet[2] = at.z;
+            input.boundingRadius = unit->m_unit->m_unitFieldBoundingradius;
+            input.target = -1;
+            input.guid = guid.m_guid;
+            scan.unitTargets[scan.out->unitCount] = unit->m_unit->m_unitFieldTarget;
+            ++scan.out->unitCount;
+            return 1;
+        }
+
+        if (!lootable || squared > kCorpseScanYards * kCorpseScanYards ||
+            scan.out->corpseCount >= CoA::Lumenveil::Abi::kMaxCorpseInputs) {
+            return 1;
+        }
+
+        auto& corpse = scan.out->corpsePos[scan.out->corpseCount];
+        corpse[0] = at.x;
+        corpse[1] = at.y;
+        corpse[2] = at.z;
+        scan.out->corpseIds[scan.out->corpseCount] = static_cast<uint32_t>(guid.m_guid);
+        ++scan.out->corpseCount;
+        return 1;
+    }
+
+    struct WorldScan {
+        int unitCount;
+        CoA::Lumenveil::Abi::UnitInput units[CoA::Lumenveil::Abi::kMaxUnitInputs];
+        int corpseCount;
+        float corpsePos[CoA::Lumenveil::Abi::kMaxCorpseInputs][3];
+        uint32_t corpseIds[CoA::Lumenveil::Abi::kMaxCorpseInputs];
+        double seconds;
+    };
+
+    WorldScan s_worldScan;
+
+    void ReadPlayer(CoA::Lumenveil::Abi::FrameInputs& out) {
+        out.playerKnown = false;
+        out.targetKnown = false;
+        s_playerGuid = {};
+        s_targetGuid = {};
+
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+
+        if (!player || !player->m_unit || !player->m_obj) {
+            return;
+        }
+
+        const C3Vector at = player->GetPosition();
+        const float facing = player->GetFacing();
+
+        if (!std::isfinite(at.x) || !std::isfinite(at.y) || !std::isfinite(at.z) || !std::isfinite(facing)) {
+            return;
+        }
+
+        out.playerKnown = true;
+        out.playerPos[0] = at.x;
+        out.playerPos[1] = at.y;
+        out.playerPos[2] = at.z;
+        out.playerFacing = facing;
+        out.playerMoveFlags = player->m_movement ? player->m_movement->m_flags : 0;
+        out.playerMountDisplay = player->m_unit->m_unitFieldMountdisplayid;
+        out.playerClass = player->m_unit->m_unitFieldBytes0[1];
+        s_playerGuid = player->m_obj->m_guid;
+        s_targetGuid = player->m_unit->m_unitFieldTarget;
+
+        if (!s_targetGuid) {
+            return;
+        }
+
+        auto* target = ClntObjMgrObjectPtr(s_targetGuid, TYPE_UNIT, "Lumenveil.cpp", __LINE__);
+
+        if (!target || !target->m_obj) {
+            return;
+        }
+
+        const C3Vector targetAt = target->GetPosition();
+
+        if (!std::isfinite(targetAt.x) || !std::isfinite(targetAt.y) || !std::isfinite(targetAt.z)) {
+            return;
+        }
+
+        out.targetKnown = true;
+        out.targetPos[0] = targetAt.x;
+        out.targetPos[1] = targetAt.y;
+        out.targetPos[2] = targetAt.z;
+
+        if (target->m_typeId == ID_UNIT || target->m_typeId == ID_PLAYER) {
+            auto* targetUnit = static_cast<CGUnit_C*>(target);
+
+            if (targetUnit->m_unit) {
+                out.targetBoundingRadius = targetUnit->m_unit->m_unitFieldBoundingradius;
+            }
+        }
+    }
+
+    void RefreshUnitFeet(CoA::Lumenveil::Abi::FrameInputs& out) {
+        for (int i = 0; i < out.unitCount; ++i) {
+            WOWGUID guid = {};
+            guid.m_guid = out.units[i].guid;
+            auto* object = ClntObjMgrObjectPtr(guid, TYPE_UNIT, "Lumenveil.cpp", __LINE__);
+
+            if (!object || !object->m_obj ||
+                (object->m_typeId != ID_UNIT && object->m_typeId != ID_PLAYER)) {
+                continue;
+            }
+
+            const C3Vector at = object->GetPosition();
+
+            if (std::isfinite(at.x) && std::isfinite(at.y) && std::isfinite(at.z)) {
+                out.units[i].feet[0] = at.x;
+                out.units[i].feet[1] = at.y;
+                out.units[i].feet[2] = at.z;
+            }
+        }
+    }
+
+    void ReadWorldUnits(CoA::Lumenveil::Abi::FrameInputs& out) {
+        constexpr double kScanInterval = 0.1;
+
+        if (s_worldScan.seconds < 0.0 || out.seconds < s_worldScan.seconds ||
+            out.seconds - s_worldScan.seconds >= kScanInterval) {
+            s_worldScan.seconds = out.seconds;
+            CoA::Lumenveil::Abi::FrameInputs scratch = out;
+            scratch.unitCount = 0;
+            scratch.corpseCount = 0;
+            VisibleUnits scan = {};
+            scan.out = &scratch;
+            ClntObjMgrEnumVisibleObjects(VisitVisibleUnit, &scan);
+
+            for (int i = 0; i < scratch.unitCount; ++i) {
+                for (int j = 0; j < scratch.unitCount; ++j) {
+                    if (i != j && scan.unitTargets[i].m_guid == scratch.units[j].guid) {
+                        scratch.units[i].target = j;
+                        break;
+                    }
+                }
+            }
+
+            s_worldScan.unitCount = scratch.unitCount;
+            std::memcpy(s_worldScan.units, scratch.units, sizeof(s_worldScan.units));
+            s_worldScan.corpseCount = scratch.corpseCount;
+            std::memcpy(s_worldScan.corpsePos, scratch.corpsePos, sizeof(s_worldScan.corpsePos));
+            std::memcpy(s_worldScan.corpseIds, scratch.corpseIds, sizeof(s_worldScan.corpseIds));
+
+            static int s_loggedUnits = -1;
+            static int s_loggedCorpses = -1;
+
+            if (scratch.unitCount != s_loggedUnits || scratch.corpseCount != s_loggedCorpses) {
+                s_loggedUnits = scratch.unitCount;
+                s_loggedCorpses = scratch.corpseCount;
+                HostLog("units: %d alive within 80 yd, %d lootable corpses within 60 yd", scratch.unitCount,
+                        scratch.corpseCount);
+            }
+        }
+
+        out.unitCount = s_worldScan.unitCount;
+        std::memcpy(out.units, s_worldScan.units, sizeof(out.units));
+        out.corpseCount = s_worldScan.corpseCount;
+        std::memcpy(out.corpsePos, s_worldScan.corpsePos, sizeof(out.corpsePos));
+        std::memcpy(out.corpseIds, s_worldScan.corpseIds, sizeof(out.corpseIds));
+        RefreshUnitFeet(out);
+    }
+
     bool ReadFrameInputs(void*, CoA::Lumenveil::Abi::FrameInputs* out) {
         if (!out) {
             return false;
@@ -197,6 +428,27 @@ namespace {
         out->clientFarClip = World::s_farClip;
         out->inLiquid = CameraInLiquid(nullptr);
         out->mapId = LoadingScreenMapId();
+
+        const C3Vector& sun = DayNight::g_planets.m_sun.m_position;
+        const C3Vector& moon = DayNight::g_planets.m_moon.m_position;
+        const float sunLength = std::sqrt(sun.x * sun.x + sun.y * sun.y + sun.z * sun.z);
+        const float moonLength = std::sqrt(moon.x * moon.x + moon.y * moon.y + moon.z * moon.z);
+
+        if (sunLength > 1.0e-6f) {
+            out->toLight[0] = sun.x / sunLength;
+            out->toLight[1] = sun.y / sunLength;
+            out->toLight[2] = sun.z / sunLength;
+            out->sunElevation = out->toLight[2];
+        }
+
+        if (moonLength > 1.0e-6f) {
+            out->moonElevation = moon.z / moonLength;
+        }
+
+        out->unitCount = 0;
+        out->corpseCount = 0;
+        ReadPlayer(*out);
+        ReadWorldUnits(*out);
         return true;
     }
 
