@@ -117,9 +117,21 @@ namespace {
         target[2] = CWorldScene::camTarget.z;
     }
 
+    // The camera bobs at the water surface; toggling the fog on and off with every wave makes the distance
+    // haze flicker. Enter the underwater state only when clearly below the surface and leave it near the top.
+    bool s_cameraInLiquid = false;
+
     bool CameraInLiquid(void*) {
         float depth = 0.0f;
-        return World::SceneCamLiquidStatus(&depth) != 0 && depth > 0.0f;
+        const int type = World::SceneCamLiquidStatus(&depth);
+
+        if (type != 0 && depth > 0.5f) {
+            s_cameraInLiquid = true;
+        } else if (type == 0 || depth < 0.1f) {
+            s_cameraInLiquid = false;
+        }
+
+        return s_cameraInLiquid;
     }
 
     bool OpaqueViewport(void*, D3DVIEWPORT9* out) {
