@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
 #include "Engine/Source/Gx/Blit.h"
+#include "CoA/Source/Runtime/Lumenveil.h"
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTex.h"
@@ -543,6 +544,13 @@ int32_t CGxDeviceD3d::ILoadD3dLib(HINSTANCE& d3dLib, LPDIRECT3D9& d3d) {
             d3d = d3dCreateProc(D3D_SDK_VERSION);
 
             if (d3d) {
+                // Lumenveil wraps the device too: its fog device owns the INTZ depth and the overlay.
+                if (g_lumenveil) {
+                    if (IDirect3D9* wrapped = CoA::Lumenveil::WrapD3D9(d3d)) {
+                        d3d = wrapped;
+                    }
+                }
+
                 return 1;
             }
 
@@ -2267,7 +2275,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS& d3dpp, const CGxForma
             break;
     }
 
-    if (format.m_multisampleCount <= 1) {
+    if (format.m_multisampleCount <= 1 || g_lumenveil) {
         d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
         return;
     }
@@ -2637,6 +2645,8 @@ int32_t CGxDeviceD3d::ICreateD3dDevice(const CGxFormat& format) {
         this->m_d3dDevice = nullptr;
         return 0;
     }
+
+    CoA::Lumenveil::SetDevice(this->m_d3dDevice);
 
     if (this->m_d3dNVAPI) {
         NvU8 stereoEnabled = 0;
@@ -3378,6 +3388,20 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
 
     this->m_d3dDevice->GetRenderTarget(0, &this->m_defColorSurface);
     this->m_d3dDevice->GetDepthStencilSurface(&this->m_defDepthSurface);
+
+    // Use the engine's INTZ depth as the client's default depth for the whole session; the fog reads it.
+    if (g_lumenveil) {
+        if (IDirect3DSurface9* depth = CoA::Lumenveil::DepthSurface()) {
+            if (this->m_defDepthSurface) {
+                this->m_defDepthSurface->Release();
+            }
+
+            this->m_defDepthSurface = depth;
+            depth->AddRef();
+            this->m_d3dDevice->SetDepthStencilSurface(depth);
+        }
+    }
+
     this->InitLights();
     this->m_ambientOnlyMode = 0;
 

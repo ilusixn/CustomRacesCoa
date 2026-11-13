@@ -1776,6 +1776,7 @@ void CGWorldFrame::OnWorldRender() {
 
     scene->SetFloat18(-CWorld::s_unk_CD7758);
     scene->m_passMask = CWorld::m_M2PassMask;
+    LumenHook(&LumenveilCallbacks::opaqueBegin);
     scene->Draw(M2PASS_0);
     LuxHook(&LuxCallbacks::opaqueDone);
     LumenHook(&LumenveilCallbacks::opaqueDone);

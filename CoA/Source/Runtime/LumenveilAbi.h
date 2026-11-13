@@ -112,6 +112,7 @@ namespace CoA::Lumenveil::Abi {
     using InitFn = void(__cdecl*)();
     using EventFn = void(__cdecl*)();
     using DepthSurfaceFn = IDirect3DSurface9*(__cdecl*)();
+    using WrapD3D9Fn = IDirect3D9*(__cdecl*)(IDirect3D9*);
     using LiquidMaterialFn = void(__cdecl*)(int index, int begin);
 }
 

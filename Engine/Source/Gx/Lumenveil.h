@@ -7,6 +7,7 @@ using LumenveilEvent = void (*)();
 struct LumenveilCallbacks {
     LumenveilEvent frameBegin;
     LumenveilEvent frameEnd;
+    LumenveilEvent opaqueBegin;
     LumenveilEvent opaqueDone;
     LumenveilEvent liquidBegin;
     LumenveilEvent liquidEnd;

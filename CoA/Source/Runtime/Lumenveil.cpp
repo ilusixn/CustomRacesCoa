@@ -22,14 +22,17 @@ namespace {
     using namespace CoA::Lumenveil::Abi;
 
     Host s_host;    LumenveilCallbacks s_callbacks;
+    void* s_device;
     EventFn s_frameBegin;
     EventFn s_frameEnd;
+    EventFn s_opaqueBegin;
     EventFn s_opaqueDone;
     EventFn s_liquidBegin;
     EventFn s_liquidEnd;
     EventFn s_worldDone;
     EventFn s_present;
     DepthSurfaceFn s_depthSurface;
+    WrapD3D9Fn s_wrapD3D9;
 
     std::wstring ExeDir() {
         wchar_t path[MAX_PATH];
@@ -191,6 +194,10 @@ namespace {
     void RefreshFarClip(void*) {}
 
     void* Device(void*) {
+        if (s_device) {
+            return s_device;
+        }
+
         return D3dDevice();
     }
 
@@ -223,10 +230,29 @@ namespace {
             if (s_frameBegin) s_frameBegin();
         }
         static void OnFrameEnd() { if (s_frameEnd) s_frameEnd(); }
+        static void OnOpaqueBegin() { if (s_opaqueBegin) s_opaqueBegin(); }
         static void OnOpaqueDone() { if (s_opaqueDone) s_opaqueDone(); }
         static void OnLiquidBegin() { if (s_liquidBegin) s_liquidBegin(); }
         static void OnLiquidEnd() { if (s_liquidEnd) s_liquidEnd(); }
-        static void OnWorldDone() { if (s_worldDone) s_worldDone(); }
+        static void OnWorldDone() {
+            // A late pass (water, portraits) may have left another depth bound; the engine needs its own.
+            if (s_depthSurface) {
+                if (auto* device = static_cast<IDirect3DDevice9*>(D3dDevice())) {
+                    if (IDirect3DSurface9* depth = s_depthSurface()) {
+                        static bool logged = false;
+                        const HRESULT hr = device->SetDepthStencilSurface(depth);
+
+                        if (FAILED(hr) && !logged) {
+                            logged = true;
+                            HostLog("worldDone: SetDepthStencilSurface(%p) failed 0x%08lX", reinterpret_cast<void*>(depth),
+                                    static_cast<unsigned long>(hr));
+                        }
+                    }
+                }
+            }
+
+            if (s_worldDone) s_worldDone();
+        }
         static void OnPresent() {
             static bool logged = false;
 
@@ -264,14 +290,16 @@ void CoA::Lumenveil::Load() {
     auto init = reinterpret_cast<InitFn>(GetProcAddress(module, "vf_host_init"));
     s_frameBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_frame_begin"));
     s_frameEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_frame_end"));
+    s_opaqueBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_opaque_begin"));
     s_opaqueDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_opaque_done"));
     s_liquidBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_begin"));
     s_liquidEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_end"));
     s_worldDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_world_done"));
     s_present = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_present"));
     s_depthSurface = reinterpret_cast<DepthSurfaceFn>(GetProcAddress(module, "vf_host_depth_surface"));
+    s_wrapD3D9 = reinterpret_cast<WrapD3D9Fn>(GetProcAddress(module, "vf_host_wrap_d3d9"));
 
-    HostLog("Load: exports setHost=%p frameBegin=%p frameEnd=%p worldDone=%p present=%p depth=%p", reinterpret_cast<void*>(setHost), reinterpret_cast<void*>(s_frameBegin), reinterpret_cast<void*>(s_frameEnd), reinterpret_cast<void*>(s_worldDone), reinterpret_cast<void*>(s_present), reinterpret_cast<void*>(s_depthSurface));
+    HostLog("Load: exports setHost=%p frameBegin=%p frameEnd=%p worldDone=%p present=%p depth=%p wrap=%p", reinterpret_cast<void*>(setHost), reinterpret_cast<void*>(s_frameBegin), reinterpret_cast<void*>(s_frameEnd), reinterpret_cast<void*>(s_worldDone), reinterpret_cast<void*>(s_present), reinterpret_cast<void*>(s_depthSurface), reinterpret_cast<void*>(s_wrapD3D9));
 
     if (!setHost || !init || !s_frameBegin || !s_frameEnd || !s_worldDone) {
         CoA::Log::Printf("Lumenveil: Lumenveil64.dll is not the x64 host build (exports missing); unloaded");
@@ -299,6 +327,7 @@ void CoA::Lumenveil::Load() {
 
     s_callbacks.frameBegin = &LumenveilHost::OnFrameBegin;
     s_callbacks.frameEnd = &LumenveilHost::OnFrameEnd;
+    s_callbacks.opaqueBegin = &LumenveilHost::OnOpaqueBegin;
     s_callbacks.opaqueDone = &LumenveilHost::OnOpaqueDone;
     s_callbacks.liquidBegin = &LumenveilHost::OnLiquidBegin;
     s_callbacks.liquidEnd = &LumenveilHost::OnLiquidEnd;
@@ -312,6 +341,14 @@ void CoA::Lumenveil::Load() {
 
 IDirect3DSurface9* CoA::Lumenveil::DepthSurface() {
     return s_depthSurface ? s_depthSurface() : nullptr;
+}
+
+void CoA::Lumenveil::SetDevice(void* device) {
+    s_device = device;
+}
+
+IDirect3D9* CoA::Lumenveil::WrapD3D9(IDirect3D9* real) {
+    return s_wrapD3D9 ? s_wrapD3D9(real) : nullptr;
 }
 
 

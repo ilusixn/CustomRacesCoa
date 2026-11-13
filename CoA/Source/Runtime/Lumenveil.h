@@ -9,6 +9,12 @@
 namespace CoA::Lumenveil {
     void Load();
 
+    // Device hand-off: the engine creates its INTZ depth on this device. Set right after CreateDevice.
+    void SetDevice(void* device);
+
+    // Wraps the client's IDirect3D9 so CreateDevice installs the engine's fog device. Takes over the reference.
+    IDirect3D9* WrapD3D9(IDirect3D9* real);
+
     // The engine's INTZ scene depth while it renders; null otherwise.
     IDirect3DSurface9* DepthSurface();
 }
