@@ -2628,6 +2628,11 @@ int32_t CGxDeviceD3d::ICreateD3dDevice(const CGxFormat& format) {
 
     DWORD behaviorFlags = hwTnL ? D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE | D3DCREATE_FPU_PRESERVE : D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_FPU_PRESERVE;
 
+    // Lumenveil reads the device's viewport and render states; a pure device refuses those Get calls.
+    if (g_lumenveil) {
+        behaviorFlags &= ~D3DCREATE_PUREDEVICE;
+    }
+
     if (FAILED(this->m_d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, this->m_hwnd, behaviorFlags, &d3dpp, &this->m_d3dDevice))) {
         this->m_d3dDevice = nullptr;
         return 0;

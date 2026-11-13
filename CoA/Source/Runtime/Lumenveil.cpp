@@ -189,11 +189,21 @@ namespace {
 
     struct LumenveilHost final : LumenveilCallbacks {
         static void OnFrameBegin() {
+            static bool logged = false;
+
             // The client's main-scene depth is bound once at device creation. Point it at the engine's INTZ depth
             // before the world clears and renders, so the fog reads this frame's depth.
             if (s_depthSurface) {
                 if (auto* device = static_cast<IDirect3DDevice9*>(D3dDevice())) {
-                    if (IDirect3DSurface9* depth = s_depthSurface()) {
+                    IDirect3DSurface9* depth = s_depthSurface();
+
+                    if (!logged) {
+                        logged = true;
+                        HostLog("frameBegin: device=%p depth=%p", reinterpret_cast<void*>(device),
+                                reinterpret_cast<void*>(depth));
+                    }
+
+                    if (depth) {
                         device->SetDepthStencilSurface(depth);
                     }
                 }
@@ -206,7 +216,16 @@ namespace {
         static void OnLiquidBegin() { if (s_liquidBegin) s_liquidBegin(); }
         static void OnLiquidEnd() { if (s_liquidEnd) s_liquidEnd(); }
         static void OnWorldDone() { if (s_worldDone) s_worldDone(); }
-        static void OnPresent() { if (s_present) s_present(); }
+        static void OnPresent() {
+            static bool logged = false;
+
+            if (!logged) {
+                logged = true;
+                HostLog("present: first frame");
+            }
+
+            if (s_present) s_present();
+        }
     };
 }
 
