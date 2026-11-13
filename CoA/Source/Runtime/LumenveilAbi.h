@@ -102,6 +102,7 @@ namespace CoA::Lumenveil::Abi {
         bool (*setWeather)(void* context, int type, float grade, bool instant);
         int (*areaId)(void* context);
         void (*refreshFarClip)(void* context);
+        void* (*device)(void* context);
     };
 
     // The engine's exports.
@@ -111,3 +112,4 @@ namespace CoA::Lumenveil::Abi {
 }
 
 #endif
+

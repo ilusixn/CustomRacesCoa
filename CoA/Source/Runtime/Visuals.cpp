@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <cstdio>
+#include <cstring>
 #include <cwchar>
 #include <string>
 
@@ -19,6 +20,48 @@ namespace {
         size_t slash = dir.find_last_of(L"\\/");
         return slash == std::wstring::npos ? std::wstring(L".") : dir.substr(0, slash);
     }
+
+    // LuxVelum's fogdata.bin is format version 4; Lumenveil's engine reads version 3 and says "invalid" otherwise.
+    // Keep LuxVelum's file aside so the chosen mod finds (or does not find) its own data.
+    bool LuxFogData(const std::wstring& path) {
+        FILE* file = nullptr;
+
+        if (_wfopen_s(&file, path.c_str(), L"rb") || !file) {
+            return false;
+        }
+
+        char head[8] = {};
+        size_t read = fread(head, 1, sizeof(head), file);
+        fclose(file);
+        unsigned version = 0;
+
+        if (read == sizeof(head)) {
+            memcpy(&version, head + 4, sizeof(version));
+        }
+
+        return memcmp(head, "VFD1", 4) == 0 && version == 4;
+    }
+
+    // Lumenveil's engine reads fogdata.bin format version 3, LuxVelum's is version 4: keep LuxVelum's file aside so
+    // the chosen mod finds its own data (or none, and Lumenveil derives its layers).
+    void SwapFogData(unsigned choice) {
+        const std::wstring dir = ExeDir();
+        const std::wstring active = dir + L"\\fogdata.bin";
+        const std::wstring kept = dir + L"\\fogdata.luxvelum.bin";
+
+        if (choice == CoA::Visuals::LuxVelum) {
+            if (!LuxFogData(active) && LuxFogData(kept) && !CopyFileW(kept.c_str(), active.c_str(), FALSE)) {
+                CoA::Log::Printf("Visuals: LuxVelum's fogdata.bin could not be put back");
+            }
+
+            return;
+        }
+
+        if (LuxFogData(active) && MoveFileExW(active.c_str(), kept.c_str(), MOVEFILE_REPLACE_EXISTING)) {
+            CoA::Log::Printf("Visuals: LuxVelum's fogdata.bin kept as fogdata.luxvelum.bin");
+        }
+    }
+
 
     bool Parse(unsigned& out, const wchar_t* text) {
         if (!text || !*text) {
@@ -131,7 +174,10 @@ bool CoA::Visuals::Set(unsigned choice) {
 }
 
 void CoA::Visuals::Start() {
-    switch (Current()) {
+    unsigned const choice = Current();
+    SwapFogData(choice);
+
+    switch (choice) {
         case Lumenveil:
             CoA::Lumenveil::Load();
             return;
@@ -143,4 +189,6 @@ void CoA::Visuals::Start() {
             return;
     }
 }
+
+
 

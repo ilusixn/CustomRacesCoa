@@ -158,6 +158,10 @@ namespace {
 
     void RefreshFarClip(void*) {}
 
+    void* Device(void*) {
+        return D3dDevice();
+    }
+
     struct LumenveilHost final : LumenveilCallbacks {
         static void OnFrameBegin() { if (s_frameBegin) s_frameBegin(); }
         static void OnFrameEnd() { if (s_frameEnd) s_frameEnd(); }
@@ -211,6 +215,7 @@ void CoA::Lumenveil::Load() {
     s_host.setWeather = SetWeather;
     s_host.areaId = AreaId;
     s_host.refreshFarClip = RefreshFarClip;
+    s_host.device = Device;
     setHost(&s_host);
 
     s_callbacks.frameBegin = &LumenveilHost::OnFrameBegin;
@@ -223,5 +228,6 @@ void CoA::Lumenveil::Load() {
 
     CoA::Log::Printf("Lumenveil: x64 engine loaded from Lumenveil64.dll");
 }
+
 
 
