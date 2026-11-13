@@ -8,12 +8,18 @@
 #include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/FFX/EffectGlow.h"
+#include "Engine/Source/FFX/FFX.h"
+#include "Engine/Source/FFX/PassGlow.h"
+#include "WoW/Source/Game/GameTime.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 #include "WoW/Source/Object/Movement.h"
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/Unit_C.h"
 #include "WoW/Source/Object/Types.h"
+#include "WoW/Source/Ui/GameUI.h"
+#include "WoW/Source/WorldClient/MapWeather.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
@@ -23,6 +29,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cmath>
+#include <algorithm>
 #include <string>
 
 int32_t LoadingScreenMapId();
@@ -122,6 +129,24 @@ namespace {
         target[0] = CWorldScene::camTarget.x;
         target[1] = CWorldScene::camTarget.y;
         target[2] = CWorldScene::camTarget.z;
+    }
+
+    float ClientGlowAmount() {
+        FFX::Effect* effect = FFX::s_effect;
+
+        if (!effect || effect != CGWorldFrame::ffxEffectGlow) {
+            return 0.0f;
+        }
+
+        auto* glow = static_cast<EffectGlow*>(effect);
+
+        if (glow->m_passes.Count() <= 2 || glow->m_altPasses.Count() <= 2) {
+            return 0.0f;
+        }
+
+        auto* pass = static_cast<PassGlowBase*>(glow->m_passes[2]);
+
+        return pass ? static_cast<float>(pass->m_color.a) / 255.0f : 0.0f;
     }
 
     // The camera bobs at the water surface; toggling the fog on and off with every wave makes the distance
@@ -328,8 +353,7 @@ namespace {
         }
     }
 
-    void ReadWorldUnits(CoA::Lumenveil::Abi::FrameInputs& out) {
-        constexpr double kScanInterval = 0.1;
+    void ReadWorldUnits(CoA::Lumenveil::Abi::FrameInputs& out) {        constexpr double kScanInterval = 0.1;
 
         if (s_worldScan.seconds < 0.0 || out.seconds < s_worldScan.seconds ||
             out.seconds - s_worldScan.seconds >= kScanInterval) {
@@ -375,6 +399,8 @@ namespace {
         RefreshUnitFeet(out);
     }
 
+    Host::WeatherState ReadWeather(void*);
+
     bool ReadFrameInputs(void*, CoA::Lumenveil::Abi::FrameInputs* out) {
         if (!out) {
             return false;
@@ -419,7 +445,7 @@ namespace {
         out->fogStart = info.m_fog.m_start;
         out->fogEnd = info.m_fog.m_end;
         out->zoneFogDistance = info.m_bands.m_fogEnd;
-        out->clientGlowAmount = info.m_bands.m_glow;
+        out->clientGlowAmount = ClientGlowAmount();
         out->skyHorizonColor = Packed(info.m_bands.m_skyColors[0]);
         out->skyAboveHorizonColor = Packed(info.m_bands.m_skyColors[2]);
         out->lightParams.stormBlend = info.m_stormBlend;
@@ -428,6 +454,15 @@ namespace {
         out->clientFarClip = World::s_farClip;
         out->inLiquid = CameraInLiquid(nullptr);
         out->mapId = LoadingScreenMapId();
+        out->zoneId = CGGameUI::m_areaID;
+        out->indoors = std::clamp(info.m_interiorFogBlend, 0.0f, 1.0f);
+
+        const Host::WeatherState weather = ReadWeather(nullptr);
+
+        if (weather.valid) {
+            out->weather = static_cast<WeatherKind>(std::clamp(weather.type, 0, 3));
+            out->weatherIntensity = std::clamp(weather.current, 0.0f, 1.0f);
+        }
 
         const C3Vector& sun = DayNight::g_planets.m_sun.m_position;
         const C3Vector& moon = DayNight::g_planets.m_moon.m_position;
@@ -475,23 +510,46 @@ namespace {
     }
 
     Host::ClockState ReadClock(void*) {
-        return Host::ClockState{false, 0, 0.0f};
+        Host::ClockState state = {};
+        state.valid = true;
+        state.minute = g_clientGameTime.GetHourAndMinutes();
+        state.speed = g_clientGameTime.m_minutesPerSecond;
+        return state;
     }
 
-    bool SetClock(void*, int, float) {
-        return false;
+    bool SetClock(void*, int minute, float speed) {
+        WowTime time = g_clientGameTime;
+        time.SetHourAndMinutes(minute);
+        g_clientGameTime.GameTimeSetTime(time, true);
+        g_clientGameTime.GameTimeSetMinutesPerSecond(std::clamp(speed, 1.0f / 60.0f, 60.0f));
+        return true;
     }
 
     Host::WeatherState ReadWeather(void*) {
-        return Host::WeatherState{false, 0, 0.0f, 0.0f};
+        Weather* weather = World::s_weather;
+
+        if (!weather) {
+            return Host::WeatherState{false, 0, 0.0f, 0.0f};
+        }
+
+        return Host::WeatherState{true, static_cast<int>(weather->GetType()), weather->m_targetIntensity,
+                                 weather->m_intensity};
     }
 
-    bool SetWeather(void*, int, float, bool) {
-        return false;
+    bool SetWeather(void*, int type, float grade, bool instant) {
+        Weather* weather = World::s_weather;
+
+        if (!weather) {
+            return false;
+        }
+
+        weather->SetType(static_cast<uint32_t>(std::clamp(type, 0, 3)), std::clamp(grade, 0.0f, 1.0f), nullptr,
+                         instant, 1.0f);
+        return true;
     }
 
     int AreaId(void*) {
-        return 0;
+        return CGGameUI::m_subzoneID;
     }
 
     void RefreshFarClip(void*) {}
