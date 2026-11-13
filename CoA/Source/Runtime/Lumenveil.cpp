@@ -380,12 +380,10 @@ namespace {
             std::memcpy(s_worldScan.corpsePos, scratch.corpsePos, sizeof(s_worldScan.corpsePos));
             std::memcpy(s_worldScan.corpseIds, scratch.corpseIds, sizeof(s_worldScan.corpseIds));
 
-            static int s_loggedUnits = -1;
-            static int s_loggedCorpses = -1;
+            static bool s_loggedUnits = false;
 
-            if (scratch.unitCount != s_loggedUnits || scratch.corpseCount != s_loggedCorpses) {
-                s_loggedUnits = scratch.unitCount;
-                s_loggedCorpses = scratch.corpseCount;
+            if (!s_loggedUnits && (scratch.unitCount > 0 || scratch.corpseCount > 0)) {
+                s_loggedUnits = true;
                 HostLog("units: %d alive within 80 yd, %d lootable corpses within 60 yd", scratch.unitCount,
                         scratch.corpseCount);
             }
@@ -441,7 +439,7 @@ namespace {
         out->fogColor = Packed(info.m_fogInterior.m_color);
         out->ambientColor = Packed(info.m_bands.m_ambient);
         out->directColor = Packed(info.m_bands.m_diffuse);
-        out->sunColor = Packed(info.m_bands.m_sunCloudColors[0]);
+        out->sunColor = Packed(info.m_bands.m_sunCloudColors[1]);
         out->fogStart = info.m_fog.m_start;
         out->fogEnd = info.m_fog.m_end;
         out->zoneFogDistance = info.m_bands.m_fogEnd;
@@ -466,18 +464,33 @@ namespace {
 
         const C3Vector& sun = DayNight::g_planets.m_sun.m_position;
         const C3Vector& moon = DayNight::g_planets.m_moon.m_position;
-        const float sunLength = std::sqrt(sun.x * sun.x + sun.y * sun.y + sun.z * sun.z);
-        const float moonLength = std::sqrt(moon.x * moon.x + moon.y * moon.y + moon.z * moon.z);
+        const C3Vector sunRelative = {sun.x - info.m_cameraPos.x, sun.y - info.m_cameraPos.y,
+                                      sun.z - info.m_cameraPos.z};
+        const C3Vector moonRelative = {moon.x - info.m_cameraPos.x, moon.y - info.m_cameraPos.y,
+                                       moon.z - info.m_cameraPos.z};
+        const float sunLength = std::sqrt(sunRelative.x * sunRelative.x + sunRelative.y * sunRelative.y +
+                                          sunRelative.z * sunRelative.z);
+        const float moonLength = std::sqrt(moonRelative.x * moonRelative.x + moonRelative.y * moonRelative.y +
+                                           moonRelative.z * moonRelative.z);
 
         if (sunLength > 1.0e-6f) {
-            out->toLight[0] = sun.x / sunLength;
-            out->toLight[1] = sun.y / sunLength;
-            out->toLight[2] = sun.z / sunLength;
-            out->sunElevation = out->toLight[2];
+            out->sunElevation = sunRelative.z / sunLength;
         }
 
         if (moonLength > 1.0e-6f) {
-            out->moonElevation = moon.z / moonLength;
+            out->moonElevation = moonRelative.z / moonLength;
+        }
+
+        const bool moonLight = day < 0.20139f || day > 0.92361f;
+        out->lightIsMoon = moonLight;
+
+        const C3Vector& light = moonLight ? moonRelative : sunRelative;
+        const float lightLength = moonLight ? moonLength : sunLength;
+
+        if (lightLength > 1.0e-6f) {
+            out->toLight[0] = light.x / lightLength;
+            out->toLight[1] = light.y / lightLength;
+            out->toLight[2] = light.z / lightLength;
         }
 
         out->unitCount = 0;
