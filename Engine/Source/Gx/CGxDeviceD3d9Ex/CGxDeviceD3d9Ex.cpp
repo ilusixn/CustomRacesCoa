@@ -17,6 +17,7 @@
 #include "GameVersion.h"
 
 #include "Engine/Source/Gx/LuxVelum.h"
+#include "Engine/Source/Gx/Lumenveil.h"
 
 typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT sdkVersion);
 
@@ -3044,6 +3045,7 @@ void CGxDeviceD3d9Ex::ScenePresent() {
         CGxDevice::ScenePresent();
         this->ISceneEnd();
         this->ICursorDraw();
+        LumenHook(&LumenveilCallbacks::present);
 
         if (this->m_format.m_fixLag) {
             if (this->m_eventQuery) {

@@ -8,6 +8,7 @@
 #include "Engine/Source/Gx/CGxPool.h"
 #include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Gx/LuxVelum.h"
 #include "Engine/Source/Os/Error.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -3267,6 +3268,7 @@ void CGxDeviceD3d::ScenePresent() {
         CGxDevice::ScenePresent();
         this->ISceneEnd();
         this->ICursorDraw();
+        LumenHook(&LumenveilCallbacks::present);
 
         if (this->m_format.m_fixLag) {
             if (this->m_eventQuery) {

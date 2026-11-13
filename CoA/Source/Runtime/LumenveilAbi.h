@@ -103,13 +103,17 @@ namespace CoA::Lumenveil::Abi {
         int (*areaId)(void* context);
         void (*refreshFarClip)(void* context);
         void* (*device)(void* context);
+        void* (*window)(void* context);
     };
 
     // The engine's exports.
     using SetHostFn = void(__cdecl*)(const Host*);
+    using InitFn = void(__cdecl*)();
     using EventFn = void(__cdecl*)();
+    using DepthSurfaceFn = IDirect3DSurface9*(__cdecl*)();
     using LiquidMaterialFn = void(__cdecl*)(int index, int begin);
 }
 
 #endif
+
 

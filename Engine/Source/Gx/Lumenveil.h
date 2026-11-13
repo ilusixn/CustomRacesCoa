@@ -11,6 +11,7 @@ struct LumenveilCallbacks {
     LumenveilEvent liquidBegin;
     LumenveilEvent liquidEnd;
     LumenveilEvent worldDone;
+    LumenveilEvent present;
 };
 
 extern LumenveilCallbacks* g_lumenveil;

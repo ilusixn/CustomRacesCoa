@@ -6,6 +6,7 @@
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
 #include "Engine/Source/Gx/Lumenveil.h"
+#include "Engine/Source/Os/Gui.h"
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/WorldClient/DayNight.h"
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
@@ -27,6 +28,8 @@ namespace {
     EventFn s_liquidBegin;
     EventFn s_liquidEnd;
     EventFn s_worldDone;
+    EventFn s_present;
+    DepthSurfaceFn s_depthSurface;
 
     std::wstring ExeDir() {
         wchar_t path[MAX_PATH];
@@ -180,13 +183,30 @@ namespace {
         return D3dDevice();
     }
 
+    void* Window(void*) {
+        return OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX);
+    }
+
     struct LumenveilHost final : LumenveilCallbacks {
-        static void OnFrameBegin() { if (s_frameBegin) s_frameBegin(); }
+        static void OnFrameBegin() {
+            // The client's main-scene depth is bound once at device creation. Point it at the engine's INTZ depth
+            // before the world clears and renders, so the fog reads this frame's depth.
+            if (s_depthSurface) {
+                if (auto* device = static_cast<IDirect3DDevice9*>(D3dDevice())) {
+                    if (IDirect3DSurface9* depth = s_depthSurface()) {
+                        device->SetDepthStencilSurface(depth);
+                    }
+                }
+            }
+
+            if (s_frameBegin) s_frameBegin();
+        }
         static void OnFrameEnd() { if (s_frameEnd) s_frameEnd(); }
         static void OnOpaqueDone() { if (s_opaqueDone) s_opaqueDone(); }
         static void OnLiquidBegin() { if (s_liquidBegin) s_liquidBegin(); }
         static void OnLiquidEnd() { if (s_liquidEnd) s_liquidEnd(); }
         static void OnWorldDone() { if (s_worldDone) s_worldDone(); }
+        static void OnPresent() { if (s_present) s_present(); }
     };
 }
 
@@ -211,16 +231,19 @@ void CoA::Lumenveil::Load() {
     HostLog("Load: Lumenveil64.dll loaded at %p", reinterpret_cast<void*>(module));
 
     auto setHost = reinterpret_cast<SetHostFn>(GetProcAddress(module, "vf_x64_host"));
+    auto init = reinterpret_cast<InitFn>(GetProcAddress(module, "vf_host_init"));
     s_frameBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_frame_begin"));
     s_frameEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_frame_end"));
     s_opaqueDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_opaque_done"));
     s_liquidBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_begin"));
     s_liquidEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_end"));
     s_worldDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_world_done"));
+    s_present = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_present"));
+    s_depthSurface = reinterpret_cast<DepthSurfaceFn>(GetProcAddress(module, "vf_host_depth_surface"));
 
-    HostLog("Load: exports setHost=%p frameBegin=%p frameEnd=%p worldDone=%p", reinterpret_cast<void*>(setHost), reinterpret_cast<void*>(s_frameBegin), reinterpret_cast<void*>(s_frameEnd), reinterpret_cast<void*>(s_worldDone));
+    HostLog("Load: exports setHost=%p frameBegin=%p frameEnd=%p worldDone=%p present=%p depth=%p", reinterpret_cast<void*>(setHost), reinterpret_cast<void*>(s_frameBegin), reinterpret_cast<void*>(s_frameEnd), reinterpret_cast<void*>(s_worldDone), reinterpret_cast<void*>(s_present), reinterpret_cast<void*>(s_depthSurface));
 
-    if (!setHost || !s_frameBegin || !s_frameEnd || !s_worldDone) {
+    if (!setHost || !init || !s_frameBegin || !s_frameEnd || !s_worldDone) {
         CoA::Log::Printf("Lumenveil: Lumenveil64.dll is not the x64 host build (exports missing); unloaded");
         FreeLibrary(module);
         return;
@@ -239,7 +262,9 @@ void CoA::Lumenveil::Load() {
     s_host.areaId = AreaId;
     s_host.refreshFarClip = RefreshFarClip;
     s_host.device = Device;
+    s_host.window = Window;
     setHost(&s_host);
+    init();
 
     s_callbacks.frameBegin = &LumenveilHost::OnFrameBegin;
     s_callbacks.frameEnd = &LumenveilHost::OnFrameEnd;
@@ -247,11 +272,17 @@ void CoA::Lumenveil::Load() {
     s_callbacks.liquidBegin = &LumenveilHost::OnLiquidBegin;
     s_callbacks.liquidEnd = &LumenveilHost::OnLiquidEnd;
     s_callbacks.worldDone = &LumenveilHost::OnWorldDone;
+    s_callbacks.present = &LumenveilHost::OnPresent;
     g_lumenveil = &s_callbacks;
 
     HostLog("Load: host table set, engine ready");
     CoA::Log::Printf("Lumenveil: x64 engine loaded from Lumenveil64.dll");
 }
+
+IDirect3DSurface9* CoA::Lumenveil::DepthSurface() {
+    return s_depthSurface ? s_depthSurface() : nullptr;
+}
+
 
 
 
