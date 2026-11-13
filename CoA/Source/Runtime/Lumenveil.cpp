@@ -11,6 +11,7 @@
 #include "WoW/Source/WorldClient/DayNight__DNInfo.h"
 #include "WoW/Source/WorldClient/World.h"
 #include <windows.h>
+#include <cstdarg>
 #include <cstring>
 #include <string>
 
@@ -19,8 +20,7 @@ int32_t LoadingScreenMapId();
 namespace {
     using namespace CoA::Lumenveil::Abi;
 
-    Host s_host;
-    LumenveilCallbacks s_callbacks;
+    Host s_host;    LumenveilCallbacks s_callbacks;
     EventFn s_frameBegin;
     EventFn s_frameEnd;
     EventFn s_opaqueDone;
@@ -34,6 +34,24 @@ namespace {
         std::wstring dir(path, n);
         size_t slash = dir.find_last_of(L"\\/");
         return slash == std::wstring::npos ? std::wstring(L".") : dir.substr(0, slash);
+    }
+
+    // Always-on diagnostics: the ordinary CoA log needs "-extlog", and when the engine DLL does not load its own log
+    // stays empty. This file says what the host tried.
+    void HostLog(const char* fmt, ...) {
+        const std::wstring path = ExeDir() + L"\\Lumenveil-host.log";
+        FILE* file = nullptr;
+
+        if (_wfopen_s(&file, path.c_str(), L"a") || !file) {
+            return;
+        }
+
+        va_list args;
+        va_start(args, fmt);
+        vfprintf(file, fmt, args);
+        va_end(args);
+        fprintf(file, "\n");
+        fclose(file);
     }
 
     uint32_t Packed(const CImVector& color) {
@@ -176,18 +194,21 @@ LumenveilCallbacks* g_lumenveil = nullptr;
 
 void CoA::Lumenveil::Load() {
     const std::wstring path = ExeDir() + L"\\Lumenveil64.dll";
+    HostLog("Load: trying %ls", path.c_str());
 
     if (GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        CoA::Log::Printf("Lumenveil: Lumenveil64.dll is not beside the exe");
+        HostLog("Load: Lumenveil64.dll is not beside the exe");
         return;
     }
 
     HMODULE module = LoadLibraryW(path.c_str());
 
     if (!module) {
-        CoA::Log::Printf("Lumenveil: Lumenveil64.dll not loaded (error %u)", static_cast<unsigned>(GetLastError()));
+        HostLog("Load: LoadLibraryW failed, error %u", static_cast<unsigned>(GetLastError()));
         return;
     }
+
+    HostLog("Load: Lumenveil64.dll loaded at %p", reinterpret_cast<void*>(module));
 
     auto setHost = reinterpret_cast<SetHostFn>(GetProcAddress(module, "vf_x64_host"));
     s_frameBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_frame_begin"));
@@ -196,6 +217,8 @@ void CoA::Lumenveil::Load() {
     s_liquidBegin = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_begin"));
     s_liquidEnd = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_liquid_end"));
     s_worldDone = reinterpret_cast<EventFn>(GetProcAddress(module, "vf_on_world_done"));
+
+    HostLog("Load: exports setHost=%p frameBegin=%p frameEnd=%p worldDone=%p", reinterpret_cast<void*>(setHost), reinterpret_cast<void*>(s_frameBegin), reinterpret_cast<void*>(s_frameEnd), reinterpret_cast<void*>(s_worldDone));
 
     if (!setHost || !s_frameBegin || !s_frameEnd || !s_worldDone) {
         CoA::Log::Printf("Lumenveil: Lumenveil64.dll is not the x64 host build (exports missing); unloaded");
@@ -226,8 +249,11 @@ void CoA::Lumenveil::Load() {
     s_callbacks.worldDone = &LumenveilHost::OnWorldDone;
     g_lumenveil = &s_callbacks;
 
+    HostLog("Load: host table set, engine ready");
     CoA::Log::Printf("Lumenveil: x64 engine loaded from Lumenveil64.dll");
 }
+
+
 
 
 
