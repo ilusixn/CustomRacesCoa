@@ -10,7 +10,7 @@
 > - **Credits:** [CREDITS.md](CREDITS.md)
 > - **Bugs:** open an issue, with race, class, gender, what you did and a screenshot.
 >
-> The original project README follows. The CoA64 client README is at the end.
+> The original project README follows. The CoaCustomRace client README is at the end.
 
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
