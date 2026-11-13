@@ -27,10 +27,22 @@ void CoA::Dxvk::Preload(const Deps& deps) {
         return;
     }
 
-    std::wstring path = deps.exeDir() + L"\\x64\\d3d9.dll";
+    // 2.0 ships DXVK in Vulkan\; 1.9.x installs keep it in x64\. First hit wins.
+    std::wstring const candidates[] = {
+        deps.exeDir() + L"\\Vulkan\\d3d9.dll",
+        deps.exeDir() + L"\\x64\\d3d9.dll",
+    };
+    std::wstring path;
     uint32_t err = 0;
 
-    if (!deps.load(path, err)) {
+    for (std::wstring const& candidate : candidates) {
+        if (deps.load(candidate, err)) {
+            path = candidate;
+            break;
+        }
+    }
+
+    if (path.empty()) {
         char line[96];
         snprintf(line, sizeof(line), "DXVK not loaded (error %u), using system d3d9", err);
         deps.log(line);
