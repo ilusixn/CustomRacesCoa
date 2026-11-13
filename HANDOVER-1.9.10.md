@@ -28,7 +28,7 @@ worldserver), which makes it hard for others to build on.
    `modules/mod-skinshifter/client/coa64/coa64-patches/*.patch`. They were written on a CRLF checkout: convert them
    to LF (or apply with `core.autocrlf=true`), then `git apply` each; all eight apply cleanly on races-port and on
    the Sven + races-port merge. Commit them one per patch so they stay separable.
-4. Build note: Sven's new `BuildCoA64.bat` packages DXVK's `x64/d3d9.dll` and the Streamline DLLs listed in
+4. Build note: Sven's new `BuildClient.bat` packages DXVK's `x64/d3d9.dll` and the Streamline DLLs listed in
    `Tools/package/files.txt`; DXVK needs meson, ninja and the Vulkan SDK's glslangValidator at configure time. A
    build folder configured before Sven's update has no `dxvk` target until it is configured again.
 

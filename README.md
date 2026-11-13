@@ -157,7 +157,7 @@ cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -S . -B out\build\x64-Release
 cmake --build out\build\x64-Release --target Wow
 ```
 
-Output: `bin\Win\CoA64.exe` (+ `.pdb`, `.map`) and `XvidDecoder.dll`. `BuildCoA64.bat` builds and packages a zip.
+Output: `bin\Win\CoA64.exe` (+ `.pdb`, `.map`) and `XvidDecoder.dll`. `BuildClient.bat` builds and packages a zip.
 
 ## Running
 
