@@ -7,7 +7,7 @@
 #include "WoW/Source/Client.h"
 #include "WoW/Source/Glue/CGlueMgr.h"
 #include "CoA/Source/CoA.h"
-#include "CoA/Source/Runtime/LuxVelum.h"
+#include "CoA/Source/Runtime/Visuals.h"
 
 // STATIC: 0x00B311E8
 static LPVOID lpFiber;
@@ -60,7 +60,7 @@ static VOID CALLBACK MainFiberProc(LPVOID parameter) {
     CGlueMgr::m_scandllShouldBlockPlaying = 0;
     // CoA: the cave's LoadLibraryA("Extensions.dll") -- the CoA code is linked in
     CoA::Attach();
-    CoA::LuxVelum::Load();
+    CoA::Visuals::Start();
 
     *static_cast<int*>(parameter) = main();
     SwitchToFiber(lpFiber);
