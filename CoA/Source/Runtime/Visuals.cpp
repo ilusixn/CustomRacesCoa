@@ -10,8 +10,8 @@
 #include <string>
 
 namespace {
-    // Before the choice existed LuxVelum was the only mod; keep that answer when nothing says otherwise.
-    constexpr unsigned kDefault = CoA::Visuals::LuxVelum;
+    // Lumenveil is the standard; 0 and 2 stay available through Visuals.txt or -visuals.
+    constexpr unsigned kDefault = CoA::Visuals::Lumenveil;
 
     std::wstring ExeDir() {
         wchar_t path[MAX_PATH];
@@ -132,7 +132,7 @@ namespace {
             return false;
         }
 
-        char text[32] = {};
+        char text[512] = {};
         size_t read = fread(text, 1, sizeof(text) - 1, file);
         fclose(file);
 
@@ -140,9 +140,40 @@ namespace {
             return false;
         }
 
-        wchar_t wide[32] = {};
-        MultiByteToWideChar(CP_ACP, 0, text, static_cast<int>(read), wide, 31);
-        return Parse(out, wide);
+        wchar_t wide[512] = {};
+        int length = MultiByteToWideChar(CP_ACP, 0, text, static_cast<int>(read), wide, 511);
+
+        if (length <= 0) {
+            return false;
+        }
+
+        wide[length] = 0;
+        const std::wstring content(wide);
+        size_t start = 0;
+
+        while (start <= content.size()) {
+            size_t end = content.find(L'\n', start);
+            std::wstring line = content.substr(start, end == std::wstring::npos ? std::wstring::npos : end - start);
+            const size_t first = line.find_first_not_of(L" \t\r");
+
+            if (first != std::wstring::npos && line[first] != L';' && line[first] != L'#') {
+                std::wstring value = line.substr(first);
+                const size_t last = value.find_last_not_of(L" \t\r");
+
+                if (last != std::wstring::npos) {
+                    value.erase(last + 1);
+                    return Parse(out, value.c_str());
+                }
+            }
+
+            if (end == std::wstring::npos) {
+                break;
+            }
+
+            start = end + 1;
+        }
+
+        return false;
     }
 }
 

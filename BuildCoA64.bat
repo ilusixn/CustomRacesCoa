@@ -46,6 +46,11 @@ mkdir "%STAGE%"
 copy /y "%BIN%\Win\AFK64.exe" "%STAGE%\AFK64.exe" >nul
 copy /y "%BIN%\Win\AFK64.map" "%STAGE%\AFK64.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
+if exist "%BIN%\Win\Lumenveil64.dll" copy /y "%BIN%\Win\Lumenveil64.dll" "%STAGE%\Lumenveil64.dll" >nul
+if not exist "%STAGE%\Lumenveil64.dll" if exist "%ROOT%\..\lumenveil\build\engine-x64\Release\CoAVolFog.dll" copy /y "%ROOT%\..\lumenveil\build\engine-x64\Release\CoAVolFog.dll" "%STAGE%\Lumenveil64.dll" >nul
+if not exist "%STAGE%\Lumenveil64.dll" echo WARNING: Lumenveil64.dll missing, the zip has no Lumenveil engine
+> "%STAGE%\Visuals.txt" echo ; 0 = default graphics, 1 = Lumenveil, 2 = LuxVelum
+>> "%STAGE%\Visuals.txt" echo 1
 if exist "%BIN%\Win\x64\d3d9.dll" (
     mkdir "%STAGE%\x64"
     copy /y "%BIN%\Win\x64\d3d9.dll" "%STAGE%\x64\d3d9.dll" >nul
