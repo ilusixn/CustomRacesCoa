@@ -104,6 +104,7 @@ namespace CoA::Lumenveil::Abi {
         void (*refreshFarClip)(void* context);
         void* (*device)(void* context);
         void* (*window)(void* context);
+        void (*readStockFog)(void* context, StockFog* fog);
     };
 
     // The engine's exports.

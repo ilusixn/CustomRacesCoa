@@ -157,6 +157,17 @@ namespace {
         DayNight::g_dnInfo.m_fogInterior.m_end = fog->end[1];
     }
 
+    void ReadStockFog(void*, StockFog* fog) {
+        if (!fog) {
+            return;
+        }
+
+        fog->start[0] = DayNight::g_dnInfo.m_fog.m_start;
+        fog->end[0] = DayNight::g_dnInfo.m_fog.m_end;
+        fog->start[1] = DayNight::g_dnInfo.m_fogInterior.m_start;
+        fog->end[1] = DayNight::g_dnInfo.m_fogInterior.m_end;
+    }
+
     Host::ClockState ReadClock(void*) {
         return Host::ClockState{false, 0, 0.0f};
     }
@@ -282,6 +293,7 @@ void CoA::Lumenveil::Load() {
     s_host.refreshFarClip = RefreshFarClip;
     s_host.device = Device;
     s_host.window = Window;
+    s_host.readStockFog = ReadStockFog;
     setHost(&s_host);
     init();
 
