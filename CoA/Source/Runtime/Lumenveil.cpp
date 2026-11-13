@@ -34,6 +34,15 @@ namespace {
     DepthSurfaceFn s_depthSurface;
     WrapD3D9Fn s_wrapD3D9;
 
+    // The 32-bit engine captures the view/projection at opaqueDone and uses that snapshot at worldDone. Taking
+    // the matrices later (after name plates and chat bubbles) can differ slightly and makes the temporal fog
+    // history misalign.
+    float s_opaqueView[16];
+    float s_opaqueProj[16];
+    D3DVIEWPORT9 s_opaqueViewport;
+    bool s_opaqueValid = false;
+    bool s_loggedLateView = false;
+
     std::wstring ExeDir() {
         wchar_t path[MAX_PATH];
         DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
@@ -118,12 +127,36 @@ namespace {
     }
 
     bool ReadFrameInputs(void*, CoA::Lumenveil::Abi::FrameInputs* out) {
-        if (!out || !GxMatrices(out->cameraRelativeView, out->glProjection)) {
+        if (!out) {
+            return false;
+        }
+
+        if (s_opaqueValid) {
+            std::memcpy(out->cameraRelativeView, s_opaqueView, sizeof(out->cameraRelativeView));
+            std::memcpy(out->glProjection, s_opaqueProj, sizeof(out->glProjection));
+            out->viewport = s_opaqueViewport;
+
+            if (!s_loggedLateView) {
+                float lateView[16];
+                float lateProj[16];
+
+                if (GxMatrices(lateView, lateProj) &&
+                    (std::memcmp(lateView, s_opaqueView, sizeof(lateView)) != 0 ||
+                     std::memcmp(lateProj, s_opaqueProj, sizeof(lateProj)) != 0)) {
+                    s_loggedLateView = true;
+                    HostLog("worldDone: the view/projection differ from the opaqueDone capture; using the capture");
+                }
+            }
+        } else if (!GxMatrices(out->cameraRelativeView, out->glProjection)) {
             return false;
         }
 
         Camera(out->camPos, out->camTarget);
-        OpaqueViewport(nullptr, &out->viewport);
+
+        if (!s_opaqueValid && !OpaqueViewport(nullptr, &out->viewport)) {
+            return false;
+        }
+
         out->seconds = static_cast<double>(GetTickCount64()) / 1000.0;
 
         const DayNight::DNInfo& info = DayNight::g_dnInfo;
@@ -231,7 +264,21 @@ namespace {
         }
         static void OnFrameEnd() { if (s_frameEnd) s_frameEnd(); }
         static void OnOpaqueBegin() { if (s_opaqueBegin) s_opaqueBegin(); }
-        static void OnOpaqueDone() { if (s_opaqueDone) s_opaqueDone(); }
+        static void OnOpaqueDone() {
+            float view[16];
+            float proj[16];
+            D3DVIEWPORT9 viewport;
+
+            s_opaqueValid = GxMatrices(view, proj) && OpaqueViewport(nullptr, &viewport);
+
+            if (s_opaqueValid) {
+                std::memcpy(s_opaqueView, view, sizeof(s_opaqueView));
+                std::memcpy(s_opaqueProj, proj, sizeof(s_opaqueProj));
+                s_opaqueViewport = viewport;
+            }
+
+            if (s_opaqueDone) s_opaqueDone();
+        }
         static void OnLiquidBegin() { if (s_liquidBegin) s_liquidBegin(); }
         static void OnLiquidEnd() { if (s_liquidEnd) s_liquidEnd(); }
         static void OnWorldDone() {
@@ -322,8 +369,7 @@ void CoA::Lumenveil::Load() {
     s_host.device = Device;
     s_host.window = Window;
     s_host.readStockFog = ReadStockFog;
-    setHost(&s_host);
-    init();
+    setHost(&s_host);    init();
 
     s_callbacks.frameBegin = &LumenveilHost::OnFrameBegin;
     s_callbacks.frameEnd = &LumenveilHost::OnFrameEnd;
