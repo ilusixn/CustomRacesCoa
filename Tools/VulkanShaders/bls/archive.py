@@ -60,11 +60,17 @@ def grab(arch, path):
 
 
 def split(data):
-    """The records of one .bls container."""
+    """The records of one .bls container; ValueError when it is not one the engine can read."""
     magic, ver, nperm = struct.unpack_from('<III', data, 0)
+    if magic != 0x47585348:
+        raise ValueError('magic %08x is not GXSH' % magic)
     recs, off = [], 12
     for i in range(nperm):
+        if off + 16 > len(data):
+            raise ValueError('record %d past the end (%d of %d bytes)' % (i, off, len(data)))
         a, b, c, d, size = struct.unpack_from('<IIHHI', data, off)
+        if off + 16 + size > len(data):
+            raise ValueError('record %d of %d bytes past the end' % (i, size))
         off += 16
         code = data[off:off + size]
         off += size
@@ -140,11 +146,18 @@ def enumerate_records(datadir):
             if data is None or len(data) < 12:
                 data = None
                 continue
+            try:
+                parsed = split(data)
+            except (ValueError, struct.error) as e:
+                # The engine falls back one profile on a bad container too.
+                sys.stderr.write('!! %s in %s is not readable (%s): falling back\n' % (path, src, e))
+                data = None
+                continue
             prof = prof2
             break
         if data is None:
             continue
-        magic, ver, nperm, records, consumed = split(data)
+        magic, ver, nperm, records, consumed = parsed
         for rec in records:
             r = Record()
             r.kind, r.profile, r.name, r.perm = kind, prof, name, rec['i']
