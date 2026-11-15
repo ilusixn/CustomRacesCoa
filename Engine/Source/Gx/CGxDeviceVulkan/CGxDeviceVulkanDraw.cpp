@@ -309,8 +309,11 @@ void CGxDeviceVulkan::ITexGen(pipelines::Draw& d) {
         return;
     }
 
+    // Always these rows, never the engine's vertex registers: their row 0 would read as texgen flags.
     float* rows = this->m_ffRows;
     rows[0] = rows[1] = rows[2] = rows[3] = 0.0f;
+    d.vertexRegs = rows;
+    d.vertexRows = pipelines::kVertexRowsSmall;
     bool any = false;
 
     for (uint32_t stage = 0; stage < 2; stage++) {
@@ -361,8 +364,6 @@ void CGxDeviceVulkan::ITexGen(pipelines::Draw& d) {
     const C44Matrix worldView = (world.m_flags[world.m_level] & CGxMatrixStack::F_Identity)
         ? view.m_mtx[view.m_level] : world.m_mtx[world.m_level] * view.m_mtx[view.m_level];
     memcpy(&rows[4], &worldView, 16 * sizeof(float));
-    d.vertexRegs = rows;
-    d.vertexRows = pipelines::kVertexRowsSmall;
 }
 
 // The render states as CGxDeviceD3d::IRsSendToHw (0x006A4C30) sends them, each under its master enable:
