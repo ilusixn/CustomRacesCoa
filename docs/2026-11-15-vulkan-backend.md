@@ -32,3 +32,12 @@ the `VulkanShaders` folder beside the exe (CoA Custom 2.0's client root carries 
 
 Next: the `visuals` choice picks the device (Lumenveil and Forever on Vulkan, stock and LuxVelum on D3D9), with a
 drop-down on the Effects page.
+
+## 2026-11-15: missing body parts on Vulkan (skin profile)
+
+`CM2Shared::Initialize` chooses the skin profile from the device's vertex-constant cap: `(constants - 64) / 3` bones. D3D9
+(and DXVK) report 256, so models load the 64-bone profile. wowdecomp's Vulkan backend reported 1024, which picks the
+256-bone profile. CoA's `CM2SceneRender::DrawBatch` uploads at most 75 bones per section (the D3D9 register file), so every
+section with more lost its upper bones: missing or misplaced body parts, armour pieces and textures on the custom races,
+and broken scene models on the character-creation background. The Vulkan cap is now 256, as on D3D9; the backend's own
+register file stays 1024 rows.

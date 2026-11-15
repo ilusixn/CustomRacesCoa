@@ -98,7 +98,8 @@ void CGxDeviceVulkan::ISetCaps(const CGxFormat& format) {
 
     this->m_caps.m_shaderTargets[GxSh_Pixel] = 4;
     this->m_caps.m_shaderTargets[GxSh_Vertex] = 3;
-    this->m_caps.m_shaderConstants[GxSh_Vertex] = 1024;
+    // D3D9's 256: CM2Shared::Initialize picks skin profiles by it, and CoA's palette upload stops at 75 bones.
+    this->m_caps.m_shaderConstants[GxSh_Vertex] = 256;
 
     if (format.m_fixedFunction[GxSh_Pixel] != -1 && format.m_fixedFunction[GxSh_Pixel] <= this->m_caps.m_shaderTargets[GxSh_Pixel]) {
         this->m_caps.m_shaderTargets[GxSh_Pixel] = format.m_fixedFunction[GxSh_Pixel];
