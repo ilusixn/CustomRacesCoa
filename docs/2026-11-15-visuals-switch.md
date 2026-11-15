@@ -18,8 +18,9 @@ One choice decides which graphics pack the client runs and which device draws it
 
 ## In the game
 
-- Video options → Effects: dropdown "Graphics: …" (`CoAVisualsDropDown`, WoW/Source/Ui/VisualsOptions.cpp), placed where
-  wowdecomp puts its Visuals dropdown, left of Player Textures.
+- Video options → Graphics (the Effects panel): dropdown "Graphics: …" (`CoAVisualsDropDown`,
+  WoW/Source/Ui/VisualsOptions.cpp), bottom left under the Global Settings box. wowdecomp's spot (left of Player
+  Textures) lands on top of Texture Filtering in CoA's three-column layout.
 - Okay sets the unsaved cvar `coaVisuals`, whose callback rewrites `Visuals.txt`. A red note says the change applies after a
   client restart; nothing switches live.
 - The launcher may keep writing `Visuals.txt` as before; the values 0–2 mean the same as they always did.

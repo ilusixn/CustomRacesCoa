@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "Engine/Source/FrameScript/FrameScript.h"
 
-// Modelled on wowdecomp's WowDecompVisualsDropDown; a registered control, so Okay/Cancel/Defaults work.
+// Modelled on wowdecomp's WowDecompVisualsDropDown, placed in the free strip under Global Settings.
 // Okay writes coaVisuals (Visuals.txt); ACTIVE is the pack this run started with, for the restart note.
 static const char kScript[] = R"lua(
 if not VideoOptionsEffectsPanel or CoAVisualsDropDown then return end
@@ -17,15 +17,11 @@ local choices = {
 }
 
 local dd = CreateFrame("Frame", "CoAVisualsDropDown", panel, "UIDropDownMenuTemplate")
-if VideoOptionsEffectsPanelPlayerTexture then
-    dd:SetPoint("TOPLEFT", VideoOptionsEffectsPanelPlayerTexture, "TOPLEFT", -284, 8)
-else
-    dd:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 40)
-end
-UIDropDownMenu_SetWidth(dd, 190)
+dd:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 14)
+UIDropDownMenu_SetWidth(dd, 230)
 
 local note = dd:CreateFontString("CoAVisualsRestartNote", "BACKGROUND", "GameFontRedSmall")
-note:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 20, 2)
+note:SetPoint("LEFT", dd, "RIGHT", -6, 2)
 note:SetText("Takes effect after a client restart")
 
 local function NameOf(value)
