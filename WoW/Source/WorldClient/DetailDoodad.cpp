@@ -604,6 +604,8 @@ int32_t CDetailDoodad::InitializeRenderState() {
     GxRsSet(GxRs_Culling, 0);
     GxRsSet(GxRs_BlendingMode, 2);
     GxRsSet(GxRs_AlphaRef, CWorld::detailDoodadAlphaRef);
+    GxRsSet(GxRs_DepthTest, 1);
+    GxRsSet(GxRs_DepthFunc, GxCmp_LEqual);
     GxRsSet(GxRs_DepthWrite, 1);
 
     if (CDetailDoodad::s_bUseShaders) {
