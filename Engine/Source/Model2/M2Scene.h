@@ -110,7 +110,6 @@ class CM2Scene {
     int32_t ComputeRayDirAndLen(const C3Vector& start, const C3Vector& end, float t, float* length, C3Vector* dir);
     CM2Model* CreateModel(const char* fileName, uint32_t flags);
     void Draw(M2PASS pass);
-    void DrawGlue();   // not in the original binary: CSimpleModel frames, background then the attached character
     CM2Model* DuplicateModel(CM2Model* model, uint32_t flags);
     void* EndHitTest(const C3Vector& start, const C3Vector& end, float& t, int32_t twoPass);
     void* EndHitTestCollisionWorld(const C3Vector& start, const C3Vector& end, float& t);
