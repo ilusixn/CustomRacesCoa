@@ -11,6 +11,7 @@
 #include "Fog.glsl"
 
 layout(location = 0) in vec4 inPos;
+layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec4 inColor;
 layout(location = 3) in vec4 inColor1;
 layout(location = 4) in vec4 inTexCoord0;
@@ -41,6 +42,9 @@ void main()
     color1      = inColor1;
     texcoord0   = vec4(TexTransform(0u, inTexCoord0.xy), inTexCoord0.zw);
     texcoord1   = vec4(TexTransform(1u, inTexCoord1.xy), inTexCoord1.zw);
+    vec2 gen;
+    if (TexGen(0u, inPos.xyz, inNormal, gen)) texcoord0.xy = gen;
+    if (TexGen(1u, inPos.xyz, inNormal, gen)) texcoord1.xy = gen;
     texcoord2   = inTexCoord2;
     texcoord3   = inTexCoord3;
     texcoord4   = inTexCoord4;

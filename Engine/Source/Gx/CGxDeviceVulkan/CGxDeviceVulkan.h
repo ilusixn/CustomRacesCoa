@@ -141,6 +141,9 @@ class CGxDeviceVulkan : public CGxDevice {
     void IModelViewProj(float out[16]);
     void IRenderStates(gxvk::vk::pipelines::Draw& draw);
     void ITexTransforms(gxvk::vk::pipelines::Draw& draw);
+    void ITexGen(gxvk::vk::pipelines::Draw& draw);
+    // Rows the fixed-function vertex programs read for texgen (Shaders/Fog.glsl's ff.v), in place of the engine's.
+    float m_ffRows[64 * 4];
 };
 
 CGxDevice* CreateCGxDeviceVulkan();

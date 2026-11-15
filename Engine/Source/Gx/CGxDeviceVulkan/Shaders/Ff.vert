@@ -11,6 +11,7 @@ layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec4 inColor;       // D3DCOLOR, fetched as r, g, b, a; opaque white when the vertex has none
 layout(location = 2) in vec2 inTexCoord0;   // texcoord set 0; (0, 0) when the vertex has none
 layout(location = 3) in vec2 inTexCoord1;   // texcoord set 1; (0, 0) when the vertex has none
+layout(location = 4) in vec3 inNormal;      // for texgen; zero when the vertex has none
 
 layout(location = 0) out vec4 vColor;
 layout(location = 1) out vec2 vTexCoord0;
@@ -24,4 +25,7 @@ void main()
     vColor      = inColor;
     vTexCoord0  = TexTransform(0u, inTexCoord0);
     vTexCoord1  = TexTransform(1u, inTexCoord1);
+    vec2 gen;
+    if (TexGen(0u, inPos, inNormal, gen)) vTexCoord0 = gen;
+    if (TexGen(1u, inPos, inNormal, gen)) vTexCoord1 = gen;
 }

@@ -225,6 +225,7 @@ void CGxDeviceVulkan::Draw(CGxBatch* batch, int32_t count) {
     pixelRows[15 * 4 + 3] = fogOn ? 1.0f : 0.0f;
     d.pixelRegs = pixelRows;
     d.vertexRegs = this->m_vertexRegs;
+    this->ITexGen(d);
     d.pixelExtra = d.pixelExtraRows ? this->m_pixelRegs + pipelines::kPixelRows * 4 : nullptr;
 
     if (!this->IPlaceD3d(d.viewport, d.scissor)) {
@@ -299,6 +300,69 @@ void CGxDeviceVulkan::ITexTransforms(pipelines::Draw& d) {
         d.tex[8 + stage * 2] = m.d0;
         d.tex[9 + stage * 2] = m.d1;
     }
+}
+
+// D3D9's texgen (CGxDeviceD3d::ISetTexCoordIndex, IXformSetTex) for the fixed-function vertex programs: camera-space
+// position, normal or reflection vector through the stage's texture matrix. Rows in Shaders/Fog.glsl's ff.v.
+void CGxDeviceVulkan::ITexGen(pipelines::Draw& d) {
+    if (d.vertex != pipelines::VertexProgram::FixedFunction && d.vertex != pipelines::VertexProgram::FixedFunctionSemantic) {
+        return;
+    }
+
+    float* rows = this->m_ffRows;
+    rows[0] = rows[1] = rows[2] = rows[3] = 0.0f;
+    bool any = false;
+
+    for (uint32_t stage = 0; stage < 2; stage++) {
+        const int32_t mode = this->m_appRenderStates[GxRs_TexGen0 + stage].m_value.m_data.i[0];
+        uint32_t kind = 0;
+
+        switch (mode) {
+            case GxTexGen_ObjectLinear:
+            case GxTexGen_World:
+            case GxTexGen_View:          kind = 1; break;
+            case GxTexGen_ReflectionMap:
+            case GxTexGen_SphereMap:     kind = 2; break;
+            case GxTexGen_Normal:        kind = 3; break;
+            default:                     break;
+        }
+
+        if (!kind) {
+            continue;
+        }
+
+        const CGxMatrixStack& texGen = this->m_texGen[stage];
+        const CGxMatrixStack& xform = this->m_xforms[GxXform_Tex0 + stage];
+        const int32_t shader = this->m_appRenderStates[GxRs_TextureShader0 + stage].m_value.m_data.i[0];
+        uint32_t type = 0;
+        C44Matrix m;
+
+        if (shader == 0) {
+            if (!(texGen.m_flags[texGen.m_level] & CGxMatrixStack::F_Identity)) {
+                m = texGen.m_mtx[texGen.m_level];
+                type = 1;
+            }
+        } else if (shader == 1 || shader == 2) {
+            m = texGen.m_mtx[texGen.m_level] * xform.m_mtx[xform.m_level];
+            type = shader == 1 ? 1 : 2;
+        }
+
+        rows[stage] = static_cast<float>(kind | (type << 2));
+        memcpy(&rows[(5 + stage * 4) * 4], &m, 16 * sizeof(float));
+        any = true;
+    }
+
+    if (!any) {
+        return;
+    }
+
+    const CGxMatrixStack& world = this->m_xforms[GxXform_World];
+    const CGxMatrixStack& view = this->m_xforms[GxXform_View];
+    const C44Matrix worldView = (world.m_flags[world.m_level] & CGxMatrixStack::F_Identity)
+        ? view.m_mtx[view.m_level] : world.m_mtx[world.m_level] * view.m_mtx[view.m_level];
+    memcpy(&rows[4], &worldView, 16 * sizeof(float));
+    d.vertexRegs = rows;
+    d.vertexRows = pipelines::kVertexRowsSmall;
 }
 
 // The render states as CGxDeviceD3d::IRsSendToHw (0x006A4C30) sends them, each under its master enable:

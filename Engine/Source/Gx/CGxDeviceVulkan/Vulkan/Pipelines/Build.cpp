@@ -212,10 +212,14 @@ namespace
                 AddAttribute(k, in, 1, kAttribColor0, VK_FORMAT_B8G8R8A8_UNORM, kConstantColourOffset);
                 AddAttribute(k, in, 2, kAttribTexCoord0, VK_FORMAT_R32G32_SFLOAT, kConstantTexcoordOffset);
                 AddAttribute(k, in, 3, kAttribTexCoord1, VK_FORMAT_R32G32_SFLOAT, kConstantTexcoordOffset);
+                // The normal, for texgen (a vertex without one reads zero).
+                if (static_cast<VertexProgram>(k.vertex) == VertexProgram::FixedFunction)
+                    AddAttribute(k, in, 4, kAttribNormal, VK_FORMAT_R32G32B32_SFLOAT, kConstantTexcoordOffset);
                 return true;
 
             case VertexProgram::FixedFunctionSemantic:
                 AddAttribute(k, in, 0, kAttribPosition, VK_FORMAT_R32G32B32_SFLOAT, 0);
+                AddAttribute(k, in, 1, kAttribNormal, VK_FORMAT_R32G32B32_SFLOAT, kConstantTexcoordOffset);
                 AddAttribute(k, in, 2, kAttribColor0, VK_FORMAT_B8G8R8A8_UNORM, kConstantColourOffset);
                 AddAttribute(k, in, 3, 5, VK_FORMAT_R32G32B32A32_SFLOAT, kConstantTexcoordOffset);
                 AddAttribute(k, in, 4, kAttribTexCoord0, VK_FORMAT_R32G32_SFLOAT, kConstantTexcoordOffset);

@@ -115,6 +115,7 @@ namespace gxvk::vk::pipelines::detail
 
     /// The engine attribute indices (EGxVertexAttrib) the programs read.
     constexpr uint32_t kAttribPosition  = 0;
+    constexpr uint32_t kAttribNormal    = 3;
     constexpr uint32_t kAttribColor0    = 4;
     constexpr uint32_t kAttribTexCoord0 = 6;
     constexpr uint32_t kAttribTexCoord1 = 7;
