@@ -1065,16 +1065,6 @@ int32_t CM2Scene::SortOpaqueGeoBatches(M2Element* a, M2Element* b) {
             return 1;
         }
 
-        // Attached models (a character on its character-select background) draw after the model they hang on, so an
-        // opaque child covers the parent's scenery even where the depth test cannot separate them.
-        if (a->m_model->m_attachParent == b->m_model) {
-            return 1;
-        }
-
-        if (b->m_model->m_attachParent == a->m_model) {
-            return -1;
-        }
-
         if (a->m_effect && b->m_effect) {
             CGxShader* vertexA = a->m_effect->m_vertexShaders[a->m_vertexPermute];
             CGxShader* pixelA = a->m_effect->m_pixelShaders[a->m_pixelPermute];
