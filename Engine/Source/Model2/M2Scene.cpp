@@ -2291,42 +2291,64 @@ void CM2Scene::Draw(M2PASS pass) {
 
     CM2SceneRender render(this);
 
-    // A CSimpleModel frame (the character selection screen, portraits, the dressing room): the background's models
-    // first, then the attached character on a cleared depth range, so no background scenery (the Tauren character
-    // select grass) can cut through it. In the world, the ordinary order and the scene's depth buffer stay.
-    if (g_m2GlueModelFrame && pass == M2PASS_0 && this->m_passElements[pass].m_count) {
-        std::vector<uint32_t> parents;
-        std::vector<uint32_t> children;
-        parents.reserve(this->m_passElements[pass].m_count);
-        children.reserve(this->m_passElements[pass].m_count);
-
-        for (uint32_t i = 0; i < this->m_passElements[pass].m_count; i++) {
-            uint32_t index = this->m_passElements[pass].m_data[i];
-            (this->m_elements.m_data[index].m_model->m_attachParent ? children : parents).push_back(index);
-        }
-
-        render.Draw(pass, this->m_elements.m_data, parents.data(), static_cast<uint32_t>(parents.size()));
-
-        if (this->m_doodadElements.m_count) {
-            render.Draw(M2PASS_0, this->m_elements.m_data, this->m_doodadElements.m_data, this->m_doodadElements.m_count);
-        }
-
-        if (!children.empty()) {
-            CImVector clearColor;
-            clearColor.b = 0x00;
-            clearColor.g = 0x00;
-            clearColor.r = 0x00;
-            clearColor.a = 0xFF;
-            GxSceneClear(GxBufferBit_Depth, clearColor);
-            render.Draw(pass, this->m_elements.m_data, children.data(), static_cast<uint32_t>(children.size()));
-        }
-
-        return;
-    }
-
     render.Draw(pass, this->m_elements.m_data, this->m_passElements[pass].m_data, this->m_passElements[pass].m_count);
 
     if (pass == M2PASS_0) {
         render.Draw(M2PASS_0, this->m_elements.m_data, this->m_doodadElements.m_data, this->m_doodadElements.m_count);
+    }
+}
+
+// A CSimpleModel frame (the character selection screen, portraits, the dressing room): the background's models and
+// their transparent batches first, then the attached character on a cleared depth range, so no background scenery (the
+// Tauren character select grass) can cut through it. The world keeps the ordinary passes and depth buffer.
+void CM2Scene::DrawGlue() {
+    CM2SceneRender render(this);
+
+    std::vector<uint32_t> parents[2];
+    std::vector<uint32_t> children[2];
+
+    for (uint32_t pass = 0; pass < 2; pass++) {
+        if (!((1 << pass) & this->m_passMask)) {
+            continue;
+        }
+
+        parents[pass].reserve(this->m_passElements[pass].m_count);
+        children[pass].reserve(this->m_passElements[pass].m_count);
+
+        for (uint32_t i = 0; i < this->m_passElements[pass].m_count; i++) {
+            uint32_t index = this->m_passElements[pass].m_data[i];
+            (this->m_elements.m_data[index].m_model->m_attachParent ? children[pass] : parents[pass]).push_back(index);
+        }
+    }
+
+    for (uint32_t pass = 0; pass < 2; pass++) {
+        if (!((1 << pass) & this->m_passMask)) {
+            continue;
+        }
+
+        render.Draw(static_cast<M2PASS>(pass), this->m_elements.m_data, parents[pass].data(), static_cast<uint32_t>(parents[pass].size()));
+    }
+
+    if (this->m_doodadElements.m_count) {
+        render.Draw(M2PASS_0, this->m_elements.m_data, this->m_doodadElements.m_data, this->m_doodadElements.m_count);
+    }
+
+    if (children[0].empty() && children[1].empty()) {
+        return;
+    }
+
+    CImVector clearColor;
+    clearColor.b = 0x00;
+    clearColor.g = 0x00;
+    clearColor.r = 0x00;
+    clearColor.a = 0xFF;
+    GxSceneClear(GxBufferBit_Depth, clearColor);
+
+    for (uint32_t pass = 0; pass < 2; pass++) {
+        if (!((1 << pass) & this->m_passMask)) {
+            continue;
+        }
+
+        render.Draw(static_cast<M2PASS>(pass), this->m_elements.m_data, children[pass].data(), static_cast<uint32_t>(children[pass].size()));
     }
 }
