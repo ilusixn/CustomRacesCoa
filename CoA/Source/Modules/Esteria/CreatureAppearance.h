@@ -427,16 +427,62 @@ namespace CreatureAppearance
     }};
     inline constexpr std::array<char const*, 2> CentaurFemaleLabels = {{"Skin Color", "Head Style"}};
 
+    // 1.9.9 pack races (Esteria ids 80-91): skins from EsteriaPackSkins.bin, counts from each race's own .bin
+    template <unsigned Skins>
+    inline constexpr std::array<Option, 5> PackSkinOptions = {{ {0, Skins, 1}, {1, 1, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    template <unsigned Skins, unsigned Details>
+    inline constexpr std::array<Option, 5> PackDetailOptions =
+        {{ {0, Skins, 1}, {1, Details, 1}, {2, 1, 1}, {3, 1, 1}, {4, 1, 1} }};
+    inline constexpr std::array<Option, 5> FungarianOptions = {{ {0, 11, 1}, {1, 8, 1}, {2, 3, 1}, {3, 5, 1}, {4, 4, 1} }};
+    inline constexpr std::array<char const*, 1> PackSkinLabels = {{"Skin Color"}};
+    inline constexpr std::array<char const*, 2> PackDetailLabels = {{"Skin Color", "Details"}};
+    inline constexpr std::array<char const*, 5> FungarianLabels = {{"Skin Color", "Markings", "Cap", "Frills", "Spores"}};
+
+    constexpr bool NewPackRace(unsigned race)
+    {
+        return race >= 80 && race <= 91;
+    }
+
+    constexpr std::array<Option, 5> const& PackOptions(unsigned race, unsigned gender)
+    {
+        switch (race)
+        {
+            case 80: return PackSkinOptions<10>;
+            case 81: return PackSkinOptions<64>;
+            case 82: return PackSkinOptions<7>;
+            case 83: return gender ? PackDetailOptions<18, 4> : PackSkinOptions<18>;
+            case 84: return FungarianOptions;
+            case 85: return PackSkinOptions<11>;
+            case 86: return PackDetailOptions<13, 3>;
+            case 87: return gender ? PackSkinOptions<9> : PackDetailOptions<9, 4>;
+            case 88: return PackSkinOptions<12>;
+            case 89: return PackSkinOptions<8>;
+            case 90: return PackSkinOptions<8>;
+            default: return PackDetailOptions<9, 5>;
+        }
+    }
+
+    constexpr unsigned PackControlCount(unsigned race, unsigned gender)
+    {
+        auto const& options = PackOptions(race, gender);
+        unsigned count = 1;
+        for (unsigned i = 1; i < options.size(); ++i)
+            if (options[i].count > 1)
+                count = i + 1;
+        return count;
+    }
+
     constexpr bool Uses(unsigned race)
     {
         return (race >= 54 && race <= 61) || race == 65 || race == 68 || race == 62 || race == 63 || race == 64
-            || race == 66 || race == 69 || race == 70 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79;
+            || race == 66 || race == 69 || race == 70 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79
+            || NewPackRace(race);
     }
 
     constexpr bool GenderAllowed(unsigned race, unsigned gender)
     {
         return Uses(race) && (gender == 0
-            || ((race == 68 || race == 60 || race == 61 || race == 54 || race == 56 || race == 57 || race == 62 || race == 66 || race == 65 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79) && gender == 1));
+            || ((race == 68 || race == 60 || race == 61 || race == 54 || race == 56 || race == 57 || race == 62 || race == 66 || race == 65 || race == 73 || race == 74 || race == 75 || race == 76 || race == 77 || race == 78 || race == 79 || NewPackRace(race)) && gender == 1));
     }
 
     constexpr bool UsesPlayerVrykul(unsigned race, unsigned gender)
@@ -481,6 +527,9 @@ namespace CreatureAppearance
                 return FacelessMale;
             case 79:
                 return gender ? QirajiFemale : QirajiMale;
+            case 80: case 81: case 82: case 83: case 84: case 85:
+            case 86: case 87: case 88: case 89: case 90: case 91:
+                return PackOptions(race, gender);
             case 68:
                 return gender ? CentaurFemale : CentaurMale;
             case 63:
@@ -505,6 +554,13 @@ namespace CreatureAppearance
             return fields[0] < 17 && fields[1] < 4 && fields[2] < 6
                 && fields[3] < 76 && fields[4] == 0;
         auto const& options = Options(race, gender);
+        if (NewPackRace(race))
+        {
+            for (unsigned i = 0; i < PackControlCount(race, gender); ++i)
+                if (fields[i] >= options[i].count)
+                    return false;
+            return true;
+        }
         if (race >= 77 && race <= 79)
         {
             // pack races: the stock face / hair / facial-hair values are unused, only the skin (and Banshee hair) colour count
