@@ -133,6 +133,11 @@ class CM2Scene {
 extern const uint32_t s_blendModes[3][M2BLEND_COUNT];
 extern const uint32_t s_localLighting[M2BLEND_COUNT];
 
+// A CSimpleModel frame (the character selection screen, portraits, the dressing room): the scene's attached models
+// (the character on its background) draw after the background, with a depth clear between, so the preview is never
+// cut by the background's scenery (the Tauren character select grass, on Vulkan).
+extern bool g_m2GlueModelFrame;
+
 // CoA: AscAttachFixes.cpp:sub_10a46590 (orig hook 0x81F970) -- a path not "" replaces the model DuplicateModel copies.
 extern const char* (*g_m2DuplicateModelHook)();
 // CoA: AscItemCollections.cpp:FUN_102cb000 (orig hook 0x81F8F0) -- after CreateModel, with its result (may be nullptr).
