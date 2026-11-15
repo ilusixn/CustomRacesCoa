@@ -7,4 +7,5 @@ updated in the same commit.
 | Upstream | Location | Pinned commit |
 |---|---|---|
 | wowdecomp (3.3.5a 12340 decompilation) | `F:\WorkDir\WoWClients\wowdecomp` | `20f9120e` |
+| wowdecomp, Esteria graphics (Vulkan backend; Lumenveil and Azeroth Remastered follow) | `https://github.com/STRHercules/wowdecomp` branch `AFKRealm` | `51b9d02` (only `Engine/Source/Gx` and its build parts; base `b1c71b8`, see `docs/2026-11-15-vulkan-backend.md`) |
 | ascension-extensions-reconstruction (Extensions.dll) | `F:\WorkDir\ascension-extensions-reconstruction` | `a5946de` (firstoni-dev `main`; also carries the fork-only parity commits up to `1b9ebca`) |

@@ -39,7 +39,7 @@ static BlitFormat s_blitFormats[GxTexFormats_Last] = {
 };
 
 // STATIC: 0x00AD87E4
-const char* g_gxApiNames[GxApis_Last] = { "OpenGL", "D3D9", "D3D9Ex", "D3D10", "D3D11", "GLL" };
+const char* g_gxApiNames[GxApis_Last] = { "OpenGL", "D3D9", "D3D9Ex", "D3D10", "D3D11", "GLL", "Vulkan" };
 
 // STATIC: 0x00AD8AC0
 static uint32_t s_vertexSize[GxVertexBufferFormats_Last] = { 12, 24, 28, 32, 36, 40, 44, 16, 24, 32, 20, 28, 48, 48 };
@@ -67,6 +67,14 @@ static TSGrowableArray<void (*)()> s_destroyCallbacks;
 
 // STATIC: 0x00C5DFA4
 static TSGrowableArray<GxDrawListEntry> s_drawLists[GxuCats_Last];
+
+// NOT IN BINARY: performance overlay counters. The frame totals accumulate while the frame draws and the last
+// finished frame's totals are latched at present, so a reader never sees a half-counted frame.
+bool g_gxPerfEnabled = false;
+static uint32_t s_perfFrameDrawCalls;
+static uint32_t s_perfFrameTriangles;
+static uint32_t s_perfLastDrawCalls;
+static uint32_t s_perfLastTriangles;
 
 // VERIFY: 39e42562 auto
 // OFFSET: 0x00681310
@@ -115,6 +123,7 @@ static int (*s_drawListSorters[GxuSorts_Last])(const void*, const void*) = { Dra
 // VERIFY: 0b88acbc auto
 // OFFSET: 0x008C8DE0
 EGxApi GxDefaultApi() {
+    // CoA64: D3D9 stays the default (LuxVelum and the DXVK path are D3D9); Vulkan via -vulkan or gxApi.
     return GxApi_D3d9;
 }
 
@@ -125,6 +134,8 @@ int32_t GxApiSupported(EGxApi api) {
         case GxApi_OpenGl:
         case GxApi_D3d9:
         case GxApi_D3d9Ex:
+        case GxApi_D3d11:
+        case GxApi_Vulkan:
             return 1;
 
         default:
@@ -192,6 +203,16 @@ CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& 
 
         case GxApi_D3d9Ex:
             device = CreateCGxDeviceD3d9Ex();
+            g_theGxDevicePtr = device;
+            break;
+
+        case GxApi_D3d11:
+            device = CreateCGxDeviceD3d11();
+            g_theGxDevicePtr = device;
+            break;
+
+        case GxApi_Vulkan:
+            device = CreateCGxDeviceVulkan();
             g_theGxDevicePtr = device;
             break;
 
@@ -290,6 +311,51 @@ char* GxBufLock(CGxBuf* buf) {
 void GxBufUnlock(CGxBuf* buf, uint32_t size) {
     g_theGxDevicePtr->BufUnlock(buf, size);
     buf->m_hasData = 1;
+}
+
+// NOT IN BINARY
+void GxPerfSetEnabled(bool enabled) {
+    g_gxPerfEnabled = enabled;
+    s_perfFrameDrawCalls = 0;
+    s_perfFrameTriangles = 0;
+    s_perfLastDrawCalls = 0;
+    s_perfLastTriangles = 0;
+}
+
+// NOT IN BINARY: one submitted batch. Only triangle primitives add triangles; PrimCalcCount subtracts from an
+// unsigned count, so a degenerate batch underflows to a huge value that is not a real batch.
+void GxPerfCountBatch(const CGxBatch* batch) {
+    if (!g_gxPerfEnabled || !batch) {
+        return;
+    }
+
+    s_perfFrameDrawCalls++;
+
+    if (batch->m_primType == GxPrim_Triangles || batch->m_primType == GxPrim_TriangleStrip || batch->m_primType == GxPrim_TriangleFan) {
+        uint32_t count = g_theGxDevicePtr->PrimCalcCount(batch->m_primType, batch->m_count);
+
+        if (count < 0x10000000) {
+            s_perfFrameTriangles += count;
+        }
+    }
+}
+
+// NOT IN BINARY
+void GxPerfFrameEnd() {
+    s_perfLastDrawCalls = s_perfFrameDrawCalls;
+    s_perfLastTriangles = s_perfFrameTriangles;
+    s_perfFrameDrawCalls = 0;
+    s_perfFrameTriangles = 0;
+}
+
+// NOT IN BINARY
+uint32_t GxPerfDrawCalls() {
+    return s_perfLastDrawCalls;
+}
+
+// NOT IN BINARY
+uint32_t GxPerfTriangles() {
+    return s_perfLastTriangles;
 }
 
 // VERIFY: 13b86081 manual
@@ -397,7 +463,6 @@ int32_t GxTexCopy(CGxTex* dest, const C2iVector& destPos, const C2iVector& sourc
 int32_t GxTexReusable(CGxTex* texId) {
     // CoA: AscGraphics.cpp:sub_10265d10 (orig hook 0x681580) -- replaced by "return 0" (Extensions.dll's
     // ReplaceFunction): no texture is ever reused. The stock body was:
-    //   texId && texId->m_char5D && texId->m_depth == 0 && !generateMipMaps && !renderTarget && 2d && format <= Dxt5
     (void)texId;
     return 0;
 }
@@ -407,7 +472,6 @@ int32_t GxTexReusable(CGxTex* texId) {
 int32_t GxTexReusable(CGxTexParms& parms) {
     // CoA: AscGraphics.cpp:sub_10265d10 (orig hook 0x6815C0) -- replaced by "return 0" (Extensions.dll's
     // ReplaceFunction): no texture is ever created reusable. The stock body was:
-    //   parms.m_depth == 0 && !generateMipMaps && !renderTarget && 2d && format <= Dxt5
     (void)parms;
     return 0;
 }

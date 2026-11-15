@@ -249,6 +249,14 @@ static void SetupMultisampleFormats() {
         api = GxApi_D3d9Ex;
     }
 
+    if (CmdLineGetBool(CMD_D3D11) && GxApiSupported(GxApi_D3d11)) {
+        api = GxApi_D3d11;
+    }
+
+    if (CmdLineGetBool(CMD_VULKAN) && GxApiSupported(GxApi_Vulkan)) {
+        api = GxApi_Vulkan;
+    }
+
     int32_t colorBits = 0;
     int32_t depthBits = 0;
 
@@ -291,6 +299,16 @@ static void SetupMultisampleFormats() {
         if (!found) {
             s_multisampleFormats.New(format);
         }
+    }
+
+    // Not in the original: the Vulkan device lists no adapter formats and always renders with one sample.
+    // An empty list leaves the Multisampling dropdown showing stale text from another dropdown.
+    if (!s_multisampleFormats.Count()) {
+        C3iVector format;
+        format.x = colorBits;
+        format.y = depthBits;
+        format.z = 1;
+        s_multisampleFormats.New(format);
     }
 }
 

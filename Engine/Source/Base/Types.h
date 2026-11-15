@@ -21,7 +21,12 @@ enum CMDOPT {
     CMD_FULL_SCREEN = 13,
     CMD_22050HZ = 14,
     CMD_NO_WARNINGS = 15,
-    CMDOPTS = 16,
+    CMDOPTS = 17,
+    // Not in the 3.3.5a binary: "-vulkan" selects the Vulkan backend like "-opengl" / "-d3d" select theirs. Past
+    // every id the client registers (WOWCMDOPT in WoW/Source/Client.h ends at CMD_GX_OVERRIDE = 39):
+    CMD_VULKAN = 40,
+    // Keep custom backend options beyond WOWCMDOPT's ids; 16 selects 800x600.
+    CMD_D3D11 = 41,
 };
 
 enum PROPERTY {

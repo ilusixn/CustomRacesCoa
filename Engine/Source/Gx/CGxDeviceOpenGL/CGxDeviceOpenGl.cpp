@@ -3979,6 +3979,7 @@ void CGxDeviceOpenGl::Draw(CGxBatch* batch, int32_t count) {
     }
 
     this->IStateSync();
+    GxPerfCountBatch(batch);
 
     if (count) {
         if (glExtDrawRangeElements) {

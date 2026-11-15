@@ -66,6 +66,26 @@ if (WIN32)
     endif ()
 endif ()
 
+# The Khronos Vulkan headers (vulkan-headers/VERSION names the pinned SDK tag), headers only: no vulkan-1.lib
+# and no Vulkan SDK on the build machine. VK_NO_PROTOTYPES drops the function declarations, so every entry
+# point has to come from the loader at runtime (Engine/Source/Gx/CGxDeviceVulkan/Vulkan/Loader.cpp loads
+# vulkan-1.dll, the system component a machine with a Vulkan driver has in System32).
+if (WIN32)
+    add_library(VulkanHeaders INTERFACE)
+
+    target_include_directories(VulkanHeaders
+        INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-headers
+    )
+
+    target_compile_definitions(VulkanHeaders
+        INTERFACE
+            VK_NO_PROTOTYPES
+            VK_USE_PLATFORM_WIN32_KHR
+    )
+endif ()
+
+
 # FreeType 2.14.1 (the Extensions.dll's statically linked FreeType, which AscFontRender puts in place of the client's
 # 2.0: CoA's FontRender port). Stock ftmodule.h / ftoption.h -- every default module (incl. sdf, bsdf, svg), the bundled
 # zlib, LZW; no bzip2 / png / harfbuzz / brotli -- as the reconstruction builds it (third_party/freetype, pin 1b9ebca),
