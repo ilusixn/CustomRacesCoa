@@ -12,6 +12,7 @@
 #include "WoW/Source/DB/Rec/MovieRec.h"
 #include "WoW/Source/DB/Rec/MovieVariationRec.h"
 #include "WoW/Source/Ui/CKBSystem.h"
+#include "WoW/Source/Ui/Visuals.h"
 #include <cmath>
 #include <cstdarg>
 #include <cstring>
@@ -1813,6 +1814,7 @@ void CGGameUI::InitializeFrameXML() {
     }
 
     BugReportRegister();
+    Visuals::InitializeOptions();
     LoadAddOns(&status);
     FrameXML_RegisterLoadProgressCallback(nullptr, nullptr, 0);
 

@@ -71,7 +71,7 @@ namespace {
         wchar_t* end = nullptr;
         unsigned long value = wcstoul(text, &end, 10);
 
-        if (!end || *end || value > CoA::Visuals::LuxVelum) {
+        if (!end || *end || value > CoA::Visuals::Forever) {
             return false;
         }
 
@@ -177,7 +177,7 @@ namespace {
     }
 }
 
-unsigned CoA::Visuals::Current() {
+unsigned CoA::Visuals::Pending() {
     unsigned choice = 0;
 
     if (FromCommandLine(choice) || FromFile(choice)) {
@@ -187,8 +187,14 @@ unsigned CoA::Visuals::Current() {
     return kDefault;
 }
 
+unsigned CoA::Visuals::Current() {
+    // HD passes ask every frame: parse once.
+    static const unsigned s_started = Pending();
+    return s_started;
+}
+
 bool CoA::Visuals::Set(unsigned choice) {
-    if (choice > LuxVelum) {
+    if (choice > Forever) {
         return false;
     }
 
@@ -214,6 +220,9 @@ void CoA::Visuals::Start() {
             return;
         case LuxVelum:
             CoA::LuxVelum::Load();
+            return;
+        case Forever:
+            CoA::Log::Printf("Visuals: Forever (Azeroth Remastered on Vulkan)");
             return;
         default:
             CoA::Log::Printf("Visuals: stock (graphics mods off)");

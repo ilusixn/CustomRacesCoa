@@ -12,6 +12,7 @@
 #include "Engine/Source/Gx/CGxDevice/Types.h"
 #include "Engine/Source/Gx/CGxFormat.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "WoW/Source/Ui/Visuals.h"
 #include "Engine/Source/Os/Gui.h"
 #include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Os/System.h"
@@ -388,6 +389,9 @@ void ConsoleDeviceInitialize(const char* title, bool unused_a2, bool unused_a3) 
             }
         }
     }
+
+    // CoA: the graphics pack picks its device (Visuals.txt).
+    api = Visuals::PickApi(api);
 
     if (CmdLineGetBool(CMD_OPENGL) && GxApiSupported(GxApi_OpenGl)) {
         api = GxApi_OpenGl;

@@ -1,0 +1,81 @@
+#include "WoW/Source/Ui/Visuals.h"
+#include <cstdio>
+#include "Engine/Source/FrameScript/FrameScript.h"
+
+// Modelled on wowdecomp's WowDecompVisualsDropDown; a registered control, so Okay/Cancel/Defaults work.
+// Okay writes coaVisuals (Visuals.txt); ACTIVE is the pack this run started with, for the restart note.
+static const char kScript[] = R"lua(
+if not VideoOptionsEffectsPanel or CoAVisualsDropDown then return end
+
+local ACTIVE = "%u"
+local panel = VideoOptionsEffectsPanel
+local choices = {
+    { value = "0", text = "Standard" },
+    { value = "1", text = "Lumenveil" },
+    { value = "2", text = "LuxVelum" },
+    { value = "3", text = "Forever (Azeroth Remastered)" },
+}
+
+local dd = CreateFrame("Frame", "CoAVisualsDropDown", panel, "UIDropDownMenuTemplate")
+if VideoOptionsEffectsPanelPlayerTexture then
+    dd:SetPoint("TOPLEFT", VideoOptionsEffectsPanelPlayerTexture, "TOPLEFT", -284, 8)
+else
+    dd:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 0, 40)
+end
+UIDropDownMenu_SetWidth(dd, 190)
+
+local note = dd:CreateFontString("CoAVisualsRestartNote", "BACKGROUND", "GameFontRedSmall")
+note:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 20, 2)
+note:SetText("Takes effect after a client restart")
+
+local function NameOf(value)
+    for _, choice in ipairs(choices) do
+        if choice.value == value then return choice.text end
+    end
+    return choices[1].text
+end
+
+local function Show(self, value)
+    self.shown = value
+    UIDropDownMenu_SetSelectedValue(self, value)
+    UIDropDownMenu_SetText(self, "Graphics: " .. NameOf(value))
+    if value ~= ACTIVE then note:Show() else note:Hide() end
+end
+
+UIDropDownMenu_Initialize(dd, function()
+    for _, choice in ipairs(choices) do
+        local info = {}
+        info.text = choice.text
+        info.value = choice.value
+        info.checked = dd.shown == choice.value
+        info.func = function(button)
+            dd.newValue = button.value
+            Show(dd, button.value)
+            if VideoOptionsFrameApply then VideoOptionsFrameApply:Enable() end
+        end
+        UIDropDownMenu_AddButton(info)
+    end
+end)
+
+dd.type = CONTROLTYPE_DROPDOWN
+dd.defaultValue = "1"
+dd.GetValue = function() return GetCVar("coaVisuals") end
+dd.SetValue = function(self, value)
+    self.value = value
+    if GetCVar("coaVisuals") ~= value then SetCVar("coaVisuals", value) end
+    Show(self, value)
+end
+dd.RefreshValue = function(self)
+    self.value = GetCVar("coaVisuals") or ACTIVE
+    self.newValue = nil
+    Show(self, self.value)
+end
+if BlizzardOptionsPanel_RegisterControl then BlizzardOptionsPanel_RegisterControl(dd, panel) end
+dd:RefreshValue()
+)lua";
+
+void Visuals::InitializeOptions() {
+    static char script[sizeof(kScript) + 16];
+    snprintf(script, sizeof(script), kScript, CoA::Visuals::Current());
+    FrameScript_Execute(script, "CoAVisualsDropDown", nullptr);
+}
