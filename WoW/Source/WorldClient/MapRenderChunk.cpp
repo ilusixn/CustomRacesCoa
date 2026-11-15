@@ -1,4 +1,5 @@
 #include "MapRenderChunk.h"
+#include "WoW/Source/WorldClient/HD/HdTerrain.h"
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/TerrainScaleClient.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
@@ -1956,7 +1957,9 @@ void CMapRenderChunk::AllocLayerTextures() {
 // VERIFY: 7488cd14 manual
 // OFFSET: 0x0079E470
 CGxShader* CMapRenderChunk::GetVertexShader(int32_t pointLights, int32_t layers, int32_t specular, int32_t vertexColor, int32_t a5, int32_t shadow) {
-    return CMap::vertexShader_Terrain[64 * pointLights + 16 * (layers - 1) + 8 * specular + 4 * vertexColor + 2 * a5 + (shadow != 0)];
+    int32_t index = 64 * pointLights + 16 * (layers - 1) + 8 * specular + 4 * vertexColor + 2 * a5 + (shadow != 0);
+    HD::TerrainShader(CMap::vertexShader_Terrain[index], HD::TerrainVertex, index);  // not in the original binary: hdTerrainLight
+    return CMap::vertexShader_Terrain[index];
 }
 
 // VERIFY: a33ed04d auto
@@ -2113,6 +2116,8 @@ void CMapRenderChunk::SetVertexShader(CMapRenderChunk* renderChunk, int32_t laye
     // CoA: AscTerrainScale.cpp:FUN_1033bef0 (orig hook 0x7D0050) -- after the original: the layers' texture scale bits, then
     // the constants again.
     CoA::TerrainScaleClient::AfterSetVertexShader(renderChunk);
+
+    HD::TerrainVertexConstants(&renderChunk->m_sphere, World::s_m2Scene, &CWorldScene::s_activeWorldView);  // not in the original binary: c49-c53 and pixel c16.. for our terrain shaders (Forever lighting, hdLights)
 }
 
 // VERIFY: 2226742d manual

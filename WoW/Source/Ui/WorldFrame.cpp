@@ -28,6 +28,15 @@
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/Gx/Lumenveil.h"
 #include "Engine/Source/Gx/LuxVelum.h"
+#include "WoW/Source/WorldClient/HD/HdAO.h"
+#include "WoW/Source/WorldClient/HD/HdBloom.h"
+#include "WoW/Source/WorldClient/HD/HdCamera.h"
+#include "WoW/Source/WorldClient/HD/HdContactShadow.h"
+#include "WoW/Source/WorldClient/HD/HdFog.h"
+#include "WoW/Source/WorldClient/HD/HdFrame.h"
+#include "WoW/Source/WorldClient/HD/HdGI.h"
+#include "WoW/Source/WorldClient/HD/HdGrade.h"
+#include "WoW/Source/WorldClient/HD/HdTime.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/CAaBox.h"
@@ -1632,6 +1641,9 @@ void CGWorldFrame::UpdateDayNight(float deltaSec) {
         }
     }
 
+    // Not in the original binary: Azeroth Remastered's hdTime (visuals 2 only).
+    HD::ApplyTimeOverride(info);
+
     info->m_weatherIntensity = World::s_weather->m_densityBlend * World::s_weather->m_fogIntensity;
 }
 
@@ -1780,6 +1792,9 @@ void CGWorldFrame::OnWorldRender() {
     scene->Draw(M2PASS_0);
     LuxHook(&LuxCallbacks::opaqueDone);
     LumenHook(&LumenveilCallbacks::opaqueDone);
+    HD::CaptureCamera();
+    // Not in the original binary: Azeroth Remastered's ambient occlusion on the opaque world (visuals 2 only).
+    HD::AO::World();
 
     if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x200122);
@@ -1787,7 +1802,13 @@ void CGWorldFrame::OnWorldRender() {
 
     GxuSortDrawList(GxuCat_0, GxuSort_VtxStream, *World::GetCamPos());
     GxuFlushDrawList(GxuCat_0, *World::GetCamPos());
+    HD::ContactShadowPrepare();  // not in the original binary: the contact shadows' mask, from the depth without the grass
     CWorldScene::RenderDetailDoodads();
+    // Not in the original binary: Azeroth Remastered's contact shadows, then its one-bounce GI, on the opaque world and
+    // the grass, before the water and the transparent models (visuals 2 only).
+    HD::ContactShadowRenderOpaque();
+    HD::GIRenderOpaque();
+    HD::Frame::Close();
 
     if (World::SceneCamLiquidStatus(nullptr)) {
         CWorldScene::RenderBarriers(this->m_elapsedSec);
@@ -1811,6 +1832,9 @@ void CGWorldFrame::OnWorldRender() {
         DrawSpellCursorShadow(0x20000);
     }
 
+    // Not in the original binary: Azeroth Remastered's volumetric fog over the world, its liquids and weather, before
+    // the spells and particles (visuals 2 only).
+    HD::Fog::World();
     SpellVisualsTick();
     SpellVisualsRender();
     CGUnit_C::RenderMissileTrajectoryTargetingTexture();
@@ -1826,6 +1850,11 @@ void CGWorldFrame::OnWorldRender() {
 
     LuxHook(&LuxCallbacks::glareEnd);
     PlayerNameUpdateLate();
+    // Not in the original binary: Azeroth Remastered's bloom and sun rays, then colour grading, over the finished
+    // world (visuals 2 only).
+    HD::Bloom::World();
+    HD::Grade::World();
+    HD::Frame::Close();
 
     if (CWorld::enables & 0x20000000) {
         GxMasterEnableSet(GxMasterEnable_PolygonFill, 1);

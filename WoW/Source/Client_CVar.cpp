@@ -22,6 +22,20 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "WoW/Source/ConsoleDevice/ConsoleDevice.h"
 #include "WoW/Source/Hardware.h"
+#include "WoW/Source/Ui/OptionCVars.h"
+#include "WoW/Source/Ui/Visuals.h"
+#include "WoW/Source/WorldClient/HD/HdAO.h"
+#include "WoW/Source/WorldClient/HD/HdBloom.h"
+#include "WoW/Source/WorldClient/HD/HdContactShadow.h"
+#include "WoW/Source/WorldClient/HD/HdDetailDoodad.h"
+#include "WoW/Source/WorldClient/HD/HdFog.h"
+#include "WoW/Source/WorldClient/HD/HdGI.h"
+#include "WoW/Source/WorldClient/HD/HdGrade.h"
+#include "WoW/Source/WorldClient/HD/HdMapObj.h"
+#include "WoW/Source/WorldClient/HD/HdSky.h"
+#include "WoW/Source/WorldClient/HD/HdTerrain.h"
+#include "WoW/Source/WorldClient/HD/HdTime.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 #include "WoW/Source/WowSysMessageOutput.h"
 
 // STATIC: 0x00AB6004
@@ -643,6 +657,20 @@ bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* ar
 // VERIFY: 9951b118 manual
 // OFFSET: 0x00401B60
 void ClientRegisterConsoleCommands() {
+    Visuals::Register();
+    HD::AO::RegisterCVars();
+    HD::Bloom::RegisterCVars();
+    HD::Fog::RegisterCVars();
+    HD::Grade::RegisterCVars();
+    HD::RegisterTimeCVars();
+    HD::RegisterContactShadowCVars();
+    HD::RegisterGICVars();
+    HD::RegisterTerrainCVars();
+    HD::RegisterMapObjCVars();
+    HD::RegisterDetailDoodadCVars();
+    HD::RegisterSkyCVars();
+    HD::RegisterWaterCVars();
+
     ConsoleCommandRegister("reloadUI", CCommand_ReloadUI, CATEGORY_GRAPHICS, nullptr);
     ConsoleCommandRegister("perf", CCommand_Perf, CATEGORY_DEBUG, nullptr);
 

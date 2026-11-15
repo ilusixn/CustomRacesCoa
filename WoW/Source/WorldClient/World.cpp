@@ -1,4 +1,5 @@
 #include "World.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 #include "CoA/Source/Modules/Graphics.h"
 #include "CoA/Source/Modules/ZoneLightClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
@@ -1931,6 +1932,10 @@ void CWorldScene::RenderLiquidPass() {
     CWorldScene::ApplyFogState();
 
     if ((CWorld::enables & Enable_Water) && CWorldScene::s_liquidRenderer) {
+        // Not in the original binary: hdWater 1 takes the linear world depth and a copy of the world before the liquids
+        // (the camera under water keeps Blizzard's water)
+        HD::WaterBeginLiquidPass(World::SceneCamLiquidStatus(nullptr) != 0);
+
         if (g_luxVelum && g_luxVelum->waterPassBegin) {
             g_luxVelum->waterPassBegin(CWorldScene::s_liquidRenderer->m_instances[1].Count() != 0);
         }
@@ -1942,6 +1947,8 @@ void CWorldScene::RenderLiquidPass() {
         if (g_luxVelum && g_luxVelum->waterPassEnd) {
             g_luxVelum->waterPassEnd();
         }
+
+        HD::WaterEndLiquidPass();
     }
 
     CMap::RenderWaterRipples();

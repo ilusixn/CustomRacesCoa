@@ -1,4 +1,5 @@
 #include <vector>
+#include "WoW/Source/WorldClient/HD/HdTerrain.h"
 #include "Map.h"
 #include "CoA/Source/Modules/CrashContext.h"
 #include "CoA/Source/Modules/Misc.h"
@@ -445,19 +446,30 @@ CGxShader* CMap::GetTerrainPixelShader(int32_t bigAlpha, int32_t layers, int32_t
     int32_t layerIndex = layers - 1;
 
     switch (shadowMode) {
-        case 0:
-            return CMap::pixelShader_Terrain1[16 * a5 + 8 * bigAlpha + 2 * layerIndex + a4];
+        case 0: {
+            // Not in the original binary: hdTerrainLight puts our shader code (Forever lighting) into the one picked here.
+            int32_t index = 16 * a5 + 8 * bigAlpha + 2 * layerIndex + a4;
+            HD::TerrainShader(CMap::pixelShader_Terrain1[index], HD::TerrainPixel1, index);
+            return CMap::pixelShader_Terrain1[index];
+        }
 
         case 1:
             if (g_theGxDevicePtr->Caps().m_shaderTargets[4] == 3 || g_theGxDevicePtr->Caps().m_shaderTargets[4] == 12) {
                 return CMap::pixelShader_Terrain2[16 * a5 + 8 * bigAlpha + 2 * layerIndex + a4];
             }
 
-            return CMap::pixelShader_Terrain3[48 * a5 + 24 * bigAlpha + 2 * layerIndex + a4];
+            {
+                int32_t index = 48 * a5 + 24 * bigAlpha + 2 * layerIndex + a4;
+                HD::TerrainShader(CMap::pixelShader_Terrain3[index], HD::TerrainPixel3, index);
+                return CMap::pixelShader_Terrain3[index];
+            }
 
         case 2:
-        case 3:
-            return CMap::pixelShader_Terrain3[48 * a5 - 8 + 24 * bigAlpha + 8 * shadowMode + 2 * layerIndex + a4];
+        case 3: {
+            int32_t index = 48 * a5 - 8 + 24 * bigAlpha + 8 * shadowMode + 2 * layerIndex + a4;
+            HD::TerrainShader(CMap::pixelShader_Terrain3[index], HD::TerrainPixel3, index);
+            return CMap::pixelShader_Terrain3[index];
+        }
 
         default:
             return nullptr;
@@ -731,6 +743,7 @@ void CMap::Initialize() {
 
     CMap::InitializePCFShaders();
     CMap::pixelShader_TerrainSM = nullptr;
+    HD::TerrainShadersStart();  // not in the original binary: compile Azeroth Remastered's terrain shaders in the background
 
     g_theGxDevicePtr->ShaderCreate(CMap::vertexShader_Terrain, GxSh_Vertex, "Shaders\\Vertex", "Terrain", 128);
     g_theGxDevicePtr->ShaderCreate(CMap::pixelShader_Terrain0, GxSh_Pixel, "Shaders\\Pixel", "Terrain0", 3);

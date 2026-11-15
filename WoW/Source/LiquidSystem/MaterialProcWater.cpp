@@ -1,4 +1,5 @@
 #include "Liquid.h"
+#include "WoW/Source/WorldClient/HD/HdWater.h"
 #include "Engine/Source/Tempest/CMath.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/Gx.h"
@@ -321,9 +322,14 @@ void Liquid::CMaterialProcWater::Render(Liquid::IEnvironment* environment, Liqui
         lightCount = 3;
     }
 
-    g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialProcWater::s_vertexShaders[lightCount]);
-    g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialProcWater::s_pixelShader);
+    // Not in the original binary: hdWater binds Azeroth Remastered's water shaders here (false = Blizzard's)
+    bool hdWater = HD::WaterBindProcWater(settings, lightCount);
+    if (!hdWater) {
+        g_theGxDevicePtr->RsSet(GxRs_VertexShader, Liquid::CMaterialProcWater::s_vertexShaders[lightCount]);
+        g_theGxDevicePtr->RsSet(GxRs_PixelShader, Liquid::CMaterialProcWater::s_pixelShader);
+    }
     g_theGxDevicePtr->Draw(&batch, 1);
+    if (hdWater) HD::WaterAfterDraw();
     g_theGxDevicePtr->RsPop();
 }
 
