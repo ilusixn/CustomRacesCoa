@@ -1,7 +1,9 @@
 #include "DetailDoodad.h"
 #include "WoW/Source/WorldClient/HD/HdDetailDoodad.h"
 #include "WoW/Source/WorldClient/HD/HdGrassWind.h"
+#include <algorithm>
 #include <cmath>
+#include <unordered_map>
 #include "CoA/Source/Modules/CrashContext.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
@@ -133,7 +135,7 @@ static void AcquireBuffers(uint32_t vertexCount, CGxBuf** vertexBuf, uint32_t in
 // VERIFY: c83ff776 auto
 // OFFSET: 0x007B0D40
 int32_t CDetailDoodadInst::HasBatches() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         if (this->m_batches[i].m_vertexBuf) {
             return 1;
         }
@@ -660,9 +662,45 @@ int32_t CDetailDoodadData::Load() {
 // VERIFY: 50911cf6 manual
 // OFFSET: 0x007B30D0
 void CDetailDoodadInst::FreeBuffers() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         this->m_batches[i].FreeBuffers();
     }
+}
+
+// Not in the original binary (seyris-living-azeroth's GrassDoodads.cpp): where a blade's root and tip are on its texture,
+// from the model's own geometry: the average texture V of the vertices in the lowest and in the highest 12% of its height.
+// False for a model with no height (a flat decal) or no usable V range.
+static bool ScanRootTip(CM2Model* model, float& rootV, float& tipV) {
+    M2Data* m2Data = model->m_shared->m_data;
+    M2SkinProfile* skin = model->m_shared->m_skinData;
+    const uint32_t count = skin->m_vertices.m_count;
+    if (count < 3) return false;
+    float minZ = 1e30f, maxZ = -1e30f;
+    for (uint32_t j = 0; j < count; j++) {
+        const float z = m2Data->m_vertices[skin->m_vertices[j]].m_position.z;
+        minZ = std::min(minZ, z);
+        maxZ = std::max(maxZ, z);
+    }
+    const float height = maxZ - minZ;
+    if (height < 0.05f) return false;
+    const float band = height * 0.12f;
+    float rootSum = 0.0f, tipSum = 0.0f;
+    uint32_t rootN = 0, tipN = 0;
+    for (uint32_t j = 0; j < count; j++) {
+        const M2Vertex& v = m2Data->m_vertices[skin->m_vertices[j]];
+        if (v.m_position.z <= minZ + band) {
+            rootSum += v.m_texcoord[0].y;
+            rootN++;
+        }
+        if (v.m_position.z >= maxZ - band) {
+            tipSum += v.m_texcoord[0].y;
+            tipN++;
+        }
+    }
+    if (!rootN || !tipN) return false;
+    rootV = rootSum / rootN;
+    tipV = tipSum / tipN;
+    return true;
 }
 
 // VERIFY: b905f512 manual
@@ -689,29 +727,41 @@ void CDetailDoodadInst::AddDoodad(uint32_t id, const C3Vector& position, float r
     M2SkinProfile* skin = model->m_shared->m_skinData;
     uint32_t vertexCount = skin->m_vertices.m_count;
     uint32_t indexCount = skin->m_indices.m_count;
+    // Not in the original binary: a doodad with a GroundEffectDoodadWind.cdbc row bends its own way (the batch's c68),
+    // so it shares a batch only with doodads of its class. Its mapping from the model's own geometry is read once per
+    // doodad.
+    static std::unordered_map<uint32_t, uint16_t> s_windClasses;
+    auto cached = s_windClasses.find(id);
+    if (cached == s_windClasses.end()) {
+        float rootV = 0.0f, tipV = 0.0f;
+        const bool mapped = ScanRootTip(model, rootV, tipV);
+        cached = s_windClasses.emplace(id, HD::GrassWindClassOf(id, mapped, rootV, tipV)).first;
+    }
+    const uint16_t windClass = cached->second;
 
     uint32_t i;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < kDetailDoodadBatches; i++) {
         CDetailDoodadInstBatch& batch = this->m_batches[i];
 
-        if (!HandleCompare(reinterpret_cast<HOBJECT>(batch.m_texture), reinterpret_cast<HOBJECT>(data->m_texture)) && vertexCount + batch.m_vertexCount < CDetailDoodad::s_vtxBufItems && indexCount + batch.m_indexCount < CDetailDoodad::s_idxBufItems) {
+        if (!HandleCompare(reinterpret_cast<HOBJECT>(batch.m_texture), reinterpret_cast<HOBJECT>(data->m_texture)) && batch.m_windClass == windClass && vertexCount + batch.m_vertexCount < CDetailDoodad::s_vtxBufItems && indexCount + batch.m_indexCount < CDetailDoodad::s_idxBufItems) {
             break;
         }
     }
 
-    if (i == 4) {
-        for (i = 0; i < 4; i++) {
+    if (i == kDetailDoodadBatches) {
+        for (i = 0; i < kDetailDoodadBatches; i++) {
             if (!this->m_batches[i].m_texture) {
                 break;
             }
         }
 
-        if (i == 4) {
+        if (i == kDetailDoodadBatches) {
             return;
         }
 
         this->m_batches[i].m_texture = data->m_texture;
+        this->m_batches[i].m_windClass = windClass;
     }
 
     CDetailDoodadInstBatch& batch = this->m_batches[i];
@@ -757,6 +807,7 @@ void CDetailDoodadInstBatch::Draw() {
 
     g_theGxDevicePtr->PrimIndexPtr(this->m_indexBuf);
     g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
+    HD::DetailDoodadBatchConstants(this->m_windClass);  // not in the original binary: how this batch's plant bends
 
     CGxBatch batch;
     batch.m_primType = GxPrim_Triangles;
@@ -825,7 +876,7 @@ void CDetailDoodadInst::Free() {
         this->m_chunk = nullptr;
     }
 
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         this->m_batches[i].Free();
     }
 }
@@ -833,7 +884,7 @@ void CDetailDoodadInst::Free() {
 // VERIFY: 104e29d5 auto
 // OFFSET: 0x007B36B0
 void CDetailDoodadInst::DrawBatches() {
-    for (uint32_t i = 0; i < 4; i++) {
+    for (uint32_t i = 0; i < kDetailDoodadBatches; i++) {
         if (this->m_batches[i].m_texture) {
             this->m_batches[i].Draw();
         }
@@ -843,6 +894,7 @@ void CDetailDoodadInst::DrawBatches() {
 // INLINED
 CDetailDoodadInstBatch::CDetailDoodadInstBatch() {
     this->m_texture = nullptr;
+    this->m_windClass = 0;
     this->m_vertexCount = 0;
     this->m_indexCount = 0;
     this->m_vertexBuf = nullptr;

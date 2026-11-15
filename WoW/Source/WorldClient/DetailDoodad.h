@@ -97,6 +97,7 @@ class CDetailDoodadInstBatch {
     /* 000C */ CGxBuf* m_vertexBuf;
     /* 0010 */ CGxBuf* m_indexBuf;
     /* 0014 */ TSGrowableArray<CDetailDoodadInstAdd> m_adds;
+    uint16_t m_windClass;   // not in the original binary: HD::GrassWindClassOf of its doodads (one class per batch)
 
     CDetailDoodadInstBatch();
     ~CDetailDoodadInstBatch();
@@ -107,10 +108,14 @@ class CDetailDoodadInstBatch {
     void FreeBuffers();
 };
 
+// Not in the original binary: 4 there. The wind class (HdGrassWind.h) and the HD grass density need room for more
+// batches per chunk.
+constexpr uint32_t kDetailDoodadBatches = 16;
+
 class CDetailDoodadInst {
     public:
     /* 0000 */ int32_t m_objectIndex;
-    /* 0004 */ CDetailDoodadInstBatch m_batches[4];
+    /* 0004 */ CDetailDoodadInstBatch m_batches[kDetailDoodadBatches];
     /* 0094 */ uint32_t m_age;
     /* 0098 */ CMapChunk* m_chunk;
     /* 009C */ TSLink<CDetailDoodadInst> m_link;
@@ -146,6 +151,7 @@ inline void CDetailDoodadInstBatch::FreeBuffers() {
 // INLINED
 inline void CDetailDoodadInstBatch::Free() {
     this->m_texture = nullptr;
+    this->m_windClass = 0;
     this->m_vertexCount = 0;
     this->m_indexCount = 0;
     this->m_adds.SetCount(0);
