@@ -53,6 +53,12 @@ UIDropDownMenu_Initialize(dd, function()
     end
 end)
 
+-- CoA's VideoOptions.lua enables/disables every registered control by method.
+dd.Enable = function(self) self.disabled = nil; if UIDropDownMenu_EnableDropDown then UIDropDownMenu_EnableDropDown(self) end end
+dd.Disable = function(self) self.disabled = true; if UIDropDownMenu_DisableDropDown then UIDropDownMenu_DisableDropDown(self) end end
+dd.IsEnabled = function(self) return not self.disabled end
+dd.SetEnabled = function(self, on) if on then self:Enable() else self:Disable() end end
+
 dd.type = CONTROLTYPE_DROPDOWN
 dd.defaultValue = "1"
 dd.GetValue = function() return GetCVar("coaVisuals") end
