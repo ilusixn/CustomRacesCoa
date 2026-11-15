@@ -481,10 +481,8 @@ void CSimpleModel::RenderModel(void* arg) {
 
     if (simpleModel->m_pendingCameraIndex == 0xFFFFFFFF) {
         simpleModel->GetScene()->Animate(cameraPos);
-        g_m2GlueModelFrame = true;
         simpleModel->GetScene()->Draw(M2PASS_0);
         simpleModel->GetScene()->Draw(M2PASS_1);
-        g_m2GlueModelFrame = false;
     }
 
     g_theGxDevicePtr->XformSetProjection(projection);

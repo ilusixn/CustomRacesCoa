@@ -5,12 +5,10 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
-#include <vector>
 #include <xmmintrin.h>
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
-#include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Model2/M2Cache.h"
 #include "Engine/Source/Model2/M2Light.h"
 #include "Engine/Source/Model2/M2Model.h"
@@ -34,9 +32,6 @@ const uint32_t s_blendModes[3][M2BLEND_COUNT] = { { 0, 1, 2, 10, 3, 4, 5 }, { 2,
 
 // STATIC: 0x00AF5898
 uint32_t CM2Scene::s_optFlags = 0xFFFFFFFF;
-
-// Not in the original binary: set while a CSimpleModel frame draws (Engine/Source/Frame/CSimpleModel.cpp).
-bool g_m2GlueModelFrame = false;
 
 // STATIC: 0x00AF58A0
 static const float s_lightGridScale = 0.05f;
@@ -2290,40 +2285,6 @@ void CM2Scene::Draw(M2PASS pass) {
     }
 
     CM2SceneRender render(this);
-
-    // A CSimpleModel frame (the character selection screen, portraits, the dressing room): the background's models
-    // first, then the attached character on a cleared depth range, so no background scenery (the Tauren character
-    // select grass) can cut through it. In the world, the ordinary order and the scene's depth buffer stay.
-    if (g_m2GlueModelFrame && pass == M2PASS_0 && this->m_passElements[pass].m_count) {
-        std::vector<uint32_t> parents;
-        std::vector<uint32_t> children;
-        parents.reserve(this->m_passElements[pass].m_count);
-        children.reserve(this->m_passElements[pass].m_count);
-
-        for (uint32_t i = 0; i < this->m_passElements[pass].m_count; i++) {
-            uint32_t index = this->m_passElements[pass].m_data[i];
-            (this->m_elements.m_data[index].m_model->m_attachParent ? children : parents).push_back(index);
-        }
-
-        render.Draw(pass, this->m_elements.m_data, parents.data(), static_cast<uint32_t>(parents.size()));
-
-        if (this->m_doodadElements.m_count) {
-            render.Draw(M2PASS_0, this->m_elements.m_data, this->m_doodadElements.m_data, this->m_doodadElements.m_count);
-        }
-
-        if (!children.empty()) {
-            CImVector clearColor;
-            clearColor.b = 0x00;
-            clearColor.g = 0x00;
-            clearColor.r = 0x00;
-            clearColor.a = 0xFF;
-            GxSceneClear(GxBufferBit_Depth, clearColor);
-            render.Draw(pass, this->m_elements.m_data, children.data(), static_cast<uint32_t>(children.size()));
-        }
-
-        return;
-    }
-
     render.Draw(pass, this->m_elements.m_data, this->m_passElements[pass].m_data, this->m_passElements[pass].m_count);
 
     if (pass == M2PASS_0) {
