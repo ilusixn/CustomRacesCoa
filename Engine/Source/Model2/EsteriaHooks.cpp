@@ -11,7 +11,12 @@ uint32_t M2EsteriaWideSource(const M2SkinSection* section, const M2SkinProfile* 
 }
 
 uint32_t M2EsteriaDrawStart(const M2SkinSection* section, CM2Model* instance) {
-    return g_esteriaModelHooks.drawStart && !EsteriaOff("wide") ? g_esteriaModelHooks.drawStart(section, instance) : section->m_indexStart;
+    // Processed sections (CM2Shared::SetIndices, OptimizeVisibleGeometry) carry the high 16 bits of their compacted
+    // index start in the section id's high word. The source-file validation in EsteriaWideSource must not run here:
+    // the compacted buffer is longer than the source index list, so every section past 65535 was truncated to its low
+    // word (the character select background's grass drew with the wrong indices).
+    (void)instance;
+    return (static_cast<uint32_t>(section->m_skinSectionId) >> 16 << 16) | section->m_indexStart;
 }
 
 void M2EsteriaSkin(CM2Shared* shared) {
