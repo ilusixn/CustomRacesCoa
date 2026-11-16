@@ -8,7 +8,7 @@ namespace CoA::Visuals {
         Stock = 0,
         Lumenveil = 1,
         LuxVelum = 2,
-        Forever = 3,
+        AzerothRemastered = 3,
     };
 
     // The pack this run started with; fixed until restart.

@@ -13,7 +13,7 @@ local choices = {
     { value = "0", text = "Standard" },
     { value = "1", text = "Lumenveil" },
     { value = "2", text = "LuxVelum" },
-    { value = "3", text = "Forever (Azeroth Remastered)" },
+    { value = "3", text = "Azeroth Remastered" },
 }
 
 local dd = CreateFrame("Frame", "CoAVisualsDropDown", panel, "UIDropDownMenuTemplate")

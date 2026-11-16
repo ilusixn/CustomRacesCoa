@@ -40,23 +40,23 @@ inline void Register() {
 
     char value[4] = { static_cast<char>('0' + CoA::Visuals::Pending()), 0 };
     // Flag 0: Visuals.txt is the saved copy, Config.wtf is read too late for the device choice.
-    Cvar() = CVar::Register("coaVisuals", "Graphics pack for the next start: 0 standard, 1 Lumenveil, 2 LuxVelum, 3 Forever", 0, value, CvarChanged, CATEGORY_GRAPHICS, false, nullptr, false);
+    Cvar() = CVar::Register("coaVisuals", "Graphics pack for the next start: 0 standard, 1 Lumenveil, 2 LuxVelum, 3 Azeroth Remastered", 0, value, CvarChanged, CATEGORY_GRAPHICS, false, nullptr, false);
 }
 
-// Forever only draws on the Vulkan device; anywhere else the HD passes stay off.
+// Azeroth Remastered only draws on the Vulkan device; anywhere else the HD passes stay off.
 inline Mode Current() {
-    if (CoA::Visuals::Current() != CoA::Visuals::Forever || !g_theGxDevicePtr) {
+    if (CoA::Visuals::Current() != CoA::Visuals::AzerothRemastered || !g_theGxDevicePtr) {
         return Stock;
     }
 
     return g_theGxDevicePtr->DeviceApi() == GxApi_Vulkan ? AzerothRemastered : Stock;
 }
 
-// Forever needs Vulkan; Lumenveil64.dll and LuxVelum hook D3D9. Command-line API flags still win.
+// Azeroth Remastered needs Vulkan; Lumenveil64.dll and LuxVelum hook D3D9. Command-line API flags still win.
 inline EGxApi PickApi(EGxApi api) {
     const unsigned pack = CoA::Visuals::Current();
 
-    if (pack == CoA::Visuals::Forever && GxApiSupported(GxApi_Vulkan)) {
+    if (pack == CoA::Visuals::AzerothRemastered && GxApiSupported(GxApi_Vulkan)) {
         return GxApi_Vulkan;
     }
 

@@ -71,7 +71,7 @@ namespace {
         wchar_t* end = nullptr;
         unsigned long value = wcstoul(text, &end, 10);
 
-        if (!end || *end || value > CoA::Visuals::Forever) {
+        if (!end || *end || value > CoA::Visuals::AzerothRemastered) {
             return false;
         }
 
@@ -194,7 +194,7 @@ unsigned CoA::Visuals::Current() {
 }
 
 bool CoA::Visuals::Set(unsigned choice) {
-    if (choice > Forever) {
+    if (choice > AzerothRemastered) {
         return false;
     }
 
@@ -221,8 +221,8 @@ void CoA::Visuals::Start() {
         case LuxVelum:
             CoA::LuxVelum::Load();
             return;
-        case Forever:
-            CoA::Log::Printf("Visuals: Forever (Azeroth Remastered on Vulkan)");
+        case AzerothRemastered:
+            CoA::Log::Printf("Visuals: Azeroth Remastered (Vulkan)");
             return;
         default:
             CoA::Log::Printf("Visuals: stock (graphics mods off)");

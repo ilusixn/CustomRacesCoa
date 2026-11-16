@@ -7,7 +7,7 @@ One choice decides which graphics pack the client runs and which device draws it
 | 0 | Standard | whatever `gxApi` says (D3D9 by default) |
 | 1 | Lumenveil (Lumenveil64.dll) | D3D9 (the DLL hooks D3D9; a Vulkan `gxApi` is overridden) |
 | 2 | LuxVelum | D3D9 (same reason) |
-| 3 | Forever (Azeroth Remastered HD layer from wowdecomp) | Vulkan, if the machine supports it |
+| 3 | Azeroth Remastered (its HD layer from wowdecomp; called "Forever" here until 2026-11-16) | Vulkan, if the machine supports it |
 
 ## Where the choice lives
 
