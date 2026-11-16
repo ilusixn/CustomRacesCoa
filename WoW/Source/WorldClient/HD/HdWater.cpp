@@ -450,16 +450,16 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
         ShowPassInfo();
         return;
     }
-    // hdWaterProbe: what the water reads as world depth mid-screen, beside the inputs that made it
+    // hdWaterProbe: the world depth the water reads down the middle column (10 % .. 90 % of the height)
     if (s_probe && s_probe->m_intValue) {
-        float centre = 0.0f;
-        if (s_probeRead && device->PollRead(s_probeRead, &centre)) {
+        static std::vector<float> column(8192);  // a read in flight keeps its height; 8192 rows covers any screen
+        if (s_probeRead && device->PollRead(s_probeRead, column.data())) {
             s_probeRead = nullptr;
-            snprintf(s_probeText, sizeof(s_probeText), "probe: centre %.2f yd | view %ux%u of %ux%u, z %.4f..%.4f | p10 %.6f p14 %.6f p11 %.3f",
-                     centre, static_cast<uint32_t>(camera.width), static_cast<uint32_t>(camera.height), width, height, camera.minZ, camera.maxZ,
-                     camera.projection[10], camera.projection[14], camera.projection[11]);
+            int32_t at = snprintf(s_probeText, sizeof(s_probeText), "probe (top to bottom):");
+            for (int32_t k = 1; k <= 9 && at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)); k++)
+                at += snprintf(s_probeText + at, sizeof(s_probeText) - at, " %.1f", column[height * k / 10]);
         }
-        if (!s_probeRead) s_probeRead = device->BeginRead(s_targets.linear, width / 2, height / 2, 1, 1);
+        if (!s_probeRead && height <= column.size()) s_probeRead = device->BeginRead(s_targets.linear, width / 2, 0, 1, height);
         if (!s_probeText[0]) snprintf(s_probeText, sizeof(s_probeText), "probe: reading");
     }
     s_invWidth = 1.0f / width;
