@@ -59,10 +59,6 @@ namespace {
 
     CVar* s_mode = nullptr;
     CVar* s_debug = nullptr;
-    CVar* s_probe = nullptr;
-    GxEffects::Readback* s_probeRead = nullptr;
-    char s_probeText[400] = "";
-    float s_probeMv[4] = {};  // hdWaterProbe: lengths of the liquid's model-view rows, and its translation's length
     CVar* s_body = nullptr;
     CVar* s_reflect = nullptr;
     CVar* s_color = nullptr;
@@ -373,7 +369,6 @@ namespace {
         snprintf(text, sizeof(text), "on (%s) | %s | materials drawn: procedural %d, water %d, water no-spec %d, water FFP %d, magma %d, magma FFP %d | procedural: %d Forever, %d Blizzard, %d not SM3 | last type %d -> %d | %s",
                  s_fileFound ? "forever_data\\hd_forever_liquid.txt" : "built-in values, hd_forever_liquid.txt not found",
                  s_passNote, s_calls, s_seen[1], s_seen[2], s_seen[3], s_seen[4], s_seen[5], s_drawsPbr, s_drawsKept, s_notModel3, s_lastLegacy, s_lastPbr, s_threadInfo);
-        if (s_probe && s_probe->m_intValue) snprintf(text, sizeof(text), "%s", s_probeText);  // hdWaterProbe replaces the line
         SetInfo(text);
     }
 }
@@ -381,14 +376,13 @@ namespace {
 void HD::RegisterWaterCVars() {
     if (s_mode) return;
     s_mode = OptionCVars::Register("hdWater", "HD: 1 = WoW Forever PBR water, 2 = our shaders with the 3.3.5 look (test), 0 = Blizzard water", "1");
-    s_debug = CVar::Register("hdWaterDebug", "HD: 1 = water depth, 2 = scattering, 3 = reflections, 4 = foam, 5 = roughness, 6 = world depth, 7 = world under the water (test views)", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
+    s_debug = CVar::Register("hdWaterDebug", "HD: 1 = water depth, 2 = scattering, 3 = reflections, 4 = foam, 5 = roughness, 6 = world depth, 7 = world under the water, 9..12 = depth checks (test views)", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_body = CVar::Register("hdWaterBody", "HD: strength of the water's own colour, 1 = Forever", 1, "1", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_reflect = CVar::Register("hdWaterReflect", "HD: screen-space reflections of the world on the water, 1 = on (Forever), 0 = sky only", 1, "1", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_color = CVar::Register("hdWaterColor", "HD: water colour, 1 = the game's own colours (follow the hour, dark at night), 0 = Forever's scattering", 1, "1", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_shore = CVar::Register("hdWaterShore", "HD: yards over which the water fades in from the shore (ours: Forever fades over 0.5; steep banks need more)", 1, "2", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     HD::WaterWavesEnabled();      // registers hdWaterWaves, hdWaterWaveScale
     HD::WaterRipplesRegister();   // registers hdWaterRipples, hdWaterRippleStrength
-    s_probe = CVar::Register("hdWaterProbe", "HD: 1 = hdWaterInfo shows the world depth down the middle column, 2 = also swaps the depth and world images (test)", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_info = CVar::Register("hdWaterInfo", "HD: hdWater status (read only)", 0, "off", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
 }
 
@@ -451,22 +445,6 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
         ShowPassInfo();
         return;
     }
-    // hdWaterProbe: the world depth the water reads down the middle column (10 % .. 90 % of the height)
-    if (s_probe && s_probe->m_intValue) {
-        static std::vector<float> column(8192);  // a read in flight keeps its height; 8192 rows covers any screen
-        if (s_probeRead && device->PollRead(s_probeRead, column.data())) {
-            s_probeRead = nullptr;
-            int32_t at = snprintf(s_probeText, sizeof(s_probeText), "probe (top to bottom):");
-            for (int32_t k = 1; k <= 9 && at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)); k++)
-                at += snprintf(s_probeText + at, sizeof(s_probeText) - at, " %.1f", column[height * k / 10]);
-            const C44Matrix& pn = g_theGxDevicePtr->m_projNative;
-            if (at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)))
-                snprintf(s_probeText + at, sizeof(s_probeText) - at, " | water rows %.3f %.3f %.3f, offset %.1f | proj %.3f %.3f / native %.3f %.3f",
-                         s_probeMv[0], s_probeMv[1], s_probeMv[2], s_probeMv[3], camera.projection[0], camera.projection[5], pn.a0, pn.b1);
-        }
-        if (!s_probeRead && height <= column.size()) s_probeRead = device->BeginRead(s_targets.linear, width / 2, 0, 1, height);
-        if (!s_probeText[0]) snprintf(s_probeText, sizeof(s_probeText), "probe: reading");
-    }
     s_invWidth = 1.0f / width;
     s_invHeight = 1.0f / height;
     HD::WaterRipplesRender(device);  // this frame's ripples around the camera (only for the FFT variant)
@@ -510,10 +488,6 @@ static bool BindWater(Liquid::CMaterialSettings* settings, CGxShader* clientVert
     float c[kConstCount * 4];
     memset(c, 0, sizeof(c));
     const C44Matrix& mv = Liquid::s_vsConstants.m_modelView;
-    s_probeMv[0] = sqrtf(mv.a0 * mv.a0 + mv.a1 * mv.a1 + mv.a2 * mv.a2);
-    s_probeMv[1] = sqrtf(mv.b0 * mv.b0 + mv.b1 * mv.b1 + mv.b2 * mv.b2);
-    s_probeMv[2] = sqrtf(mv.c0 * mv.c0 + mv.c1 * mv.c1 + mv.c2 * mv.c2);
-    s_probeMv[3] = sqrtf(mv.d0 * mv.d0 + mv.d1 * mv.d1 + mv.d2 * mv.d2);
     c[0] = mv.a0; c[1] = mv.a1; c[2] = mv.a2;      // model -> view rows (x, y, z axes in view space)
     c[4] = mv.b0; c[5] = mv.b1; c[6] = mv.b2;
     c[8] = mv.c0; c[9] = mv.c1; c[10] = mv.c2;
@@ -582,10 +556,8 @@ static bool BindWater(Liquid::CMaterialSettings* settings, CGxShader* clientVert
     g_theGxDevicePtr->RsSet(GxRs_DepthWrite, 1);
     g_theGxDevicePtr->RsSet(GxRs_Texture6, static_cast<void*>(nullptr));
     g_theGxDevicePtr->RsSet(GxRs_Texture7, static_cast<void*>(nullptr));
-    // hdWaterProbe 2 swaps the two (a test: which stage delivers what is bound to it)
-    const bool swap = s_probe && s_probe->m_intValue == 2;
-    GxEffects::SetDrawTexture(swap ? 7 : 6, s_targets.linear, false, false);
-    GxEffects::SetDrawTexture(swap ? 6 : 7, s_targets.scene, false, false);
+    GxEffects::SetDrawTexture(6, s_targets.linear, false, false);
+    GxEffects::SetDrawTexture(7, s_targets.scene, false, false);
     s_fftBound = fft;
     if (fft) {
         // s8..s11 the wave cascades (trilinear, repeating tiles), s12 the ripples (linear, clamped)
