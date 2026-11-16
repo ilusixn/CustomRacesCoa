@@ -676,6 +676,10 @@ float4 main(float3 iT : TEXCOORD4, float3 iB : TEXCOORD5, float3 iN : TEXCOORD6,
         // with hdWaterWaves 1 only
         if (dbg > 7.5) col = float3(0.0, gSsr.xy);
 #endif
+        // HD test views: 9 = red where the world is 10+ yd behind the surface, green where it is in front, blue between;
+        // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
+        if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
+        if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     // the 3.3.5 fog of this surface, as on every other 3.3.5 surface (hdFog's pass comes later, over everything);
@@ -1280,6 +1284,10 @@ float4 mainPbr(float3 iT : TEXCOORD4, float3 iB : TEXCOORD5, float3 iN : TEXCOOR
         // with hdWaterWaves 1 only
         if (dbg > 7.5) col = float3(0.0, gSsr.xy);
 #endif
+        // HD test views: 9 = red where the world is 10+ yd behind the surface, green where it is in front, blue between;
+        // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
+        if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
+        if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     // the 3.3.5 fog of this surface, as on every other 3.3.5 surface (hdFog's pass comes later, over everything);
@@ -1367,6 +1375,10 @@ float4 main(float3 iWorld : TEXCOORD3, float4 iView : TEXCOORD7, float iFog : FO
         if (dbg > 4.5) col = dbgRough.xxx;
         if (dbg > 5.5) col = saturate(sceneZ * 0.01).xxx;
         if (dbg > 6.5) col = dbgBg;
+        // HD test views: 9 = red where the world is 10+ yd behind the surface, green where it is in front, blue between;
+        // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
+        if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
+        if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     if (dbg > 0.5) {
