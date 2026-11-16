@@ -680,6 +680,12 @@ float4 main(float3 iT : TEXCOORD4, float3 iB : TEXCOORD5, float3 iN : TEXCOORD6,
         // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
         if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
         if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
+        // 11 = world / surface distance: blue under 1, green 1..1.1, yellow 1.1..1.5, red 1.5..2.5, white beyond
+        // 12 = world minus surface: black under 1 yd, green 1..3, yellow 3..10, red 10 and more
+        float q = sceneZ / max(zW, 0.01);
+        if (dbg > 10.5) col = q < 1.0 ? float3(0, 0, 1) : (q < 1.1 ? float3(0, 1, 0) : (q < 1.5 ? float3(1, 1, 0) : (q < 2.5 ? float3(1, 0, 0) : float3(1, 1, 1))));
+        float e = sceneZ - zW;
+        if (dbg > 11.5) col = e < 1.0 ? float3(0, 0, 0) : (e < 3.0 ? float3(0, 1, 0) : (e < 10.0 ? float3(1, 1, 0) : float3(1, 0, 0)));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     // the 3.3.5 fog of this surface, as on every other 3.3.5 surface (hdFog's pass comes later, over everything);
@@ -1288,6 +1294,12 @@ float4 mainPbr(float3 iT : TEXCOORD4, float3 iB : TEXCOORD5, float3 iN : TEXCOOR
         // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
         if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
         if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
+        // 11 = world / surface distance: blue under 1, green 1..1.1, yellow 1.1..1.5, red 1.5..2.5, white beyond
+        // 12 = world minus surface: black under 1 yd, green 1..3, yellow 3..10, red 10 and more
+        float q = sceneZ / max(zW, 0.01);
+        if (dbg > 10.5) col = q < 1.0 ? float3(0, 0, 1) : (q < 1.1 ? float3(0, 1, 0) : (q < 1.5 ? float3(1, 1, 0) : (q < 2.5 ? float3(1, 0, 0) : float3(1, 1, 1))));
+        float e = sceneZ - zW;
+        if (dbg > 11.5) col = e < 1.0 ? float3(0, 0, 0) : (e < 3.0 ? float3(0, 1, 0) : (e < 10.0 ? float3(1, 1, 0) : float3(1, 0, 0)));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     // the 3.3.5 fog of this surface, as on every other 3.3.5 surface (hdFog's pass comes later, over everything);
@@ -1379,6 +1391,12 @@ float4 main(float3 iWorld : TEXCOORD3, float4 iView : TEXCOORD7, float iFog : FO
         // 10 = the surface distance zW: red under 5 yd, green 5..100, blue beyond
         if (dbg > 8.5) col = sceneZ - zW >= 10.0 ? float3(1, 0, 0) : (sceneZ < zW ? float3(0, 1, 0) : float3(0, 0, 1));
         if (dbg > 9.5) col = zW < 5.0 ? float3(1, 0, 0) : (zW <= 100.0 ? float3(0, 1, 0) : float3(0, 0, 1));
+        // 11 = world / surface distance: blue under 1, green 1..1.1, yellow 1.1..1.5, red 1.5..2.5, white beyond
+        // 12 = world minus surface: black under 1 yd, green 1..3, yellow 3..10, red 10 and more
+        float q = sceneZ / max(zW, 0.01);
+        if (dbg > 10.5) col = q < 1.0 ? float3(0, 0, 1) : (q < 1.1 ? float3(0, 1, 0) : (q < 1.5 ? float3(1, 1, 0) : (q < 2.5 ? float3(1, 0, 0) : float3(1, 1, 1))));
+        float e = sceneZ - zW;
+        if (dbg > 11.5) col = e < 1.0 ? float3(0, 0, 0) : (e < 3.0 ? float3(0, 1, 0) : (e < 10.0 ? float3(1, 1, 0) : float3(1, 0, 0)));
     }
     float3 outG = pow(max(col, 0.0), 1.0 / 2.2);
     if (dbg > 0.5) {
