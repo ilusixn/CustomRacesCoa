@@ -417,9 +417,9 @@ void LoadConfig()
     Cfg.wraithDisplay = sConfigMgr->GetOption<uint32>("Skinshifter.WraithGlide.Display", 66620);
     Cfg.wraithLift = sConfigMgr->GetOption<float>("Skinshifter.WraithGlide.Lift", 0.5f);
     Cfg.wraithAnimTier = uint8(std::min<uint32>(sConfigMgr->GetOption<uint32>("Skinshifter.WraithGlide.AnimTier", 2), 3));
-    Cfg.rootWalkScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.Scale", 0.2f);
-    Cfg.burrowDisplay = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.BurrowDisplay", 400828);
-    Cfg.burrowScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.BurrowScale", 1.0f);
+    Cfg.rootWalkScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.Scale", 0.05f);
+    Cfg.burrowDisplay = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.BurrowDisplay", 462175);
+    Cfg.burrowScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.BurrowScale", 0.1f);
     Cfg.surfaceDelay = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.SurfaceDelay", 500);
     Cfg.nodeRange = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.NodeRange", 100.0f);
     Cfg.hideFromCreatures = sConfigMgr->GetOption<bool>("Skinshifter.RootWalk.HideFromCreatures", true);
@@ -960,10 +960,17 @@ uint16 VisibleItemField(uint8 hand)
     return uint16(PLAYER_VISIBLE_ITEM_1_ENTRYID + (EQUIPMENT_SLOT_MAINHAND + hand) * 2);
 }
 
+template <typename Scripts>
+void ApplyNameQueryRace(Scripts* scripts, Player* player, uint8& race)
+{
+    if constexpr (requires { scripts->OnPlayerGetNameQueryRace(player, race); })
+        scripts->OnPlayerGetNameQueryRace(player, race);
+}
+
 WorldPacket NameAnswer(Player* player, std::string const& name)
 {
     uint8 race = player->getRace();
-    sScriptMgr->OnPlayerGetNameQueryRace(player, race);
+    ApplyNameQueryRace(sScriptMgr, player, race);
     WorldPacket data(SMSG_NAME_QUERY_RESPONSE, 8 + 1 + name.size() + 1 + 1 + 3 + 1);
     data << player->GetPackGUID();
     data << uint8(0);         // the name is known
@@ -3233,7 +3240,7 @@ private:
                 return true;
             uint8 race = cached->Race;
             if (Player* player = ObjectAccessor::FindConnectedPlayer(owner))
-                sScriptMgr->OnPlayerGetNameQueryRace(player, race);
+                ApplyNameQueryRace(sScriptMgr, player, race);
             WorldPacket data(SMSG_NAME_QUERY_RESPONSE, 8 + 1 + cached->Name.size() + 1 + 1 + 3 + 1);
             data << guid.WriteAsPacked();
             data << uint8(0) << cached->Name << std::string() << race << cached->Sex << cached->Class << uint8(0);

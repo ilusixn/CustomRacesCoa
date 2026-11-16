@@ -1,7 +1,9 @@
 """Builds patch-ZZZZZZ-SKIN.MPQ, the Skinshifter client patch, from the CoA client's own newest files.
-    python mkskinclient.py <client Data folder> <out.MPQ>
+    python mkskinclient.py <client Data folder> <out.MPQ> --server-data <worldserver DataDir>
+        [--server-conf <skinshifter.conf>] [--worldserver <worldserver executable>]
 It reads Enum.lua, SharedConstants.lua, CharacterCreate.lua and ChrClasses.dbc in the client's load order (leaving out
 its own output), adds class 33 to each, and writes them into the output MPQ. Run again after a client update."""
+import argparse
 import struct
 import sys
 from pathlib import Path
@@ -16,9 +18,9 @@ CLASS_FILE = "SKINSHIFTER"
 CLASS_NAME = "Skinshifter"
 ICON_FOLDER = Path(__file__).resolve().parent / "icons"
 # Written by the worldserver at startup (mod-skinshifter): the Skinshifter's spells exactly as the server has them.
-SERVER_SPELLS = Path(r"<repack folder>\Data\skinshifter_client_spells.txt")
+SERVER_SPELLS = Path("skinshifter_client_spells.txt")
 # The worldserver that writes it: a file older than the worldserver is from the server before the last build.
-WORLDSERVER = Path(r"<repack folder>\Core\worldserver.exe")
+WORLDSERVER = Path("worldserver.exe")
 # The Skinshifter's rows of CoA's Character Advancement tables (talent window), written by the server at start-up
 # (SkinshifterAdvancement.cpp): table, id, template id, then byte=<u|f|s>value over a copy of the template row.
 # The same file carries Root Walk's creature looks for the herb and ore nodes CoA has no look for
@@ -641,7 +643,7 @@ STEED_VEHICLE, STEED_VEHICLE_FROM = 9910, 318
 STEED_SEAT, STEED_SEAT_FROM = 10010, 7770
 # Where the passenger sits from the rider's point: Skinshifter.SteedShift.SeatOffset in the server's conf (the server
 # writes the same into vehicleseat_dbc).
-SERVER_CONF = Path(r"<repack folder>\Core\configs\modules\skinshifter.conf")
+SERVER_CONF = Path("skinshifter.conf")
 STEED_SEAT_OFFSET = (0.0, 0.0, 0.0)
 # A seat's attachment is an index into the client's seat table: 21 is model attachment 0, where a normal rider sits
 # (index 0 is attachment 20, which most mounts lack: the passenger sat on the head or the neck).
@@ -893,7 +895,7 @@ def spells(data, textures=None, bad=frozenset()):
                          "close the game, then run Build-Skinshifter-Client.bat again.")
     if WORLDSERVER.exists() and SERVER_SPELLS.stat().st_mtime < WORLDSERVER.stat().st_mtime:
         raise SystemExit(f"{SERVER_SPELLS.name} is older than worldserver.exe: it was written by the server from "
-                         "before the last Build-Skinshifter.bat. Start the server once (it writes the file again), "
+                         "before the last worldserver build. Start the server once (it writes the file again), "
                          "close the game, then run Build-Skinshifter-Client.bat again.")
     rows = []
     # one row per "\n": spell texts may hold a "\r" (CoA's own tooltips do), which splitlines() would break on
@@ -1043,9 +1045,22 @@ def art_picture(spec):
     return None
 
 
+def picture_tools(what):
+    """mkicons' picture functions, or None without Pillow (the art is then left out)."""
+    try:
+        from mkicons import blp_rect, placed
+    except (ImportError, SystemExit):
+        print(f"  {what}: Pillow is not installed (python -m pip install pillow), so it is left out")
+        return None
+    return blp_rect, placed
+
+
 def talent_art():
     """The pictures as textures, and their atlas lines."""
-    from mkicons import blp_rect, placed
+    painter = picture_tools("talent art")
+    if not painter:
+        return [], []
+    blp_rect, placed = painter
     files, lines = [], []
     for spec in ART_SPECS:
         picture = art_picture(spec)
@@ -1082,8 +1097,11 @@ def lifted(image, area):
 
 def collection_art():
     """The Skin Collection window's pictures, and the Lua line that tells the addon which exist."""
-    from mkicons import blp_rect, placed
     files, known = [], []
+    painter = picture_tools("collection art")
+    if not painter:
+        return files, "SKINSHIFTER_COLLECTION_ART = {  }\n"
+    blp_rect, placed = painter
     for flavour, texture in COLLECTION_ART:
         picture = art_picture(f"collection_{flavour}")
         if not picture:
@@ -1242,5 +1260,23 @@ def main(data_folder, out_path):
     print(f"Done: {out} ({out.stat().st_size} bytes, {len(entries)} files, every file read back intact)")
 
 
+def use_server(server_data, server_conf, worldserver):
+    global SERVER_SPELLS, SERVER_ADVANCEMENT, BAD_ICONS, SERVER_CONF, WORLDSERVER
+    SERVER_SPELLS = Path(server_data) / "skinshifter_client_spells.txt"
+    SERVER_ADVANCEMENT = SERVER_SPELLS.with_name("skinshifter_advancement.txt")
+    BAD_ICONS = SERVER_SPELLS.parent / "skinshifter_bad_icons.txt"
+    SERVER_CONF = Path(server_conf) if server_conf else Path("-")
+    WORLDSERVER = Path(worldserver) if worldserver else Path("-")
+
+
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    parser = argparse.ArgumentParser(description="Builds the Skinshifter client patch.")
+    parser.add_argument("data_folder", help="the client's Data folder")
+    parser.add_argument("out_path", help="the MPQ to write, normally <Data>/patch-ZZZZZZ-SKIN.MPQ")
+    parser.add_argument("--server-data", required=True,
+                        help="the worldserver's DataDir, where it writes skinshifter_client_spells.txt")
+    parser.add_argument("--server-conf", help="skinshifter.conf, for Skinshifter.SteedShift.SeatOffset")
+    parser.add_argument("--worldserver", help="the worldserver executable, to spot files older than the build")
+    arguments = parser.parse_args()
+    use_server(arguments.server_data, arguments.server_conf, arguments.worldserver)
+    main(arguments.data_folder, arguments.out_path)

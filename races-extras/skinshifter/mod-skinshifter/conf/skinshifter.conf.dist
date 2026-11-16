@@ -8,9 +8,8 @@
 ###################################################################################################
 
 #    Skinshifter.Enable
-#        0 switches the whole class off: its commands are refused, class 33 and its spells are removed at start-up.
-#        Default: 0 (off until a server owner switches it on)
-Skinshifter.Enable = 0
+#        Default: 1
+Skinshifter.Enable = 1
 
 #    Skinshifter.Lift.*  (Steal Form: stealing a skin and abilities; "Lift" is its old name)
 
@@ -84,16 +83,16 @@ Skinshifter.WraithRunning.Visual = 9900001
 #        150). Standing still you come up as the herb or ore vein nearest to you; in a city, a rested area or a
 #        sanctuary, or with no node near, as this worm: the creature display (16892: the pink Outland larva) and
 #        its size (a creature's 1.0 is its normal size).
-#        Default: 16892 / 0.2
+#        Default: 16892 / 0.05
 Skinshifter.RootWalk.Display = 16892
-Skinshifter.RootWalk.Scale = 0.2
+Skinshifter.RootWalk.Scale = 0.05
 
 #    Skinshifter.RootWalk.BurrowDisplay / BurrowScale
-#        What others see while you dig along underground: 400828 is the burrowing mound of earth
-#        (Spells\BurrowEarth_Brown_Missile).
-#        Default: 400828 / 1.0
-Skinshifter.RootWalk.BurrowDisplay = 400828
-Skinshifter.RootWalk.BurrowScale = 1.0
+#        What others see while you dig along underground: 462175 is a small burrowing mound of earth
+#        (400828, Spells\BurrowEarth_Brown_Missile, is a bigger mound).
+#        Default: 462175 / 0.1
+Skinshifter.RootWalk.BurrowDisplay = 462175
+Skinshifter.RootWalk.BurrowScale = 0.1
 
 #    Skinshifter.RootWalk.SurfaceDelay
 #        How long you stand still (milliseconds) before you come up as a herb, a vein or the worm.
@@ -213,7 +212,7 @@ Skinshifter.Fx.MinSwapDelay = 250
 
 ###################################################################################################
 #  The Skinshifter class (class 33). Needs a worldserver built with skinshifter-core.patch
-#  (Build-Skinshifter.bat); without it the class rows are removed again at startup.
+#  (see README.md); without it the class rows are removed again at startup.
 ###################################################################################################
 
 #    Skinshifter.Class.Enable
@@ -230,7 +229,7 @@ Skinshifter.Class.Name = "Skinshifter"
 #        position for some class). The chosen races, from ilusixn's CoA Custom pack: Skinshifters Void Elf 59,
 #        Grummle 103, Fungarian 93 (Alliance; CoA Custom 1.9.9), Slime Giant 104, Faceless One 87, Mantid 106
 #        (Horde); Possessors Banshee 90 (Horde), Ethereal 109 (Alliance). A race the server does not have yet (no
-#        start position) is skipped. Must match SKINSHIFTER_RACES in tools\mkskinclient.py (the character creation
+#        start position) is skipped. Must match SKINSHIFTER_RACES in client\tools\mkskinclient.py (the character creation
 #        screen). Each race gets the start position of its Rogue (or its first class).
 #        Default: "59,87,90,93,103,104,106,109"
 Skinshifter.Class.Races = "59,87,90,93,103,104,106,109"
@@ -406,7 +405,7 @@ Skinshifter.SteedShift.Passenger = 1
 
 #    Skinshifter.SteedShift.SeatOffset
 #        The passenger sits where a rider sits on that mount; this moves them from there, for every mount: forward,
-#        left, up in yards ("x y z"; negative is back, right, down). Needs both builds: Build-Skinshifter, then
+#        left, up in yards ("x y z"; negative is back, right, down). Needs a worldserver restart, then
 #        Build-Skinshifter-Client.
 #        Default: "0 0 0"
 Skinshifter.SteedShift.SeatOffset = "0 0 0"

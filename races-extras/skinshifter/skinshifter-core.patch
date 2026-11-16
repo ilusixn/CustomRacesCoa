@@ -1,43 +1,43 @@
 diff --git a/src/server/coa/AscensionCoATalentData.cpp b/src/server/coa/AscensionCoATalentData.cpp
-index f8c27bf8..6d252338 100644
+index 224abfba..c516c6a3 100644
 --- a/src/server/coa/AscensionCoATalentData.cpp
 +++ b/src/server/coa/AscensionCoATalentData.cpp
-@@ -122,7 +122,7 @@ struct AdvancementClassType
- 
- bool IsCoAClassType(AdvancementClassType const& classType)
- {
--    return classType.IsCustomClass && classType.ClassId >= 12 && classType.ClassId <= 32;
-+    return classType.IsCustomClass && classType.ClassId >= 12 && classType.ClassId <= 33;
- }
- 
- bool IsBorrowOnlyClassType(AdvancementClassType const& classType)
-@@ -176,7 +176,7 @@ bool LoadCoATalentData()
+@@ -156,7 +156,7 @@ bool LoadCoATalentData()
+         ClientDBC::Record record = essence.GetRecord(row);
          uint32 const key = record.GetUInt32(ESSENCE_KEY);
          uint32 const level = record.GetUInt32(ESSENCE_LEVEL);
-         bool const stockKey = key >= 1 && key <= 11 && key != 10;
--        if ((key < 12 || key > 32) && !(stockKey && unified) || !level || level > 255)
-+        if ((key < 12 || key > 33) && !(stockKey && unified) || !level || level > 255)
+-        if (key < 12 || key > 32 || !level || level > 255)
++        if (key < 12 || key > 33 || !level || level > 255)
              continue;
          if (record.GetUInt32(ESSENCE_FLAGS) || record.GetUInt32(ESSENCE_FLAGS + 1) ||
              record.GetUInt32(ESSENCE_FLAGS + 2) || record.GetUInt32(ESSENCE_FLAGS + 3))
+@@ -211,7 +211,7 @@ bool LoadCoATalentData()
+         uint32 const entryId = record.GetUInt32(ADVANCEMENT_ID);
+         auto classType = classTypeById.find(record.GetUInt32(ADVANCEMENT_CLASS_TYPE));
+         if (classType == classTypeById.end() || !classType->second.IsCustomClass ||
+-            classType->second.ClassId < 12 || classType->second.ClassId > 32)
++            classType->second.ClassId < 12 || classType->second.ClassId > 33)
+             continue;
+ 
+         uint32 const classId = classType->second.ClassId;
 diff --git a/src/server/coa/AscensionCoATalentState.cpp b/src/server/coa/AscensionCoATalentState.cpp
-index 18f7487e..e2c40fa3 100644
+index ff3d151f..6cbd81fa 100644
 --- a/src/server/coa/AscensionCoATalentState.cpp
 +++ b/src/server/coa/AscensionCoATalentState.cpp
 @@ -66,7 +66,7 @@ std::vector<std::uint32_t> SpecializationSlotRecord(SpecializationSlot const& sl
  
  bool ParseSpecializationSlot(std::vector<std::uint32_t> const& record, SpecializationSlot& slot)
  {
--    if (record.size() < 5 || record[0] != 1 || record[1] < 1 || record[1] > 32 || record[1] == 10 ||
-+    if (record.size() < 5 || record[0] != 1 || record[1] < 1 || record[1] > 33 || record[1] == 10 ||
+-    if (record.size() < 5 || record[0] != 1 || record[1] < 12 || record[1] > 32 ||
++    if (record.size() < 5 || record[0] != 1 || record[1] < 12 || record[1] > 33 ||
          record[3] > (record.size() - 5) / 2)
          return false;
  
 diff --git a/src/server/coa/AscensionCompat.cpp b/src/server/coa/AscensionCompat.cpp
-index 73c3a84e..8ae46dd2 100644
+index adcfd394..0dfaf82a 100644
 --- a/src/server/coa/AscensionCompat.cpp
 +++ b/src/server/coa/AscensionCompat.cpp
-@@ -703,8 +703,7 @@ uint8 WeaponEffectCategoryForEquipmentSlot(uint8 slot) {
+@@ -654,8 +654,7 @@ uint8 WeaponEffectCategoryForEquipmentSlot(uint8 slot) {
  }
  
  bool IsAscensionCustomClass(Player const *player) {
@@ -46,30 +46,27 @@ index 73c3a84e..8ae46dd2 100644
 +  return IsAscensionClass(player->getClass());
  }
  
- bool UnifiedClassAdvancement() {
-@@ -1249,6 +1248,10 @@ public:
+ bool ReceivesClientRequests(Player const *player) {
+@@ -1130,6 +1129,9 @@ public:
    void SynchronizeProficiencies(Player *player) {
      if (!IsAscensionCustomClass(player))
        return;
-+    // A class without live proficiency rows (a module's class) keeps the proficiencies it was given.
 +    if (std::none_of(AscensionLiveBaseline::Proficiencies.begin(), AscensionLiveBaseline::Proficiencies.end(),
 +            [player](auto const& entry) { return entry.ClassId == player->getClass(); }))
 +      return;
  
      uint32 const guid = player->GetGUID().GetCounter();
      {
-@@ -9308,8 +9311,9 @@ public:
- 
+@@ -8514,7 +8516,7 @@ public:
    bool OnPlayerCreateInitialItems(Player* player, bool& handled) override
    {
-+    // A class without live starter rows (a module's class) is outfitted by the stock path.
      if (handled || !ascensionCompatConfig.GetConfigValue<bool>(AscensionCompatConfig::ENABLED) ||
 -        !IsAscensionCustomClass(player))
 +        !IsAscensionCustomClass(player) || !HasLiveStarterItems(player->getClass()))
        return true;
  
      handled = true;
-@@ -9320,6 +9324,12 @@ public:
+@@ -8525,6 +8527,12 @@ public:
      return AscensionClassService::Instance().InitializeLiveStarterKit(player);
    }
  
@@ -82,7 +79,7 @@ index 73c3a84e..8ae46dd2 100644
    static void PlaceStartingActionButtons(Player* player)
    {
      PlayerInfo const* info = sObjectMgr->GetPlayerInfo(player->getRace(true), player->getClass());
-@@ -11384,7 +11394,7 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
+@@ -9999,7 +10007,7 @@ bool SetAscensionTalentRank(Player* player, uint32 entryId, uint32 rank)
  
  bool IsAscensionCustomClassId(uint8 classId)
  {
@@ -92,7 +89,7 @@ index 73c3a84e..8ae46dd2 100644
  
  std::vector<AscensionClassAbility> GetAscensionClassAbilities(uint8 classId)
 diff --git a/src/server/coa/AscensionFreshCharacterCheck.cpp b/src/server/coa/AscensionFreshCharacterCheck.cpp
-index 7d5933eb..0a4587cd 100644
+index e1bf8130..0eb3a2a9 100644
 --- a/src/server/coa/AscensionFreshCharacterCheck.cpp
 +++ b/src/server/coa/AscensionFreshCharacterCheck.cpp
 @@ -248,7 +248,7 @@ Preflight CheckPassiveClosure(AscensionFreshCharacterExpectations::Case const& e
@@ -105,33 +102,20 @@ index 7d5933eb..0a4587cd 100644
                  spells.emplace_back(ability->Spell, ClosureEvent::Learn);
              }
 diff --git a/src/server/coa/AscensionRacialAbilities.h b/src/server/coa/AscensionRacialAbilities.h
-index e993c465..39d8e0ac 100644
+index a59ccc5d..721bee23 100644
 --- a/src/server/coa/AscensionRacialAbilities.h
 +++ b/src/server/coa/AscensionRacialAbilities.h
-@@ -114,7 +114,7 @@ inline bool CanLearn(SkillLineAbilityEntry const& ability, uint8 raceId, uint8 c
+@@ -104,7 +104,7 @@ inline bool CanLearn(SkillLineAbilityEntry const& ability, uint8 raceId, uint8 c
          ability.MinSkillLineRank <= 1 && !ability.SupercededBySpell &&
-         (!ability.RaceMask || (ability.RaceMask & (uint32(1) << ((raceId - 1) & 31)))) &&
+         (!ability.RaceMask || (ability.RaceMask & (uint32(1) << (raceId - 1)))) &&
          (IsClassVariantOutsideDbcMask(ability.Spell, classId) || !ability.ClassMask ||
 -            (ability.ClassMask & (uint32(1) << (classId - 1))));
 +            (ability.ClassMask & ClassMaskBit(classId)));
  }
  }
  
-diff --git a/src/server/coa/AscensionWarcraftRebornRules.cpp b/src/server/coa/AscensionWarcraftRebornRules.cpp
-index a4532183..e7e83d2e 100644
---- a/src/server/coa/AscensionWarcraftRebornRules.cpp
-+++ b/src/server/coa/AscensionWarcraftRebornRules.cpp
-@@ -167,7 +167,7 @@ bool StockClassUses(std::uint32_t classId, std::uint32_t itemClass, std::uint32_
- {
-     for (StockProficiency const& proficiency : STOCK_PROFICIENCIES)
-         if (proficiency.ItemClass == itemClass && proficiency.ItemSubClass == itemSubClass)
--            return classId && (proficiency.Classes & (1u << (classId - 1)));
-+            return classId && classId <= 32 && (proficiency.Classes & (1u << (classId - 1)));
-     return false;
- }
- 
 diff --git a/src/server/game/Achievements/AchievementMgr.cpp b/src/server/game/Achievements/AchievementMgr.cpp
-index f9b24bf2..fa537866 100644
+index 19cdb5b7..9e8f1d4a 100644
 --- a/src/server/game/Achievements/AchievementMgr.cpp
 +++ b/src/server/game/Achievements/AchievementMgr.cpp
 @@ -112,7 +112,7 @@ bool AchievementCriteriaData::IsValid(AchievementCriteriaEntry const* criteria)
@@ -178,10 +162,10 @@ index 30b72210..d6733e4f 100644
      uint8 level;
      AuctionPlayerSkills skills; // active skills only
 diff --git a/src/server/game/DataStores/DBCStores.cpp b/src/server/game/DataStores/DBCStores.cpp
-index 2ce16c0b..649ee066 100644
+index 4704b206..293cf6b8 100644
 --- a/src/server/game/DataStores/DBCStores.cpp
 +++ b/src/server/game/DataStores/DBCStores.cpp
-@@ -219,6 +219,7 @@ typedef std::list<std::string> StoreProblemList;
+@@ -218,6 +218,7 @@ typedef std::list<std::string> StoreProblemList;
  
  uint32 DBCFileCount = 0;
  static std::string sDBCPath;
@@ -189,15 +173,15 @@ index 2ce16c0b..649ee066 100644
  
  static bool LoadDBC_assert_print(uint32 fsize, uint32 rsize, std::string const& filename)
  {
-@@ -289,6 +290,7 @@ void LoadDBCStores(std::string const& dataPath)
-     std::string customDbcPath = dataPath + "dbc_races/";
-     bool const customRacesEnabled = sConfigMgr->GetOption<bool>("CoACustomRaces.Enable", false);
+@@ -286,6 +287,7 @@ void LoadDBCStores(std::string const& dataPath)
+ 
+     std::string dbcPath = dataPath + "dbc/";
      sDBCPath = dbcPath;
 +    sOverlayDBCPath = dataPath + "dbc_skinshifter/";
  
      StoreProblemList bad_dbc_files;
      uint32 availableDbcLocales = 0xFFFFFFFF;
-@@ -586,7 +588,7 @@ void LoadDBCStores(std::string const& dataPath)
+@@ -577,7 +579,7 @@ void LoadDBCStores(std::string const& dataPath)
  
              // store class talent tab pages
              for (uint32 cls = 1; cls < MAX_CLASSES; ++cls)
@@ -206,7 +190,7 @@ index 2ce16c0b..649ee066 100644
                      sTalentTabPages[cls][talentTabInfo->tabpage] = talentTabId;
          }
      }
-@@ -737,6 +739,11 @@ void LoadDBCStores(std::string const& dataPath)
+@@ -728,6 +730,11 @@ void LoadDBCStores(std::string const& dataPath)
  
  std::string GetClientDBCPath(std::string_view fileName)
  {
@@ -218,7 +202,7 @@ index 2ce16c0b..649ee066 100644
      return sDBCPath + std::string(fileName);
  }
  
-@@ -1020,7 +1027,7 @@ SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, u
+@@ -1011,7 +1018,7 @@ SkillRaceClassInfoEntry const* GetSkillRaceClassInfo(uint32 skill, uint8 race, u
              continue;
          }
  
@@ -228,10 +212,10 @@ index 2ce16c0b..649ee066 100644
              continue;
          }
 diff --git a/src/server/game/Entities/Player/Player.cpp b/src/server/game/Entities/Player/Player.cpp
-index 4690f406..66a8092b 100644
+index b7671e5b..c154403f 100644
 --- a/src/server/game/Entities/Player/Player.cpp
 +++ b/src/server/game/Entities/Player/Player.cpp
-@@ -11473,7 +11473,7 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
+@@ -11392,7 +11392,7 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
          return false;
      }
  
@@ -240,20 +224,11 @@ index 4690f406..66a8092b 100644
      {
          SendBuyError(BUY_ERR_CANT_FIND_ITEM, nullptr, item, 0);
          return false;
-@@ -13202,7 +13202,7 @@ float Player::GetReputationPriceDiscount(FactionTemplateEntry const* factionTemp
- bool Player::IsAnyClassOfMask(uint32 classMask, ClassContext context) const
- {
-     for (uint8 classId = CLASS_WARRIOR; classId < MAX_CLASSES; ++classId)
--        if ((classMask & (1u << (classId - 1))) && IsClass(Classes(classId), context))
-+        if ((classMask & ClassMaskBit(classId)) && IsClass(Classes(classId), context))
-             return true;
-     return false;
- }
 diff --git a/src/server/game/Entities/Player/PlayerQuest.cpp b/src/server/game/Entities/Player/PlayerQuest.cpp
-index bb5f5fad..0e5fe05f 100644
+index 24a8c817..e24132d9 100644
 --- a/src/server/game/Entities/Player/PlayerQuest.cpp
 +++ b/src/server/game/Entities/Player/PlayerQuest.cpp
-@@ -1184,7 +1184,7 @@ bool Player::SatisfyQuestClass(Quest const* qInfo, bool msg) const
+@@ -1175,7 +1175,7 @@ bool Player::SatisfyQuestClass(Quest const* qInfo, bool msg) const
      if (reqClass == 0)
          return true;
  
@@ -263,10 +238,10 @@ index bb5f5fad..0e5fe05f 100644
          if (msg)
              SendCanTakeQuestResponse(INVALIDREASON_DONT_HAVE_REQ);
 diff --git a/src/server/game/Entities/Player/PlayerStorage.cpp b/src/server/game/Entities/Player/PlayerStorage.cpp
-index bda2ffab..53cb2299 100644
+index 194daf36..7fc1cfef 100644
 --- a/src/server/game/Entities/Player/PlayerStorage.cpp
 +++ b/src/server/game/Entities/Player/PlayerStorage.cpp
-@@ -2418,7 +2418,7 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
+@@ -2402,7 +2402,7 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
          return EQUIP_ERR_YOU_CAN_NEVER_USE_THAT_ITEM;
      }
  
@@ -275,7 +250,7 @@ index bda2ffab..53cb2299 100644
      {
          return EQUIP_ERR_YOU_CAN_NEVER_USE_THAT_ITEM;
      }
-@@ -2488,7 +2488,7 @@ InventoryResult Player::CanRollForItemInLFG(ItemTemplate const* proto, WorldObje
+@@ -2472,7 +2472,7 @@ InventoryResult Player::CanRollForItemInLFG(ItemTemplate const* proto, WorldObje
      if (proto->HasFlag2(ITEM_FLAG2_EVERYONE_CAN_ROLL_NEED))
          return EQUIP_ERR_OK;
  
@@ -285,7 +260,7 @@ index bda2ffab..53cb2299 100644
  
      if (proto->RequiredSpell != 0 && !HasSpell(proto->RequiredSpell))
 diff --git a/src/server/game/Entities/Unit/Unit.h b/src/server/game/Entities/Unit/Unit.h
-index 705930be..181f285f 100644
+index 0eaafa4d..52c7ccf8 100644
 --- a/src/server/game/Entities/Unit/Unit.h
 +++ b/src/server/game/Entities/Unit/Unit.h
 @@ -845,7 +845,7 @@ public:
@@ -298,10 +273,10 @@ index 705930be..181f285f 100644
      // Gender methods
      [[nodiscard]] uint8 getGender() const { return GetByteValue(UNIT_FIELD_BYTES_0, 2); }
 diff --git a/src/server/game/Globals/ObjectMgr.cpp b/src/server/game/Globals/ObjectMgr.cpp
-index a5bfc525..9ba80440 100644
+index 05aa2c41..bd9645d3 100644
 --- a/src/server/game/Globals/ObjectMgr.cpp
 +++ b/src/server/game/Globals/ObjectMgr.cpp
-@@ -4699,7 +4699,7 @@ void ObjectMgr::LoadPlayerInfo()
+@@ -4630,7 +4630,7 @@ void ObjectMgr::LoadPlayerInfo()
                      {
                          for (uint32 classIndex = CLASS_WARRIOR; classIndex < MAX_CLASSES; ++classIndex)
                          {
@@ -310,7 +285,7 @@ index a5bfc525..9ba80440 100644
                              {
                                  if (!GetSkillRaceClassInfo(skill.SkillId, raceIndex, classIndex))
                                      continue;
-@@ -4764,7 +4764,7 @@ void ObjectMgr::LoadPlayerInfo()
+@@ -4691,7 +4691,7 @@ void ObjectMgr::LoadPlayerInfo()
                      {
                          for (uint32 classIndex = CLASS_WARRIOR; classIndex < MAX_CLASSES; ++classIndex)
                          {
@@ -319,7 +294,7 @@ index a5bfc525..9ba80440 100644
                              {
                                  if (PlayerInfo* info = _playerInfo[raceIndex][classIndex])
                                  {
-@@ -4835,7 +4835,7 @@ void ObjectMgr::LoadPlayerInfo()
+@@ -4749,7 +4749,7 @@ void ObjectMgr::LoadPlayerInfo()
                      {
                          for (uint32 classIndex = CLASS_WARRIOR; classIndex < MAX_CLASSES; ++classIndex)
                          {
@@ -328,10 +303,10 @@ index a5bfc525..9ba80440 100644
                              {
                                  if (PlayerInfo* info = _playerInfo[raceIndex][classIndex])
                                  {
-@@ -9966,7 +9966,7 @@ int32 ObjectMgr::GetBaseReputationOf(FactionEntry const* factionEntry, uint8 rac
+@@ -9826,7 +9826,7 @@ int32 ObjectMgr::GetBaseReputationOf(FactionEntry const* factionEntry, uint8 rac
          return 0;
  
-     uint32 raceMask = (1u << ((race - 1) & 31));
+     uint32 raceMask = (1 << (race - 1));
 -    uint32 classMask = (uint32(1) << (playerClass - 1));
 +    uint32 classMask = ClassMaskBit(playerClass);
  
@@ -350,10 +325,10 @@ index bba72f7f..3ffaab31 100644
          usablePlayerInfo.level = GetPlayer()->GetLevel();
  
 diff --git a/src/server/game/Handlers/CharacterHandler.cpp b/src/server/game/Handlers/CharacterHandler.cpp
-index 8323b01e..35676300 100644
+index c9a250b6..6067011c 100644
 --- a/src/server/game/Handlers/CharacterHandler.cpp
 +++ b/src/server/game/Handlers/CharacterHandler.cpp
-@@ -398,7 +398,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
+@@ -346,7 +346,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
      if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_CLASSMASK))
      {
          uint32 classMaskDisabled = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED_CLASSMASK);
@@ -376,10 +351,10 @@ index 8c8477d4..a39dc71e 100644
                      continue;
                  }
 diff --git a/src/server/shared/SharedDefines.h b/src/server/shared/SharedDefines.h
-index ca59b417..305bc52e 100644
+index 90e5fc64..b7355e28 100644
 --- a/src/server/shared/SharedDefines.h
 +++ b/src/server/shared/SharedDefines.h
-@@ -177,18 +177,22 @@ enum Classes
+@@ -155,18 +155,22 @@ enum Classes
      CLASS_PROPHET        = 29, // TITLE Venomancer
      CLASS_REAPER         = 30, // TITLE Reaper
      CLASS_WILDWALKER     = 31, // TITLE Primalist
@@ -405,7 +380,7 @@ index ca59b417..305bc52e 100644
  }
  
  constexpr bool UsesProjectileAmmo(uint8 classId)
-@@ -225,10 +229,43 @@ constexpr Classes GetLegacyClassForCustomClass(Classes playerClass)
+@@ -202,10 +206,43 @@ constexpr Classes GetLegacyClassForCustomClass(Classes playerClass)
          case CLASS_REAPER:        return CLASS_ROGUE;
          case CLASS_WILDWALKER:    return CLASS_DRUID;
          case CLASS_SPIRIT_MAGE:   return CLASS_SHAMAN;
@@ -449,7 +424,7 @@ index ca59b417..305bc52e 100644
  // Expand legacy item/quest restrictions without widening explicitly authored custom-class masks.
  constexpr uint32 ExpandLegacyClassMask(uint32 classMask)
  {
-@@ -241,9 +278,9 @@ constexpr uint32 ExpandLegacyClassMask(uint32 classMask)
+@@ -218,9 +255,9 @@ constexpr uint32 ExpandLegacyClassMask(uint32 classMask)
          return CLASSMASK_ALL_PLAYABLE;
  
      uint32 result = classMask;

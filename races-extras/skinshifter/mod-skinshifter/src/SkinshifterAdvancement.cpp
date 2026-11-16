@@ -179,7 +179,6 @@ void Lines(RowSpec& row, std::array<uint32, 4> const& from)
         row.values.push_back(U(Ca::Connected + index * 4, index < from.size() ? from[index] : 0));
 }
 
-
 std::string Escaped(std::string const& text)
 {
     std::string out;
@@ -638,9 +637,9 @@ bool NodeLookRows(std::string const& dataDir, std::vector<RowSpec>& out)
 
     // the worm and the mound of earth, at their sizes from the config
     uint32 const worm = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.Display", 16892);
-    float const wormScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.Scale", 0.2f);
-    uint32 const burrow = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.BurrowDisplay", 400828);
-    float const burrowScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.BurrowScale", 1.0f);
+    float const wormScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.Scale", 0.05f);
+    uint32 const burrow = sConfigMgr->GetOption<uint32>("Skinshifter.RootWalk.BurrowDisplay", 462175);
+    float const burrowScale = sConfigMgr->GetOption<float>("Skinshifter.RootWalk.BurrowScale", 0.1f);
     for (auto const& [id, base, scale, slot] : { std::tuple{ WormDisplay, worm, wormScale, &WalkLooks.worm },
                                                  std::tuple{ BurrowDisplay, burrow, burrowScale, &WalkLooks.burrow } })
     {

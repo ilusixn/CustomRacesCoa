@@ -1,7 +1,7 @@
 """Turns pictures (jpg/png, any size) into 64x64 WoW icons (.blp, BLP2 DXT1 with mipmaps).
     python mkicons.py <picture> <out.blp> [<picture> <out.blp> ...]
-Needs Pillow. CoA's bundled Python has no pip, so Pillow comes as its wheel in tools\\vendor
-(pillow-*-cp314-*-win_amd64.whl): it is unpacked next to it the first time it is needed.
+Needs Pillow: an installed one, or (for a Python without pip) its wheel in tools\\vendor
+(pillow-*-cp314-*-win_amd64.whl), unpacked next to it the first time it is needed.
 The Skinshifter client patch picks the .blp files up from tools\\icons."""
 import io
 import struct
@@ -22,8 +22,8 @@ def _load_pillow():
         tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
         wheels = sorted(vendor.glob(f"pillow-*-{tag}-*.whl"))
         if not wheels:
-            sys.exit(f"Pillow is missing: put the pillow wheel for Python {sys.version_info.major}."
-                     f"{sys.version_info.minor} ({tag}, win_amd64) in {vendor}")
+            sys.exit(f"Pillow is missing: run 'python -m pip install pillow', or put the pillow wheel for Python "
+                     f"{sys.version_info.major}.{sys.version_info.minor} ({tag}, win_amd64) in {vendor}")
         print(f"  unpacking {wheels[-1].name} into {unpacked}")
         zipfile.ZipFile(wheels[-1]).extractall(unpacked)
     sys.path.insert(0, str(unpacked))

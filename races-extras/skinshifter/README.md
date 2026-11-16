@@ -22,6 +22,11 @@ on their own: `Skinshifter.Class.Enable`, `Skinshifter.Advancement.Enable` (Char
   runs it. Edit `<repack folder>` and `<game folder>` in the bat and at the top of `mkskinclient.py` first.
   `icons/` and `art/` are the class's own icons and their source pictures; `creature-map/` builds the creature
   table the design was made from.
+- `coa64/coa64-patches/`: the client program changes for CoA64 (class 33 in the class list and the Character
+  Advancement window, portrait icons, the burrow travel form's collision, aura end times, the spellbook size and
+  order, and the 1.9.9 pack-race skin reader). Apply them to the CoA64 source with `git apply` and build
+  (`coa64/Build-Ascension64.bat`). The pack-race skin reader is also a commit of its own on
+  `stefanw1337/release-2.0.2`; drop `skinshifter-pack-skins.patch` once that is merged.
 - `docs/`: the design (`Skinshifter-Design.md`, `Skinshifter-Kit-and-Talents.md`, `Skinshifter-Progression.md`,
   `Ideas-Later.md`) and the research notes on the class limit and class 33.
 

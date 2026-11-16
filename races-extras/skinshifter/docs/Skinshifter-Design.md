@@ -82,16 +82,11 @@ coming and would be one too.
 - Professions feed the shop. A later idea: some skins could give a gathering bonus.
 - Still to test: whether the client accepts a vendor flag on a player. If not, an invisible NPC copy stands in.
 
-## World data (research/)
+## World data
 - 8,788 creatures you can lift from. 35% have no abilities and 25% have 1, so the ability is the
   collectible.
 - 9,466 unique models, 6,362 of them from mobs with abilities.
 - Realm: level 60 cap, no Outland or Northrend.
 
-## Module status (skinshifter-module/)
-- Prototype 0.1 uses chat commands: `.skin lift | list | wear <n> | shed | grimoire | forget <all|spellId>`.
-- Build: `Build-Skinshifter.bat`.
-- Crash fixed: the module used to read the world database's column names at startup. It now reads the
-  creature scripts from server memory.
-- Still to come: Echoes, scaling of stolen damage, the class itself (class ID, client DBCs, race limits), the
-  Skin Collection window (addon), and the Possessor and Merchant work.
+## Module status
+See the module's README.md for what the pre-release does and how to install it.
