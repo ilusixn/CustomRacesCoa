@@ -387,7 +387,7 @@ void HD::RegisterWaterCVars() {
     s_shore = CVar::Register("hdWaterShore", "HD: yards over which the water fades in from the shore (ours: Forever fades over 0.5; steep banks need more)", 1, "2", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     HD::WaterWavesEnabled();      // registers hdWaterWaves, hdWaterWaveScale
     HD::WaterRipplesRegister();   // registers hdWaterRipples, hdWaterRippleStrength
-    s_probe = CVar::Register("hdWaterProbe", "HD: 1 = hdWaterInfo shows the linear world depth at the screen centre and the camera's depth inputs", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
+    s_probe = CVar::Register("hdWaterProbe", "HD: 1 = hdWaterInfo shows the world depth down the middle column, 2 = also swaps the depth and world images (test)", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_info = CVar::Register("hdWaterInfo", "HD: hdWater status (read only)", 0, "off", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
 }
 
@@ -573,8 +573,10 @@ static bool BindWater(Liquid::CMaterialSettings* settings, CGxShader* clientVert
     g_theGxDevicePtr->RsSet(GxRs_DepthWrite, 1);
     g_theGxDevicePtr->RsSet(GxRs_Texture6, static_cast<void*>(nullptr));
     g_theGxDevicePtr->RsSet(GxRs_Texture7, static_cast<void*>(nullptr));
-    GxEffects::SetDrawTexture(6, s_targets.linear, false, false);
-    GxEffects::SetDrawTexture(7, s_targets.scene, false, false);
+    // hdWaterProbe 2 swaps the two (a test: which stage delivers what is bound to it)
+    const bool swap = s_probe && s_probe->m_intValue == 2;
+    GxEffects::SetDrawTexture(swap ? 7 : 6, s_targets.linear, false, false);
+    GxEffects::SetDrawTexture(swap ? 6 : 7, s_targets.scene, false, false);
     s_fftBound = fft;
     if (fft) {
         // s8..s11 the wave cascades (trilinear, repeating tiles), s12 the ripples (linear, clamped)
