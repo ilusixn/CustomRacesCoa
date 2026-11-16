@@ -272,6 +272,18 @@ namespace {
 
     WorldScan s_worldScan;
 
+    // The mod's indoor weight: the player's own outdoors test, faded over about half a second.
+    float IndoorWeight(double seconds) {
+        static float weight = 0.0f;
+        static double last = -1.0;
+        CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
+        const bool indoors = player && player->m_unit && !player->IsOutdoors();
+        const double step = last < 0.0 ? 0.5 : std::clamp(seconds - last, 0.0, 0.25);
+        last = seconds;
+        weight += ((indoors ? 1.0f : 0.0f) - weight) * static_cast<float>(1.0 - std::exp(-step * 2.0));
+        return weight;
+    }
+
     void ReadPlayer(CoA::Lumenveil::Abi::FrameInputs& out) {
         out.playerKnown = false;
         out.targetKnown = false;
@@ -436,16 +448,18 @@ namespace {
         const float day = CoA::Graphics::DayProgress(info.m_dayProgression);
         out->dayFraction = day;
         out->lightIsMoon = day < 0.20139f || day > 0.92361f;
+        // The mod's frame-input fog group (kFrameInputsFogGroup 1, 0x00D38BA0..A8) is m_fogInterior.
         out->fogColor = Packed(info.m_fogInterior.m_color);
         out->ambientColor = Packed(info.m_bands.m_ambient);
         out->directColor = Packed(info.m_bands.m_diffuse);
-        out->sunColor = Packed(info.m_bands.m_sunCloudColors[1]);
-        out->fogStart = info.m_fog.m_start;
-        out->fogEnd = info.m_fog.m_end;
+        out->sunColor = Packed(info.m_bands.m_sunCloudColors[0]);
+        out->fogStart = info.m_fogInterior.m_start;
+        out->fogEnd = info.m_fogInterior.m_end;
         out->zoneFogDistance = info.m_bands.m_fogEnd;
         out->clientGlowAmount = ClientGlowAmount();
-        out->skyHorizonColor = Packed(info.m_bands.m_skyColors[0]);
-        out->skyAboveHorizonColor = Packed(info.m_bands.m_skyColors[2]);
+        // 0x00D38BF0 / 0x00D38BEC in the mod: sky colours 4 and 3.
+        out->skyHorizonColor = Packed(info.m_bands.m_skyColors[4]);
+        out->skyAboveHorizonColor = Packed(info.m_bands.m_skyColors[3]);
         out->lightParams.stormBlend = info.m_stormBlend;
         out->lightParams.screenEffectSlot = static_cast<int>(info.m_overrideLightParamsId);
         out->farClip = World::s_farClip;
@@ -453,7 +467,7 @@ namespace {
         out->inLiquid = CameraInLiquid(nullptr);
         out->mapId = LoadingScreenMapId();
         out->zoneId = CGGameUI::m_areaID;
-        out->indoors = std::clamp(info.m_interiorFogBlend, 0.0f, 1.0f);
+        out->indoors = IndoorWeight(out->seconds);
 
         const Host::WeatherState weather = ReadWeather(nullptr);
 
