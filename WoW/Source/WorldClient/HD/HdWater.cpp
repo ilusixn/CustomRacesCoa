@@ -59,6 +59,9 @@ namespace {
 
     CVar* s_mode = nullptr;
     CVar* s_debug = nullptr;
+    CVar* s_probe = nullptr;
+    GxEffects::Readback* s_probeRead = nullptr;
+    char s_probeText[200] = "";
     CVar* s_body = nullptr;
     CVar* s_reflect = nullptr;
     CVar* s_color = nullptr;
@@ -369,6 +372,7 @@ namespace {
         snprintf(text, sizeof(text), "on (%s) | %s | materials drawn: procedural %d, water %d, water no-spec %d, water FFP %d, magma %d, magma FFP %d | procedural: %d Forever, %d Blizzard, %d not SM3 | last type %d -> %d | %s",
                  s_fileFound ? "forever_data\\hd_forever_liquid.txt" : "built-in values, hd_forever_liquid.txt not found",
                  s_passNote, s_calls, s_seen[1], s_seen[2], s_seen[3], s_seen[4], s_seen[5], s_drawsPbr, s_drawsKept, s_notModel3, s_lastLegacy, s_lastPbr, s_threadInfo);
+        if (s_probe && s_probe->m_intValue) snprintf(text, sizeof(text), "%s", s_probeText);  // hdWaterProbe replaces the line
         SetInfo(text);
     }
 }
@@ -383,6 +387,7 @@ void HD::RegisterWaterCVars() {
     s_shore = CVar::Register("hdWaterShore", "HD: yards over which the water fades in from the shore (ours: Forever fades over 0.5; steep banks need more)", 1, "2", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     HD::WaterWavesEnabled();      // registers hdWaterWaves, hdWaterWaveScale
     HD::WaterRipplesRegister();   // registers hdWaterRipples, hdWaterRippleStrength
+    s_probe = CVar::Register("hdWaterProbe", "HD: 1 = hdWaterInfo shows the linear world depth at the screen centre and the camera's depth inputs", 0, "0", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
     s_info = CVar::Register("hdWaterInfo", "HD: hdWater status (read only)", 0, "off", nullptr, CATEGORY_GRAPHICS, false, nullptr, false);
 }
 
@@ -444,6 +449,18 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
         s_passNote = "linear depth pass failed: Blizzard water";
         ShowPassInfo();
         return;
+    }
+    // hdWaterProbe: what the water reads as world depth mid-screen, beside the inputs that made it
+    if (s_probe && s_probe->m_intValue) {
+        float centre = 0.0f;
+        if (s_probeRead && device->PollRead(s_probeRead, &centre)) {
+            s_probeRead = nullptr;
+            snprintf(s_probeText, sizeof(s_probeText), "probe: centre %.2f yd | view %ux%u of %ux%u, z %.4f..%.4f | p10 %.6f p14 %.6f p11 %.3f",
+                     centre, static_cast<uint32_t>(camera.width), static_cast<uint32_t>(camera.height), width, height, camera.minZ, camera.maxZ,
+                     camera.projection[10], camera.projection[14], camera.projection[11]);
+        }
+        if (!s_probeRead) s_probeRead = device->BeginRead(s_targets.linear, width / 2, height / 2, 1, 1);
+        if (!s_probeText[0]) snprintf(s_probeText, sizeof(s_probeText), "probe: reading");
     }
     s_invWidth = 1.0f / width;
     s_invHeight = 1.0f / height;
