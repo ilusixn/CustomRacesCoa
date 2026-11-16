@@ -422,7 +422,13 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
     uint32_t width = 0;
     uint32_t height = 0;
     float rows[4][4];
-    const HD::Camera& camera = HD::CurrentCamera();
+    // The world's projection as the liquids are drawn: the camera taken after the models can carry another near plane
+    // (CoA: 0.4 there, the terrain's is smaller), which read the world depth too far and every pond as bottomless.
+    HD::Camera camera = HD::CurrentCamera();
+    const float capturedNear = camera.projection[10] != 0.0f ? -camera.projection[14] / camera.projection[10] : 0.0f;
+    std::memcpy(camera.projection, &g_theGxDevicePtr->m_projection, sizeof camera.projection);
+    camera.minZ = Clamp(g_theGxDevicePtr->m_viewport.m_z.m_l, 0.0f, 1.0f);
+    camera.maxZ = Clamp(g_theGxDevicePtr->m_viewport.m_z.m_h, 0.0f, 1.0f);
     if (!device->TargetSize(width, height) || !HD::ScreenRows(camera, width, height, rows)) {
         s_passNote = "no world camera or depth: Blizzard water";
         ShowPassInfo();
@@ -461,8 +467,9 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
                 at += snprintf(s_probeText + at, sizeof(s_probeText) - at, " %.1f", column[height * k / 10]);
             const C44Matrix& pn = g_theGxDevicePtr->m_projNative;
             if (at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)))
-                snprintf(s_probeText + at, sizeof(s_probeText) - at, " | water rows %.3f %.3f %.3f, offset %.1f | proj %.3f %.3f / native %.3f %.3f",
-                         s_probeMv[0], s_probeMv[1], s_probeMv[2], s_probeMv[3], camera.projection[0], camera.projection[5], pn.a0, pn.b1);
+                snprintf(s_probeText + at, sizeof(s_probeText) - at, " | water rows %.3f %.3f %.3f, offset %.1f | proj %.3f %.3f / native %.3f %.3f | near %.3f (models %.3f), z %.2f..%.2f",
+                         s_probeMv[0], s_probeMv[1], s_probeMv[2], s_probeMv[3], camera.projection[0], camera.projection[5], pn.a0, pn.b1,
+                         camera.projection[10] != 0.0f ? -camera.projection[14] / camera.projection[10] : 0.0f, capturedNear, camera.minZ, camera.maxZ);
         }
         if (!s_probeRead && height <= column.size()) s_probeRead = device->BeginRead(s_targets.linear, width / 2, 0, 1, height);
         if (!s_probeText[0]) snprintf(s_probeText, sizeof(s_probeText), "probe: reading");
