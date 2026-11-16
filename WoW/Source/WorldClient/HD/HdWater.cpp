@@ -61,7 +61,8 @@ namespace {
     CVar* s_debug = nullptr;
     CVar* s_probe = nullptr;
     GxEffects::Readback* s_probeRead = nullptr;
-    char s_probeText[200] = "";
+    char s_probeText[400] = "";
+    float s_probeMv[4] = {};  // hdWaterProbe: lengths of the liquid's model-view rows, and its translation's length
     CVar* s_body = nullptr;
     CVar* s_reflect = nullptr;
     CVar* s_color = nullptr;
@@ -458,6 +459,10 @@ void HD::WaterBeginLiquidPass(bool cameraInLiquid) {
             int32_t at = snprintf(s_probeText, sizeof(s_probeText), "probe (top to bottom):");
             for (int32_t k = 1; k <= 9 && at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)); k++)
                 at += snprintf(s_probeText + at, sizeof(s_probeText) - at, " %.1f", column[height * k / 10]);
+            const C44Matrix& pn = g_theGxDevicePtr->m_projNative;
+            if (at > 0 && at < static_cast<int32_t>(sizeof(s_probeText)))
+                snprintf(s_probeText + at, sizeof(s_probeText) - at, " | water rows %.3f %.3f %.3f, offset %.1f | proj %.3f %.3f / native %.3f %.3f",
+                         s_probeMv[0], s_probeMv[1], s_probeMv[2], s_probeMv[3], camera.projection[0], camera.projection[5], pn.a0, pn.b1);
         }
         if (!s_probeRead && height <= column.size()) s_probeRead = device->BeginRead(s_targets.linear, width / 2, 0, 1, height);
         if (!s_probeText[0]) snprintf(s_probeText, sizeof(s_probeText), "probe: reading");
@@ -505,6 +510,10 @@ static bool BindWater(Liquid::CMaterialSettings* settings, CGxShader* clientVert
     float c[kConstCount * 4];
     memset(c, 0, sizeof(c));
     const C44Matrix& mv = Liquid::s_vsConstants.m_modelView;
+    s_probeMv[0] = sqrtf(mv.a0 * mv.a0 + mv.a1 * mv.a1 + mv.a2 * mv.a2);
+    s_probeMv[1] = sqrtf(mv.b0 * mv.b0 + mv.b1 * mv.b1 + mv.b2 * mv.b2);
+    s_probeMv[2] = sqrtf(mv.c0 * mv.c0 + mv.c1 * mv.c1 + mv.c2 * mv.c2);
+    s_probeMv[3] = sqrtf(mv.d0 * mv.d0 + mv.d1 * mv.d1 + mv.d2 * mv.d2);
     c[0] = mv.a0; c[1] = mv.a1; c[2] = mv.a2;      // model -> view rows (x, y, z axes in view space)
     c[4] = mv.b0; c[5] = mv.b1; c[6] = mv.b2;
     c[8] = mv.c0; c[9] = mv.c1; c[10] = mv.c2;
