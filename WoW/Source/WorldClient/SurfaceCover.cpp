@@ -1210,7 +1210,7 @@ void Recentre(int32_t oi, int32_t oj, bool keep) {
 bool CameraTarget(C3Vector* position, CGObject_C** object) {
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
     if (!camera) return false;
-    *object = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    *object = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_OBJECT, __FILE__, __LINE__);
     if (!*object) return false;
     *position = (*object)->GetPosition();
     return true;
@@ -1259,7 +1259,7 @@ float StampRadius(CGUnit_C* unit) {
 }
 
 int32_t CollectUnit(WOWGUID guid, void*) {
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__);
     if (!object || object == s_self || s_stampers.size() >= 48) return 1;
     CGUnit_C* unit = static_cast<CGUnit_C*>(object);
     const C3Vector pos = unit->GetPosition();
@@ -1598,7 +1598,7 @@ void SurfaceCover::Update(float elapsedSec) {
 
     s_stampers.clear();
     s_self = self;
-    if (self->m_obj->m_type & TYPEMASK_UNIT) s_stampers.push_back(Stamper{ player, StampRadius(static_cast<CGUnit_C*>(self)) });
+    if (self->m_obj->m_type & TYPE_UNIT) s_stampers.push_back(Stamper{ player, StampRadius(static_cast<CGUnit_C*>(self)) });
     ClntObjMgrEnumVisibleObjects(CollectUnit, nullptr);
     for (const Stamper& s : s_stampers) Stamp(s.pos, s.radius);
     s_pressed = 0;
