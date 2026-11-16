@@ -168,7 +168,6 @@ p:Check("bushWindExcludeDead", "Skip dead and bare bushes", "Dead, burnt and bar
 p:Slider("bushWindMaxDistance", "Greatest distance", "Bushes further away than this keep still. 0 is unlimited.", 0, 500, 5, Limit, 5)
 p:Done()
 )lua";
-)lua";
 
 static const char kWind[] = R"lua(
 if not VideoOptionsFrame or not CoALivingBuildPage or CoALivingWindPanel then return end
@@ -237,7 +236,6 @@ p:Check("surfaceCoverFallen", "Snow falls and lies", "In snowstorms on ground be
 p:Check("surfaceCoverMelt", "Painted snow melts", "Snow painted on the ground thins in warm weather, its edges retreating, and grows back when it is cold or snowing.")
 p:Slider("surfaceCoverFallenRate", "Snowfall and melting speed", "How many times faster snow builds up and melts. 1 is about 18 cm an hour in a full storm.", 0, 200, 1, Times, 1)
 p:Done()
-)lua";
 )lua";
 
 void Visuals::InitializeLivingAzerothOptions() {
