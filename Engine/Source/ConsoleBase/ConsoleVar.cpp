@@ -322,6 +322,12 @@ int32_t CVar::SaveCvar(const char* name, const char* value, void* arg) {
 // CoA: AscCVarHooks.cpp:Hook766640 -- SaveCvar's body, which the DLL's own lastCharacterIndex write calls directly.
 int32_t CVar::WriteCvarLine(const char* name, const char* value, void* arg) {
     char line[260];
+
+    // Not in the original binary (Esteria 07656f65): a cut-off line swallowed every later SET on the next load.
+    if (SStrLen(name) + SStrLen(value) + 9 > sizeof(line)) {  // 9: SET, two spaces, two quotes, newline, NUL
+        return 1;
+    }
+
     SStrPrintf(line, sizeof(line), "SET %s \"%s\"\n", name, value);
 
     uint32_t written = 0;
