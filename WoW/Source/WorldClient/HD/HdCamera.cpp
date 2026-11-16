@@ -39,7 +39,8 @@ void HD::CaptureCamera() {
     s_camera.height = y1 - y0;
     s_camera.minZ = std::clamp(v.m_z.m_l, 0.0f, 1.0f);
     s_camera.maxZ = std::clamp(v.m_z.m_h, 0.0f, 1.0f);
-    std::memcpy(s_camera.projection, &gx->m_projection, sizeof s_camera.projection);
+    // The device form (depth 0..1) the depth buffer is written with; m_projection is -1..1 and read every depth ~2x too far.
+    std::memcpy(s_camera.projection, &gx->m_projNative, sizeof s_camera.projection);
     C44Matrix view;
     GxXformView(view);
     std::memcpy(s_camera.view, &view, sizeof s_camera.view);
