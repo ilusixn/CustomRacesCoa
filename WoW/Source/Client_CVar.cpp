@@ -12,6 +12,11 @@
 #include "Engine/Source/Frame/CSimpleRender.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Model2/M2Cache.h"
+#include "Engine/Source/Model2/M2TreeWind.h"
+#include "WoW/Source/WorldClient/DetailDoodad.h"
+#include "WoW/Source/WorldClient/GrassDensity.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
 #include "Engine/Source/Os/Input.h"
 #include "Engine/Source/Os/System.h"
 #include "Engine/Source/Os/TimeManager.h"
@@ -658,6 +663,12 @@ bool LocaleCallback(CVar* var, const char* oldValue, const char* value, void* ar
 // OFFSET: 0x00401B60
 void ClientRegisterConsoleCommands() {
     Visuals::Register();
+    // Not in the original binary: Living Azeroth's options (tree and world wind, kept grass, grass density, snow).
+    TreeWind::RegisterCVars();
+    LivingWind::RegisterCVars();
+    CDetailDoodad::RegisterCVars();
+    GrassDensity::RegisterCVars();
+    SurfaceCover::RegisterCVars();
     HD::AO::RegisterCVars();
     HD::Bloom::RegisterCVars();
     HD::Fog::RegisterCVars();

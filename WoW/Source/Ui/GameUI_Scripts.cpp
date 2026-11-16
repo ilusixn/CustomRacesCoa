@@ -2,6 +2,7 @@
 #include "GameUI.h"
 #include "CoA/Source/Modules/AddonTaint.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
 #include <cmath>
 #include <cstdarg>
 #include <cstring>
@@ -6264,6 +6265,11 @@ static FrameScript_Method s_ScriptFunctions[] = {
     { "SetConsoleKey", &Script_SetConsoleKey },
     { "Screenshot", &Script_Screenshot },
     { "GetFramerate", &Script_GetFramerate },
+    { "LivingAzeroth_GetVersion", &LivingWind::Script_GetVersion },
+    { "LivingAzeroth_GetWind", &LivingWind::Script_GetWind },
+    { "LivingAzeroth_GetWeather", &LivingWind::Script_GetWeather },
+    { "LivingAzeroth_GetTemperature", &LivingWind::Script_GetTemperature },
+    { "LivingAzeroth_GetHumidity", &LivingWind::Script_GetHumidity },
     { "TogglePerformanceDisplay", &Script_TogglePerformanceDisplay },
     { "TogglePerformancePause", &Script_TogglePerformancePause },
     { "TogglePerformanceValues", &Script_TogglePerformanceValues },

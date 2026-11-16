@@ -1,6 +1,8 @@
 #include "MapChunk.h"
 #include "WoW/Source/WorldClient/WorldConstants.h"
 #include "WoW/Source/WorldClient/DetailDoodad.h"
+#include "WoW/Source/WorldClient/GrassDensity.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
 #include "WoW/Source/WorldClient/CDetailDoodadData.h"
 #include "Engine/Source/Tempest/CRandom.h"
 #include "Engine/Source/Tempest/C3Ray.h"
@@ -1202,6 +1204,21 @@ void CMapChunk::CreateDetailDoodads() {
     C3Vector position(0.0f, 0.0f, 0.0f);
     CImVector color;
 
+    // Not in the original binary: grass density near the player (GrassDensity.h). The copies draw from a seed of their
+    // own, so the client's plants come out exactly as they always did.
+    float player[3];
+    float playerDistance = 1.0e9f;
+    if (GrassDensity::Active() && LivingWind::PlayerPosition(player)) {
+        const float dx = player[0] - this->m_sphere.c.x, dy = player[1] - this->m_sphere.c.y;
+        playerDistance = sqrtf(dx * dx + dy * dy);
+    }
+    inst->m_densityLevel = GrassDensity::Level(playerDistance);
+    const bool dense = (inst->m_densityLevel & 0xF) != 0;
+    const float keepShare = GrassDensity::ThinShare(playerDistance);
+    CRndSeed copySeed;
+    copySeed.SetSeed(0);
+    copySeed.SetSeed((this->m_cOffset.x | (this->m_cOffset.y << 16)) ^ 0x5EED5EED);
+
     for (uint32_t i = 0; i < World::s_detailDoodadDensity; i++) {
         int32_t x = s_cells[i].x;
         int32_t y = s_cells[i].y;
@@ -1347,7 +1364,49 @@ void CMapChunk::CreateDetailDoodads() {
             float rotation = (CRandom::sfloat_(seed) + 1.0f) * 3.1415927f;
             float scale = CRandom::sfloat_(seed) * 0.33f + 1.0f;
 
+            // Not in the original binary: far grass thinning keeps an even sample of the plants. A plant's hash of its
+            // cell and index decides, so a thinner bake is always a subset of a denser one (nothing jumps as you move).
+            if (keepShare < 1.0f) {
+                uint32_t h = (cellBase * 2654435761u) ^ (j * 40503u) ^ (static_cast<uint32_t>(this->m_cOffset.x) * 73856093u) ^ (static_cast<uint32_t>(this->m_cOffset.y) * 19349663u);
+                h ^= h >> 15;
+                h *= 0x2C1B3C6Du;
+                h ^= h >> 12;
+                if ((h & 0xFFFF) >= static_cast<uint32_t>(keepShare * 65536.0f)) {
+                    continue;
+                }
+            }
+
             inst->AddDoodad(id, position, rotation, scale, plane.n, static_cast<uint16_t>(tri), color);
+
+            if (dense) {
+                const GrassDensity::Values density = GrassDensity::Resolve(static_cast<uint32_t>(this->m_areaId), s_mapId, id, this->m_layers[layer].m_offectId);
+                const float extra = (density.multiplier - 1.0f) * GrassDensity::Weight(density, playerDistance);
+                uint32_t copies = static_cast<uint32_t>(extra);
+                if ((CRandom::sfloat_(copySeed) + 1.0f) * 0.5f < extra - copies) {
+                    copies++;
+                }
+
+                // A copy lands on a random point of the plant's own terrain triangle within `spread` of it, so the
+                // triangle's plane gives its exact height. A few tries each; a copy that finds no point is skipped.
+                for (uint32_t c = 0; c < copies; c++) {
+                    for (int32_t attempt = 0; attempt < 6; attempt++) {
+                        float cx = CRandom::sfloat_(copySeed) * 2.0833333f + 2.0833333f;
+                        float cy = CRandom::sfloat_(copySeed) * 2.0833333f + 2.0833333f;
+                        uint32_t copyTri = (-cx - -cy) < 0.0f ? 1 : 0;
+                        if (cx - 4.1666665f - -cy > 0.0f) {
+                            copyTri += 2;
+                        }
+                        if (copyTri + cellBase != tri || (cx - px) * (cx - px) + (cy - py) * (cy - py) > density.spread * density.spread) {
+                            continue;
+                        }
+                        C3Vector copy(-cy - cellY, -cx - cellX, 0.0f);
+                        copy.z = -((copy.x * plane.n.x + copy.y * plane.n.y + plane.d) / plane.n.z);
+                        float copyRotation = (CRandom::sfloat_(copySeed) + 1.0f) * 3.1415927f;
+                        inst->AddDoodad(id, copy, copyRotation, scale, plane.n, static_cast<uint16_t>(tri), color);
+                        break;
+                    }
+                }
+            }
         }
     }
 }
@@ -1368,6 +1427,19 @@ void CMapChunk::RenderPrep() {
     }
 
     if ((CWorld::enables & Enable_DetailDoodads) && CWorld::detailDoodadDist > this->m_distToCamera) {
+        // Not in the original binary: a chunk baked for another grass density level (it came closer or moved away) is
+        // baked again, a few per frame (CDetailDoodad::TakeRebake).
+        if (this->m_detailDoodadInst && (GrassDensity::Active() || this->m_detailDoodadInst->m_densityLevel)) {
+            float player[3];
+            if (LivingWind::PlayerPosition(player)) {
+                const float dx = player[0] - this->m_sphere.c.x, dy = player[1] - this->m_sphere.c.y;
+                if (GrassDensity::Level(sqrtf(dx * dx + dy * dy)) != this->m_detailDoodadInst->m_densityLevel && CDetailDoodad::TakeRebake()) {
+                    CDetailDoodad::FreeInst(this->m_detailDoodadInst);
+                    this->m_detailDoodadInst = nullptr;
+                }
+            }
+        }
+
         if (!this->m_detailDoodadInst) {
             this->CreateDetailDoodads();
         }

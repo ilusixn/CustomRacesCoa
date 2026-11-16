@@ -103,6 +103,8 @@
 #include <cmath>
 #include "WoW/Source/Ui/SpellBookFrame.h"
 #include "Engine/Source/ShaderEffect/Types.h"
+#include "WoW/Source/WorldClient/LivingWind.h"
+#include "WoW/Source/WorldClient/SurfaceCover.h"
 
 // STATIC: 0x009F9864
 static const CURSORMODE s_skinCursorModes[2] = { SKIN_ALLIANCE_CURSOR, SKIN_HORDE_CURSOR };
@@ -2038,6 +2040,8 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
 // OFFSET: 0x004FA5F0
 void CGWorldFrame::OnWorldUpdate() {
     float elapsedSec = this->m_elapsedSec;
+    LivingWind::Update(elapsedSec);    // not in the original binary: the world wind, before the world is animated
+    SurfaceCover::Update(elapsedSec);  // not in the original binary: the snow patch around the player and its trenches
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (CGUnit_C::s_activeMover) {
