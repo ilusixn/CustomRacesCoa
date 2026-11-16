@@ -6,12 +6,31 @@ module's own), server tables, the patched client's display table for the server'
 Make-Package.ps1 on the build PC adds worldserver.exe, the client patches and the SpellActivationOverlay addon."""
 import json
 import shutil
+import struct
 import subprocess
 import sys
 from datetime import date
 from pathlib import Path
 
 TEXT_FOR_WINDOWS = ("Install-Subclass.bat", "README.txt")
+VERSION = "0.2"
+COA_CUSTOM = "1.9.9"
+
+
+LOCAL_ONLY_IDS = range(986001, 987000)
+
+
+def local_only_rows(tables):
+    found = []
+    for name in ("CreatureModelData.dbc", "CreatureDisplayInfo.dbc"):
+        path = tables / name
+        if not path.exists():
+            continue
+        data = path.read_bytes()
+        count, _, size, _ = struct.unpack_from("<4I", data, 4)
+        ids = [struct.unpack_from("<I", data, 20 + i * size)[0] for i in range(count)]
+        found += [f"{name} {row}" for row in ids if row in LOCAL_ONLY_IDS]
+    return found
 
 
 def windows_text(source, target):
@@ -32,7 +51,11 @@ def main(repo, tables, base, out, livemon, client_displays):
             windows_text(source, package / name)
         else:
             shutil.copy2(source, package / name)
-    shutil.copy2(module / "tools" / "apply_coa_sql.py", files / "tools" / "apply_coa_sql.py")
+    for tool in ("apply_coa_sql.py", "mkmergepatch.py", "mpqpull.py"):
+        shutil.copy2(module / "tools" / tool, files / "tools" / tool)
+    (files / "ogre").mkdir()
+    shutil.copy2(module / "package" / "ogre" / "build_ogre.py", files / "ogre" / "build_ogre.py")
+    windows_text(module / "package" / "ogre" / "Build-Ogre.bat", files / "ogre" / "Build-Ogre.bat")
     (files / "configs").mkdir()
     for dist in (module / "conf" / "mod_subclass.conf.dist", repo / "modules" / "mod-livemon" / "conf" /
                  "mod_livemon.conf.dist"):
@@ -47,18 +70,23 @@ def main(repo, tables, base, out, livemon, client_displays):
         for folder in folders:
             for sql in sorted(folder.glob("*.sql")):
                 shutil.copy2(sql, target / sql.name)
+    leaks = local_only_rows(tables)
+    if leaks:
+        raise SystemExit(f"{tables} holds rows of the separate mount patch (986001-986999): {', '.join(leaks[:5])}")
     shutil.copytree(tables, files / "dbc_races")
     (files / "dbc_clientset").mkdir()
     shutil.copy2(client_displays, files / "dbc_clientset" / "CreatureDisplayInfo.dbc")
-    shutil.copytree(module / "addon" / "Ascension_Subclass", files / "addons" / "Ascension_Subclass",
-                    ignore=shutil.ignore_patterns("__pycache__"))
+    for addon in ("Ascension_Subclass", "CoAC_BotPlan"):
+        shutil.copytree(module / "addon" / addon, files / "addons" / addon,
+                        ignore=shutil.ignore_patterns("__pycache__"))
     (files / "LiveMon").mkdir()
     shutil.copy2(livemon, files / "LiveMon" / "LiveMon.exe")
     (files / "LiveMon" / "livemon.ini").write_bytes(b"# LiveMon window settings\r\nServer = http://127.0.0.1:8089\r\n")
     head = subprocess.run(["git", "-C", str(repo), "log", "-1", "--format=%h"], capture_output=True, text=True,
                           check=True).stdout.strip()
-    (package / "package.json").write_text(json.dumps({"built": date.today().isoformat(), "core": head,
-                                                      "databaseRelease": base, "coaCustom": "1.9.2"}, indent=1),
+    (package / "package.json").write_text(json.dumps({"version": VERSION, "built": date.today().isoformat(),
+                                                      "core": head, "databaseRelease": base,
+                                                      "coaCustom": COA_CUSTOM}, indent=1),
                                           encoding="utf-8")
     print(f"Assembled {package}")
 
