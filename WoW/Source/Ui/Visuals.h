@@ -70,6 +70,9 @@ inline EGxApi PickApi(EGxApi api) {
 // Adds the pack dropdown to the Effects page of the video options.
 void InitializeOptions();
 
+// Living Azeroth pages in the video options (LivingAzerothOptions.cpp).
+void InitializeLivingAzerothOptions();
+
 }  // namespace Visuals
 
 #endif
