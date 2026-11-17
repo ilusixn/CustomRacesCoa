@@ -1816,6 +1816,7 @@ void CGGameUI::InitializeFrameXML() {
     BugReportRegister();
     Visuals::InitializeOptions();
     Visuals::InitializeLivingAzerothOptions();
+    Visuals::InitializeEffectOptions();
     LoadAddOns(&status);
     FrameXML_RegisterLoadProgressCallback(nullptr, nullptr, 0);
 

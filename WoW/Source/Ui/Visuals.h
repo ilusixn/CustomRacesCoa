@@ -73,6 +73,9 @@ void InitializeOptions();
 // Living Azeroth pages in the video options (LivingAzerothOptions.cpp).
 void InitializeLivingAzerothOptions();
 
+// Lumenveil and LuxVelum sliders in the video options (EffectSettingsOptions.cpp).
+void InitializeEffectOptions();
+
 }  // namespace Visuals
 
 #endif
