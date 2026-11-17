@@ -104,35 +104,39 @@ std::array<int, 3> KvItemGeoset(unsigned display)
     return none;
 }
 
-// The banks are indexed once and every skin is read and decoded on demand: they hold ~260 MB of compressed skins, too much to
-// keep resident in the 32-bit client. EsteriaKvSkins carries the authored Esteria races, EsteriaPackSkins the AllRaces pack.
-KvBodySkin const* KvSkin(char const* path)
+// The bank is indexed once and every skin is read and decoded on demand: it holds ~120 MB of compressed skins, too much to keep
+// resident in the 32-bit client. The same reader serves EsteriaPackSkins.bin (1.9.9's pack-race skins, same format).
+struct KvSkinBank
 {
     struct Entry { std::string name; unsigned width, height, size; long offset; };
-    struct Bank { FILE* file = nullptr; std::vector<Entry> index; };
-    static Bank banks[2];
-    static bool loaded = false;
-    static std::unordered_map<std::string, KvBodySkin> cache;
-    if (!loaded)
+    std::vector<Entry> index;
+    FILE* file = nullptr;
+    bool loaded = false;
+    std::unordered_map<std::string, KvBodySkin> cache;
+};
+
+KvBodySkin const* KvBankSkin(KvSkinBank& bank, wchar_t const* fileName, char const* path)
+{
+    using Entry = KvSkinBank::Entry;
+    auto& index = bank.index;
+    auto& file = bank.file;
+    auto& cache = bank.cache;
+    if (!bank.loaded)
     {
-        loaded = true;
-        wchar_t const* const names[2] = {L"EsteriaKvSkins.bin", L"EsteriaPackSkins.bin"};
-        for (unsigned b = 0; b < 2; ++b)
+        bank.loaded = true;
+        file = CatalogFile(fileName);
+        unsigned head[2]{};
+        if (file && std::fread(head, sizeof(head), 1, file) == 1 && head[0] == 0x3153564B)
         {
-            Bank& bank = banks[b];
-            bank.file = CatalogFile(names[b]);
-            unsigned head[2]{};
-            if (!bank.file || std::fread(head, sizeof(head), 1, bank.file) != 1 || head[0] != 0x3153564B)
-                continue;
             for (unsigned i = 0; i < head[1]; ++i)
             {
                 char header[144]{};
-                if (std::fread(header, sizeof(header), 1, bank.file) != 1)
+                if (std::fread(header, sizeof(header), 1, file) != 1)
                     break;
                 Entry entry{std::string(header, strnlen(header, 128)), Field<unsigned>(header, 128), Field<unsigned>(header, 132),
-                    Field<unsigned>(header, 136), std::ftell(bank.file)};
-                bank.index.push_back(entry);
-                if (std::fseek(bank.file, static_cast<long>(entry.size), SEEK_CUR))
+                    Field<unsigned>(header, 136), std::ftell(file)};
+                index.push_back(entry);
+                if (std::fseek(file, static_cast<long>(entry.size), SEEK_CUR))
                     break;
             }
         }
@@ -148,31 +152,41 @@ KvBodySkin const* KvSkin(char const* path)
     auto& entry = cache[key];
     auto decompress = reinterpret_cast<LONG(WINAPI*)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, PULONG)>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlDecompressBuffer"));
-    for (Bank const& bank : banks)
+    for (auto const& item : index)
     {
-        for (auto const& item : bank.index)
+        if (item.name != key)
+            continue;
+        if (!decompress || !file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
+            return nullptr;
+        std::vector<unsigned char> packed(item.size);
+        if (std::fseek(file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), file) != packed.size())
+            return nullptr;
+        entry.rgba.resize(static_cast<std::size_t>(item.width) * item.height * 4);
+        ULONG final = 0;
+        if (decompress(2, entry.rgba.data(), static_cast<ULONG>(entry.rgba.size()), packed.data(), item.size, &final) != 0
+            || final != entry.rgba.size())
         {
-            if (item.name != key)
-                continue;
-            if (!decompress || !bank.file || !item.width || !item.height || item.width > 2048 || item.height > 2048)
-                return nullptr;
-            std::vector<unsigned char> packed(item.size);
-            if (std::fseek(bank.file, item.offset, SEEK_SET) || std::fread(packed.data(), 1, packed.size(), bank.file) != packed.size())
-                return nullptr;
-            entry.rgba.resize(static_cast<std::size_t>(item.width) * item.height * 4);
-            ULONG final = 0;
-            if (decompress(2, entry.rgba.data(), static_cast<ULONG>(entry.rgba.size()), packed.data(), item.size, &final) != 0
-                || final != entry.rgba.size())
-            {
-                entry.rgba.clear();
-                return nullptr;
-            }
-            entry.width = item.width;
-            entry.height = item.height;
-            return &entry;
+            entry.rgba.clear();
+            return nullptr;
         }
+        entry.width = item.width;
+        entry.height = item.height;
+        return &entry;
     }
     return nullptr;
+}
+
+KvBodySkin const* KvSkin(char const* path)
+{
+    static KvSkinBank bank;
+    return KvBankSkin(bank, L"EsteriaKvSkins.bin", path);
+}
+
+// A texture only in EsteriaPackSkins.bin (1.9.9 moved the Qiraji skins there, out of the MPQs).
+KvBodySkin const* KvPackSkin(char const* path)
+{
+    static KvSkinBank bank;
+    return KvBankSkin(bank, L"EsteriaPackSkins.bin", path);
 }
 
 KvFittingMap const* KvMap(unsigned race, unsigned gender)
@@ -1008,6 +1022,69 @@ bool KvCentaurBind(void* character)
 // Hozen (Esteria id 73): the Centaur's atlas fit on one male body (hozen_fit_map.py)
 std::unordered_map<void*, std::pair<unsigned long long, std::shared_ptr<void>>> kvNative;
 
+// A pack-race texture from EsteriaPackSkins.bin, written once as a BLP and kept loaded (nullptr: not in the bank).
+void* KvPackTexture(char const* path)
+{
+    static std::unordered_map<std::string, std::shared_ptr<void>> loaded;
+    std::string key = path;
+    for (auto& c : key)
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    auto found = loaded.find(key);
+    if (found != loaded.end())
+        return found->second.get();
+    auto const* skin = KvPackSkin(path);
+    if (!skin)
+    {
+        loaded[key];  // not in the bank: not looked up again
+        return nullptr;
+    }
+    auto texture = KvWriteAndLoad("Pack", skin->rgba, skin->width, skin->height);
+    if (!texture)
+        return nullptr;  // not decoded yet: the next refresh tries again
+    return (loaded[key] = std::move(texture)).get();
+}
+
+// pack races: bind the plain skin / face / hair ourselves on every refresh, the selection pass alone left them unbound in the world.
+// A texture the MPQs lack comes from EsteriaPackSkins.bin.
+template <typename Fields>
+void KvPackBind(void* character, void* instance, unsigned race, Fields const& fields)
+{
+    auto const& options = CreatureAppearance::Options(race, CC<unsigned>(character, 0x1C));
+    unsigned realGender = CC<unsigned>(character, 0x1C);
+    for (auto const& record : RetailSelections(race))
+    {
+        if (record.gender != realGender || record.kind != 1 || record.target < 11 || record.target > 13)
+            continue;
+        bool selected = true;
+        for (unsigned selector : record.choices)
+        {
+            if (selector == 0xffffffff)
+                continue;
+            unsigned index = selector & 0xffff;
+            if (index >= options.size() || (fields[options[index].field] / options[index].factor) % options[index].count != selector >> 16)
+            {
+                selected = false;
+                break;
+            }
+        }
+        if (!selected)
+            continue;
+        if (void* packed = KvPackTexture(record.path))
+        {
+            KvLog("pack: race %u gender %u slot %u %s bound from the pack bank", race, realGender, record.target, record.path);
+            N_825260(instance, record.target, packed);
+            continue;
+        }
+        void* texture = N_4E8D30(record.path, nullptr);
+        KvLog("pack: race %u gender %u slot %u %s %s", race, realGender, record.target, record.path, texture ? "bound" : "NOT FOUND");
+        if (texture)
+        {
+            N_825260(instance, record.target, texture);
+            N_47BF30(texture);
+        }
+    }
+}
+
 bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned markings, bool singleBody)
 {
     if (RaceOf(CC<unsigned>(character, 0x18)) != race)
@@ -1038,37 +1115,7 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
     {
         kvNative.erase(character);
         if (race == 77 || race == 78)
-        {
-            // pack races: bind the plain skin / face / hair ourselves on every refresh, the selection pass alone left them unbound in the world
-            auto const& options = CreatureAppearance::Options(race, CC<unsigned>(character, 0x1C));
-            unsigned realGender = CC<unsigned>(character, 0x1C);
-            for (auto const& record : RetailSelections(race))
-            {
-                if (record.gender != realGender || record.kind != 1 || record.target < 11 || record.target > 13)
-                    continue;
-                bool selected = true;
-                for (unsigned selector : record.choices)
-                {
-                    if (selector == 0xffffffff)
-                        continue;
-                    unsigned index = selector & 0xffff;
-                    if (index >= options.size() || (fields[options[index].field] / options[index].factor) % options[index].count != selector >> 16)
-                    {
-                        selected = false;
-                        break;
-                    }
-                }
-                if (!selected)
-                    continue;
-                void* texture = N_4E8D30(record.path, nullptr);
-                KvLog("pack: race %u gender %u slot %u %s %s", race, realGender, record.target, record.path, texture ? "bound" : "NOT FOUND");
-                if (texture)
-                {
-                    N_825260(instance, record.target, texture);
-                    N_47BF30(texture);
-                }
-            }
-        }
+            KvPackBind(character, instance, race, fields);
         return true; // the plain colour skin the selection bound stays
     }
     if (!skin || !map || skin->width != map->width || skin->height != map->height)
@@ -1253,3 +1300,16 @@ bool KvMantidBind(void* character) { return KvNativeBind(character, 75, 8, 0, tr
 bool KvEtherealBind(void* character) { return KvNativeBind(character, 76, 8, 0, true); }
 bool KvBansheeBind(void* character) { return KvNativeBind(character, 77, 6, 0, true); }      
 bool KvFacelessBind(void* character) { return KvNativeBind(character, 78, 9, 0, true); }
+// The Qiraji's skins are only in EsteriaPackSkins.bin since 1.9.9; bound with or without armor.
+bool KvQirajiBind(void* character)
+{
+    unsigned const race = RaceOf(CC<unsigned>(character, 0x18));
+    if (race != 79 && !CreatureAppearance::NewPackRace(race))
+        return true;
+    void* instance = CC<void*>(character, 0x38);
+    if (!instance || CC<unsigned>(character, 0x1C) > 1)
+        return true;
+    auto fields = HighmountainFields(character);
+    KvPackBind(character, instance, race, fields);
+    return true;
+}
