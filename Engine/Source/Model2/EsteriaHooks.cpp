@@ -11,12 +11,24 @@ uint32_t M2EsteriaWideSource(const M2SkinSection* section, const M2SkinProfile* 
 }
 
 uint32_t M2EsteriaDrawStart(const M2SkinSection* section, CM2Model* instance) {
-    // Processed sections (CM2Shared::SetIndices, OptimizeVisibleGeometry) carry the high 16 bits of their compacted
-    // index start in the section id's high word. The source-file validation in EsteriaWideSource must not run here:
-    // the compacted buffer is longer than the source index list, so every section past 65535 was truncated to its low
-    // word (the character select background's grass drew with the wrong indices).
-    (void)instance;
-    return (static_cast<uint32_t>(section->m_skinSectionId) >> 16 << 16) | section->m_indexStart;
+    uint32_t wide = (static_cast<uint32_t>(section->m_skinSectionId) >> 16 << 16) | section->m_indexStart;
+    uint32_t total = 0;
+
+    if (instance && instance->m_optGeo) {
+        // OptimizeVisibleGeometry's compacted buffer: the sum of its sections' counts.
+        for (uint32_t i = 0; i < instance->m_optGeo->m_skinSectionCount; i++)
+            total += instance->m_optGeo->m_skinSections[i].m_indexCount;
+    } else if (instance && instance->m_shared && instance->m_shared->m_skinData) {
+        // CM2Shared::SetIndices' compacted buffer: every instance copies its source index list.
+        total = instance->m_shared->m_instances * instance->m_shared->m_skinData->m_indices.m_count;
+    }
+
+    // A processed section's high word is its compacted start. The source total is far smaller than that buffer, so
+    // validate against the buffer actually drawn (a source section's garbage high word still falls outside it).
+    if (total && wide <= total && section->m_indexCount <= total - wide)
+        return wide;
+
+    return section->m_indexStart;
 }
 
 void M2EsteriaSkin(CM2Shared* shared) {
