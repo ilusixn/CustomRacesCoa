@@ -21283,6 +21283,29 @@ void CGUnit_C::SetNamePlateFocus(const C2Vector& position) {
 // VERIFY: 5739ef94 manual
 // OFFSET: 0x0072B060
 int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* position) {
+    // mod-loot-goblins: creature type flag 0x40000000 forces a plate (dead too, nameplate CVars and filters ignored),
+    // so goblin drops get a styleable plate. Only creatures a server marks with it are affected.
+    if (this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x40000000)) {
+        if (this->m_unit->m_unitFieldFlags & 0x2000000) {
+            return 0;
+        }
+
+        if (!this->m_worldObject || !World::QueryObjectVisible(this->m_worldObject) || !CGGameUI::m_visible) {
+            return 0;
+        }
+
+        CGCamera* forcedCamera = CGWorldFrame::GetActiveCamera();
+        CGUnit_C* forcedTarget = forcedCamera ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(forcedCamera->m_targetGUID, TYPE_UNIT, __FILE__, __LINE__)) : nullptr;
+
+        if (!forcedTarget || forcedTarget == this || !GetNamePlateScreenPos(this, worldFrame, position)) {
+            return 0;
+        }
+
+        C3Vector forcedDelta = this->GetPosition() - forcedTarget->GetPosition();
+
+        return forcedDelta.x * forcedDelta.x + forcedDelta.y * forcedDelta.y + forcedDelta.z * forcedDelta.z <= CoA::GlobalsG::NamePlateRangeSq() ? 1 : 0;
+    }
+
     // CoA: AscNamePlates.cpp:FUN_102c2630 (orig hook 0x72B060) -- the personal plate, the neutral / in-combat filters and
     // the fixed vertical offset decide first.
     int32_t coaResult = 0;
