@@ -118,6 +118,12 @@ constexpr float kKulTiranRoom = 0.6f;
 CCharacterComponent* s_kulTiranLook;
 uint64_t s_kulTiranGuid;
 
+// The Twins' camera frames a thin body: the Kul Tiran is drawn smaller to fit. WOW_KULTIRAN_SELECT_SCALE tunes it.
+float KulTiranPreviewScale() {
+    const char* scale = std::getenv("WOW_KULTIRAN_SELECT_SCALE");
+    return scale ? static_cast<float>(std::atof(scale)) : 0.8f;
+}
+
 uint32_t KulTiranMask(const char* name, const std::string& payload) {
     if (payload.empty()) {
         return 0;
@@ -373,7 +379,7 @@ void CharacterSelectionDisplay::KeepKulTiranLook(CharacterSelectionDisplay& disp
     body->m_fadeAlpha = 0.0f;
     if (s_kulTiranLook->m_data.m_model) {
         s_kulTiranLook->m_data.m_model->SetWorldTransform(C3Vector(0.0f, 0.0f, 0.0f), CCharacterSelection::s_charFacing,
-            RetailRacePreviewScale(kKulTiranRace));
+            KulTiranPreviewScale());
     }
 }
 
@@ -503,6 +509,6 @@ void CharacterSelectionDisplay::SetCharacterFacing(float rotation) {
         const bool brotherKulTiran = m_formMirrorIsTwin
             && (KulTiranMask(display.m_characterInfo.m_name, s_twinPayload) & kBrotherKulTiran);
         m_formMirror->m_data.m_model->SetWorldTransform(position, rotation,
-            RetailRacePreviewScale(brotherKulTiran ? kKulTiranRace : display.m_characterInfo.m_raceID));
+            brotherKulTiran ? KulTiranPreviewScale() : RetailRacePreviewScale(display.m_characterInfo.m_raceID));
     }
 }
