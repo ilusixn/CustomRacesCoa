@@ -109,12 +109,82 @@ uint32_t MutatedDisplay(const char* name) {
     return found != root.end() && found->is_number_unsigned() ? found->get<uint32_t>() : 0;
 }
 
-void TwinMirrorOffset(float& x, float& y) {
+// One Lazy Thin: "<name>#kultiran" is [1] when the character wears the Kul Tiran look, [2] when his brother does.
+constexpr uint32_t kSelfKulTiran = 1;
+constexpr uint32_t kBrotherKulTiran = 2;
+constexpr uint8_t kKulTiranRace = 16;
+constexpr uint32_t kKulTiranMaleDisplay = 141685;
+constexpr float kKulTiranRoom = 0.6f;
+CCharacterComponent* s_kulTiranLook;
+uint64_t s_kulTiranGuid;
+
+uint32_t KulTiranMask(const char* name, const std::string& payload) {
+    if (payload.empty()) {
+        return 0;
+    }
+    nlohmann::json root = nlohmann::json::parse(payload, nullptr, false);
+    if (root.is_discarded() || !root.is_object()) {
+        return 0;
+    }
+    auto found = root.find(std::string(name) + "#kultiran");
+    if (found == root.end() || !found->is_array() || found->size() != 1 || !(*found)[0].is_number_unsigned()) {
+        return 0;
+    }
+    return (*found)[0].get<uint32_t>();
+}
+
+// A male Kul Tiran in the given character's gear, attached to the selection scene.
+CCharacterComponent* DressedKulTiran(CHARACTER_INFO dressed) {
+    CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(kKulTiranMaleDisplay);
+    CreatureModelDataRec* modelRec = displayRec ? g_creatureModelDataDB.GetRecord(displayRec->m_modelID) : nullptr;
+    if (!modelRec || !*modelRec->m_modelName) {
+        return nullptr;
+    }
+
+    ComponentData data;
+    data.m_preferences.m_raceID = kKulTiranRace;
+    data.m_preferences.m_sexID = 0;
+    data.m_preferences.m_classId = dressed.m_classID;
+    data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(modelRec->m_modelName, 0);
+    if (!data.m_model) {
+        return nullptr;
+    }
+
+    data.m_flags |= 0x2;
+    CCharacterComponent* component = CCharacterComponent::AllocComponent();
+    if (!component) {
+        data.m_model->Release();
+        return nullptr;
+    }
+    component->Init(&data, nullptr);
+    data.m_model->m_lightingCallback = &CCharacterSelection::GenericLightingCallback;
+    data.m_model->m_lightingArg = CCharacterSelection::m_modelFrame->m_lightArray2;
+    data.m_model->SetBoneSequence(0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 1.0f, 1, 1);
+
+    dressed.m_raceID = kKulTiranRace;
+    dressed.m_sexID = 0;
+    dressed.m_skinColorID = 0;
+    dressed.m_faceID = 0;
+    dressed.m_hairStyleID = 0;
+    dressed.m_hairColorID = 0;
+    dressed.m_facialHairStyleID = 0;
+    CCharacterSelection::DressComponent(dressed, component);
+    data.m_model->AttachToParent(CCharacterSelection::m_modelFrame->m_model, 0, nullptr, 0);
+    CGlueLoading::StartLoad(component, 1);
+    return component;
+}
+
+void TwinMirrorOffset(float& x, float& y, bool roomy) {
     const char* depth = std::getenv("WOW_TWIN_SELECT_DEPTH");
     const char* side = std::getenv("WOW_TWIN_SELECT_SIDE");
     x = depth ? static_cast<float>(std::atof(depth)) : -1.0f;
     y = side ? static_cast<float>(std::atof(side)) : -0.9f;
+    if (roomy) {
+        y -= kKulTiranRoom;
+    }
 }
+
+bool s_twinMirrorRoomy;
 }
 
 // Sideways offset of the second form from the selected one, along the model frame's horizontal axis.
@@ -198,6 +268,19 @@ void CharacterSelectionDisplay::ShowTwinMirror(CharacterSelectionDisplay& displa
         return;
     }
 
+    const uint32_t kulTiran = KulTiranMask(info.m_name, s_twinPayload);
+    s_twinMirrorRoomy = kulTiran != 0;
+    if (kulTiran & kBrotherKulTiran) {
+        CHARACTER_INFO twin = info;
+        ApplyTwinGear(twin, s_twinPayload);
+        m_formMirror = DressedKulTiran(twin);
+        m_formMirrorIsTwin = m_formMirror != nullptr;
+        if (m_formMirror) {
+            SetCharacterFacing(CCharacterSelection::s_charFacing);
+        }
+        return;
+    }
+
     CreatureModelDataRec* modelRec = GetTwinModelDataRec(info.m_raceID, info.m_sexID);
     if (!modelRec || !*modelRec->m_modelName) {
         return;
@@ -251,7 +334,51 @@ void CharacterSelectionDisplay::KeepTwinMirror(CharacterSelectionDisplay& displa
     }
 }
 
+void CharacterSelectionDisplay::ClearKulTiranLook() {
+    CCharacterComponent* look = s_kulTiranLook;
+    s_kulTiranLook = nullptr;
+    s_kulTiranGuid = 0;
+    if (!look) {
+        return;
+    }
+    if (look->m_data.m_model && look->m_data.m_model->m_attachParent) {
+        look->m_data.m_model->DetachFromParent();
+    }
+    CCharacterComponent::FreeComponent(look);
+}
+
+void CharacterSelectionDisplay::KeepKulTiranLook(CharacterSelectionDisplay& display) {
+    const CHARACTER_INFO& info = display.m_characterInfo;
+    CM2Model* body = display.m_component ? display.m_component->m_data.m_model : nullptr;
+    const bool wanted = body && info.m_raceID == kTwinsRace && CCharacterSelection::m_modelFrame
+        && CCharacterSelection::m_modelFrame->m_model && (KulTiranMask(info.m_name, TwinPayload()) & kSelfKulTiran);
+
+    if (!wanted) {
+        if (s_kulTiranLook && body) {
+            body->m_fadeAlpha = 1.0f;
+        }
+        ClearKulTiranLook();
+        return;
+    }
+
+    if (!s_kulTiranLook || s_kulTiranGuid != info.m_guid.m_guid) {
+        ClearKulTiranLook();
+        s_kulTiranLook = DressedKulTiran(info);
+        if (!s_kulTiranLook) {
+            return;
+        }
+        s_kulTiranGuid = info.m_guid.m_guid;
+    }
+
+    body->m_fadeAlpha = 0.0f;
+    if (s_kulTiranLook->m_data.m_model) {
+        s_kulTiranLook->m_data.m_model->SetWorldTransform(C3Vector(0.0f, 0.0f, 0.0f), CCharacterSelection::s_charFacing,
+            RetailRacePreviewScale(kKulTiranRace));
+    }
+}
+
 void CharacterSelectionDisplay::ClearMutatedLook() {
+    ClearKulTiranLook();
     CM2Model* look = s_mutatedLook;
     s_mutatedLook = nullptr;
     s_mutatedGuid = 0;
@@ -269,6 +396,7 @@ void CharacterSelectionDisplay::ClearMutatedLook() {
 }
 
 void CharacterSelectionDisplay::KeepMutatedLook(CharacterSelectionDisplay& display) {
+    KeepKulTiranLook(display);
     const CHARACTER_INFO& info = display.m_characterInfo;
     CM2Model* body = display.m_component ? display.m_component->m_data.m_model : nullptr;
     const uint32_t shown = body ? MutatedDisplay(info.m_name) : 0;
@@ -364,11 +492,13 @@ void CharacterSelectionDisplay::SetCharacterFacing(float rotation) {
     if (m_formMirror && m_formMirror->m_data.m_model) {
         C3Vector position(0.0f, 0.0f, 0.0f);
         if (m_formMirrorIsTwin) {
-            TwinMirrorOffset(position.x, position.y);
+            TwinMirrorOffset(position.x, position.y, s_twinMirrorRoomy);
         } else {
             FormMirrorOffset(position.x, position.y);
         }
+        const bool brotherKulTiran = m_formMirrorIsTwin
+            && (KulTiranMask(display.m_characterInfo.m_name, s_twinPayload) & kBrotherKulTiran);
         m_formMirror->m_data.m_model->SetWorldTransform(position, rotation,
-            RetailRacePreviewScale(display.m_characterInfo.m_raceID));
+            RetailRacePreviewScale(brotherKulTiran ? kKulTiranRace : display.m_characterInfo.m_raceID));
     }
 }

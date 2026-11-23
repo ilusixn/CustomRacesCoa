@@ -29,9 +29,12 @@ class CharacterSelectionDisplay {
     static bool m_formMirrorIsTwin;
     static void ShowTwinMirror(CharacterSelectionDisplay& display);
     static void KeepTwinMirror(CharacterSelectionDisplay& display);
-    // Two-Players (mod-subclass): a body left in its Mutate Me look ('MUTD' payload) shows that look here too.
+    // Two-Players (mod-subclass): a body left in its Mutate Me look ('MUTD' payload) shows that look here too, and
+    // a Twin in his One Lazy Thin Kul Tiran look ('TWNS' "<name>#kultiran") shows that one.
     static void KeepMutatedLook(CharacterSelectionDisplay& display);
     static void ClearMutatedLook();
+    static void KeepKulTiranLook(CharacterSelectionDisplay& display);
+    static void ClearKulTiranLook();
     static int32_t SetSelectedCharacterInfo(CHARACTER_INFO* info);
 
     CharacterSelectionDisplay();
