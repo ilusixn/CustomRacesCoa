@@ -2,7 +2,7 @@
 
 Stefan's (stefanw1337) server work for the subclass races: mod-subclass (subclassing, The Twins 96, Two-Headed Ogre 85,
 Two-Players), mod-livemon, and the core changes they need. Modules: snapshot of `stefanw1337/azerothcore-wotlk-coa`, branch
-`stefanw1337-subclassing-test` at `af6f850d02` (2026-11-23). `server/` is still the `d69e92c0` (2026-11-11) core
+`stefanw1337-subclassing-test` at `47538fce5a` (2026-11-23). `server/` is still the `d69e92c0` (2026-11-11) core
 snapshot; the core changes since then are only in that branch, which Corfirean's public server build pins
 (`races-source.json`). Building the worldserver from that branch is the simplest route.
 
@@ -10,6 +10,24 @@ snapshot; the core changes since then are only in that branch, which Corfirean's
 - `server/subclass-core.patch`: our core changes against CoA base `ee7e5d26`, without the module folders. Files that
   are unchanged from `../server/files` are left out.
 - `server/files/`: the same changed files in full (they already include the race changes where both touch a file).
+
+New since the af6f850d02 snapshot (2026-11-23):
+- The Twins' racial One Lazy Thin (spell 9530135): each use turns the brother into a Kul Tiran, then the player, then
+  both thin again. It works for one-player Twins and Two-Players Twins, and the choice is kept across logins (new
+  characters table `mod_subclass_lazy_thin`). With a Kul Tiran, the brother walks further out, and piggyback and saddle
+  use their own seats (vehicles 9720-9769, Two-Players copies 9820-9869).
+- The character screen shows the Kul Tiran look on the player and on the brother, in their own gear (server payload
+  `TWNS` key `<name>#kultiran`, client commits on this branch). An unpaired Two-Players Twin stands alone there.
+- Core fix (`server/client-stream-new-spells.patch`, against the `stefanw1337-subclassing-test` core): a spell the
+  server streams to the client that is not in the client's Spell.dbc now shows in the spellbook. Before, it arrived
+  after the login spell list and the client dropped it. Not applied to `server/files`, whose older core has no
+  new-spell stream; build the worldserver from the branch.
+- `.subclass twin info` also reports the Two-Players carry state and writes it to the server log.
+- New SQL: world `rev_20261123_02` to `rev_20261123_05`, characters `rev_20261123_00`.
+- Known: a Two-Players Twin who switches to his own Kul Tiran look may not carry his brother piggyback until he logs
+  in again (under investigation).
+- Known: the Kul Tiran male's hanging set pieces (a knife and a medallion on one leather set) float on any Kul Tiran
+  wearing that set; it is the set together with the Kul Tiran model, not the Twins.
 
 New since the fb05f2e477 snapshot (2026-11-23):
 - Bonk Heads! speaks of brothers for the Two-Players Twins (messages and tooltip).
