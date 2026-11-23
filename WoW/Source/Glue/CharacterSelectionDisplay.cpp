@@ -377,8 +377,7 @@ void CharacterSelectionDisplay::KeepKulTiranLook(CharacterSelectionDisplay& disp
     }
 }
 
-void CharacterSelectionDisplay::ClearMutatedLook() {
-    ClearKulTiranLook();
+static void DropMutatedLook() {
     CM2Model* look = s_mutatedLook;
     s_mutatedLook = nullptr;
     s_mutatedGuid = 0;
@@ -395,6 +394,11 @@ void CharacterSelectionDisplay::ClearMutatedLook() {
     look->Release();
 }
 
+void CharacterSelectionDisplay::ClearMutatedLook() {
+    DropMutatedLook();
+    ClearKulTiranLook();
+}
+
 void CharacterSelectionDisplay::KeepMutatedLook(CharacterSelectionDisplay& display) {
     KeepKulTiranLook(display);
     const CHARACTER_INFO& info = display.m_characterInfo;
@@ -405,12 +409,12 @@ void CharacterSelectionDisplay::KeepMutatedLook(CharacterSelectionDisplay& displ
         if (s_mutatedLook && body) {
             body->m_fadeAlpha = 1.0f;
         }
-        ClearMutatedLook();
+        DropMutatedLook();
         return;
     }
 
     if (!s_mutatedLook || s_mutatedGuid != info.m_guid.m_guid || s_mutatedDisplay != shown) {
-        ClearMutatedLook();
+        DropMutatedLook();
         CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(shown);
         CreatureModelDataRec* modelRec = displayRec ? g_creatureModelDataDB.GetRecord(displayRec->m_modelID) : nullptr;
         CM2Model* look = modelRec ? CCharacterSelection::m_modelFrame->GetScene()->CreateModel(modelRec->m_modelName, 0)
