@@ -61,6 +61,15 @@ void ApplyTwinGear(CHARACTER_INFO& twin, const std::string& payload) {
     twin.m_flags &= ~(0x400u | 0x800u);
 }
 
+// "<name>#alone" marks an unpaired Two-Players Twin: no brother stands beside him.
+bool BrotherAway(const std::string& name, const std::string& payload) {
+    if (payload.empty()) {
+        return false;
+    }
+    nlohmann::json root = nlohmann::json::parse(payload, nullptr, false);
+    return !root.is_discarded() && root.is_object() && root.contains(name + "#alone");
+}
+
 // "<name>#look" holds the brother's own [face, hair style, facial hair]; 255 keeps the player's.
 void ApplyTwinLook(ComponentData& data, const std::string& name, const std::string& payload) {
     if (payload.empty()) {
@@ -185,7 +194,7 @@ void CharacterSelectionDisplay::ShowTwinMirror(CharacterSelectionDisplay& displa
 
     const CHARACTER_INFO& info = display.m_characterInfo;
     if (info.m_raceID != kTwinsRace || !CCharacterSelection::m_modelFrame || !CCharacterSelection::m_modelFrame->m_model
-        || !display.m_component || !display.m_component->m_data.m_model) {
+        || !display.m_component || !display.m_component->m_data.m_model || BrotherAway(info.m_name, s_twinPayload)) {
         return;
     }
 
@@ -235,7 +244,9 @@ void CharacterSelectionDisplay::KeepTwinMirror(CharacterSelectionDisplay& displa
     if (display.m_characterInfo.m_raceID != kTwinsRace || !display.m_component || !display.m_component->m_data.m_model) {
         return;
     }
-    if (!m_formMirror || !m_formMirrorIsTwin || TwinPayload() != s_twinPayload) {
+    const std::string payload = TwinPayload();
+    if (payload != s_twinPayload || (!m_formMirror && !BrotherAway(display.m_characterInfo.m_name, payload))
+        || (m_formMirror && !m_formMirrorIsTwin)) {
         ShowTwinMirror(display);
     }
 }
