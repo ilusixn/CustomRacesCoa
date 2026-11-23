@@ -2,7 +2,7 @@
 
 Stefan's (stefanw1337) server work for the subclass races: mod-subclass (subclassing, The Twins 96, Two-Headed Ogre 85,
 Two-Players), mod-livemon, and the core changes they need. Modules: snapshot of `stefanw1337/azerothcore-wotlk-coa`, branch
-`stefanw1337-subclassing-test` at `fb05f2e477` (2026-11-16). `server/` is still the `d69e92c0` (2026-11-11) core
+`stefanw1337-subclassing-test` at `af6f850d02` (2026-11-23). `server/` is still the `d69e92c0` (2026-11-11) core
 snapshot; the core changes since then are only in that branch, which Corfirean's public server build pins
 (`races-source.json`). Building the worldserver from that branch is the simplest route.
 
@@ -10,6 +10,24 @@ snapshot; the core changes since then are only in that branch, which Corfirean's
 - `server/subclass-core.patch`: our core changes against CoA base `ee7e5d26`, without the module folders. Files that
   are unchanged from `../server/files` are left out.
 - `server/files/`: the same changed files in full (they already include the race changes where both touch a file).
+
+New since the fb05f2e477 snapshot (2026-11-23):
+- Bonk Heads! speaks of brothers for the Two-Players Twins (messages and tooltip).
+- Core fix (`server/native-model-gender.patch`, also applied to `server/files/.../Unit.cpp`): a player who leaves a
+  shapeshift form (Ghost Wolf and others) keeps their own gender. Before, a custom race character took the form
+  model's "no gender" and turned green and bald until the next login.
+- The Twins' brother rides on the back of every ridden form look: Ghost Wolf, Wargstride, Travel Form (the tiger) and
+  the collection looks (Draenor wolf, Zandalari raptor, primal dog, Kul Tiran stag, travel cat, doe, marmoset). Each
+  look has its own seat (vehicles 9710-9719, Two-Players copies 9810-9819, table `mod_subclass_form_seat`).
+- `.subclass twin seat <seat> <x> <y> <z> [attachment]` moves a twin seat live and stores it (GM).
+- Two-Players Twins: the pair shares one body like the ogre (piggyback seat 9630, carry vehicles 9630-9652), the head
+  chosen at creation leads, whispers reach both heads, the character screen shows the partner's gear on the brother,
+  the seated Twin dresses his own stand-in, and same-class pairs share class resources (Insanity and the like).
+- The subclass races start in their own start areas.
+- New world SQL under `server/files/data/sql/updates/pending_db_world/` (`rev_20261116_00` to `rev_20261123_01`).
+- Server owners who replay the module's old SQL files on every update must replay the current ones from
+  `modules/mod-subclass/data/sql/`: older copies of `2026_10_18_02_mod_subclass_twin_seats.sql` and the beast and car
+  seat files put old seat values back and delete vehicles 9543-9599.
 
 New since the d69e92c0 snapshot (2026-11-16):
 - Server tables: the Two-Players displays (985001-985004, 999402) and ChrRaces 85/96 are not in 2.0.1's `files/dbc`,

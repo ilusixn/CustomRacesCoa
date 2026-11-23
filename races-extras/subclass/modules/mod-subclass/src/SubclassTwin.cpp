@@ -33,6 +33,7 @@
 #include "Random.h"
 #include "ScriptMgr.h"
 #include "StringConvert.h"
+#include "Tokenize.h"
 #include "SubclassRules.h"
 #include "AscensionPooledVitality.h"
 #include "ScriptedGossip.h"
@@ -48,6 +49,7 @@
 #include "WorldSession.h"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -242,6 +244,8 @@ struct Look
     uint8 Class = 0;
     std::array<uint8, 5> Features = {};
     std::array<uint32, LookSlots> Displays = {};
+
+    bool operator==(Look const&) const = default;
 };
 
 std::mutex& twinMutex = *new std::mutex;
@@ -258,6 +262,9 @@ std::unordered_map<uint32, uint32>& sentHome = *new std::unordered_map<uint32, u
 std::unordered_map<uint32, uint32>& auraTicks = *new std::unordered_map<uint32, uint32>;
 std::unordered_map<uint32, uint32>& arrivals = *new std::unordered_map<uint32, uint32>;
 std::unordered_set<uint32>& aloneTwoPlayersTwins = *new std::unordered_set<uint32>;
+std::unordered_map<uint32, uint32>& standInFor = *new std::unordered_map<uint32, uint32>;
+std::unordered_set<uint32>& standInRiders = *new std::unordered_set<uint32>;
+std::unordered_map<uint32, uint32>& pairedCarry = *new std::unordered_map<uint32, uint32>;
 std::unordered_map<uint32, uint8>& sips = *new std::unordered_map<uint32, uint8>;
 std::unordered_map<uint32, bool>& hangovers = *new std::unordered_map<uint32, bool>;
 
@@ -934,6 +941,84 @@ Look LookOf(Player const* player, Wardrobe const& wardrobe)
     return look;
 }
 
+Look RiderLook(Player const* rider, Wardrobe const& worn)
+{
+    Look look;
+    look.DisplayId = BrotherNativeDisplay(rider);
+    look.Race = rider->getRace();
+    look.Gender = StoryGenderOf(rider);
+    look.Class = rider->getClass();
+    look.Features = { rider->GetByteValue(PLAYER_BYTES, 0), rider->GetByteValue(PLAYER_BYTES, 1),
+        rider->GetByteValue(PLAYER_BYTES, 2), rider->GetByteValue(PLAYER_BYTES, 3),
+        rider->GetByteValue(PLAYER_BYTES_2, 0) };
+    for (std::size_t slot = 0; slot < LookSlots; ++slot)
+        look.Displays[slot] = DisplayOfItem(worn.Items[slot]);
+    if (look.Race == Subclass::ThinHumanRace)
+        look.Features[4] = Subclass::FacialUnderHat(look.Features[4], look.Features[2], look.Displays[0] != 0);
+    return look;
+}
+
+Wardrobe StandInOutfit(Player const* body, Player const* rider)
+{
+    Wardrobe const chosen = WardrobeOf(rider);
+    return chosen.Enabled ? chosen : Worn(body);
+}
+
+std::unordered_set<uint32>& dressedRiders = *new std::unordered_set<uint32>;
+
+void DressSeatedRider(Player* rider, Player const* body)
+{
+    uint32 const guid = rider->GetGUID().GetCounter();
+    bool const pairedRider = rider->getRace(true) == TwinRace && TwoPlayersPartnerOf(guid) &&
+        !TwoPlayersIsLeftHead(guid);
+    if (!body && pairedRider && !WardrobeOf(rider).Enabled)
+        return;
+    if (body || pairedRider)
+    {
+        Wardrobe const outfit = body ? StandInOutfit(body, rider) : WardrobeOf(rider);
+        for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
+        {
+            rider->SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + Slots[slot].Slot * 2, outfit.Items[slot]);
+            rider->SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + Slots[slot].Slot * 2, 0);
+        }
+        std::lock_guard<std::mutex> lock(twinMutex);
+        dressedRiders.insert(guid);
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(twinMutex);
+        if (!dressedRiders.erase(guid))
+            return;
+    }
+    for (TwinSlot const& slot : Slots)
+        rider->SetVisibleItemSlot(slot.Slot, rider->GetItemByPos(INVENTORY_SLOT_BAG_0, slot.Slot));
+}
+
+Player* SeatedTwinsRider(Player const* body)
+{
+    if (body->getRace(true) != TwinRace || !TwoPlayersIsLeftHead(body->GetGUID().GetCounter()))
+        return nullptr;
+    return TwoPlayersSeatedPartner(body);
+}
+
+Player* BodyOfStandIn(Player const* rider)
+{
+    uint32 const guid = rider->GetGUID().GetCounter();
+    if (rider->getRace(true) != TwinRace || !TwoPlayersPartnerOf(guid) || TwoPlayersIsLeftHead(guid))
+        return nullptr;
+    return TwoPlayersSeatedPartner(rider);
+}
+
+std::string StandInLocked(Player const* body)
+{
+    if (Player const* rider = SeatedTwinsRider(body))
+        return rider->GetName() + " picks his own look while you are paired.";
+    if (body->getRace(true) == TwinRace && Subclass::IsTwoPlayersBody(body->getRace(true), StoryGenderOf(body)) &&
+        !BodyOfStandIn(body))
+        return "In Two-Players each brother dresses himself.";
+    return "";
+}
+
 Creature* TwinOf(Player const* player)
 {
     ObjectGuid guid;
@@ -1104,6 +1189,8 @@ void FlashFormOnBrother(Player* player, uint32 spellId)
         twin->CastSpell(twin, TwinFormCopyOf(spellId).Visual, true);
 }
 
+void ResendMirrorImageLater(Creature const* twin);
+
 void MirrorFormVisual(Player* player, Creature* twin)
 {
     std::unordered_set<uint32> worn;
@@ -1131,12 +1218,24 @@ void MirrorFormVisual(Player* player, Creature* twin)
             shed.push_back(spellId);
     for (uint32 spellId : shed)
         twin->RemoveAurasDueToSpell(spellId);
+    if (!shed.empty())
+        ResendMirrorImageLater(twin);
 }
 
 bool OwnsKit(Player const* player)
 {
     Vehicle const* kit = player->GetVehicleKit();
-    return kit && kit->GetVehicleInfo()->m_ID >= PiggybackVehicle && kit->GetVehicleInfo()->m_ID <= LastTwinVehicle;
+    if (!kit)
+        return false;
+    uint32 const id = kit->GetVehicleInfo()->m_ID;
+    return (id >= PiggybackVehicle && id <= LastTwinVehicle) || Subclass::IsFormSeatVehicle(id) ||
+        Subclass::IsTwinsCarryVehicle(id);
+}
+
+void WantPairedCarry(Player const* body, uint32 vehicleId)
+{
+    std::lock_guard<std::mutex> lock(twinMutex);
+    pairedCarry[body->GetGUID().GetCounter()] = vehicleId;
 }
 
 void SendVehicleData(Player* player, uint32 vehicleId)
@@ -1149,6 +1248,8 @@ void SendVehicleData(Player* player, uint32 vehicleId)
 
 void DropKit(Player* player)
 {
+    if (SeatedTwinsRider(player))
+        return WantPairedCarry(player, 0);
     if (!OwnsKit(player))
         return;
     SendVehicleData(player, 0);
@@ -1157,6 +1258,13 @@ void DropKit(Player* player)
 
 bool GiveKit(Player* player, uint32 vehicleId)
 {
+    if (SeatedTwinsRider(player))
+    {
+        uint32 const carry = Subclass::TwinsCarryVehicleFor(vehicleId);
+        WantPairedCarry(player, carry);
+        Vehicle const* kit = player->GetVehicleKit();
+        return kit && kit->GetVehicleInfo()->m_ID == carry;
+    }
     if (Vehicle const* kit = player->GetVehicleKit())
     {
         if (kit->GetVehicleInfo()->m_ID == vehicleId)
@@ -1193,6 +1301,34 @@ std::unordered_map<uint32, uint32> const& RiderPoseVehicles()
     return vehicles;
 }
 
+std::unordered_map<uint32, uint32> const& FormSeatVehicles()
+{
+    static std::unordered_map<uint32, uint32> const vehicles = []
+    {
+        std::unordered_map<uint32, uint32> loaded;
+        bool const present = bool(WorldDatabase.Query("SELECT 1 FROM information_schema.TABLES WHERE "
+            "TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mod_subclass_form_seat'"));
+        if (QueryResult result = present ?
+                WorldDatabase.Query("SELECT `DisplayId`, `VehicleId` FROM `mod_subclass_form_seat`") : nullptr)
+            do
+            {
+                Field* fields = result->Fetch();
+                if (sVehicleStore.LookupEntry(fields[1].Get<uint32>()))
+                    loaded[fields[0].Get<uint32>()] = fields[1].Get<uint32>();
+            } while (result->NextRow());
+        LOG_INFO("module", "mod-subclass: {} ridden form looks seat the twin brother on their own back", loaded.size());
+        return loaded;
+    }();
+    return vehicles;
+}
+
+uint32 FormSeatFor(Player const* player, uint32 fallback)
+{
+    auto const& vehicles = FormSeatVehicles();
+    auto const itr = vehicles.find(player->GetDisplayId());
+    return itr != vehicles.end() ? itr->second : fallback;
+}
+
 uint32 SaddleFor(Player const* player)
 {
     auto const& vehicles = RiderPoseVehicles();
@@ -1209,14 +1345,24 @@ uint32 VehicleFor(Player const* player, Carry mode)
         case Carry::Piggyback:
             return PiggybackVehicle;
         case Carry::WolfBack:
-            return WolfBackVehicle;
+            return FormSeatFor(player, WolfBackVehicle);
         case Carry::CatBack:
-            return CatBackVehicle;
+            return FormSeatFor(player, CatBackVehicle);
         case Carry::Shoulders:
             return ShoulderRideVehicle;
         default:
             return SaddleFor(player);
     }
+}
+
+bool FormSeatOutdated(Player const* player, Carry mode)
+{
+    if (mode != Carry::WolfBack && mode != Carry::CatBack)
+        return false;
+    uint32 const wanted = VehicleFor(player, mode);
+    uint32 const expected = SeatedTwinsRider(player) ? Subclass::TwinsCarryVehicleFor(wanted) : wanted;
+    Vehicle const* kit = player->GetVehicleKit();
+    return kit && kit->GetVehicleInfo()->m_ID != expected;
 }
 
 void SetCarry(Player* player, Creature* twin, Carry mode)
@@ -1239,7 +1385,15 @@ void SetCarry(Player* player, Creature* twin, Carry mode)
         return;
     }
     if (!GiveKit(player, VehicleFor(player, mode)))
-        return SetCarry(player, twin, Carry::Beside);
+    {
+        if (!SeatedTwinsRider(player))
+            return SetCarry(player, twin, Carry::Beside);
+        if (twin->GetVehicle())
+            twin->ExitVehicle();
+        if (twin->GetMotionMaster()->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+            twin->GetMotionMaster()->MoveFollow(player, TwinDistance, TwinAngle);
+        return;
+    }
     twin->GetMotionMaster()->Clear();
     twin->EnterVehicle(player, TwinSeat);
 }
@@ -1270,11 +1424,11 @@ Carry WantedCarry(Player const* player, Motion const& motion)
     {
         if (player->HasAuraType(SPELL_AURA_TRANSFORM) || player->HasAuraType(SPELL_AURA_MOD_SHAPESHIFT))
             return Carry::Beside;
-        if (Vehicle const* kit = player->GetVehicleKit(); kit && !OwnsKit(player))
+        if (Vehicle const* kit = player->GetVehicleKit(); kit && !OwnsKit(player) && !SeatedTwinsRider(player))
             return motion.Mode == Carry::Passenger || kit->GetAvailableSeatCount() ? Carry::Passenger : Carry::Beside;
         return Carry::Saddle;
     }
-    if (player->IsFlying())
+    if (player->IsFlying() || (player->GetVehicleKit() && !OwnsKit(player) && !SeatedTwinsRider(player)))
         return Carry::Beside;
     if (motion.Afoot && motion.Afoot <= AfootStride)
         return Carry::Beside;
@@ -1747,6 +1901,56 @@ uint32 CursedShape(Player const* player)
     return 0;
 }
 
+struct MirrorResend
+{
+    uint32 Due = 0;
+    uint8 Left = 0;
+};
+
+constexpr uint32 MirrorResendDelay = 1000;
+constexpr uint32 MirrorResendSpacing = 2000;
+constexpr uint8 MirrorResends = 3;
+std::unordered_map<ObjectGuid, MirrorResend>& mirrorResends = *new std::unordered_map<ObjectGuid, MirrorResend>;
+
+WorldPacket MirrorImageData(ObjectGuid guid, Look const& look)
+{
+    WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+    data << guid << uint32(look.DisplayId) << uint8(look.Race) << uint8(look.Gender) << uint8(look.Class);
+    for (uint8 feature : look.Features)
+        data << uint8(feature);
+    data << uint32(0);
+    for (uint32 display : look.Displays)
+        data << uint32(display);
+    return data;
+}
+
+void ResendMirrorImageLater(Creature const* twin)
+{
+    std::lock_guard<std::mutex> lock(twinMutex);
+    mirrorResends[twin->GetGUID()] = { getMSTime() + MirrorResendDelay, MirrorResends };
+}
+
+void ResendMirrorImage(Creature* twin)
+{
+    Look look;
+    {
+        std::lock_guard<std::mutex> lock(twinMutex);
+        auto const resend = mirrorResends.find(twin->GetGUID());
+        if (resend == mirrorResends.end() || int32(resend->second.Due - getMSTime()) > 0)
+            return;
+        auto const known = looks.find(twin->GetGUID());
+        if (known == looks.end() || !--resend->second.Left)
+            mirrorResends.erase(resend);
+        else
+            resend->second.Due = getMSTime() + MirrorResendSpacing;
+        if (known == looks.end())
+            return;
+        look = known->second;
+    }
+    WorldPacket data = MirrorImageData(twin->GetGUID(), look);
+    twin->SendMessageToSet(&data, false);
+}
+
 void MirrorShape(Player* player, Creature* twin)
 {
     uint32 const cursed = CursedShape(player);
@@ -1757,7 +1961,10 @@ void MirrorShape(Player* player, Creature* twin)
     if (shaped)
         twin->RemoveUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
     else
+    {
         twin->SetUnitFlag2(UNIT_FLAG2_MIRROR_IMAGE);
+        ResendMirrorImageLater(twin);
+    }
     twin->SetDisplayId(wanted);
 }
 
@@ -2019,6 +2226,7 @@ void UpdateCarry(Player* player, uint32 diff)
     Creature* twin = TwinOf(player);
     if (!twin)
         return;
+    ResendMirrorImage(twin);
     if (player->HasStealthAura() && RidesTheBrother(player))
         EndRideForStealth(player);
     if (bool const riding = RidesTheBrother(player); riding != motion.Riding)
@@ -2054,7 +2262,7 @@ void UpdateCarry(Player* player, uint32 diff)
     }
     Carry const wanted = WantedCarry(player, motion);
     bool const seated = twin->GetVehicle() != nullptr;
-    if (wanted == motion.Mode && (wanted == Carry::Beside) != seated)
+    if (wanted == motion.Mode && (wanted == Carry::Beside) != seated && !FormSeatOutdated(player, wanted))
         return;
     SetCarry(player, twin, wanted);
     std::lock_guard<std::mutex> lock(twinMutex);
@@ -2072,7 +2280,10 @@ void DismissTwin(Player* player)
         guid = itr->second;
         twinOfOwner.erase(itr);
         looks.erase(guid);
+        mirrorResends.erase(guid);
         motions.erase(player->GetGUID().GetCounter());
+        standInFor.erase(player->GetGUID().GetCounter());
+        pairedCarry.erase(player->GetGUID().GetCounter());
         swingPartners.erase(player->GetGUID());
         shieldBearers.erase(player->GetGUID());
     }
@@ -2101,15 +2312,17 @@ void SummonTwin(Player* player)
     if (!twin)
         return;
 
-    Wardrobe const dressed = Dressed(player);
-    Look const look = LookOf(player, dressed);
+    Player const* rider = SeatedTwinsRider(player);
+    Wardrobe const dressed = rider ? StandInOutfit(player, rider) : Dressed(player);
+    Look const look = rider ? RiderLook(rider, dressed) : LookOf(player, dressed);
     {
         std::lock_guard<std::mutex> lock(twinMutex);
         twinOfOwner[player->GetGUID().GetCounter()] = twin->GetGUID();
         looks[twin->GetGUID()] = look;
         motions[player->GetGUID().GetCounter()].Split = IsSplit(player);
+        standInFor[player->GetGUID().GetCounter()] = rider ? rider->GetGUID().GetCounter() : 0;
     }
-    twin->SetLevel(player->GetLevel());
+    twin->SetLevel(rider ? rider->GetLevel() : player->GetLevel());
     twin->SetDisplayId(BrotherNativeDisplay(player));
     twin->SetNativeDisplayId(BrotherNativeDisplay(player));
     twin->SetFloatValue(UNIT_FIELD_COMBATREACH, TwinReach);
@@ -2130,9 +2343,7 @@ bool TwoPlayersTwinStandsAlone(Player const* player)
     uint32 const guid = player->GetGUID().GetCounter();
     if (!Subclass::IsTwoPlayersBody(player->getRace(true), StoryGenderOf(player)))
         return false;
-    if (!TwoPlayersPartnerOf(guid))
-        return true;
-    return TwoPlayersIsLeftHead(guid) && !TwoPlayersSeatedPartner(player);
+    return !TwoPlayersPartnerOf(guid) || TwoPlayersIsLeftHead(guid);
 }
 
 bool HasTwin(Player const* player)
@@ -2144,7 +2355,7 @@ bool HasTwin(Player const* player)
 
 void RefreshTwin(Player* player)
 {
-    if (HasTwin(player) && WardrobeOf(player).Enabled)
+    if (HasTwin(player) && (WardrobeOf(player).Enabled || SeatedTwinsRider(player)))
         SummonTwin(player);
     else
         DismissTwin(player);
@@ -2162,15 +2373,10 @@ bool AnswerMirrorImage(WorldSession* session, WorldPacket const& packet)
         if (itr == looks.end())
             return true;
         look = itr->second;
+        mirrorResends[guid] = { getMSTime() + MirrorResendDelay, MirrorResends };
     }
 
-    WorldPacket response(SMSG_MIRRORIMAGE_DATA, 68);
-    response << guid << uint32(look.DisplayId) << uint8(look.Race) << uint8(look.Gender) << uint8(look.Class);
-    for (uint8 feature : look.Features)
-        response << uint8(feature);
-    response << uint32(0);
-    for (uint32 display : look.Displays)
-        response << uint32(display);
+    WorldPacket response = MirrorImageData(guid, look);
     session->SendPacket(&response);
     return false;
 }
@@ -2200,6 +2406,12 @@ std::string TwinWearing(Player const* player)
     std::string reply = "TWINWEAR";
     if (HasSecondHead(player))
         return reply + Acore::StringFormat(" {}", ShownCyclopsHelmet(player));
+    if (Player const* body = BodyOfStandIn(player))
+    {
+        for (uint32 itemId : StandInOutfit(body, player).Items)
+            reply += Acore::StringFormat(" {}", itemId);
+        return reply;
+    }
     if (!HasTwin(player))
         return reply;
     Wardrobe const wardrobe = Dressed(player);
@@ -2212,8 +2424,12 @@ void SetBorrowedPassives(Player* player, bool active);
 
 std::string TwinState(Player const* player)
 {
-    return Acore::StringFormat("TWINSTATE {} {} {}", HasTwin(player) ? 1 : 0, WardrobeOf(player).Enabled ? 1 : 0,
-        IsSplit(player) ? 1 : 0);
+    if (BodyOfStandIn(player))
+        return Acore::StringFormat("TWINSTATE 1 {} 1 1", WardrobeOf(player).Enabled ? 1 : 0);
+    if (SeatedTwinsRider(player))
+        return "TWINSTATE 0 0 0 2";
+    return Acore::StringFormat("TWINSTATE {} {} {} {}", HasTwin(player) ? 1 : 0, WardrobeOf(player).Enabled ? 1 : 0,
+        IsSplit(player) ? 1 : 0, Subclass::IsTwoPlayersBody(player->getRace(true), StoryGenderOf(player)) ? 2 : 0);
 }
 
 bool SubclassChosen(Player const* player);
@@ -2346,23 +2562,66 @@ bool LonelyTwin(Player const* player)
     return HasTwin(player) && !WardrobeOf(player).Enabled;
 }
 
+uint32 TwinsCarryVehicleWanted(Player const* body)
+{
+    if (!SeatedTwinsRider(body))
+        return 0;
+    std::lock_guard<std::mutex> lock(twinMutex);
+    auto const found = pairedCarry.find(body->GetGUID().GetCounter());
+    return found == pairedCarry.end() ? 0 : found->second;
+}
+
+void DropTwinKit(Player* player)
+{
+    DropKit(player);
+}
+
 void KeepTwoPlayersBrother(Player* player)
 {
     if (player->getRace() != TwinRace || StoryGenderOf(player) == GENDER_MALE || ArrivalPending(player) ||
         player->IsBeingTeleported())
         return;
     uint32 const guid = player->GetGUID().GetCounter();
-    bool const alone = HasTwin(player);
+    Player const* rider = SeatedTwinsRider(player);
+    bool const alone = HasTwin(player) && !rider;
+    Player* const standInBody = BodyOfStandIn(player);
+    bool const standIn = standInBody != nullptr;
+    DressSeatedRider(player, standInBody);
     bool changed;
     {
         std::lock_guard<std::mutex> lock(twinMutex);
         changed = alone ? aloneTwoPlayersTwins.insert(guid).second : aloneTwoPlayersTwins.erase(guid) != 0;
+        changed = (standIn ? standInRiders.insert(guid).second : standInRiders.erase(guid) != 0) || changed;
     }
-    bool const wanted = alone && WardrobeOf(player).Enabled;
-    if (wanted != (TwinOf(player) != nullptr))
+    bool const wanted = HasTwin(player) && (rider || WardrobeOf(player).Enabled);
+    Creature const* twin = TwinOf(player);
+    bool stale = false;
+    if (twin)
+    {
+        std::optional<Look> const expected = rider ? std::optional<Look>(RiderLook(rider, StandInOutfit(player, rider)))
+            : std::nullopt;
+        std::lock_guard<std::mutex> lock(twinMutex);
+        auto const shown = standInFor.find(guid);
+        uint32 const riderGuid = rider ? rider->GetGUID().GetCounter() : 0;
+        stale = shown == standInFor.end() || shown->second != riderGuid;
+        if (!stale && expected)
+            if (auto const look = looks.find(twin->GetGUID()); look != looks.end())
+                stale = !(look->second == *expected);
+    }
+    if (wanted != (twin != nullptr) || (wanted && stale))
         RefreshTwin(player);
     if (changed)
         SendSubclassMessage(player, TwinState(player));
+}
+
+void TwoPlayersTwinCasts(Player* body, Unit* target, bool positive)
+{
+    Creature* twin = body->getRace(true) == TwinRace ? TwinOf(body) : nullptr;
+    if (!twin)
+        return;
+    if (target && target != twin)
+        twin->SetFacingToObject(target);
+    twin->HandleEmoteCommand(positive ? EMOTE_ONESHOT_SPELL_CAST_OMNI : EMOTE_ONESHOT_SPELL_CAST);
 }
 
 void OfferStoryLater(Player* player);
@@ -3819,6 +4078,16 @@ std::string ToggleHeads(Player* player)
 
 std::string ToggleTwin(Player* player)
 {
+    if (Player* body = BodyOfStandIn(player))
+    {
+        Wardrobe wardrobe = WardrobeOf(player);
+        wardrobe.Enabled = !wardrobe.Enabled;
+        StoreWardrobe(player, wardrobe);
+        RefreshTwin(body);
+        return wardrobe.Enabled ? "You wear your own outfit." : "You dress like " + body->GetName() + " again.";
+    }
+    if (Player const* rider = SeatedTwinsRider(player))
+        return rider->GetName() + " walks beside you while you are paired.";
     if (!HasTwin(player))
         return "Only the Thin Twins have a brother to call.";
     if (player->IsInCombat())
@@ -3948,6 +4217,11 @@ std::string TwinFeatures(Player const* player)
 
 void HandleTwinFeatures(Player* player, std::vector<std::string_view> const& words)
 {
+    if (std::string const locked = StandInLocked(player); !locked.empty())
+    {
+        ChatHandler(player->GetSession()).SendSysMessage(locked);
+        return;
+    }
     if (!HasTwin(player) || words.size() != 4)
         return;
     OwnFeatures features = FeaturesOf(player);
@@ -3975,14 +4249,21 @@ void HandleTwinLook(Player* player, std::vector<std::string_view> const& words)
         return DressCyclops(player, words);
     constexpr std::array<int, 15> SlotOfCategory = { -1, 0, 1, 9, 3, 10, 2, 7, 8, 4, 5, 6, int(Ranged),
         int(MainHand), int(OffHand) };
-    if (!HasTwin(player))
+    if (std::string const locked = StandInLocked(player); !locked.empty())
+    {
+        ChatHandler(player->GetSession()).SendSysMessage(locked);
         return;
-    if (!IsSplit(player))
+    }
+    Player* body = BodyOfStandIn(player);
+    if (!body && !HasTwin(player))
+        return;
+    if (!body && !IsSplit(player))
     {
         ChatHandler(player->GetSession()).SendSysMessage(EchoRefusal);
         return;
     }
-    Wardrobe wardrobe = WardrobeOf(player);
+    Wardrobe wardrobe = body && !WardrobeOf(player).Enabled ? Worn(body) : WardrobeOf(player);
+    wardrobe.Enabled = wardrobe.Enabled || body;
     uint32 changed = 0;
     for (std::size_t index = 1; index < words.size(); ++index)
     {
@@ -4002,8 +4283,12 @@ void HandleTwinLook(Player* player, std::vector<std::string_view> const& words)
     if (!changed)
         return;
     StoreWardrobe(player, wardrobe);
-    RefreshTwin(player);
-    ChatHandler(player->GetSession()).PSendSysMessage("Your twin changes into his new outfit ({} piece(s)).", changed);
+    RefreshTwin(body ? body : player);
+    if (body)
+        ChatHandler(player->GetSession()).PSendSysMessage("You change into your new outfit ({} piece(s)).", changed);
+    else
+        ChatHandler(player->GetSession()).PSendSysMessage("Your twin changes into his new outfit ({} piece(s)).",
+            changed);
 }
 
 WorldPacket TwinSwingPacket(SwingPartner const& partner, ObjectGuid target, uint32 hitInfo, uint32 school,
@@ -4685,9 +4970,62 @@ public:
             { "wear", HandleWear, SEC_GAMEMASTER, Console::No },
             { "strip", HandleStrip, SEC_GAMEMASTER, Console::No },
             { "copy", HandleCopy, SEC_GAMEMASTER, Console::No },
-            { "info", HandleInfo, SEC_GAMEMASTER, Console::No }
+            { "info", HandleInfo, SEC_GAMEMASTER, Console::No },
+            { "seat", HandleSeat, SEC_GAMEMASTER, Console::No }
         };
         return table;
+    }
+
+    static uint32 SeatColumn(Field& field)
+    {
+        switch (field.GetType())
+        {
+            case DatabaseFieldTypes::Float:
+            case DatabaseFieldTypes::Double:
+                return std::bit_cast<uint32>(field.Get<float>());
+            default:
+                return static_cast<uint32>(field.Get<int32>());
+        }
+    }
+
+    static bool HandleSeat(ChatHandler* handler, uint32 seatId, float x, float y, float z, Optional<int32> attachment)
+    {
+        constexpr uint16 PatchVehicleSeat = 0x097B;
+        constexpr uint32 SeatColumns = 58;
+        constexpr uint32 FirstOffsetColumn = 3;
+        VehicleSeatEntry const* seat = sVehicleSeatStore.LookupEntry(seatId);
+        QueryResult row = WorldDatabase.Query("SELECT * FROM `vehicleseat_dbc` WHERE `ID` = {}", seatId);
+        if (!seat || !row || row->GetFieldCount() != SeatColumns)
+        {
+            handler->PSendSysMessage("Vehicle seat {} is not in vehicleseat_dbc.", seatId);
+            return true;
+        }
+        VehicleSeatEntry* editable = const_cast<VehicleSeatEntry*>(seat);
+        editable->m_attachmentOffsetX = x;
+        editable->m_attachmentOffsetY = y;
+        editable->m_attachmentOffsetZ = z;
+        if (attachment)
+            editable->m_attachmentID = *attachment;
+        WorldDatabase.DirectExecute("UPDATE `vehicleseat_dbc` SET `AttachmentID` = {}, `AttachmentOffsetX` = {}, "
+            "`AttachmentOffsetY` = {}, `AttachmentOffsetZ` = {} WHERE `ID` = {}", seat->m_attachmentID, x, y, z, seatId);
+        std::array<float, 3> const offset = { x, y, z };
+        Field* fields = row->Fetch();
+        WorldPacket packet(PatchVehicleSeat, SeatColumns * sizeof(uint32));
+        constexpr uint32 AttachmentColumn = 2;
+        for (uint32 column = 0; column < SeatColumns; ++column)
+            packet << (column >= FirstOffsetColumn && column < FirstOffsetColumn + offset.size() ?
+                std::bit_cast<uint32>(offset[column - FirstOffsetColumn]) : column == AttachmentColumn ?
+                uint32(seat->m_attachmentID) : SeatColumn(fields[column]));
+        Player* player = handler->GetSession()->GetPlayer();
+        player->SendMessageToSet(&packet, true);
+        Player* body = BodyOfStandIn(player);
+        if (!body)
+            body = player;
+        DismissTwin(body);
+        RefreshTwin(body);
+        handler->PSendSysMessage("Seat {} now sits at {} {} {} from its attachment point {}.", seatId, x, y, z,
+            seat->m_attachmentID);
+        return true;
     }
 
     static bool RefuseWithoutTwin(ChatHandler* handler)
@@ -6445,6 +6783,26 @@ public:
     }
 };
 
+std::string CharacterSelectGear(std::array<uint32, WardrobeSlots> const& items)
+{
+    std::string gear;
+    for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
+        if (ItemTemplate const* item = sObjectMgr->GetItemTemplate(items[slot]))
+            gear += Acore::StringFormat("{}[{},{},{}]", gear.empty() ? "" : ",", uint32(Slots[slot].Slot),
+                item->DisplayInfoID, item->InventoryType);
+    return gear;
+}
+
+std::array<uint32, WardrobeSlots> GearOfEquipmentCache(std::string_view cache)
+{
+    std::vector<std::string_view> const tokens = Acore::Tokenize(cache, ' ', false);
+    std::array<uint32, WardrobeSlots> items = {};
+    for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
+        if (std::size_t const index = std::size_t(Slots[slot].Slot) * 2; index < tokens.size())
+            items[slot] = Acore::StringTo<uint32>(tokens[index]).value_or(0);
+    return items;
+}
+
 void SendTwinGearToCharacterSelect(WorldSession* session)
 {
     constexpr uint16 MiscPlayerDataPayload = 0x77D;
@@ -6452,37 +6810,67 @@ void SendTwinGearToCharacterSelect(WorldSession* session)
     std::string columns;
     for (TwinSlot const& slot : Slots)
         columns += Acore::StringFormat(", `t`.`{}`", slot.Name);
+    std::string partnerColumns;
+    for (TwinSlot const& slot : Slots)
+        partnerColumns += Acore::StringFormat(", `ot`.`{}`", slot.Name);
     session->QueueQueryCallback(CharacterDatabase.AsyncQuery(Acore::StringFormat(
         "SELECT `c`.`name`, `t`.`guid` IS NOT NULL AND (EXISTS (SELECT 1 FROM `character_queststatus_rewarded` AS "
         "`q` WHERE `q`.`guid` = `c`.`guid` AND `q`.`quest` = {}) OR EXISTS (SELECT 1 FROM `mod_subclass_character` "
         "AS `s` WHERE `s`.`guid` = `c`.`guid` AND `s`.`sub_class` <> 0 AND `s`.`sub_spec` <> 0)), `f`.`guid` IS NOT "
-        "NULL, `f`.`face`, `f`.`hair`, `f`.`facial`{} FROM `characters` AS `c` LEFT JOIN `mod_subclass_twin` AS `t` "
-        "ON `t`.`guid` = `c`.`guid` LEFT JOIN `mod_subclass_twin_features` AS `f` ON `f`.`guid` = `c`.`guid` "
-        "WHERE `c`.`account` = {} AND `c`.`race` = {} AND `c`.`deleteInfos_Name` IS NULL", TwinQuest, columns,
-        session->GetAccountId(), TwinRace)).WithCallback(
+        "NULL, `f`.`face`, `f`.`hair`, `f`.`facial`{}, `o`.`guid` IS NOT NULL, IFNULL(`p`.`left_guid` = `c`.`guid`, "
+        "0), IFNULL(`o`.`equipmentCache`, ''), IFNULL(`o`.`face`, 0), IFNULL(`o`.`hairStyle`, 0), "
+        "IFNULL(`o`.`facialStyle`, 0), IFNULL(`ot`.`enabled`, 0){}, `c`.`gender` FROM `characters` AS `c` LEFT JOIN "
+        "`mod_subclass_twin` AS `t` ON `t`.`guid` = `c`.`guid` LEFT JOIN `mod_subclass_twin_features` AS `f` ON "
+        "`f`.`guid` = `c`.`guid` LEFT JOIN `mod_subclass_two_players` AS `p` ON `c`.`guid` IN (`p`.`left_guid`, "
+        "`p`.`right_guid`) LEFT JOIN `characters` AS `o` ON `o`.`guid` = IF(`p`.`left_guid` = `c`.`guid`, "
+        "`p`.`right_guid`, `p`.`left_guid`) AND `o`.`deleteInfos_Name` IS NULL LEFT JOIN `mod_subclass_twin` AS `ot` "
+        "ON `ot`.`guid` = `o`.`guid` WHERE `c`.`account` = {} AND `c`.`race` = {} AND `c`.`deleteInfos_Name` IS NULL",
+        TwinQuest, columns, partnerColumns, session->GetAccountId(), TwinRace)).WithCallback(
         [session](QueryResult result)
         {
             constexpr std::size_t FirstItem = 6;
+            constexpr std::size_t Partner = FirstItem + WardrobeSlots;
+            constexpr std::size_t FirstPartnerItem = Partner + 7;
+            constexpr std::size_t Gender = FirstPartnerItem + WardrobeSlots;
             std::string payload = "{";
+            auto const add = [&payload](std::string const& key, std::string const& value)
+            {
+                payload += Acore::StringFormat("{}\"{}\":[{}]", payload.size() > 1 ? "," : "", key, value);
+            };
             if (result)
                 do
                 {
                     Field* fields = result->Fetch();
                     std::string const name = fields[0].Get<std::string>();
+                    if (fields[Partner].Get<bool>())
+                    {
+                        bool const left = fields[Partner + 1].Get<bool>();
+                        std::array<uint32, WardrobeSlots> partnerOutfit = {};
+                        for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
+                            partnerOutfit[slot] = fields[FirstPartnerItem + slot].Get<uint32>();
+                        if (!left)
+                            add(name, CharacterSelectGear(GearOfEquipmentCache(fields[Partner + 2].Get<std::string>())));
+                        else if (fields[Partner + 6].Get<bool>())
+                            add(name, CharacterSelectGear(partnerOutfit));
+                        add(name + "#look", Acore::StringFormat("{},{},{}", uint32(fields[Partner + 3].Get<uint8>()),
+                            uint32(fields[Partner + 4].Get<uint8>()), uint32(fields[Partner + 5].Get<uint8>())));
+                        continue;
+                    }
+                    if (Subclass::IsTwoPlayersBody(TwinRace, fields[Gender].Get<uint8>()))
+                    {
+                        add(name + "#alone", "");
+                        continue;
+                    }
                     if (fields[1].Get<bool>())
                     {
-                        std::string items;
+                        std::array<uint32, WardrobeSlots> items = {};
                         for (std::size_t slot = 0; slot < WardrobeSlots; ++slot)
-                            if (ItemTemplate const* item =
-                                    sObjectMgr->GetItemTemplate(fields[FirstItem + slot].Get<uint32>()))
-                                items += Acore::StringFormat("{}[{},{},{}]", items.empty() ? "" : ",",
-                                    uint32(Slots[slot].Slot), item->DisplayInfoID, item->InventoryType);
-                        payload += Acore::StringFormat("{}\"{}\":[{}]", payload.size() > 1 ? "," : "", name, items);
+                            items[slot] = fields[FirstItem + slot].Get<uint32>();
+                        add(name, CharacterSelectGear(items));
                     }
                     if (fields[2].Get<bool>())
-                        payload += Acore::StringFormat("{}\"{}#look\":[{},{},{}]", payload.size() > 1 ? "," : "",
-                            name, uint32(fields[3].Get<uint8>()), uint32(fields[4].Get<uint8>()),
-                            uint32(fields[5].Get<uint8>()));
+                        add(name + "#look", Acore::StringFormat("{},{},{}", uint32(fields[3].Get<uint8>()),
+                            uint32(fields[4].Get<uint8>()), uint32(fields[5].Get<uint8>())));
                 } while (result->NextRow());
             payload += "}";
             WorldPacket packet(MiscPlayerDataPayload, 4 + payload.size() + 1);
