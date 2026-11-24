@@ -24,8 +24,8 @@ New since the af6f850d02 snapshot (2026-11-23):
   new-spell stream; build the worldserver from the branch.
 - `.subclass twin info` also reports the Two-Players carry state and writes it to the server log.
 - New SQL: world `rev_20261123_02` to `rev_20261123_05`, characters `rev_20261123_00`.
-- Known: a Two-Players Twin who switches to his own Kul Tiran look may not carry his brother piggyback until he logs
-  in again (under investigation).
+- Client: the spellbook ignores a second learn of a spell it already lists. Two-Players lending could send one and
+  show a spell twice (Boon of the Bear and Boon of the Turtle on a Wildwalker subclass).
 - Known: the Kul Tiran male's hanging set pieces (a knife and a medallion on one leather set) float on any Kul Tiran
   wearing that set; it is the set together with the Kul Tiran model, not the Twins.
 
