@@ -286,6 +286,13 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
         return;
     }
 
+    // CoA: a second learn of a spell the book already lists (Two-Players lending can send one) adds no second entry.
+    for (uint32_t i = 0; i < s_numSpells; i++) {
+        if (s_spellList[i] == spellId) {
+            return;
+        }
+    }
+
     SpellRec spell;
 
     if (!g_spellDB.GetRecord(spellId, &spell)) {
