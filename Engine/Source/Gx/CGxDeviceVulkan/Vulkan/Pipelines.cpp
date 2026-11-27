@@ -1,8 +1,12 @@
 // The graphics pipelines a draw binds: the module's life and the record of one draw.
 #include "Engine/Source/Gx/CGxDeviceVulkan/Vulkan/Pipelines/Internal.hpp"
 
+#include <windows.h>
+#include <cstdio>
 #include <cstring>
 #include <new>
+#include <string>
+#include <vector>
 
 namespace gxvk::vk::pipelines::detail
 {
@@ -10,6 +14,69 @@ namespace gxvk::vk::pipelines::detail
 }
 
 using namespace gxvk::vk::pipelines::detail;
+
+namespace
+{
+    // CoA perf: the pipeline cache survives restarts, so a pipeline compiled once (the hitch the first time an effect
+    // or a unit type is seen) is not compiled again next session. The driver checks the data too; ours checks the
+    // header first so a file from another GPU or driver is simply ignored.
+    // <exe dir>\Cache\<name>, like Logs\vulkan.log: the working folder depends on how the game was started
+    std::string CachePath(const char* name)
+    {
+        char path[MAX_PATH + 64] = {};
+        const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
+        char* slash = length && length < MAX_PATH ? std::strrchr(path, 0x5C) : nullptr;   // backslash
+        if (!slash) return std::string("Cache\\") + name;
+        std::strcpy(slash + 1, "Cache");
+        CreateDirectoryA(path, nullptr);
+        return std::string(path) + "\\" + name;
+    }
+    uint32_t s_cacheSavedAt = 0;   // pipelines built when the cache was last written
+    uint32_t s_vendor = 0, s_deviceId = 0;
+    uint8_t  s_uuid[VK_UUID_SIZE] = {};
+
+    std::vector<uint8_t> LoadCacheFile()
+    {
+        std::vector<uint8_t> data;
+        FILE* f = std::fopen(CachePath("VulkanPipelines.bin").c_str(), "rb");
+        if (!f) return data;
+        std::fseek(f, 0, SEEK_END);
+        const long size = std::ftell(f);
+        std::fseek(f, 0, SEEK_SET);
+        if (size > 32 && size < 512L * 1024 * 1024)
+        {
+            data.resize(static_cast<size_t>(size));
+            if (std::fread(data.data(), 1, data.size(), f) != data.size()) data.clear();
+        }
+        std::fclose(f);
+        // VkPipelineCacheHeaderVersionOne: length, version 1, vendor, device, uuid
+        uint32_t head[4] = {};
+        if (data.size() >= 16 + VK_UUID_SIZE) std::memcpy(head, data.data(), 16);
+        if (data.empty() || head[0] < 16 + VK_UUID_SIZE || head[1] != VK_PIPELINE_CACHE_HEADER_VERSION_ONE || head[2] != s_vendor
+            || head[3] != s_deviceId || std::memcmp(data.data() + 16, s_uuid, VK_UUID_SIZE) != 0)
+            data.clear();
+        return data;
+    }
+
+    void SaveCacheFile()
+    {
+        if (!s.dapi || s.cache == VK_NULL_HANDLE || !s.dapi->GetPipelineCacheData) return;
+        size_t size = 0;
+        if (s.dapi->GetPipelineCacheData(s.device, s.cache, &size, nullptr) != VK_SUCCESS || size == 0) return;
+        std::vector<uint8_t> data(size);
+        if (s.dapi->GetPipelineCacheData(s.device, s.cache, &size, data.data()) != VK_SUCCESS) return;
+        // written beside, then swapped in, so a crash mid-write never leaves a torn file
+        const std::string file = CachePath("VulkanPipelines.bin");
+        const std::string temp = CachePath("VulkanPipelines.tmp");
+        FILE* f = std::fopen(temp.c_str(), "wb");
+        if (!f) return;
+        const bool ok = std::fwrite(data.data(), 1, size, f) == size;
+        std::fclose(f);
+        if (ok) MoveFileExA(temp.c_str(), file.c_str(), MOVEFILE_REPLACE_EXISTING);
+        else std::remove(temp.c_str());
+        s_cacheSavedAt = s.stats.pipelines;
+    }
+}
 
 namespace
 {
@@ -104,9 +171,24 @@ namespace gxvk::vk::pipelines
             return false;
         }
 
+        s_vendor   = props.vendorID;
+        s_deviceId = props.deviceID;
+        std::memcpy(s_uuid, props.pipelineCacheUUID, VK_UUID_SIZE);
+        const std::vector<uint8_t> saved = LoadCacheFile();
         VkPipelineCacheCreateInfo cache = {};
         cache.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        if (d.CreatePipelineCache(s.device, &cache, nullptr, &s.cache) != VK_SUCCESS) s.cache = VK_NULL_HANDLE;
+        cache.initialDataSize = saved.size();
+        cache.pInitialData    = saved.empty() ? nullptr : saved.data();
+        if (d.CreatePipelineCache(s.device, &cache, nullptr, &s.cache) != VK_SUCCESS)
+        {
+            // a rejected file: start empty
+            cache.initialDataSize = 0;
+            cache.pInitialData    = nullptr;
+            if (d.CreatePipelineCache(s.device, &cache, nullptr, &s.cache) != VK_SUCCESS) s.cache = VK_NULL_HANDLE;
+        }
+        else if (!saved.empty())
+            Write(Info, "vulkan: pipelines: cache loaded from %s (%u KiB)", CachePath("VulkanPipelines.bin").c_str(), static_cast<uint32_t>(saved.size() / 1024));
+        s_cacheSavedAt = 0;
 
         if (!memory::CreateBuffer(kConstantBytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, memory::Where::Stream, s.constant) || !s.constant.block.mapped)
         {
@@ -134,7 +216,11 @@ namespace gxvk::vk::pipelines
         if (s.regsPool != VK_NULL_HANDLE) d.DestroyDescriptorPool(s.device, s.regsPool, nullptr);
         DestroyLayouts();
         memory::DestroyBuffer(s.constant);
-        if (s.cache != VK_NULL_HANDLE) d.DestroyPipelineCache(s.device, s.cache, nullptr);
+        if (s.cache != VK_NULL_HANDLE)
+        {
+            SaveCacheFile();
+            d.DestroyPipelineCache(s.device, s.cache, nullptr);
+        }
         DestroyPrograms();
         delete[] s.entries;
         s = State();
@@ -210,6 +296,7 @@ namespace gxvk::vk::pipelines
         k.layoutIndex    = layoutIndex;
 
         const Entry* entry = Lookup(k);
+        if (s.stats.pipelines >= s_cacheSavedAt + 256) SaveCacheFile();   // now and then, so a crash keeps most of it
         if (!entry || entry->pipeline == VK_NULL_HANDLE)
         {
             ++s.stats.skipped;

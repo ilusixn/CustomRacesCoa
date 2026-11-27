@@ -1,6 +1,7 @@
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/Log.h"
 #include <map>
+#include <unordered_map>
 
 namespace {
     // Tables whose row parser collapses localized strings (the reconstruction's tools/dbc_layouts.py).
@@ -344,6 +345,15 @@ void CoA::Dbc::Table::Unload() {
 
 CoA::Dbc::Table& CoA::Dbc::Get(const char* path) {
     static std::map<std::string, CoA::Dbc::Table*> tables;
+    // CoA perf: most callers pass a string literal every frame; skip the string build + map walk for a pointer seen
+    // before. The text is compared too, so a reused buffer with other contents still takes the slow path.
+    static std::unordered_map<const char*, std::pair<std::string, CoA::Dbc::Table*>> byPointer;
+    auto hit = byPointer.find(path);
+
+    if (hit != byPointer.end() && hit->second.first == path) {
+        return *hit->second.second;
+    }
+
     std::string key(path);
 
     for (char& c : key) {
@@ -358,5 +368,10 @@ CoA::Dbc::Table& CoA::Dbc::Get(const char* path) {
         table = new CoA::Dbc::Table(path);
     }
 
+    if (byPointer.size() > 512) {
+        byPointer.clear();   // dynamic paths (c_str of temporaries) would otherwise grow it forever
+    }
+
+    byPointer[path] = { std::string(path), table };
     return *table;
 }

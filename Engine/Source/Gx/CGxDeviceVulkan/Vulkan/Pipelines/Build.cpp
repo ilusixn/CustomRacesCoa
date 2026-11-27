@@ -480,14 +480,48 @@ namespace
     }
 }
 
+namespace
+{
+    // CoA perf: an open-addressed index over s.entries (entry index + 1, 0 empty), so a draw finds its pipeline
+    // with one hash instead of comparing its key against every live pipeline. Twice kMaxPipelines keeps probes short.
+    constexpr uint32_t kIndexSlots = 8192;
+    static_assert(kIndexSlots >= 2 * gxvk::vk::pipelines::detail::kMaxPipelines && (kIndexSlots & (kIndexSlots - 1)) == 0, "index size");
+    uint32_t s_index[kIndexSlots];
+    uint32_t s_indexedCount = 0;   // entries the index knows; anything else (a reset elsewhere) rebuilds it
+
+    uint32_t KeySlot(const gxvk::vk::pipelines::detail::Key& k)
+    {
+        const uint8_t* b = reinterpret_cast<const uint8_t*>(&k);
+        uint64_t h = 1469598103934665603ull;
+        for (size_t i = 0; i < sizeof k; ++i) h = (h ^ b[i]) * 1099511628211ull;
+        return static_cast<uint32_t>(h ^ (h >> 32)) & (kIndexSlots - 1);
+    }
+}
+
 namespace gxvk::vk::pipelines::detail
 {
     /// The entry of a key: found, or built and remembered -- a refused key too, with a null
     /// pipeline, so its draws are skipped without a second attempt. Null when the table is full.
     const Entry* Lookup(const Key& k)
     {
-        for (uint32_t i = 0; i < s.entryCount; ++i)
-            if (std::memcmp(&s.entries[i].key, &k, sizeof k) == 0) return &s.entries[i];
+        if (s_indexedCount != s.entryCount)
+        {
+            // the table was reset or filled outside Lookup: index it again (rare)
+            std::memset(s_index, 0, sizeof s_index);
+            for (uint32_t e = 0; e < s.entryCount; ++e)
+            {
+                uint32_t at = KeySlot(s.entries[e].key);
+                while (s_index[at]) at = (at + 1) & (kIndexSlots - 1);
+                s_index[at] = e + 1;
+            }
+            s_indexedCount = s.entryCount;
+        }
+        uint32_t slot = KeySlot(k);
+        for (; s_index[slot]; slot = (slot + 1) & (kIndexSlots - 1))
+        {
+            const Entry& e = s.entries[s_index[slot] - 1];
+            if (std::memcmp(&e.key, &k, sizeof k) == 0) return &e;
+        }
         if (s.entryCount == kMaxPipelines)
         {
             if (!s.warnedFull)
@@ -499,7 +533,9 @@ namespace gxvk::vk::pipelines::detail
         }
         VkPipeline pipeline = VK_NULL_HANDLE;
         Build(k, pipeline);
+        s_index[slot] = s.entryCount + 1;
         Entry& e = s.entries[s.entryCount++];
+        s_indexedCount = s.entryCount;
         // Bytewise, padding included: the lookup above compares the whole struct.
         std::memcpy(&e.key, &k, sizeof k);
         e.pipeline = pipeline;

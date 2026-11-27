@@ -59,7 +59,7 @@ namespace gxvk::vk::pipelines::detail
 
     /// Pipelines kept at once: a session's distinct combinations are some hundreds with the
     /// translated families; a full table refuses the draw and says so once.
-    constexpr uint32_t kMaxPipelines = 2048;
+    constexpr uint32_t kMaxPipelines = 4096;   // CoA: was 2048; big raids with many unit types must not run out (a full table skips draws)
 
     /// The push constants of Shaders/Push.glsl: a mat4, a vec4 and three vec4 of texture transform,
     /// 128 bytes (Vulkan's guaranteed maxPushConstantsSize). Every pipeline layout carries the
@@ -76,7 +76,7 @@ namespace gxvk::vk::pipelines::detail
     constexpr uint32_t kMaxLayouts = 32;
 
     /// Set-0 descriptor sets one frame may allocate, and the combined image samplers behind them.
-    constexpr uint32_t kSetsPerSlot        = 4096;
+    constexpr uint32_t kSetsPerSlot        = 8192;   // CoA: was 4096, same reason
     // Every set may fill all its slots: the shadow-receiving map object shaders bind stages 4..7 too,
     // and an average of 4 ran the pool dry at the higher shadow qualities.
     constexpr uint32_t kDescriptorsPerSlot = kTextureStages * kSetsPerSlot;
@@ -89,7 +89,7 @@ namespace gxvk::vk::pipelines::detail
     /// descriptor over it; a frame that fills a chunk moves to the next.
     constexpr uint32_t     kRegsChunkBytes = 4u * 1024u * 1024u;
     // Made on demand; the higher shadow qualities draw each model again per shadow band and filled 16.
-    constexpr uint32_t     kMaxRegsChunks  = 64;
+    constexpr uint32_t     kMaxRegsChunks  = 128;   // CoA: was 64; chunks are made on demand
 
     /// One uniform slice of the translated interface: p[16], misc, v[rows] (Shaders: the Regs
     /// block). The set-1 descriptor's range is the larger class; a 64-row module reads the first
