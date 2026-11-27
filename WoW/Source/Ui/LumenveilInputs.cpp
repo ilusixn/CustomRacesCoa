@@ -7,6 +7,7 @@
 #include "Engine/Source/Lumenveil/Core/log.h"
 
 #include <algorithm>
+#include <excpt.h>
 #include <cmath>
 #include <cstring>
 
@@ -385,12 +386,33 @@ void engine::WriteStockFog(const StockFog& fog) {
     DayNight::g_dnInfo.m_fogInterior.m_end = fog.end[1];
 }
 
+namespace {
+    // Custom maps (Fading Island) hold WMO collision data that crashes the stock BSP query: on the first access violation the
+    // probe drops WMOs for the rest of the session and keeps terrain only.
+    int ProbeIntersect(const C3Vector& start, const C3Vector& end, C3Vector* hit, float* fraction, uint32_t flags, bool* faulted) {
+        __try {
+            return World::Intersect(start, end, hit, fraction, flags, nullptr);
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            *faulted = true;
+            return 0;
+        }
+    }
+    bool s_probeWmoBroken = false;
+}
+
 bool engine::ProbeGroundHeight(void*, float x, float y, float top, float bottom, float& height) {
     const C3Vector start(x, y, top);
     const C3Vector end(x, y, bottom);
     C3Vector hit(x, y, bottom);
     float fraction = 1.0f;
-    const bool found = World::Intersect(start, end, &hit, &fraction, kGroundProbeFlags, nullptr) != 0;
+    bool faulted = false;
+    const uint32_t flags = s_probeWmoBroken ? 0x100u : kGroundProbeFlags;
+    const bool found = ProbeIntersect(start, end, &hit, &fraction, flags, &faulted) != 0;
+    if (faulted) {
+        s_probeWmoBroken = true;
+        height = bottom;
+        return false;
+    }
     height = hit.z;
     return found && fraction >= 0.0f && fraction <= 1.0f;
 }

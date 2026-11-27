@@ -1,0 +1,57 @@
+#include "CoA/Source/Modules/HeldGripClient.h"
+#include "CoA/Source/Modules/HeldGrip.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Model2/M2Shared.h"
+#include <unordered_set>
+
+namespace CoA::HeldGripClient {
+    namespace {
+        const std::unordered_set<int32_t>& HeldDisplays() {
+            static std::unordered_set<int32_t> s_displays;
+            static int32_t s_scanned = -1;
+
+            if (s_scanned != g_itemDB.m_numRecords) {
+                s_displays.clear();
+
+                for (int32_t i = 0; i < g_itemDB.m_numRecords; ++i) {
+                    const ItemRec& item = g_itemDB.m_records[i];
+
+                    if (HeldGrip::HeldLike(item.m_classID, item.m_subclassID, item.m_inventoryType)) {
+                        s_displays.insert(item.m_displayInfoID);
+                    }
+                }
+
+                s_scanned = g_itemDB.m_numRecords;
+            }
+
+            return s_displays;
+        }
+    }
+
+    bool HeldDisplay(int32_t displayId) {
+        return displayId > 0 && HeldDisplays().count(displayId) != 0;
+    }
+
+    bool HasHeldGrip(CM2Model* model) {
+        if (!model || !model->m_shared) {
+            return false;
+        }
+
+        // Only the Two-Players ogre carries the held grip. Attachment 47 is the left foot on every other model, so a book or orb
+        // checked by attachment alone hung from the foot.
+        if (!HeldGrip::HeldGripModel(model->m_shared->m_fileName)) {
+            return false;
+        }
+
+        return !model->IsLoaded(0, 0) || model->HasAttachment(HeldGrip::kLink) != 0;
+    }
+
+    GEOCOMPONENTLINKS OffHandLink(CM2Model* model, int32_t displayId) {
+        if (HeldDisplay(displayId) && HasHeldGrip(model)) {
+            return static_cast<GEOCOMPONENTLINKS>(HeldGrip::kLink);
+        }
+
+        return ATTACH_HANDLEFT;
+    }
+}

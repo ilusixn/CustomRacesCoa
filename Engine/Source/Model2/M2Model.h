@@ -371,6 +371,7 @@ class CM2Model {
     void UpdateLoaded();
     void WaitForLoad(const char* reason);
     void AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2);
+    void AnimateMTUnsafe(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2);
     void AnimateMTSimple(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2);
     void AnimateParticleST(float deltaTime, uint32_t index);
     void AnimateST();

@@ -62,6 +62,10 @@ void PlayerNameInitialize();
 void PlayerNameShutdown();
 void PlayerNameUpdateEarly();
 void PlayerNameUpdateLate();
+// Lumenveil: its fog/shading runs over the finished world image, which also darkens names drawn from the model
+// callback. While deferring, the callback only records; PlayerNameRenderDeferred draws them after the pack.
+void PlayerNameDeferRendering(bool defer);
+void PlayerNameRenderDeferred();
 void PlayerNameUpdateWorldText();
 
 bool ObjectNameShowCallback(CVar* var, const char* oldValue, const char* value, void* arg);

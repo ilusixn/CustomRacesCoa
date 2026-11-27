@@ -46,6 +46,7 @@ unsigned RaceOf(unsigned race)
         case 122: return 89; // Lich (AllRaces v12)
         case 123: return 90; // Mogu (AllRaces v12)
         case 125: return 91; // LostOne (AllRaces v12)
+        case 94: return 92;  // Snagtooth (Alliance; id 94 wraps to Murloc 30): the retail virmen
         case 104: return 65; // Slime Giant (Horde; id 104 wraps to Troll)
         case 101: return 61; // Venthyr (Horde; id 101 so the 32-bit race masks wrap to Undead)
         case 107: return 60; // Kyrian (Alliance; id 107 so the 32-bit race masks wrap to Draenei)
@@ -858,6 +859,25 @@ namespace
         if (race == 60) // network bytes are the wire layout; the renderer works on logical fields
             values = CreatureAppearance::DecodeKyrian(CC<unsigned>(character, 0x1C), values);
         KvLog("capture: race %u component %p bytes %u,%u,%u,%u,%u extra %llx valid %d", race, character, unsigned(values[0]), unsigned(values[1]), unsigned(values[2]), unsigned(values[3]), unsigned(values[4]), static_cast<unsigned long long>(extra), ValidateExtended(race, CC<unsigned>(character, 0x1C), values) ? 1 : 0);
+        if (!ValidateExtended(race, CC<unsigned>(character, 0x1C), values)
+            && CreatureAppearance::Uses(race) && race != 60 && !CreatureAppearance::IsPack(race))
+        {
+            if (race == 69 || race == 70) // Drakonid ranges as in CreatureAppearance::Validate
+            {
+                static constexpr unsigned limits[5] = {17, 4, 6, 76, 1};
+                for (unsigned i = 0; i < 5; ++i)
+                    values[i] = static_cast<std::uint8_t>(values[i] % limits[i]);
+            }
+            else
+            // CoA: bots arrive with random stock hair/face bytes (Saberon allows 4,1,1,3,1 choices); a rejected capture left
+            // them with no appearance (white). Fold each byte into the race's range instead.
+            {
+                auto const& options = CreatureAppearance::Options(race, CC<unsigned>(character, 0x1C));
+                for (unsigned i = 0; i < 5; ++i)
+                    if (options[i].count)
+                        values[i] = static_cast<std::uint8_t>(values[i] % options[i].count);
+            }
+        }
         if (!ValidateExtended(race, CC<unsigned>(character, 0x1C), values))
             return;
         earthenNetworkAppearance[character] = values;
@@ -1368,6 +1388,7 @@ namespace
         static auto const lich = ReadSelections(L"EsteriaLich.bin");
         static auto const mogu = ReadSelections(L"EsteriaMogu.bin");
         static auto const lostone = ReadSelections(L"EsteriaLostOne.bin");
+        static auto const snagtooth = ReadSelections(L"EsteriaSnagtooth.bin");
         switch (race)
         {
             case 54: return naga;
@@ -1402,6 +1423,7 @@ namespace
             case 89: return lich;
             case 90: return mogu;
             case 91: return lostone;
+            case 92: return snagtooth;
             case 66: return tarasek;
             case 69:
             case 70: return drakonid;
@@ -1446,6 +1468,7 @@ namespace
             case 89: return L"EsteriaLichTextures.bin";
             case 90: return L"EsteriaMoguTextures.bin";
             case 91: return L"EsteriaLostOneTextures.bin";
+            case 92: return L"EsteriaSnagtoothTextures.bin";
             case 66: return L"EsteriaTarasekTextures.bin";
             case 69:
             case 70: return L"EsteriaDrakonidTextures.bin";
@@ -1490,6 +1513,7 @@ namespace
             case 89: return "Lich";
             case 90: return "Mogu";
             case 91: return "LostOne";
+            case 92: return "Snagtooth";
             default: return "Haranir";
         }
     }

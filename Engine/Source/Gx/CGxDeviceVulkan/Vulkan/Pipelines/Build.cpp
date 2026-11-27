@@ -3,6 +3,7 @@
 #include "Engine/Source/Gx/CGxDeviceVulkan/Vulkan/Pipelines/Internal.hpp"
 
 #include <cstring>
+#include "Engine/Source/Model2/EsteriaHooks.h"
 
 namespace
 {
@@ -417,7 +418,8 @@ namespace
         VkPipelineRasterizationStateCreateInfo raster = {};
         raster.sType           = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         raster.polygonMode     = (k.wireframe && s.wireframe) ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
-        raster.cullMode        = cull;
+        static const bool cullNone = EsteriaOff("cullnone"); // CoA debugging switch (CoA64_switches.txt)
+        raster.cullMode        = cullNone ? VK_CULL_MODE_NONE : cull;
         raster.frontFace       = VK_FRONT_FACE_CLOCKWISE;
         raster.depthBiasEnable = VK_TRUE;
         raster.lineWidth       = 1.0f;

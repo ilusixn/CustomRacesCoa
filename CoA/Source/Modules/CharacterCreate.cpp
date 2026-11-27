@@ -273,10 +273,10 @@ namespace {
         uint32_t cls = static_cast<uint32_t>(ToInt(CheckNumber(L, 1))) & 0xFF;
         bool ok = false;
 
-        if (cls <= 0x20) {
+        if (cls <= 0x21) {
             if (cls == 10 && !CoAGate() && !WCRGate()) {
                 ok = true;
-            } else if (cls >= 12 && cls <= 32) {
+            } else if (cls >= 12 && cls <= 33) {
                 ok = CoAAllowed();
             } else if (cls >= 1 && cls <= 11 && cls != 6 && cls != 10) {
                 ok = WCRAllowed();

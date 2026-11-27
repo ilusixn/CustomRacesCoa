@@ -1199,7 +1199,11 @@ void FitLowerAttachments(CCharacterComponent* character) {
             }
             continue;
         }
-        if (retailStyle) continue;   // the model's own socket already holds it correctly
+        // A valid own socket below hip height is where the 32-bit client hangs the piece too (Gnome: 55/59 carry an offset, and
+        // re-seating them on the bare foot bone put the boots behind or beside the feet). Only missing or misplaced sockets move.
+        const float bodyHeight = scale * 1.9f;
+        const bool ownPlausible = ownValid && data->m_attachments[ownSocket].m_position.z < 0.6f * bodyHeight;
+        if (retailStyle || ownPlausible) continue;   // the model's own socket already holds it correctly
         static const uint32_t bodySocket[7] = {48, 7, 9, 0, 47, 8, 10};   // index = id - 55: right foot / lower leg / upper leg, 58 unused, left ones
         const uint32_t bodyId = bodySocket[own - 55];
         const uint16_t socket = bodyId && bodyId < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[bodyId] : 0xffff;
@@ -1239,6 +1243,9 @@ void FitLowerAttachments(CCharacterComponent* character) {
     }
 }
 
+// Snagtooth (race 94) helmets are worn x1.5 by the model itself: its helm socket hangs on a bone with a fixed 1.5 scale
+// (snagtooth/sockets.py). A client refit here was lost whenever the helmet re-attached and never ran on the character screen.
+
 void RetailRaceKyrianShoulders(CCharacterComponent* character) {
     FitKyrianShoulders(character);
     FitFacelessShoulders(character);
@@ -1276,9 +1283,28 @@ void RetailRaceDuplicateCollections(CM2Model* source, CM2Model* target) {
     }
 }
 
+// A custom race above 31 has no bit in HelmetGeosetVisData: it hides like the classic race it is a variant of, i.e. the
+// same helmet prefix and that race's name in its file string (Undead Gnome "Gn"/GnomeUndead -> Gnome). Placeholder
+// prefixes (Qiraji "Gn") do not match, so creature bodies keep their head geosets.
+static uint32_t PrefixHelmetRace(uint32_t race) {
+    const ChrRacesRec* rec = g_chrRacesDB.GetRecord(race);
+    if (!rec || !rec->m_clientPrefix || !rec->m_clientFileString) return 0;
+    std::string file = rec->m_clientFileString;
+    for (char& c : file) c = char(tolower(uint8_t(c)));
+    for (uint32_t classic = 1; classic <= 11; classic++) {
+        const ChrRacesRec* other = g_chrRacesDB.GetRecord(classic);
+        if (!other || !other->m_clientFileString || _stricmp(other->m_clientPrefix, rec->m_clientPrefix) != 0) continue;
+        std::string name = other->m_clientFileString;
+        for (char& c : name) c = char(tolower(uint8_t(c)));
+        if (file.find(name) != std::string::npos) return classic;
+    }
+    return 0;
+}
+
 uint32_t RetailRaceHelmetMask(uint32_t race) {
     const uint32_t retail = RetailRaceId(race);
-    const uint32_t donor = retail ? Retail::HelmetMaskRace(retail) : race;
+    uint32_t donor = retail ? Retail::HelmetMaskRace(retail) : race;
+    if (!retail && donor >= 32) donor = PrefixHelmetRace(race);
     return donor && donor < 32 ? uint32_t{1} << donor : 0;
 }
 

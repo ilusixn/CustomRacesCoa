@@ -8,6 +8,8 @@
 #include "Engine/Source/ConsoleBase/Types.h"
 
 #include <cmath>
+#include <filesystem>
+#include <system_error>
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
@@ -95,6 +97,38 @@ namespace {
         return true;
     }
 
+    std::string PresetPath() {
+        return std::filesystem::path(GlobalConfig().Path()).replace_filename("CoAVolFog.preset.ini").string();
+    }
+
+    // "Save my settings": the changed settings go to the ini, which is then kept as the player's preset.
+    bool PresetSaveRequested(CVar*, const char*, const char* value, void*) {
+        if (!s_syncing && value && value[0] != '\0' && value[0] != '0') {
+            GlobalConfig().Save();
+            std::error_code ec;
+            std::filesystem::copy_file(GlobalConfig().Path(), PresetPath(), std::filesystem::copy_options::overwrite_existing, ec);
+            VF_LOG_INFO("settings: preset saved to %s%s", PresetPath().c_str(), ec ? " (failed)" : "");
+        }
+        return true;
+    }
+
+    // "Load my settings": the preset replaces the ini, the config reads it again, the cvars follow.
+    bool PresetLoadRequested(CVar*, const char*, const char* value, void*) {
+        if (!s_syncing && value && value[0] != '\0' && value[0] != '0') {
+            std::error_code ec;
+            if (std::filesystem::exists(PresetPath(), ec)) {
+                std::filesystem::copy_file(PresetPath(), GlobalConfig().Path(), std::filesystem::copy_options::overwrite_existing, ec);
+                std::filesystem::last_write_time(GlobalConfig().Path(), std::filesystem::file_time_type::clock::now(), ec);
+                GlobalConfig().ReloadIfChanged();
+                SyncFromConfig();
+                VF_LOG_INFO("settings: preset loaded from %s", PresetPath().c_str());
+            } else {
+                VF_LOG_INFO("settings: no preset saved yet (%s)", PresetPath().c_str());
+            }
+        }
+        return true;
+    }
+
     // "FarFogStretch" -> "Far fog stretch".
     std::string AutoLabel(const char* key) {
         std::string out;
@@ -147,8 +181,14 @@ namespace {
     }
 
     // One control of a page.
+    std::string s_pageDefaults;   // {cvar, default} pairs of the controls added to the page being built
+
     void AddControl(std::string& lua, const char* page, int index) {
         const LiveSettingInfo& info = LiveSettingAt(index);
+        {
+            const Config defaults{};
+            s_pageDefaults += "{" + LongString(CVarName(info.key)) + "," + LongString(LiveSettingText(index, LiveSettingValue(defaults, index))) + "},";
+        }
         const Meta* meta = FindMeta(info.key);
         const std::string label = meta ? meta->label : AutoLabel(info.key);
         const std::string help = meta && meta->help[0] ? meta->help : label;
@@ -233,6 +273,8 @@ void LumenveilOptions::RegisterCVars() {
     s_syncing = false;
     // Triggers: not saved, and Lua gives them a new value each time.
     CVar::Register("lumenveilSave", "Lumenveil: write the changed settings to CoAVolFog.ini", 0, "0", SaveRequested, CATEGORY_GRAPHICS, false, nullptr, false);
+    CVar::Register("lumenveilPresetSave", "Lumenveil: keep the current settings as your preset", 0, "0", PresetSaveRequested, CATEGORY_GRAPHICS, false, nullptr, false);
+    CVar::Register("lumenveilPresetLoad", "Lumenveil: load your saved preset", 0, "0", PresetLoadRequested, CATEGORY_GRAPHICS, false, nullptr, false);
     CVar::Register("lumenveilSync", "Lumenveil: read the settings from the running config", 0, "0", SyncRequested, CATEGORY_GRAPHICS, false, nullptr, false);
     SyncFromConfig();
     VF_LOG_INFO("settings: %d Lumenveil settings as cvars (lv<Key>), %d with labels from the settings window", count,
@@ -245,6 +287,7 @@ std::string LumenveilOptions::BuildScript() {
     lua += "local function Page(name, title, subtitle) return WowDecompBuildPage(name, title, subtitle) end\n";
     bool first = true;
     for (const PageSpec& spec : kPages) {
+        s_pageDefaults.clear();
         lua += std::string("do local p = Page(") + LongString(spec.name) + ", " + LongString(spec.title) + ", " + LongString(spec.subtitle) + ")\n";
         if (first) {
             lua += "  WowDecompLumenveilPanel = p\n";
@@ -272,9 +315,10 @@ std::string LumenveilOptions::BuildScript() {
                 AddControl(lua, "p", index);
             }
         }
-        lua += "  p:Done()\nend\n";
+        lua += "  p:ResetButton({" + s_pageDefaults + "})\n  p:Done()\nend\n";
     }
     // The rest: the diagnostics and whatever the settings window does not show.
+    s_pageDefaults.clear();
     lua += "do local p = Page('LumenveilAdvancedPanel', 'Lumenveil Advanced', 'Diagnostics and the settings the Lumenveil window does not show.')\n";
     for (const char* section : kAdvancedSections) {
         bool header = false;
@@ -305,7 +349,7 @@ std::string LumenveilOptions::BuildScript() {
         }
         AddControl(lua, "p", i);
     }
-    lua += "  p:Done()\nend\n";
+    lua += "  p:ResetButton({" + s_pageDefaults + "})\n  p:Done()\nend\n";
     // Okay and Apply keep the changes; the pages read the config again whenever the window opens.
     lua += "VideoOptionsFrame:HookScript('OnShow', function() SetCVar('lumenveilSync', tostring(GetTime())) end)\n";
     lua += "for _, name in ipairs({ 'VideoOptionsFrameOkay', 'VideoOptionsFrameApply' }) do\n";

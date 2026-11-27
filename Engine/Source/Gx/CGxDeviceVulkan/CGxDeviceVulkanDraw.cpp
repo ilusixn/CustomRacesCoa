@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include "Engine/Source/Model2/EsteriaHooks.h"
 #include "Engine/Source/Gx/CGxDeviceVulkan/CGxDeviceVulkan.h"
 #include "Engine/Source/Gx/CGxDeviceVulkan/Vulkan/Frame.hpp"
 #include "Engine/Source/Gx/CGxDeviceVulkan/Vulkan/Effects.hpp"
@@ -219,7 +220,8 @@ void CGxDeviceVulkan::Draw(CGxBatch* batch, int32_t count) {
     const uint32_t alphaOp0 = this->m_appRenderStates[GxRs_AlphaOp0].m_value.m_data.u[0] & 7u;
     const uint32_t colourOp1 = this->m_appRenderStates[GxRs_ColorOp1].m_value.m_data.u[0] & 7u;
     const uint32_t alphaOp1 = this->m_appRenderStates[GxRs_AlphaOp1].m_value.m_data.u[0] & 7u;
-    d.params[0] = alphaRef > 0 ? static_cast<float>(alphaRef) : 0.0f;
+    static const bool noAlpha = EsteriaOff("noalpha"); // CoA debugging switch (CoA64_switches.txt)
+    d.params[0] = alphaRef > 0 && !noAlpha ? static_cast<float>(alphaRef) : 0.0f;
     d.params[1] = static_cast<float>(d.textureMask & 3u);
     d.params[2] = static_cast<float>(colourOp0 | (colourOp1 << 3));
     d.params[3] = static_cast<float>(alphaOp0 | (alphaOp1 << 3));

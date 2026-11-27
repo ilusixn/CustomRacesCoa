@@ -1187,6 +1187,9 @@ float CreatureSoundDataGetFidgetDelayMax(const CreatureSoundDataRec* rec);
 
 int32_t MissileTrajectoryObjectCallback(void* param, uint32_t flags, uint64_t param64, uintptr_t param32);
 
+// CoA: Snagtooth (race 94) Springheel double jump: a small dust cloud at the feet (Unit_C.cpp).
+void SnagtoothJumpPuff(CGUnit_C* unit);
+
 // CoA: AscGlobalsJ.cpp:SetNamePlateCastBarMode (Unit_C.cpp).
 extern bool g_namePlateCastBarAll;
 // CoA: AscGlobalsJ.cpp:Detour7385C0 (Unit_C.cpp).

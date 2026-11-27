@@ -829,7 +829,7 @@ namespace {
 
     bool CoAClass() {   // FUN_100c5f50
         const uint32_t c = PlayerClass();
-        return c >= 0xC && c <= 0x20;
+        return c >= 0xC && c <= 0x21;   // 0x21: Skinshifter
     }
 
     // The summon (first) / dismiss (second) spell a cosmetic pet of tier 1..5 needs.

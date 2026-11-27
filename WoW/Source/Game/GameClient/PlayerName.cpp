@@ -1,5 +1,7 @@
 #include "PlayerName.h"
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include <typeinfo>
+#include <vector>
 #include "Engine/Source/Base/CDataAllocator.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/Status.h"
@@ -37,6 +39,34 @@ uint32_t s_nameMask;
 
 // STATIC: 0x00D380A4
 static uint32_t s_lastRenderFrame;
+
+// Deferred name drawing (see PlayerNameDeferRendering).
+struct NameDrawState {
+    C44Matrix proj;
+    C44Matrix view;
+    float vp[6];
+    CGxTex* color = nullptr;
+    CGxTex* depth = nullptr;
+};
+static bool s_deferNames;
+static std::vector<PLAYERNAMEDESC*> s_deferred;
+static NameDrawState s_nameState;
+
+static void CaptureNameState(NameDrawState& s) {
+    GxXformProjection(s.proj);
+    GxXformView(s.view);
+    GxXformViewport(s.vp[0], s.vp[1], s.vp[2], s.vp[3], s.vp[4], s.vp[5]);
+    g_theGxDevicePtr->DeviceGetRenderTarget(GxBuffers_Color, s.color);
+    g_theGxDevicePtr->DeviceGetRenderTarget(GxBuffers_Depth, s.depth);
+}
+
+static void ApplyNameState(const NameDrawState& s) {
+    GxRenderTargetSet(GxBuffers_Color, s.color, 0);
+    GxRenderTargetSet(GxBuffers_Depth, s.depth, 0);
+    GxXformSetProjection(s.proj);
+    GxXformSetView(s.view);
+    GxXformSetViewport(s.vp[0], s.vp[1], s.vp[2], s.vp[3], s.vp[4], s.vp[5]);
+}
 
 // STATIC: 0x00D380A8
 static CGxStringBatch* s_playerNameBatch;
@@ -144,6 +174,7 @@ void PlayerNameUpdateDrawCallback(PLAYERNAMEDESC* desc) {
     }
 
     desc->m_renderFrame = s_lastRenderFrame;
+    CoA::JoinedNamesClient::RefreshName(object, desc);
     uint32_t raidTarget = GetRaidTargetIndexFromGuid(desc->m_guid);
 
     if (object->ShouldRenderObjectName(s_nameMask) || PLAYERNAMEDESC::ShouldRender(object, raidTarget)) {
@@ -499,8 +530,42 @@ void PLAYERNAMEDESC::RenderIfVisible(CM2Model* model, const CM2Lighting* lightin
     CGObject_C* object = ClntObjMgrObjectPtr(desc->m_guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object && object->m_worldModel->IsDrawable(0, 0)) {
+        if (s_deferNames) {
+            if (s_deferred.empty()) {
+                CaptureNameState(s_nameState);  // the world camera and targets, as seen by the first name
+            }
+            s_deferred.push_back(desc);
+            return;
+        }
         desc->Render();
     }
+}
+
+void PlayerNameDeferRendering(bool defer) {
+    s_deferNames = defer;
+    if (!defer) {
+        s_deferred.clear();  // names recorded but never drawn (aborted frame) are dropped, not carried into the next frame
+    }
+}
+
+void PlayerNameRenderDeferred() {
+    if (s_deferred.empty()) {
+        return;
+    }
+    NameDrawState saved;
+    CaptureNameState(saved);
+    ApplyNameState(s_nameState);  // back to the world camera and targets, which the post passes left changed
+    // a descriptor can be deleted after it was recorded: only draw ones still in the live list
+    for (PLAYERNAMEDESC* desc : s_deferred) {
+        for (PLAYERNAMEDESC* live = s_playerNames.Head(); live; live = s_playerNames.Next(live)) {
+            if (live == desc) {
+                desc->Render();
+                break;
+            }
+        }
+    }
+    ApplyNameState(saved);
+    s_deferred.clear();
 }
 
 // VERIFY: c2e11c04 manual

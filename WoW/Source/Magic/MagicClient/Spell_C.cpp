@@ -1,4 +1,6 @@
 #include "Spell_C.h"
+#include "CoA/Source/Modules/CarriedMountClient.h"
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include "CoA/Source/Modules/AttachMisc.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
@@ -438,6 +440,10 @@ bool Spell_C_HaveSpellPower(CGUnit_C* unit, const SpellRec* spell) {
 
     if (powerType == POWER_TYPE_RUNES) {
         return unit->IsActivePlayer() && CGRuneInfo::HasRunesForSpell(spell->m_id, nullptr);
+    }
+
+    if (CoA::JoinedNamesClient::SharesABody(unit) && powerType != static_cast<POWER_TYPE>(unit->m_unit->m_unitFieldBytes0[3])) {
+        return true;
     }
 
     int32_t power = unit->GetPredictedPower(powerType);
@@ -7022,7 +7028,7 @@ bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report,
 // VERIFY: 3e98536b auto
 // OFFSET: 0x008093D0
 bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool checkAmmo, bool report, PendingSpellCast* cast) {
-    if (!unit->IsActivePlayer()) {
+    if (!unit->IsActivePlayer() || CoA::JoinedNamesClient::SharesABody(unit)) {
         return true;
     }
 
@@ -7790,7 +7796,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
         caster->ChangeStandState(UNIT_STANDING);
     }
 
-    if (!(spell.m_attributes & 0x1000000) && static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && !caster->MountedCombatAllowed() && caster->m_mountDisplayId > 0 && !(caster->m_clientFlags & 0x10000000)) {
+    if (!(spell.m_attributes & 0x1000000) && static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && !caster->MountedCombatAllowed() && CoA::CarriedMountClient::CountsAsMounted(caster)) {
         if (!caster->CanAutoDismount()) {
             Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_NOT_MOUNTED, -1, -1, false);
             return;
@@ -8499,7 +8505,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
         return false;
     }
 
-    if (spell.m_attributes & 0x2) {
+    if ((spell.m_attributes & 0x2) && !CoA::JoinedNamesClient::SharesABody(unit)) {
         bool usable;
 
         if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {

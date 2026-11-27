@@ -23,6 +23,8 @@
 #include "CoA/Source/Modules/UnitSelect.h"
 #include "CoA/Source/Modules/UnitSelectClient.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
+#include "CoA/Source/Modules/CarriedMountClient.h"
+#include "CoA/Source/Modules/JoinedNamesClient.h"
 #include <intrin.h>
 #include "CoA/Source/Modules/AttachLate.h"
 #include "CoA/Source/Modules/AttachPatches.h"
@@ -4341,6 +4343,8 @@ void CGUnit_C::UpdateVenthyrHoverAnimation() {
 // OFFSET: 0x007176F0
 uint32_t CGUnit_C::ResolveAnimForModel(uint32_t animId, CM2Model* model) {
     // CoA: AscAnimationCount.cpp (Extensions.dll patch 0x7177F9) -- 506 is the loaded AnimationData row count.
+    uint32_t carrying = 0;
+    if (CoA::CarriedMountClient::CarryingAnim(this, animId, model, &carrying)) return carrying;
     CM2Model* venthyrModel = model ? model : this->GetObjectModel();
     const bool venthyrPlayer = (this->m_obj->m_type & TYPE_PLAYER)
         && this->m_unit->m_unitFieldBytes0[0] == 101 && !this->IsMounted()
@@ -4747,7 +4751,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
 
     AnimationDataRec* rec = g_animationDataDB.GetRecord(sequence);
 
-    if (rec && (rec->m_weaponflags & 0x4) && !force) {
+    if (((rec && (rec->m_weaponflags & 0x4)) || CoA::CarriedMountClient::Carrying(this)) && !force) {
         this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
 
         if (this->m_clientFlags & 0x10000) {
@@ -6389,6 +6393,10 @@ void CGUnit_C::SetMountModel(CM2Model* model) {
 
     if (model == this->m_mountModel) {
         return;
+    }
+
+    if (model) {
+        CoA::CarriedMountClient::Note(this, "set-mount-model");
     }
 
     this->CleanUpVehicleBoneAnimsBeforeObjectModelChange();
@@ -12534,7 +12542,7 @@ bool CGUnit_C::CanAttackNow(const CGUnit_C* unit) const {
         }
     }
 
-    if (this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !(this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x800)) && !this->CanAutoDismount()) {
+    if (CoA::CarriedMountClient::CountsAsMounted(this) && !(this->m_creatureCacheEntry && (this->m_creatureCacheEntry->m_typeFlags & 0x800)) && !this->CanAutoDismount()) {
         return false;
     }
 
@@ -12749,7 +12757,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
     }
 
     if (!(this->m_obj->m_type & TYPE_PLAYER) || !showTitle || static_cast<int32_t>(static_cast<CGPlayer_C*>(this)->m_player->m_playerChosenTitle) <= 0) {
-        SStrCopy(buffer, this->GetUnitName(nullptr, 1), size);
+        SStrCopy(buffer, CoA::JoinedNamesClient::BodyName(this), size);
         return buffer;
     }
 
@@ -12768,7 +12776,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
         strcpy(format, strcmp(title->m_name, "") ? title->m_name : title->m_name1);
     }
 
-    SStrPrintf(buffer, size, format, this->GetUnitName(nullptr, 1));
+    SStrPrintf(buffer, size, format, CoA::JoinedNamesClient::BodyName(this));
 
     uint8_t medal = static_cast<CGPlayer_C*>(this)->m_player->m_playerBytes3[2];
 
@@ -13007,6 +13015,15 @@ int32_t CGUnit_C::OnKnockBack(uint32_t time, const CMovementStatus& status, CDat
     return this->m_movementData.OnLaunch(time, status, direction, speed, verticalSpeed);
 }
 
+void SnagtoothJumpPuff(CGUnit_C* unit) {
+    static const int32_t kDustCloudLandKit = 1066;            // stock kit: only Spells\DustCloud_Land at the base, no animation
+    if (const SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(kDustCloudLandKit)) {
+        PlaySpellVisuaKitData data(nullptr, kit, 1);           // 1 = one-shot effect
+        data.m_playAnim = 0;
+        unit->PlaySpellVisualKit(data);
+    }
+}
+
 // VERIFY: b95a85e3 auto
 // OFFSET: 0x00740D30
 int32_t CGUnit_C::OnMoveEvent(NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
@@ -13034,9 +13051,15 @@ int32_t CGUnit_C::OnMoveEvent(NETMESSAGE msgId, uint32_t time, CDataStore* msg) 
         case MSG_MOVE_STOP_STRAFE:
             changed = this->m_movementData.OnStrafeStop(now, status);
             break;
-        case MSG_MOVE_JUMP:
+        case MSG_MOVE_JUMP: {
+            // still falling from the last jump = the Snagtooth's air jump (the flags are the old ones until OnJump)
+            bool const airJump = (this->m_movementData.m_flags & MOVEMENTFLAG_FALLING) && this->m_unit && this->m_unit->m_unitFieldBytes0[0] == 94;
             changed = this->m_movementData.OnJump(now, status);
+            if (airJump) {
+                SnagtoothJumpPuff(this);
+            }
             break;
+        }
         case MSG_MOVE_START_TURN_LEFT:
             changed = this->OnTurnStart(now, status, 1);
             break;
@@ -15114,6 +15137,21 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
 // VERIFY: d7553528 manual
 // OFFSET: 0x00736B60
 void CGUnit_C::SetSheatheStateAnimate() {
+    // CoA: the weapon only moves between back and hand on the $SHL / $SHR events of Sheath (89) / HipSheath (90). Creature-based
+    // race models lack them, so the weapon stayed on the back: swap at once and wave the arm with an animation the model has.
+    CM2Model* model = this->m_worldModel;
+    if (model && model->IsLoaded(0, 0) && (this->m_obj->m_type & TYPE_PLAYER)
+        && (!model->HasSequence(89) || !model->HasSequence(90) || !model->HasEvent(0x52485324) || !model->HasEvent(0x4C485324))) {
+        this->SetSheatheStateInstant();
+        static const uint32_t kGesture[] = { 16, 54, 53 };      // AttackUnarmed, SpellCastOmni, SpellCastDirected: on the right arm only
+        for (uint32_t anim : kGesture)
+            if (model->HasSequence(anim)) {
+                this->SetKeyBoneSequence(model, 3, anim, 0xFFFFFFFF, 0, 1.0f, 1, 1, 0);
+                break;
+            }
+        return;
+    }
+
     switch (this->m_previousSheatheState) {
         case WEAPONMODE_SHEATHEDMODE: {
             break;
@@ -16926,12 +16964,12 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
         return false;
     }
 
-    if (((auraInterrupt & 0x40) && (this->m_mountDisplayId <= 0 || (this->m_clientFlags & 0x10000000))) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x40) && !this->IsMounted())) {
+    if (((auraInterrupt & 0x40) && !CoA::CarriedMountClient::CountsAsMounted(this)) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x40) && !CoA::CarriedMountClient::CountsAsMounted(this))) {
         Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_MOUNTED, -1, -1, false);
         return false;
     }
 
-    if (!(spell->m_attributes & 0x1000000) && this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
+    if (!(spell->m_attributes & 0x1000000) && CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
         Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_MOUNTED, -1, -1, false);
         return false;
     }
@@ -18156,7 +18194,7 @@ int32_t CGUnit_C::VerifyAttackIconPressed(WOWGUID* target, int32_t useGiven, int
             }
         }
 
-        if (this->IsMounted() && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
+        if (CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
             if (showErrors) {
                 CGGameUI::DisplayError(ERR_ATTACK_MOUNTED);
             }
@@ -22318,6 +22356,10 @@ void CGUnit_C::HandlePendingTrackEvents() {
 // VERIFY: 0f2f9494 manual
 // OFFSET: 0x0073D940
 void CGUnit_C::DestroyUnitMount(int32_t a2) {
+    if (CoA::CarriedMountClient::Drop(this) && this->m_worldModel && this->m_worldModel->IsLoaded(0, 0)) {
+        this->UpdateBaseAnimation(0, -1);
+    }
+
     if (!this->m_mountModel) {
         return;
     }
@@ -22374,6 +22416,16 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
     // geoset display while the mount model is built; 0 after.
     CoA::Geosets::DisplayScope geosets(this->m_unit->m_unitFieldMountdisplayid);
     this->m_wheelMask = 0;
+    CoA::CarriedMountClient::Note(this, "create");
+
+    if (!this->m_mountModel && CoA::CarriedMountClient::Carry(this)) {
+        if (this->m_worldModel->IsLoaded(0, 0)) {
+            this->UpdateBaseAnimation(0, -1);
+            this->UpdateHandItemAnimEffects(false);
+        }
+
+        return;
+    }
 
     if (!this->m_mountModel) {
         CreatureDisplayInfoRec* displayInfo = g_creatureDisplayInfoDB.GetRecord(this->m_mountDisplayId);
@@ -23229,7 +23281,7 @@ void CGUnit_C::OnMountDisplayChanged(int32_t displayId) {
         return;
     }
 
-    if (!displayId && this->m_vehicle && this->m_vehicle->m_passengers.Head()) {
+    if (!displayId && this->m_vehicle && this->m_vehicle->m_passengers.Head() && !CoA::JoinedNamesClient::SharesABody(this)) {
         this->m_clientFlags |= 0x10000000;
         return;
     }

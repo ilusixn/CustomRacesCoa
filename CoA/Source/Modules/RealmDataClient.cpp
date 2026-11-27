@@ -10,7 +10,7 @@
 // load only 64-bit DLLs, others fail and are logged) and, when <base>Data\<path>buildinfo exists, takes the build
 // number from it for the logon and auth session builds.
 //
-// Always on: -hd 0 refuses the eight HD archives and Data\patch-Q.MPQ sets the HD flag (SFile::OpenArchive), the WDB
+// Always on: SD mode opens the eight HD archives at the lowest priority (fallback only) and Data\patch-Q.MPQ sets the HD flag (SFile::OpenArchive), the WDB
 // cache lives in Cache/WDB/<locale>/<realm> (GetCacheDirectory), InitializeClient no longer initializes the WDB cache
 // (LoadWDBCache does), and InitializeAddOns also scans each realm archive's Interface\AddOns\ and -addonspath <dir>.
 #include "CoA/Source/Modules/Modules.h"
@@ -313,32 +313,10 @@ namespace {
         Switch(path);
     }
 
-    // FUN_102fa4c0, the start of SFile::OpenArchive: -hd 0 refuses the eight HD archives; Data\patch-Q.MPQ sets the HD
-    // flag. False refuses the open.
+    // FUN_102fa4c0, the start of SFile::OpenArchive: Data\patch-Q.MPQ sets the HD flag. SD mode no longer refuses the HD
+    // archives (some races ship their skins only there); OpenArchives gives them the lowest priority (SdFallbackArchive).
     bool OpenArchiveFilter(const char* name) {
-        static const char* const hdArchives[] = {
-            "Data\\patch-4.MPQ",
-            "Data\\patch-5.MPQ",
-            "Data\\patch-X.MPQ",
-            "Data\\patch-U.MPQ",
-            "Data\\patch-Z.MPQ",
-            "Data\\patch-Q.MPQ",
-            "Data\\patch-R.MPQ",
-            "Data\\patch-V.MPQ",
-        };
-
-        const char* hd = CoA::Script::CommandLineArg("hd");
-
-        // CoA64: HD also needs the Vulkan (DXVK) renderer.
-        if ((hd && strcmp(hd, "0") == 0) || !CoA::Hd::Available()) {
-            for (const char* archive : hdArchives) {
-                if (SStrCmpI(name, archive, STORM_MAX_STR) == 0) {
-                    return false;
-                }
-            }
-        }
-
-        if (SStrCmpI(name, "Data\\patch-Q.MPQ", STORM_MAX_STR) == 0) {
+        if (SStrCmpI(name, "Data\\patch-Q.MPQ", STORM_MAX_STR) == 0 && !CoA::RealmDataClient::SdFallbackArchive(name)) {
             CoA::RealmData::GetState().hdPatch = true;
         }
 
@@ -406,4 +384,27 @@ void CoA::RealmDataClient::Init() {
     CoA::RealmInfo::SetDataPathHandler(SwitchFromRealmInfo);
     ConsoleCommandRegister("realmdata", RealmDataCommand, static_cast<CATEGORY>(1), nullptr);
     CoA::LuaReg::AddModule(s_bindings, sizeof(s_bindings) / sizeof(s_bindings[0]));
+}
+
+bool CoA::RealmDataClient::SdFallbackArchive(const char* name) {
+    static const char* const hdArchives[] = {
+        "Data\\patch-4.MPQ", "Data\\patch-5.MPQ", "Data\\patch-X.MPQ", "Data\\patch-U.MPQ",
+        "Data\\patch-Z.MPQ", "Data\\patch-Q.MPQ", "Data\\patch-R.MPQ", "Data\\patch-V.MPQ",
+    };
+
+    const char* hd = CoA::Script::CommandLineArg("hd");
+
+    // CoA64: HD also needs the Vulkan (DXVK) renderer.
+    if (!(hd && strcmp(hd, "0") == 0) && CoA::Hd::Available()) {
+        return false;
+    }
+
+    for (const char* archive : hdArchives) {
+        if (SStrCmpI(name, archive, STORM_MAX_STR) == 0) {
+            return true;
+        }
+    }
+
+    // Custom patch-*-HD.MPQ archives: their HD models only fill in where no SD model exists.
+    return CoA::RealmData::IsHdOnlyArchive(name);
 }

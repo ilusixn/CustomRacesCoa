@@ -8,6 +8,7 @@
 //   reader, so the x64 record (pointers) is what gets written. CharacterFacialHairStyles has no id: its HD file
 //   prepends one, and every client row whose (race, sex, variation) matches takes the HD row's five geosets.
 #include "CoA/Source/Modules/BridgeStoreClient.h"
+#include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Modules/BridgeStore.h"
 #include "CoA/Source/Runtime/Hd.h"
 #include "CoA/Source/Runtime/Script.h"
@@ -148,7 +149,8 @@ namespace {
     // 0x101D9251: Data\Patch-Q.mpq opens (std::ifstream, _SH_DENYNO) and "-hd" is not "0". CoA64: and the Vulkan (DXVK)
     // renderer is active.
     bool HdEnabled() {
-        if (!CoA::Hd::Available()) {
+        // SD mode (-hd 0) still opens the HD archives as a fallback: their HD tables must stay off.
+        if (!CoA::Hd::Available() || CoA::RealmDataClient::SdFallbackArchive("Data\\patch-Q.MPQ")) {
             return false;
         }
 

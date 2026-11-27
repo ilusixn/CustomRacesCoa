@@ -1,3 +1,4 @@
+#include "Engine/Source/Os/OsMemory.h"
 #include <cfloat>
 #include "CoA/Source/Modules/Graphics.h"
 #include "CWorldSceneRender.h"
@@ -190,7 +191,9 @@ void CWorldScene::Render(const C3Vector& cameraPos, float time) {
     if (scene) {
         scene->m_flags |= 0x1;
         scene->AdvanceTime(static_cast<uint32_t>(CMath::fint_(time * 1000.0f)));
+        CoaHeapCheck("before M2 Animate");
         scene->Animate(cameraPos);
+        CoaHeapCheck("after M2 Animate");
         scene->m_flags &= ~0x1;
     }
 

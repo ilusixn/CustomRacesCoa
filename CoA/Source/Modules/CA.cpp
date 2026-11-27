@@ -254,6 +254,9 @@ namespace CoA::CA::detail {
     bool Visible(Row r) {
         const uint32_t flags = RowU32(r, 0x124);
 
+        // Bits 0 and 3 hide a row. Every shipped row has both set (value 27) except a Skinshifter row, whose
+        // client table clears them. Treating 27 as visible pulled every class into the open window and the
+        // realm died (heap corruption, 2026-11-16 01:17).
         if ((flags >> 3) & 1 || flags & 1) {
             return false;
         }
@@ -855,7 +858,7 @@ bool CoA::CA::ClassTypeAdmits(Row r, uint8_t cls) {
     }
 
     if (RowU32(ct, 0x10) != 0) {
-        return cls >= 12 && cls <= 32;
+        return cls >= 12 && cls <= 33;   // 33: Skinshifter
     }
 
     if (RowU32(ct, 0x14) != 0) {
@@ -1028,7 +1031,7 @@ CoA::CA::Build::Build(const BuildSeed& seed, uint32_t lvl, bool full) {
     this->qualities = ConfigBool("CONFIG_CHARACTER_ADVANCEMENT_QUALITIES_FORCED");
     const uint8_t cls = static_cast<uint8_t>(seed.classKey);
     this->hero = cls == 10;
-    this->coa = cls >= 12 && cls <= 32;
+    this->coa = cls >= 12 && cls <= 33;   // 33: Skinshifter
     this->stock = StockClass(cls);
     this->level = lvl ? lvl : CoA::GameEvents::ServerMaxLevel();
     this->name = seed.id;   // FUN_10089ef0

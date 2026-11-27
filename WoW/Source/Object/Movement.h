@@ -99,6 +99,7 @@ class CMovement_C : public CMovementShared {
     int32_t IsFacetOverhead(uint32_t facet) const;
     int32_t IsFacetWall(uint32_t facet) const;
     int32_t IsJumping() const;
+    int32_t SnagtoothDoubleJump();
     int32_t IsValidPosition() const;
     void Launch(const C2Vector& direction, float speed, float verticalSpeed);
     void OnAscendDescendStartLocal(uint32_t eventTime, int32_t ascend);

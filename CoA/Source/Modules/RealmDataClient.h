@@ -16,6 +16,8 @@ namespace CoA::RealmDataClient {
     const char* AddOnsPath();
     // GetCacheDirectory (orig hook 0x667EF9): "Cache/WDB/<locale>/<realm>" into path (0x104 bytes).
     void CacheDirectory(char* path);
+    // SD mode (-hd 0 or no Vulkan): an HD archive opens below every other archive, so it only supplies files SD lacks.
+    bool SdFallbackArchive(const char* name);
 }
 
 #endif

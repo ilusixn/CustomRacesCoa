@@ -37,6 +37,47 @@
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "WoW/Source/Ui/GameUI.h"
 
+// Snagtooth (race 94) racial "Springheel": one more jump while airborne, re-armed by a ground jump or walking off a ledge.
+// The fall restarts here, so the server counts fall damage from the second jump.
+static bool s_snagtoothDoubleJumped = false;
+
+int32_t CMovement_C::SnagtoothDoubleJump() {
+    if (s_snagtoothDoubleJumped || !this->m_unit || !this->m_unit->m_unit || this->m_unit->m_unit->m_unitFieldBytes0[0] != 94) {
+        return 0;
+    }
+    if (!(this->m_flags & MOVEMENTFLAG_FALLING) || (this->m_flags & (MOVEMENTFLAG_ROOT | MOVEMENTFLAG_FLYING | MOVEMENTFLAG_SWIMMING))
+        || (this->m_flags2 & MOVEMENTFLAG2_NO_JUMPING) || this->IsGravityDisabled()) {
+        return 0;
+    }
+    if (!this->StartFalling(-7.9555473f)) {
+        return 0;
+    }
+    // Air control (user 11-21): the second jump goes where the player steers NOW. Airborne, the client keeps the first jump's direction
+    // and queues key changes as PENDING_* flags, so take the held keys straight from the input control and re-aim at the current facing.
+    if (CGInputControl* input = CGInputControl::GetActive()) {
+        const uint32_t in = input->m_flags;
+        const int32_t forward = ((in & (INPUT_MOVE_PLAYER_AUTORUN | INPUT_MOVE_PLAYER_FORWARD_KEY))
+                                    || (in & INPUT_MOUSE_LOOK_MASK) == INPUT_MOUSE_LOOK_MASK ? 1 : 0)
+            - ((in & INPUT_MOVE_PLAYER_BACKWARD_KEY) ? 1 : 0);
+        const int32_t side = ((in & INPUT_STRAFE_PLAYER_LEFT_KEY) ? 1 : 0) - ((in & INPUT_STRAFE_PLAYER_RIGHT_KEY) ? 1 : 0);
+        this->m_flags &= ~(MOVEMENTFLAG_FORWARD | MOVEMENTFLAG_BACKWARD | MOVEMENTFLAG_STRAFE_LEFT | MOVEMENTFLAG_STRAFE_RIGHT
+            | MOVEMENTFLAG_PENDING_STOP | MOVEMENTFLAG_PENDING_STRAFE_STOP | MOVEMENTFLAG_PENDING_FORWARD | MOVEMENTFLAG_PENDING_BACKWARD
+            | MOVEMENTFLAG_PENDING_STRAFE_LEFT | MOVEMENTFLAG_PENDING_STRAFE_RIGHT);
+        if (forward) this->m_flags |= forward > 0 ? MOVEMENTFLAG_FORWARD : MOVEMENTFLAG_BACKWARD;
+        if (side) this->m_flags |= side > 0 ? MOVEMENTFLAG_STRAFE_LEFT : MOVEMENTFLAG_STRAFE_RIGHT;
+        // keep the input control's "start already sent" bits in step, or a key pressed after landing would never start a move
+        input->m_flags = forward ? (input->m_flags | INPUT_MOVE_PLAYER_SENT) : (input->m_flags & ~INPUT_MOVE_PLAYER_SENT);
+        input->m_flags = side ? (input->m_flags | INPUT_STRAFE_PLAYER_SENT) : (input->m_flags & ~INPUT_STRAFE_PLAYER_SENT);
+        this->UpdateAnchors(1);                                // facing + strafe/backward -> direction (forced while falling)
+        this->m_currentSpeed = this->GetBaseSpeed(0);          // run / backpedal speed, 0 with no key: straight up. Not
+                                                               // CalcCurrentSpeed(1): its force flag is GetBaseSpeed's "walk"
+    }
+    s_snagtoothDoubleJumped = true;
+    SnagtoothJumpPuff(this->m_unit);                           // observers play it from the MSG_MOVE_JUMP (CGUnit_C::OnMoveEvent)
+    return 1;
+}
+
+
 // CoA: AscAccount.cpp:OnGMStatus (runtime patch 0xA32904) -- the original's constant becomes FLT_MAX for a GM.
 // STATIC: 0x00A32904
 float g_maxShortRangeTeleportSquared = 22500.0f;
@@ -4850,6 +4891,7 @@ int32_t CMovement_C::UpdatePlayerMovement(uint32_t time) {
                     break;
 
                 case PMOVE_FALL:
+                    s_snagtoothDoubleJumped = false;
                     if (!this->TryStartFalling()) {
                         break;
                     }
@@ -4866,6 +4908,9 @@ int32_t CMovement_C::UpdatePlayerMovement(uint32_t time) {
 
                 case PMOVE_JUMP:
                     if (this->Jump(1)) {
+                        s_snagtoothDoubleJumped = false;
+                        sent = this->m_unit->ProcessLocalMoveEvent(time, MSG_MOVE_JUMP, event->m_needAck, 0.0f, 0, 0, 255);
+                    } else if (this->SnagtoothDoubleJump()) {
                         sent = this->m_unit->ProcessLocalMoveEvent(time, MSG_MOVE_JUMP, event->m_needAck, 0.0f, 0, 0, 255);
                     }
 

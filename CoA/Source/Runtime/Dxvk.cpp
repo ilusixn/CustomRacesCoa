@@ -27,7 +27,7 @@ void CoA::Dxvk::Preload(const Deps& deps) {
         return;
     }
 
-    std::wstring path = deps.exeDir() + L"\\x64\\d3d9.dll";
+    std::wstring path = deps.exeDir() + L"\\Vulkan\\d3d9.dll";
     uint32_t err = 0;
 
     if (!deps.load(path, err)) {

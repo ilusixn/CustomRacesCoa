@@ -177,7 +177,7 @@ namespace CoA::Streamline {
         bool loaded = false;
 
         if (s_dxvk) {
-            const std::wstring path = deps.exeDir() + L"\\x64\\sl.interposer.dll";
+            const std::wstring path = deps.exeDir() + L"\\Vulkan\\sl.interposer.dll";
             s_signed = deps.verify(path);
 
             if (s_signed) {

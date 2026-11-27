@@ -79,7 +79,7 @@ namespace CoA::Streamline {
         Features (*features)() = nullptr;                         // what slInit loads (null: DLSS only)
     };
 
-    // Mode 0 or no DXVK: nothing is verified or loaded. Otherwise verifies and loads <exe dir>\x64\sl.interposer.dll
+    // Mode 0 or no DXVK: nothing is verified or loaded. Otherwise verifies and loads <exe dir>\Vulkan\sl.interposer.dll
     // and runs deps.init; on success the state is NoDevice until OnDevice.
     void PreDevice(const Deps& deps);
     // The device callback's outcome (slSetVulkanInfo succeeded / slIsFeatureSupported(DLSS) is eOk). Ignored unless

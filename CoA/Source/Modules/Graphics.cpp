@@ -147,6 +147,16 @@ bool CoA::Graphics::OnEntityShadows(CVar*, const char*, const char* value, void*
 }
 
 bool CoA::Graphics::EntityShadows() {
+    // The checkbox writes the CVar. Read that, so a value loaded from Config.wtf still wins if the
+    // callback never ran for the initial "0".
+    if (CVar* var = CVar::Lookup("entityShadows")) {
+        const char* value = var->m_stringValue.m_str;
+
+        if (value && value[0]) {
+            s_entityShadows = IsOne(value);
+        }
+    }
+
     return s_entityShadows;
 }
 

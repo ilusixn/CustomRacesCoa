@@ -433,6 +433,7 @@ static int32_t Script_GetCreateBackgroundModel(lua_State* L) {
 // OFFSET: 0x004E1880
 static int32_t Script_GetAvailableRaces(lua_State* L) {
     uint32_t count = CCharacterCreation::m_races.Count();
+    lua_checkstack(L, 3 * count);   // CoA: 3 values per race, far past the 20 slots Lua guarantees with 100+ races
 
     for (uint32_t i = 0; i < count; i++) {
         lua_pushstring(L, CGUnit_C::GetDisplayRaceNameFromRecord(g_chrRacesDB.GetRecord(CCharacterCreation::m_races.m_data[i]), CCharacterCreation::m_character->m_data.m_preferences.m_sexID, nullptr));
@@ -452,6 +453,7 @@ static int32_t Script_GetAvailableRaces(lua_State* L) {
 // OFFSET: 0x004E19A0
 static int32_t Script_GetClassesForRace(lua_State* L) {
     uint32_t count = CCharacterCreation::m_classes.Count();
+    lua_checkstack(L, 3 * count);   // CoA: same for the class list
 
     for (uint32_t i = 0; i < count; i++) {
         ChrClassesRec* classRec = i < CCharacterCreation::m_classes.Count() ? CCharacterCreation::m_classes.m_data[i] : nullptr;

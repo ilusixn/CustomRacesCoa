@@ -18,6 +18,9 @@
 #include "WoW/Common/ComponentCore/RetailRace.h"
 #include "Engine/Source/Retail/RacePolicy.h"
 #include "CoA/Source/Modules/ItemCollections.h"
+#include "CoA/Source/Modules/TwoPlayersArt.h"
+#include "CoA/Source/Modules/HeldGrip.h"
+#include "CoA/Source/Modules/HeldGripClient.h"
 #include "CoA/Source/Modules/GeosetsClient.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "Engine/Source/Base/Handle.h"
@@ -85,6 +88,16 @@ static const char* s_componentSections[8] = { "ArmUpperTexture", "ArmLowerTextur
 
 // STATIC: 0x00AC46A0
 static const char* s_fileDecorations[3] = { "M", "F", "U" };
+
+static uint32_t ItemArtSex(const CharacterPreferences& preferences) {
+    const ChrRacesRec* race = g_chrRacesDB.GetRecord(preferences.m_raceID);
+
+    if (!race) {
+        return preferences.m_sexID;
+    }
+
+    return CoA::TwoPlayersArt::ItemSex(preferences.m_sexID, race->m_maleDisplayID, race->m_femaleDisplayID);
+}
 
 // STATIC: 0x00AC46D0
 static CStatus s_status;
@@ -265,7 +278,7 @@ HTEXTURECACHE CCharacterComponent::LoadItemComponentTexture(const ItemDisplayInf
     SStrPrintf(s_path, sizeof(s_path), "Item\\TextureComponents\\%s\\%s_%s.blp", s_componentSections[section], displayRec->m_texture[section], s_fileDecorations[2]);
 
     if (!SFile::FileExists(s_path)) {
-        s_path[strlen(s_path) - 5] = s_fileDecorations[this->m_data.m_preferences.m_sexID][0];
+        s_path[strlen(s_path) - 5] = s_fileDecorations[ItemArtSex(this->m_data.m_preferences)][0];
     }
 
     return TextureCacheCreateTexture(s_path);
@@ -495,7 +508,7 @@ int32_t CCharacterComponent::ComposeHelmModelFilePath(const ChrRacesRec* raceRec
     *ext = '_';
     if (const auto* donor = g_chrRacesDB.GetRecord(RetailRaceHelmetRace(this->m_data.m_preferences.m_raceID))) raceRec = donor;
     strcpy(ext + 1, raceRec->m_clientPrefix);
-    strcat(path, s_fileDecorations[this->m_data.m_preferences.m_sexID]);
+    strcat(path, s_fileDecorations[ItemArtSex(this->m_data.m_preferences)]);
     strcat(path, ".mdx");
     strcpy(buffer, path);
 
@@ -530,7 +543,7 @@ void CCharacterComponent::RemoveLinkpt(CM2Model* model, GEOCOMPONENTLINKS link) 
         return;
     }
 
-    if (link == ATTACH_SHIELD || link == ATTACH_HANDLEFT) {
+    if (link == ATTACH_SHIELD || link == ATTACH_HANDLEFT || link == CoA::HeldGrip::kLink) {
         for (uint32_t bone = 13; bone <= 17; bone++) {
             model->UnsetBoneSequence(bone, 0, 1);
         }
@@ -2134,7 +2147,7 @@ void CCharacterComponent::AddLink(CM2Model* parent, GEOCOMPONENTLINKS link, cons
 
     if (link == ATTACH_HANDRIGHT) {
         CCharacterComponent::ComponentCloseFingers(parent, COMP_HAND_RIGHT);
-    } else if (link == ATTACH_HANDLEFT) {
+    } else if (link == ATTACH_HANDLEFT || link == CoA::HeldGrip::kLink) {
         CCharacterComponent::ComponentCloseFingers(parent, COMP_HAND_LEFT);
     }
 
@@ -2211,6 +2224,9 @@ GEOCOMPONENTLINKS CCharacterComponent::AddHandItem(CM2Model* model, const ItemDi
         if (shield) {
             folder = "Item\\ObjectComponents\\Shield\\";
             hand = ATTACH_SHIELD;
+        } else {
+            CCharacterComponent::RemoveLinkpt(model, static_cast<GEOCOMPONENTLINKS>(CoA::HeldGrip::kLink));
+            hand = CoA::HeldGripClient::OffHandLink(model, displayRec->m_id);
         }
     } else if (invSlot == INVSLOT_RANGED) {
         hand = ATTACH_HANDLEFT;
@@ -2309,6 +2325,10 @@ void CCharacterComponent::RemoveHandItem(CM2Model* model, INVENTORY_SLOTS invSlo
 
     CCharacterComponent::RemoveLinkpt(model, hand);
     CCharacterComponent::RemoveLinkpt(model, sheath);
+
+    if (hand == ATTACH_HANDLEFT) {
+        CCharacterComponent::RemoveLinkpt(model, static_cast<GEOCOMPONENTLINKS>(CoA::HeldGrip::kLink));
+    }
 }
 
 // VERIFY: cdfacfc2 manual
@@ -3578,7 +3598,19 @@ void CCharacterComponent::GeosRenderPrep() {
         if (this->m_itemDisplayID[ITEMSLOT_BOOTS] && g_itemDisplayInfoDB.GetRecord(this->m_itemDisplayID[ITEMSLOT_BOOTS], &rec) && rec.m_geosetGroup[0]) {
             this->m_data.m_model->SetGeometryVisible(501, 599, 0);
             this->m_data.m_model->SetGeometryVisible(901, 901, 1);
-            this->m_data.m_model->SetGeometryVisible(rec.m_geosetGroup[0] + 501, rec.m_geosetGroup[0] + 501, 1);
+            // CoA: custom race models often lack the tall-boot meshes (504+); showing a missing mesh hides the legs. Fall back to the nearest one the model has.
+            uint32_t bootId = rec.m_geosetGroup[0] + 501;
+            CM2Model* bootModel = this->m_data.m_model;
+            if ((bootModel->m_fFlags & 1) && bootModel->m_shared && bootModel->m_shared->m_skinData) {
+                M2SkinProfile* bootSkin = bootModel->m_shared->m_skinData;
+                while (bootId > 501) {
+                    bool found = false;
+                    for (uint32_t i = 0; i < bootSkin->m_skinSections.m_count && !found; i++) found = (bootSkin->m_skinSections[i].m_skinSectionId & 0xFFFF) == bootId;
+                    if (found) break;
+                    bootId--;
+                }
+            }
+            this->m_data.m_model->SetGeometryVisible(bootId, bootId, 1);
         } else if (this->m_itemDisplayID[ITEMSLOT_PANTS] && g_itemDisplayInfoDB.GetRecord(this->m_itemDisplayID[ITEMSLOT_PANTS], &rec) && rec.m_geosetGroup[1] && !(this->m_flags & 0x20)) {
             this->m_data.m_model->SetGeometryVisible(rec.m_geosetGroup[1] + 901, rec.m_geosetGroup[1] + 901, 1);
         } else {
@@ -5872,7 +5904,8 @@ void CCharacterComponent::AddItemBySlot(INVENTORY_SLOTS invSlot, int32_t display
             break;
 
         case INVSLOT_BACK:
-            this->AddItem(ITEMSLOT_CAPE, displayID, itemVisual);
+            if (this->m_data.m_preferences.m_raceID != 97) // CoA: Saberon never show a cloak (looked bad on the model)
+                this->AddItem(ITEMSLOT_CAPE, displayID, itemVisual);
             break;
 
         case INVSLOT_TABARD:

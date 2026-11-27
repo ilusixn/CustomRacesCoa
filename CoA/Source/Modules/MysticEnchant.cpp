@@ -254,7 +254,7 @@ namespace {
     }
 
     bool IsCoAClass(uint8_t c) {
-        return c >= 12 && c <= 32;
+        return c >= 12 && c <= 33;   // 33: Skinshifter
     }
 
     // ObjectPtr(item guid, 2): the item by its low guid.
@@ -1605,7 +1605,7 @@ namespace {
                 lua_createtable(L, 0, 0);
                 lua_checkstack(L, 2);
                 lua_pushstring(L, "Tab");
-                PushStr(L, t.tab - 1 < 0x5F ? kTabTypes[t.tab - 1] : ("UNEXPECTED_ENUM_VALUE_" + std::to_string(t.tab)).c_str());
+                PushStr(L, t.tab - 1 < 0x62 ? kTabTypes[t.tab - 1] : ("UNEXPECTED_ENUM_VALUE_" + std::to_string(t.tab)).c_str());
                 lua_settable(L, -3);
                 SetNumber(L, "RequiredAE", static_cast<double>(t.ae));
                 SetNumber(L, "RequiredTE", static_cast<double>(t.te));

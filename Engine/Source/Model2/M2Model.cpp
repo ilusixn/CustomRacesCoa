@@ -121,6 +121,11 @@ bool ResolveCollectionFrame(CM2Model* child, CM2Model* parent, AttachmentFrame& 
     if (ownSocket < data->m_attachments.m_count && data->m_attachments[ownSocket].m_bone < data->m_bones.m_count) {
         const C3Vector& p = data->m_attachments[ownSocket].m_position;
         if (std::fabs(p.x) + std::fabs(p.y) + std::fabs(p.z) < 0.01f) return false;   // the model's own socket already holds it
+        // an own socket below hip height holds it too, as in the 32-bit client (Gnome 55/59 carry a small offset); same rule as RetailRace.cpp
+        float height = 1.9f;
+        const uint16_t helm = 11 < data->m_attachmentIndicesById.m_count ? data->m_attachmentIndicesById[11] : 0xffff;   // 11 = helm
+        if (helm < data->m_attachments.m_count) height = std::clamp(data->m_attachments[helm].m_position.z, .8f * 1.9f, 1.6f * 1.9f);
+        if (p.z < 0.6f * height) return false;
     }
     static const uint32_t bodySocket[7] = {48, 7, 9, 0, 47, 8, 10};
     const uint32_t bodyId = bodySocket[own - 55];
@@ -2762,13 +2767,15 @@ void CM2Model::FindKey(M2ModelBoneSeq* sequence, const M2TrackBase& track, uint3
                 key++;
             }
         } else {
-            uint32_t high = count;
+            // CoA: signed bounds -- when the time is before the first key `high = mid - 1` goes below zero; unsigned it wrapped to ~4 billion
+            // and the next probe read far past the key array (crash in FindKey).
+            int32_t high = static_cast<int32_t>(count);
 
-            while (key < high) {
-                uint32_t mid = (high + key) >> 1;
+            while (static_cast<int32_t>(key) < high) {
+                uint32_t mid = static_cast<uint32_t>((high + static_cast<int32_t>(key)) >> 1);
 
                 if (time < keys[mid]) {
-                    high = mid - 1;
+                    high = static_cast<int32_t>(mid) - 1;
                 } else {
                     key = mid + 1;
 
@@ -2797,12 +2804,14 @@ void CM2Model::FindKey(M2ModelBoneSeq* sequence, const M2TrackBase& track, uint3
 template <>
 void M2AnimateTrack<M2CompQuat, C4Quaternion>(CM2Model* model, M2ModelBone* bone, const M2Track<M2CompQuat>& track, M2ModelTrack<C4Quaternion>& modelTrack, const C4Quaternion& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<M2CompQuat>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<M2CompQuat>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
 
     if (keys.m_count) {
         uint32_t key1;
         float ratio;
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             M2CompQuat& key = keys[modelTrack.m_currentKey];
@@ -2843,6 +2852,8 @@ void M2AnimateTrack<M2CompQuat, C4Quaternion>(CM2Model* model, M2ModelBone* bone
             uint32_t key1;
             float ratio;
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             M2CompQuat& k0 = blendKeys[modelTrack.m_secondaryKey];
             M2CompQuat& k1 = blendKeys[key1];
             C4Quaternion q0;
@@ -3638,12 +3649,14 @@ void CM2Model::TransformVerticesOneBone_sse(CM2Model* model, M2SkinSection* sect
 template <>
 void M2AnimateTrack<C4Quaternion, C4Quaternion>(CM2Model* model, M2ModelBone* bone, const M2Track<C4Quaternion>& track, M2ModelTrack<C4Quaternion>& modelTrack, const C4Quaternion& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<C4Quaternion>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<C4Quaternion>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
 
     if (keys.m_count) {
         uint32_t key1;
         float ratio;
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey];
@@ -3668,6 +3681,8 @@ void M2AnimateTrack<C4Quaternion, C4Quaternion>(CM2Model* model, M2ModelBone* bo
             uint32_t key1;
             float ratio;
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             blend = C4Quaternion::Nlerp(ratio, blendKeys[modelTrack.m_secondaryKey], blendKeys[key1]);
         } else {
             blend = defaultValue;
@@ -3682,12 +3697,14 @@ void M2AnimateTrack<C4Quaternion, C4Quaternion>(CM2Model* model, M2ModelBone* bo
 template <>
 void M2AnimateTrack<fixed16, float>(CM2Model* model, M2ModelBone* bone, const M2Track<fixed16>& track, M2ModelTrack<float>& modelTrack, const float& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<fixed16>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<fixed16>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
 
     if (keys.m_count) {
         uint32_t key1;
         float ratio;
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey].m_value * 0.000030518509f;
@@ -3713,6 +3730,8 @@ void M2AnimateTrack<fixed16, float>(CM2Model* model, M2ModelBone* bone, const M2
             uint32_t key1;
             float ratio;
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             float value0 = blendKeys[modelTrack.m_secondaryKey].m_value * 0.000030518509f;
             blend = value0 + (blendKeys[key1].m_value * 0.000030518509f - value0) * ratio;
         } else {
@@ -3725,18 +3744,73 @@ void M2AnimateTrack<fixed16, float>(CM2Model* model, M2ModelBone* bone, const M2
 
 // VERIFY: 45a65fad auto
 // OFFSET: 0x0082B0A0
+// CoA: some custom race models carry NaN position keys (the Centaur's sit animation); NaN bones stretch the whole mesh over the screen.
+static inline bool M2FiniteVector(const C3Vector& v) { return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z) && fabsf(v.x) < 1000.0f && fabsf(v.y) < 1000.0f && fabsf(v.z) < 1000.0f; }
+
+// Logs (first 60) which model/sequence/bone produced a bad value: Logs/AnimBad.log
+// CoA: animations whose keys turned out to be garbage (custom race models). Once seen, the sequence plays Stand instead.
+static M2Data* volatile g_badSeqData[256];
+static volatile uint16_t g_badSeqIndex[256];
+static volatile long g_badSeqCount = 0;
+
+static bool M2SeqIsBad(M2Data* data, uint32_t seq) {
+    long n = g_badSeqCount; if (n > 256) n = 256;
+    for (long i = 0; i < n; i++) if (g_badSeqData[i] == data && g_badSeqIndex[i] == seq) return true;
+    return false;
+}
+
+static void M2MarkSeqBad(CM2Model* model, uint32_t seq) {
+    M2Data* data = model->m_shared ? model->m_shared->m_data : nullptr;
+    if (!data || seq >= data->m_sequences.m_count || M2SeqIsBad(data, seq)) return;
+    long i = _InterlockedIncrement(&g_badSeqCount) - 1;
+    if (i < 256) { g_badSeqIndex[i] = static_cast<uint16_t>(seq); g_badSeqData[i] = data; }
+}
+
+static uint32_t M2StandIndex(M2Data* data) {
+    for (uint32_t i = 0; i < data->m_sequences.m_count; i++) if (data->m_sequences[i].m_id == 0) return i;
+    return 0xFFFF;
+}
+
+static void M2LogBadVector(CM2Model* model, M2ModelBone* bone, const C3Vector& v) {
+    static volatile long logged = 0;
+    M2MarkSeqBad(model, bone->m_sequence.m_animIndex);
+
+    if (_InterlockedIncrement(&logged) <= 200) {
+        FILE* file = fopen("Logs/AnimBad.log", "a");
+
+        if (file) {
+            uint32_t seq = bone->m_sequence.m_animIndex;
+            uint32_t animId = 0xFFFFFFFF;
+            uint32_t flags = 0;
+            M2Data* data = model->m_shared ? model->m_shared->m_data : nullptr;
+
+            if (data && seq < data->m_sequences.m_count) {
+                animId = data->m_sequences[seq].m_id;
+                flags = data->m_sequences[seq].m_flags;
+            }
+
+            fprintf(file, "bad vector %g %g %g: %s seq %u animId %u flags 0x%x time %u model %p\n", v.x, v.y, v.z, model->m_shared ? model->m_shared->m_fileName : "?", seq, animId, flags, bone->m_sequence.m_currentTime, static_cast<void*>(model));
+            fclose(file);
+        }
+    }
+}
+
+
 template <>
 void M2AnimateTrack<C3Vector, C3Vector>(CM2Model* model, M2ModelBone* bone, const M2Track<C3Vector>& track, M2ModelTrack<C3Vector>& modelTrack, const C3Vector& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<C3Vector>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<C3Vector>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
 
     if (keys.m_count) {
         uint32_t key1;
         float ratio;
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey];
+            if (!M2FiniteVector(modelTrack.m_currentValue)) { M2LogBadVector(model, bone, modelTrack.m_currentValue); modelTrack.m_currentValue = defaultValue; }
             return;
         }
 
@@ -3745,6 +3819,7 @@ void M2AnimateTrack<C3Vector, C3Vector>(CM2Model* model, M2ModelBone* bone, cons
         modelTrack.m_currentValue.x = (value1.x - value0.x) * ratio + value0.x;
         modelTrack.m_currentValue.y = (value1.y - value0.y) * ratio + value0.y;
         modelTrack.m_currentValue.z = ratio * (value1.z - value0.z) + value0.z;
+        if (!M2FiniteVector(modelTrack.m_currentValue)) { M2LogBadVector(model, bone, modelTrack.m_currentValue); modelTrack.m_currentValue = defaultValue; }
     } else {
         modelTrack.m_currentValue = defaultValue;
 
@@ -3762,6 +3837,8 @@ void M2AnimateTrack<C3Vector, C3Vector>(CM2Model* model, M2ModelBone* bone, cons
             uint32_t key1;
             float ratio;
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             C3Vector& value0 = blendKeys[modelTrack.m_secondaryKey];
             C3Vector& value1 = blendKeys[key1];
             blend.x = (value1.x - value0.x) * ratio + value0.x;
@@ -3771,6 +3848,7 @@ void M2AnimateTrack<C3Vector, C3Vector>(CM2Model* model, M2ModelBone* bone, cons
             blend = defaultValue;
         }
 
+        if (!M2FiniteVector(blend)) { M2MarkSeqBad(model, bone->m_secondarySequence.m_animIndex); blend = defaultValue; }
         float factor = bone->m_blendFactor;
         modelTrack.m_currentValue.x = (blend.x - modelTrack.m_currentValue.x) * factor + modelTrack.m_currentValue.x;
         modelTrack.m_currentValue.y = (blend.y - modelTrack.m_currentValue.y) * factor + modelTrack.m_currentValue.y;
@@ -3783,12 +3861,14 @@ void M2AnimateTrack<C3Vector, C3Vector>(CM2Model* model, M2ModelBone* bone, cons
 template <>
 void M2AnimateTrack<uint8_t, uint8_t>(CM2Model* model, M2ModelBone* bone, const M2Track<uint8_t>& track, M2ModelTrack<uint8_t>& modelTrack, const uint8_t& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<uint8_t>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<uint8_t>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
     uint32_t key1;
     float ratio;
 
     if (keys.m_count) {
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey];
@@ -3818,12 +3898,14 @@ void M2AnimateTrack<uint8_t, uint8_t>(CM2Model* model, M2ModelBone* bone, const 
 template <>
 void M2AnimateTrack<float, float>(CM2Model* model, M2ModelBone* bone, const M2Track<float>& track, M2ModelTrack<float>& modelTrack, const float& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<float>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<float>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
     uint32_t key1;
     float ratio;
 
     if (keys.m_count) {
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey];
@@ -3847,6 +3929,8 @@ void M2AnimateTrack<float, float>(CM2Model* model, M2ModelBone* bone, const M2Tr
 
         if (blendKeys.m_count) {
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             float value0 = blendKeys[modelTrack.m_secondaryKey];
             blend = value0 + (blendKeys[key1] - value0) * ratio;
         } else {
@@ -3862,12 +3946,14 @@ void M2AnimateTrack<float, float>(CM2Model* model, M2ModelBone* bone, const M2Tr
 template <>
 void M2AnimateSplineTrack<M2SplineKey<C3Vector>, C3Vector>(CM2Model* model, M2ModelBone* bone, const M2Track<M2SplineKey<C3Vector> >& track, M2ModelTrack<C3Vector>& modelTrack, const C3Vector& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<M2SplineKey<C3Vector> >& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<M2SplineKey<C3Vector> >& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
     uint32_t key1;
     float ratio;
 
     if (keys.m_count) {
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey].m_value;
@@ -3926,6 +4012,8 @@ void M2AnimateSplineTrack<M2SplineKey<C3Vector>, C3Vector>(CM2Model* model, M2Mo
 
         if (blendKeys.m_count) {
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             M2SplineKey<C3Vector>& k0 = blendKeys[modelTrack.m_secondaryKey];
             M2SplineKey<C3Vector>& k1 = blendKeys[key1];
 
@@ -3970,12 +4058,14 @@ void M2AnimateSplineTrack<M2SplineKey<C3Vector>, C3Vector>(CM2Model* model, M2Mo
 template <>
 void M2AnimateSplineTrack<M2SplineKey<float>, float>(CM2Model* model, M2ModelBone* bone, const M2Track<M2SplineKey<float> >& track, M2ModelTrack<float>& modelTrack, const float& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<M2SplineKey<float> >& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<M2SplineKey<float> >& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
     uint32_t key1;
     float ratio;
 
     if (keys.m_count) {
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey].m_value;
@@ -4018,6 +4108,8 @@ void M2AnimateSplineTrack<M2SplineKey<float>, float>(CM2Model* model, M2ModelBon
 
         if (blendKeys.m_count) {
             model->FindKey(&bone->m_secondarySequence, track, modelTrack.m_secondaryKey, key1, ratio);
+            if (modelTrack.m_secondaryKey >= blendKeys.m_count) modelTrack.m_secondaryKey = blendKeys.m_count - 1;
+            if (key1 >= blendKeys.m_count) key1 = blendKeys.m_count - 1;
             M2SplineKey<float>& k0 = blendKeys[modelTrack.m_secondaryKey];
             M2SplineKey<float>& k1 = blendKeys[key1];
 
@@ -4043,12 +4135,14 @@ void M2AnimateSplineTrack<M2SplineKey<float>, float>(CM2Model* model, M2ModelBon
 template <>
 void M2AnimateTrack<uint16_t, uint16_t>(CM2Model* model, M2ModelBone* bone, const M2Track<uint16_t>& track, M2ModelTrack<uint16_t>& modelTrack, const uint16_t& defaultValue) {
     uint32_t animIndex = bone->m_sequence.m_animIndex;
-    M2Array<uint16_t>& keys = track.m_sequenceKeys[animIndex < track.m_sequenceKeys.m_count ? animIndex : 0];
+    M2Array<uint16_t>& keys = track.m_sequenceKeys[(animIndex < track.m_sequenceKeys.m_count && track.m_loopIndex == 0xFFFF) ? animIndex : 0];
     uint32_t key1;
     float ratio;
 
     if (keys.m_count) {
         model->FindKey(&bone->m_sequence, track, modelTrack.m_currentKey, key1, ratio);
+        if (modelTrack.m_currentKey >= keys.m_count) modelTrack.m_currentKey = keys.m_count - 1; // CoA: times and keys can differ in length (custom race models)
+        if (key1 >= keys.m_count) key1 = keys.m_count - 1;
 
         if (track.m_trackType == M2TRACK_NONE) {
             modelTrack.m_currentValue = keys[modelTrack.m_currentKey];
@@ -5452,7 +5546,26 @@ void CM2Model::GetCollisionFacets(const CAaBox& box, const C44Matrix& transform,
 
 // VERIFY: d48ec2da manual
 // OFFSET: 0x0082F0F0
+// CoA: a model whose animation arrays are unusable (data not loaded yet / out of range, seen with many custom race models at once)
+// kept its last pose for the frame instead of killing the client. The first few are logged by file name (Logs/AnimSkip.log).
 void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
+    __try {
+        this->AnimateMTUnsafe(view, diffuse, emissive, alpha, alpha2);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        static volatile LONG logged = 0;
+
+        if (InterlockedIncrement(&logged) <= 40) {
+            FILE* file = fopen("Logs/AnimSkip.log", "a");
+
+            if (file) {
+                fprintf(file, "animate skipped: %s\n", this->m_shared ? this->m_shared->m_fileName : "?");
+                fclose(file);
+            }
+        }
+    }
+}
+
+void CM2Model::AnimateMTUnsafe(const C44Matrix* view, const C3Vector& diffuse, const C3Vector& emissive, float alpha, float alpha2) {
     // CoA: AscCrashContext.cpp:M2AnimateMT (orig hook 0x82F0F0) -- the crash report's "Last M2 Animate MT Name".
     COA_M2_CRASH_RECORD(0x82F0F0, this);
 
@@ -5583,6 +5696,10 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
 
             bone->m_sequence.m_currentTime = time;
             bone->m_sequence.m_animIndex = bone->m_sequence.m_sequenceIndex;
+            if (M2SeqIsBad(data, bone->m_sequence.m_animIndex)) {
+                uint32_t stand = M2StandIndex(data);
+                if (stand != 0xFFFF && stand != bone->m_sequence.m_animIndex) { bone->m_sequence.m_animIndex = static_cast<uint16_t>(stand); bone->m_sequence.m_currentTime = 0; }
+            }
             bone->m_sequence.m_sourceBoneIndex = i;
         } else {
             uint16_t parentIndex = boneData->m_parentIndex;
@@ -5654,6 +5771,10 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
 
             bone->m_secondarySequence.m_currentTime = time;
             bone->m_secondarySequence.m_animIndex = bone->m_secondarySequence.m_sequenceIndex;
+            if (M2SeqIsBad(data, bone->m_secondarySequence.m_animIndex)) {
+                uint32_t stand = M2StandIndex(data);
+                if (stand != 0xFFFF) { bone->m_secondarySequence.m_animIndex = static_cast<uint16_t>(stand); bone->m_secondarySequence.m_currentTime = 0; }
+            }
 
             if (static_cast<int32_t>(this->m_scene->m_time - bone->m_blendEndTime) >= 0) {
                 bone->m_secondarySequence.m_sequenceIndex = 0xFFFF;
@@ -5788,6 +5909,11 @@ void CM2Model::AnimateMT(const C44Matrix* view, const C3Vector& diffuse, const C
                     rotation.z = 0.0f;
                     rotation.w = 1.0f;
                     M2AnimateTrack<M2CompQuat, C4Quaternion>(this, bone, boneData->m_rotationTrack, bone->m_rotation, rotation);
+                    {   // CoA: garbage rotation keys (Vorkai/Sylvari anim 123 etc.) explode the mesh; fall back to rest pose
+                        C4Quaternion& q = bone->m_rotation.m_currentValue;
+                        float len2 = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+                        if (!std::isfinite(len2) || len2 < 0.25f || len2 > 4.0f) { M2MarkSeqBad(this, bone->m_sequence.m_animIndex); q = rotation; }
+                    }
                 }
 
                 local = C44Matrix(bone->m_rotation.m_currentValue);
@@ -6375,6 +6501,16 @@ uint32_t CM2Model::ProcessEventCallbacks(uint32_t boneIndex, uint32_t sequenceIn
             continue;
         }
 
+        // Corrupt event spans (relocated .anim data) point into unmapped memory; log the model so the data can be fixed.
+        if (IsBadReadPtr(times->Data(), count * sizeof(uint32_t))) {
+            if (FILE* file = fopen("Logs/AnimBad.log", "a")) {
+                fprintf(file, "bad event times: %s event %u seq %u count %u\n", this->m_shared->m_fileName, i, sequenceIndex, count);
+                fclose(file);
+            }
+
+            continue;
+        }
+
         if (boneIndex) {
             uint16_t parentIndex = data->m_bones[event->m_bone].m_parentIndex;
 
@@ -6716,6 +6852,7 @@ void CM2Model::SetBoneSequenceDeferred(uint16_t sequenceIndex, M2Data* data, uin
 
     if (data->m_sequences[sequenceIndex].m_flags & 0x10) {
         uint16_t index = sequenceIndex;
+        uint32_t aliasGuard = 0;
 
         while (true) {
             TSList<CM2SequenceLoad>& loads = this->m_shared->m_sequenceLoads;
@@ -6738,7 +6875,7 @@ void CM2Model::SetBoneSequenceDeferred(uint16_t sequenceIndex, M2Data* data, uin
 
             index = data->m_sequences[index].m_aliasNext;
 
-            if (index == sequenceIndex) {
+            if (index == sequenceIndex || index >= data->m_sequences.m_count || ++aliasGuard > data->m_sequences.m_count) {
                 return;
             }
         }

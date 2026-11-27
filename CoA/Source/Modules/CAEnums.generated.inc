@@ -12,9 +12,9 @@ const char* const kClassTypes[47] = {  // 0x10B1BDB0
     "Necromancer", "Pyromancer", "Cultist", "Starcaller", "SunCleric", "Tinker",
     "Primalist", "Reaper", "Venomancer", "Runemaster", "ConquestOfAzeroth", "RebornHunter",
     "RebornWarrior", "RebornRogue", "RebornMage", "RebornPriest", "RebornWarlock", "RebornDruid",
-    "RebornShaman", "RebornPaladin", "RebornDeathKnight", "RebornGeneral", "MaxClass",
+    "RebornShaman", "RebornPaladin", "RebornDeathKnight", "RebornGeneral", "Skinshifter",
 };
-const char* const kTabTypes[95] = {  // 0x10B21878
+const char* const kTabTypes[98] = {  // 0x10B21878, plus the Skinshifter specs (ids 95-98)
     "None", "Survival", "Marksmanship", "BeastMastery", "Fury", "Arms",
     "Protection", "Combat", "Subtlety", "Assassination", "Arcane", "Frost",
     "Fire", "Holy", "Shadow", "Discipline", "Affliction", "Demonology",
@@ -30,7 +30,8 @@ const char* const kTabTypes[95] = {  // 0x10B21878
     "Firearms", "Invention", "Mechanics", "Venom", "Stalking", "Fortitude",
     "Reaping", "Soul", "Domination", "Primal", "Geomancy", "Life",
     "Runic", "Riftblade", "Class", "Bulwark", "Hydromancy", "Valkyr",
-    "MountainKing", "Vizier", "Fleshweaver", "WitchKnight", "MaxTab",
+    "MountainKing", "Vizier", "Fleshweaver", "WitchKnight", "Beastskin",
+    "Courtier", "Felstriker", "Elementalist",
 };
 const char* const kLearnResults[46] = {  // 0x10B21428
     "CA_LEARN_OK", "CA_LEARN_UNKNOWN", "CA_LEARN_NOT_IN_WORLD", "CA_LEARN_BAD_ABILITY", "CA_LEARN_DISPLAY_ENTRY", "CA_LEARN_LOW_LEVEL",

@@ -73,7 +73,7 @@ bool CoA::CA::detail::ClassTabMinArgs(lua_State* L, uint32_t& cls, uint32_t& tab
     }
 
     cls = EnumArg(L, 1, kClassTypes, 0x2F);
-    tab = EnumArg(L, 2, kTabTypes, 0x5F);
+    tab = EnumArg(L, 2, kTabTypes, 0x62);
     minimum = static_cast<uint32_t>(ToInt(CheckNumber(L, 3)));
     return true;
 }
@@ -769,7 +769,7 @@ namespace {
         }
 
         const uint32_t cls = EnumArg(L, 1, kClassTypes, 0x2F);
-        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x5F);
+        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x62);
         Build* b = PendingOrError(L, "GetLowestInvestmentRequired");
 
         if (!b) {
@@ -851,7 +851,7 @@ namespace {
         }
 
         const uint32_t cls = EnumByName(CheckString(L, 1), kClassTypes, 0x2F);
-        const uint32_t tab = EnumByName(CheckString(L, 2), kTabTypes, 0x5F);
+        const uint32_t tab = EnumByName(CheckString(L, 2), kTabTypes, 0x62);
         const bool withMasteries = withFlag && lua_toboolean(L, 3) != 0;
         std::vector<Row> rows = ClassRows(cls, tab);
         rows.erase(std::remove_if(rows.begin(), rows.end(), [&](Row r) { return !keep(r, withMasteries); }), rows.end());
@@ -1090,7 +1090,7 @@ namespace {
 
         if (ValidateInput(L, { LUA_TSTRING, LUA_TSTRING })) {
             const uint32_t cls = EnumByName(CheckString(L, 1), kClassTypes, 0x2F);
-            const uint32_t tab = EnumByName(CheckString(L, 2), kTabTypes, 0x5F);
+            const uint32_t tab = EnumByName(CheckString(L, 2), kTabTypes, 0x62);
 
             if (!cls || !tab) {
                 return Usage(L, (std::string(name) + "(classType, tabType) expects valid class and tab names").c_str());
@@ -1224,7 +1224,7 @@ namespace {
         }
 
         const uint32_t cls = EnumArg(L, 1, kClassTypes, 0x2F);
-        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x5F);
+        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x62);
         std::vector<Row> rows = KnownRows(kind, static_cast<int>(cls), static_cast<int>(tab), true);
         std::sort(rows.begin(), rows.end(), LevelTabOrder);
         PushEntryList(L, rows);

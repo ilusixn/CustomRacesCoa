@@ -121,7 +121,7 @@ namespace {
     // Both checks, before the file is ever loaded.
     bool Verify(const std::wstring& path) {
         if (GetFileAttributesW(path.c_str()) == INVALID_FILE_ATTRIBUTES) {
-            WriteLog("Streamline: x64\\sl.interposer.dll not found");
+            WriteLog("Streamline: Vulkan\\sl.interposer.dll not found");
             return false;
         }
 
@@ -210,7 +210,7 @@ namespace {
             kFeatures[count++] = sl::kFeaturePCL;
         }
         const std::wstring exeDir = ExeDir();
-        s_pluginDir = exeDir + L"\\x64";
+        s_pluginDir = exeDir + L"\\Vulkan";
         s_logDir = exeDir + L"\\Logs";
         s_pluginPaths[0] = s_pluginDir.c_str();
 
@@ -257,7 +257,7 @@ namespace {
             WriteLog("Streamline: DXVK presents through Streamline's vkQueuePresentKHR");
         } else {
             CoA::Log::Printf("Streamline: present not routed through Streamline (%s)",
-                !s_setPresentProc ? "x64\\d3d9.dll lacks CoaDxvkSetPresentProc" : "no vkQueuePresentKHR proxy");
+                !s_setPresentProc ? "Vulkan\\d3d9.dll lacks CoaDxvkSetPresentProc" : "no vkQueuePresentKHR proxy");
         }
     }
 
@@ -347,7 +347,7 @@ namespace {
 
     bool RouteSwapchain(bool on) {
         if (!s_setSwapchainProcs) {
-            WriteLog("Streamline: x64\\d3d9.dll lacks CoaDxvkSetSwapchainProcs (Frame Generation cannot present)");
+            WriteLog("Streamline: Vulkan\\d3d9.dll lacks CoaDxvkSetSwapchainProcs (Frame Generation cannot present)");
             return false;
         }
 
@@ -553,7 +553,7 @@ namespace {
             GetProcAddress(static_cast<HMODULE>(dxvk), "CoaDxvkSetSwapchainProcs"));
 
         if (!setRequirements || !setDeviceCallback) {
-            WriteLog("Streamline: x64\\d3d9.dll lacks CoaDxvkSetVulkanRequirements / CoaDxvkSetDeviceCallback");
+            WriteLog("Streamline: Vulkan\\d3d9.dll lacks CoaDxvkSetVulkanRequirements / CoaDxvkSetDeviceCallback");
             FreeLibrary(static_cast<HMODULE>(dxvk));
             return Fail();
         }

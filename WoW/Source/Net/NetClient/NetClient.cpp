@@ -1,3 +1,4 @@
+#include "Engine/Source/Os/OsMemory.h"
 #include "NetClient.h"
 #include <cstdlib>
 #include <cstring>
@@ -308,6 +309,7 @@ int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_
         uint16_t raw;
         msg->Get(raw);
         opcode = static_cast<int16_t>(raw);
+        { char op[16]; sprintf_s(op, "0x%X", static_cast<unsigned>(raw)); CoaHeapNote("packet", op); CoaHeapCheck("packet"); } // CoA: COA_HEAPCHECK diagnostics
         start = CoA::Profiler::Received(opcode, msg->m_size);
         bool handled = CoA::Packets::Has(static_cast<uint32_t>(opcode));
         int32_t result;

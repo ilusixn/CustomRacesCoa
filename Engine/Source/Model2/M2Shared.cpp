@@ -59,6 +59,19 @@ static uint8_t* s_sequenceData;
 
 // STATIC: 0x00D4125C
 static uint32_t s_sequenceSize;
+static uint8_t* s_sequenceEnd;   // CoA: end of the loading .anim buffer
+
+// CoA: converted models (Mechagnome, ...) can point a sequence's texture-weight keys outside its .anim file, and the
+// relocated pointer crashed the next animate (gossip / invite emotes). A track that does not fit plays its default.
+template <class T>
+static void RelocateSequence(M2Array<T>& array) {
+    const uintptr_t start = reinterpret_cast<uintptr_t>(s_sequenceData) + array.m_offset;
+    if (array.m_count && s_sequenceEnd &&
+        (start < reinterpret_cast<uintptr_t>(s_sequenceData) || start + uint64_t(array.m_count) * sizeof(T) > reinterpret_cast<uintptr_t>(s_sequenceEnd))) {
+        array.m_count = 0;
+    }
+    array.Relocate(s_sequenceData);
+}
 
 #if defined(WOWDECOMP_RETAIL_ASSETS)
 static uint8_t* s_sequenceBoneData;
@@ -214,7 +227,7 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2TrackBase& tr
             return 0;
         }
     } else if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
-        track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
+        RelocateSequence(track.m_sequenceTimes[s_sequenceIndex]);
     }
 
     return 1;
@@ -249,11 +262,18 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2Track<T>& tra
         }
     } else {
         if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
-            track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
+            RelocateSequence(track.m_sequenceTimes[s_sequenceIndex]);
         }
 
         if (s_sequenceIndex < track.m_sequenceKeys.m_count) {
-            track.m_sequenceKeys[s_sequenceIndex].Relocate(s_sequenceData);
+            RelocateSequence(track.m_sequenceKeys[s_sequenceIndex]);
+        }
+
+        // One side dropped as out of range: drop both, so times and keys never disagree.
+        if (s_sequenceIndex < track.m_sequenceTimes.m_count && s_sequenceIndex < track.m_sequenceKeys.m_count &&
+            (!track.m_sequenceTimes[s_sequenceIndex].m_count || !track.m_sequenceKeys[s_sequenceIndex].m_count)) {
+            track.m_sequenceTimes[s_sequenceIndex].m_count = 0;
+            track.m_sequenceKeys[s_sequenceIndex].m_count = 0;
         }
     }
 
@@ -390,6 +410,13 @@ int32_t CM2Shared::SetIndices() {
             M2SkinSection* section = &this->m_skinSections[i];
             uint32_t start = M2EsteriaWideSource(&this->m_skinData->m_skinSections[i], this->m_skinData); // CoA: orig patch 0x83619F
             uint16_t offset = sharedVertices ? 0 : static_cast<uint16_t>(-section->m_vertexStart);
+
+            // CoA: a section whose indices do not fit the skin's index list or the buffer sized from it (bad data in a custom race model)
+            // used to write past the buffer's end; it is emptied instead.
+            uint32_t const indexTotal = this->m_instances * this->m_skinData->m_indices.m_count;
+            if (start + section->m_indexCount > this->m_skinData->m_indices.m_count || indexStart + this->m_instances * section->m_indexCount > indexTotal) {
+                section->m_indexCount = 0;
+            }
 
             for (uint32_t instance = 0; instance < this->m_instances; instance++) {
                 for (uint32_t j = 0; j < section->m_indexCount; j++) {
@@ -1671,6 +1698,7 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint
     s_sequenceIndex = sequenceIndex;
     s_sequenceData = buffer;
     s_sequenceSize = size;
+    s_sequenceEnd = buffer + size;
 #if defined(WOWDECOMP_RETAIL_ASSETS)
     if (retail && layout.chunked) {
         if (layout.model.present) s_sequenceData = buffer + layout.model.offset;
@@ -1685,6 +1713,7 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint
     s_sequenceIndex = 0xFFFFFFFF;
     s_sequenceData = nullptr;
     s_sequenceSize = 0;
+    s_sequenceEnd = nullptr;
 #if defined(WOWDECOMP_RETAIL_ASSETS)
     s_sequenceBoneData = nullptr;
     s_sequenceAttachmentData = nullptr;
@@ -1709,7 +1738,8 @@ int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, CAsy
         return 0;
     }
 
-    for (uint16_t* alias = &sequence->m_aliasNext; *alias != sequenceIndex; alias = &this->m_data->m_sequences[*alias].m_aliasNext) {
+    uint32_t aliasGuard = 0;
+    for (uint16_t* alias = &sequence->m_aliasNext; *alias != sequenceIndex && *alias < this->m_data->m_sequences.m_count && aliasGuard++ < this->m_data->m_sequences.m_count; alias = &this->m_data->m_sequences[*alias].m_aliasNext) {
         if (!this->FinishLoadingLowPrioritySequence(*alias, static_cast<uint8_t*>(object->m_buffer), object->m_size)) {
             return 0;
         }
@@ -2146,7 +2176,8 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
 
     M2Sequence* source = sequence;
 
-    while (source->m_flags & 0x40) {
+    // Custom models can have alias chains that never loop back (froze the game): bound every walk by the sequence count.
+    for (uint32_t guard = 0; (source->m_flags & 0x40) && guard < this->m_data->m_sequences.m_count; guard++) {
         source = &this->m_data->m_sequences[source->m_aliasNext];
     }
 
@@ -2192,7 +2223,8 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
 
     sequence->m_flags |= 0x10;
 
-    for (uint16_t i = sequence->m_aliasNext; i != sequenceIndex; i = this->m_data->m_sequences[i].m_aliasNext) {
+    uint32_t aliasGuard = 0;
+    for (uint16_t i = sequence->m_aliasNext; i != sequenceIndex && i < this->m_data->m_sequences.m_count && aliasGuard++ < this->m_data->m_sequences.m_count; i = this->m_data->m_sequences[i].m_aliasNext) {
         this->m_data->m_sequences[i].m_flags |= 0x10;
     }
 

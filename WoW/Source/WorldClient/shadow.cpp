@@ -21,6 +21,7 @@
 #include "Engine/Source/Gx/CGxVertexPC.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
+#include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C4Vector.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
 #include "Engine/Source/Tempest/C33Matrix.h"
@@ -407,34 +408,51 @@ static void ProjectTexBuildVertexBuffer(World::TriData::Batch* triBatch, CGxBatc
 
 // VERIFY: 2dba67bb manual
 // OFFSET: 0x007E32F0
-static void ProjectTexBuildVertexBufferVariant(World::TriData::Batch* triBatch, CImVector color, CGxBatch* batch, uint32_t flags) {
-    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, sizeof(CGxVertexPC), triBatch->m_indexCount);
-    CGxVertexPC* vertex = reinterpret_cast<CGxVertexPC*>(g_theGxDevicePtr->BufLock(buf));
+// CoA: with uv set (Vulkan, which has no fixed-function texgen) the vertices also carry texcoord sets 0 and 1 as D3D's
+// GxTexGen_World would generate them: position * world * GxXform_TexN (ProjectTexRender2d).
+struct ProjectTexVertexPCT2 {
+    C3Vector p;
+    CImVector c;
+    C2Vector tc[2];
+};
+
+static void ProjectTexBuildVertexBufferVariant(World::TriData::Batch* triBatch, CImVector color, CGxBatch* batch, uint32_t flags, const C44Matrix* uv = nullptr) {
+    const uint32_t stride = uv ? sizeof(ProjectTexVertexPCT2) : sizeof(CGxVertexPC);
+    CGxBuf* buf = g_theGxDevicePtr->BufStream(GxPoolTarget_Vertex, stride, triBatch->m_indexCount);
+    char* out = reinterpret_cast<char*>(g_theGxDevicePtr->BufLock(buf));
+    auto put = [&](const C3Vector& p) {
+        CGxVertexPC* vertex = reinterpret_cast<CGxVertexPC*>(out);
+        vertex->p = p;
+        vertex->c = color;
+
+        if (uv) {
+            ProjectTexVertexPCT2* uvVertex = reinterpret_cast<ProjectTexVertexPCT2*>(out);
+
+            for (uint32_t k = 0; k < 2; k++) {
+                const C3Vector t = p * uv[k];
+                uvVertex->tc[k] = C2Vector(t.x, t.y);
+            }
+        }
+
+        out += stride;
+    };
 
     if (triBatch->m_heightList) {
         for (uint32_t i = 0; i < triBatch->m_indexCount; i++) {
             uint16_t index = triBatch->m_indices[i];
-            vertex->p = triBatch->m_vertexList[index];
-            vertex->p.z = triBatch->m_heightList[index];
-            vertex->c = color;
-            vertex++;
+            C3Vector p = triBatch->m_vertexList[index];
+            p.z = triBatch->m_heightList[index];
+            put(p);
         }
     } else {
         batch->m_count = 0;
 
         if (flags & 0x4) {
             for (uint32_t i = 0; i < triBatch->m_indexCount; i += 3) {
-                const C3Vector& v0 = triBatch->m_vertexList[triBatch->m_indices[i]];
-                const C3Vector& v1 = triBatch->m_vertexList[triBatch->m_indices[i + 1]];
-                const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
-                vertex[0].p = v0;
-                vertex[0].c = color;
-                vertex[1].p = v1;
-                vertex[1].c = color;
-                vertex[2].p = v2;
-                vertex[2].c = color;
+                put(triBatch->m_vertexList[triBatch->m_indices[i]]);
+                put(triBatch->m_vertexList[triBatch->m_indices[i + 1]]);
+                put(triBatch->m_vertexList[triBatch->m_indices[i + 2]]);
                 batch->m_count += 3;
-                vertex += 3;
             }
         } else {
             for (uint16_t i = 0; i < triBatch->m_indexCount; i += 3) {
@@ -443,13 +461,9 @@ static void ProjectTexBuildVertexBufferVariant(World::TriData::Batch* triBatch, 
                 const C3Vector& v2 = triBatch->m_vertexList[triBatch->m_indices[i + 2]];
 
                 if ((v2.y - v0.y) * (v1.x - v0.x) - (v1.y - v0.y) * (v2.x - v0.x) >= 0.0f) {
-                    vertex[0].p = v0;
-                    vertex[0].c = color;
-                    vertex[1].p = v1;
-                    vertex[1].c = color;
-                    vertex[2].p = v2;
-                    vertex[2].c = color;
-                    vertex += 3;
+                    put(v0);
+                    put(v1);
+                    put(v2);
                     batch->m_count += 3;
                 }
             }
@@ -458,7 +472,7 @@ static void ProjectTexBuildVertexBufferVariant(World::TriData::Batch* triBatch, 
 
     g_theGxDevicePtr->BufUnlock(buf, 0);
     buf->m_hasData = 1;
-    GxPrimVertexPtr(buf, GxVBF_PC);
+    GxPrimVertexPtr(buf, uv ? GxVBF_PCT2 : GxVBF_PC);
 }
 
 // VERIFY: 2df38cbe auto
@@ -611,7 +625,7 @@ void ProjectTex2dDrawShaderEffect(const CAaBox& box, const CImVector& color, uin
 
 // VERIFY: f18827e8 manual
 // OFFSET: 0x007E3E80
-static void ProjectTexRender2d(const CAaBox& box, const CImVector& color, uint32_t triFlags, uint32_t flags, float polygonOffset) {
+static void ProjectTexRender2d(const CAaBox& box, const CImVector& color, uint32_t triFlags, uint32_t flags, float polygonOffset, const C44Matrix& texMatrix, const C44Matrix& fadeMatrix) {
     int32_t doodads;
     int32_t tris;
 
@@ -688,6 +702,10 @@ static void ProjectTexRender2d(const CAaBox& box, const CImVector& color, uint32
 
             if (flags & 0x2) {
                 ProjectTexBuildVertexBuffer(triBatch, &batch, flags);
+            } else if (g_theGxDevicePtr->m_api == GxApi_Vulkan) {
+                const C44Matrix world = *triBatch->m_matrix * view;
+                const C44Matrix uv[2] = { world * texMatrix, world * fadeMatrix };
+                ProjectTexBuildVertexBufferVariant(triBatch, packed, &batch, flags, uv);
             } else {
                 ProjectTexBuildVertexBufferVariant(triBatch, packed, &batch, flags);
             }
@@ -724,7 +742,7 @@ void ProjectTex::Render2d(const CAaBox& box, const CImVector& color, const C44Ma
     ProjectTex2dMakeMatrices(texMatrix, fadeMatrix, box, matrix, fade, 0);
     g_theGxDevicePtr->XformPushAndSet(GxXform_Tex0, texMatrix);
     g_theGxDevicePtr->XformPushAndSet(GxXform_Tex1, fadeMatrix);
-    ProjectTexRender2d(box, color, a5, a6, polygonOffset);
+    ProjectTexRender2d(box, color, a5, a6, polygonOffset, texMatrix, fadeMatrix);
     GxXformPop(GxXform_Tex0);
     GxXformPop(GxXform_Tex1);
 }

@@ -17,6 +17,7 @@ function WowDecompBuildPage(name, title, subtitle)
     page.options = {}
     page.checks = {}
     page.boxes = {}
+    page.sliders = {}
     page.y = -4
 
     local heading = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -62,7 +63,7 @@ function WowDecompBuildPage(name, title, subtitle)
         check.type = CONTROLTYPE_CHECKBOX
         check.cvar = cvar
         check.tooltipText = tooltip
-        check:SetScript("OnClick", function(self) BlizzardOptionsPanel_CheckButton_OnClick(self) end)
+        check:SetScript("OnClick", function(self) BlizzardOptionsPanel_CheckButton_OnClick(self); if VideoOptionsFrameApply then VideoOptionsFrameApply:Enable() end end)
         self.options[cvar] = { text = text, tooltip = tooltip }
         BlizzardOptionsPanel_RegisterControl(check, self)
         self.checks[#self.checks + 1] = check
@@ -81,6 +82,7 @@ function WowDecompBuildPage(name, title, subtitle)
         slider.SetValue = function(self, value)
             self:SetDisplayValue(value)
             BlizzardOptionsPanel_SetCVarSafe(self.cvar, value)
+            if VideoOptionsFrameApply then VideoOptionsFrameApply:Enable() end
         end
         _G[sliderName .. "Text"]:SetText(text)
         _G[sliderName .. "Low"]:SetText("")
@@ -116,6 +118,7 @@ function WowDecompBuildPage(name, title, subtitle)
         slider:SetMinMaxValues(low, high)
         slider:SetValueStep(step)
         self.options[cvar] = { text = text, minValue = low, maxValue = high, valueStep = step, tooltip = tooltip }
+        self.sliders[cvar] = slider
         BlizzardOptionsPanel_RegisterControl(slider, self)
         self.y = self.y - 46
         return slider
@@ -163,6 +166,47 @@ function WowDecompBuildPage(name, title, subtitle)
         return box
     end
 
+    -- Reset / Save my settings / Load my settings. Reset = Lumenveil's built-in values; Save keeps the current Lumenveil settings as your own
+    -- preset (CoAVolFog.preset.ini); Load puts that preset back. Every change enables Apply.
+    function page:ResetButton(defaults)
+        local function refresh()
+            for cvar, slider in pairs(self.sliders) do slider:SetDisplayValue(tonumber(GetCVar(cvar)) or 0) end
+            for _, check in ipairs(self.checks) do check:SetChecked(GetCVar(check.cvar) == "1") end
+            if VideoOptionsFrameApply then VideoOptionsFrameApply:Enable() end
+        end
+        local function make(label, x, width, onclick)
+            local button = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
+            button:SetSize(width, 22)
+            button:SetPoint("TOPRIGHT", x, -14)
+            button:SetText(label)
+            button:SetScript("OnClick", onclick)
+            return button
+        end
+        make("Reset to defaults", -40, 125, function()
+            for _, pair in ipairs(defaults) do
+                local cvar, value = pair[1], pair[2]
+                local slider = self.sliders[cvar]
+                if slider then
+                    slider:SetValue(tonumber(value) or 0)
+                else
+                    SetCVar(cvar, value)
+                    for _, check in ipairs(self.checks) do
+                        if check.cvar == cvar then check:SetChecked(value == "1") end
+                    end
+                end
+            end
+            if VideoOptionsFrameApply then VideoOptionsFrameApply:Enable() end
+        end)
+        make("Save my settings", -170, 120, function()
+            SetCVar("lumenveilPresetSave", tostring(GetTime()))
+            print("Lumenveil: your settings are saved as your preset.")
+        end)
+        make("Load my settings", -295, 115, function()
+            SetCVar("lumenveilPresetLoad", tostring(GetTime()))
+            refresh()
+        end)
+    end
+
     function page:Done()
         self.child:SetHeight(-self.y + 16)
         VideoOptionsPanel_OnLoad(self)
@@ -184,7 +228,7 @@ local choices = {
 }
 
 local dd = CreateFrame("Frame", "WowDecompVisualsDropDown", panel, "UIDropDownMenuTemplate")
-dd:SetPoint("TOPLEFT", VideoOptionsEffectsPanelPlayerTexture, "TOPLEFT", -284, 8)
+dd:SetPoint("TOPLEFT", VideoOptionsEffectsPanelPlayerTexture, "TOPLEFT", -184, -118)
 UIDropDownMenu_SetWidth(dd, 190)
 
 local function NameOf(value)

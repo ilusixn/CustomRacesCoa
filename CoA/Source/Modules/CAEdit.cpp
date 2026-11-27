@@ -162,7 +162,7 @@ namespace {
         }
 
         const uint32_t cls = EnumArg(L, 1, kClassTypes, 0x2F);
-        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x5F);
+        const uint32_t tab = EnumArg(L, 2, kTabTypes, 0x62);
         const bool forReset = lua_toboolean(L, 3) != 0;
         Build* b = PendingOrError(L, "ClearPendingBuildByTab");
 

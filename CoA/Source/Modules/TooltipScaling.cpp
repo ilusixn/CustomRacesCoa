@@ -142,7 +142,7 @@ namespace {
 
     bool CoAClass() {   // FUN_100c5f50
         const uint32_t c = PlayerClass();
-        return c >= 0xC && c <= 0x20;
+        return c >= 0xC && c <= 0x21;   // 0x21: Skinshifter
     }
 
     float AverageDamage(const uint8_t* rec) {   // FUN_102102c0
@@ -389,7 +389,7 @@ namespace {
             bool include = false;
 
             if (coa) {
-                include = cls >= 0xC && cls <= 0x20;
+                include = cls >= 0xC && cls <= 0x21;   // 0x21: Skinshifter
             } else if (stock) {
                 include = (cls >= 1 && cls <= 9) || cls == 0xB;
             } else if (hero) {

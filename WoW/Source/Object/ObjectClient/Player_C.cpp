@@ -3,6 +3,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
+#include "CoA/Source/Modules/CarriedMountClient.h"
 #include "CoA/Source/Modules/GossipQuest.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
@@ -4692,7 +4693,7 @@ void CGPlayer_C::CombatModeEnter(const WOWGUID& target, int32_t queueRanged, int
 
     int32_t rangedSpell = s_cvAutoRangedCombat->m_intValue ? CGSpellBook::m_autoRangedSpell : 0;
 
-    if (this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !this->MountedCombatAllowed()) {
+    if (CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed()) {
         float minRange;
         float maxRange;
 
@@ -8340,11 +8341,10 @@ void CGPlayer_C::ToggleSheathe() {
         int32_t hasSheathe = model->HasSequence(90);
         int32_t hasUnsheathe = model->HasSequence(89);
 
-        if (!hasSheathe || !hasUnsheathe || !model->HasBone(3) || !model->HasBone(2)) {
-            return;
-        }
-
-        if (model->GetBoneSequenceId(3) == 90 || model->GetBoneSequenceId(2) == 90 || model->GetBoneSequenceId(3) == 89 || model->GetBoneSequenceId(2) == 89) {
+        // CoA: a model without the sheath animations (creature-based races) used to ignore the key entirely; it now toggles and
+        // CGUnit_C::SetSheatheStateAnimate swaps the weapon at once. Only a sheath animation still playing blocks the toggle.
+        if (hasSheathe && hasUnsheathe && model->HasBone(3) && model->HasBone(2)
+            && (model->GetBoneSequenceId(3) == 90 || model->GetBoneSequenceId(2) == 90 || model->GetBoneSequenceId(3) == 89 || model->GetBoneSequenceId(2) == 89)) {
             return;
         }
     }
@@ -8906,7 +8906,7 @@ void CGPlayer_C::LootUnit(CGUnit_C* unit, bool autoInteract) {
         return;
     }
 
-    if (this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !this->MountedCombatAllowed()) {
+    if (CoA::CarriedMountClient::CountsAsMounted(this) && !this->MountedCombatAllowed()) {
         if (!this->CanAutoDismount()) {
             CGGameUI::DisplayError(ERR_NOT_WHILE_MOUNTED);
             return;

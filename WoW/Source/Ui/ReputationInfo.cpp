@@ -750,6 +750,8 @@ void CGReputationInfo::EnterWorld() {
             if (CGReputationInfo::m_factionStandings[faction->m_reputationIndex].m_flags & 0x1) {
                 CGReputationInfo::AddVisibleFaction(faction->m_reputationIndex, 0);
             }
+
+            break;   // CoA: race ids > 32 wrap in the masks and can match several rules; the server keeps the first
         }
     }
 

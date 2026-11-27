@@ -197,7 +197,7 @@ static void ReportBuild(FILE* file) {
     OsGetVersionString(os, sizeof(os));
 
     fprintf(file, "[build]\n");
-    fprintf(file, "  client          " CLIENT_NAME " " WAYSTONE_BUILD_STRING " (" WAYSTONE_COMMIT "), " GAME_VERSION " (" GAME_BUILD_STRING "), %s\n", sizeof(void*) == 8 ? "x64" : "x86");
+    fprintf(file, "  client          " CLIENT_NAME " " WAYSTONE_BUILD_STRING " (" WAYSTONE_COMMIT "), " GAME_VERSION " (" GAME_BUILD_STRING "), %s\n", sizeof(void*) == 8 ? "64-bit" : "32-bit");
     fprintf(file, "  compiled        %s %s\n", __DATE__, __TIME__);
 #ifdef DISABLE_SIGNATURE_CHECKS
     fprintf(file, "  signature check OFF (built with WOWDECOMP_DISABLE_SIGNATURE_CHECKS: modified MPQ files and interface files load)\n");

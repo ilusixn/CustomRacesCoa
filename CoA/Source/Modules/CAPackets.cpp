@@ -104,7 +104,7 @@ namespace {
         out.specDraft = CoA::GameMode::SpecBuildDraft(spec);
         out.qualities = (ConfigBool("CONFIG_CHARACTER_ADVANCEMENT_QUALITIES_ENABLED") && !((mode >> 3) & 1) && !((mode >> 6) & 1) && (mode & 0x400)) ? 1 : 0;
         out.hero = cls == 10;
-        out.coa = cls >= 12 && cls <= 32;
+        out.coa = cls >= 12 && cls <= 33;   // 33: Skinshifter
         out.stock = StockClass(cls);
         out.u2c = CoA::ObjectAddon::Unit(ActivePlayerGuid())[2].value;   // FUN_102d9f00
         out.level = UnitLevel(unit);
@@ -408,7 +408,7 @@ namespace {
             cls = 1;
         }
 
-        if (tab - 1 > 0x5E) {
+        if (tab - 1 > 0x61) {
             tab = 1;
         }
 

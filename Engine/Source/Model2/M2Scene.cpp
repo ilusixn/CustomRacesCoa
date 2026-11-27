@@ -1,3 +1,4 @@
+#include "Engine/Source/Os/OsMemory.h"
 #include "Engine/Source/Model2/EsteriaHooks.h"
 #include <cfloat>
 #include <cmath>
@@ -5,6 +6,8 @@
 #include <cstring>
 #include <new>
 #include <xmmintrin.h>
+#include <windows.h>
+#include <cstdio>
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -238,6 +241,29 @@ CM2Model* CM2ModelHeap::New() {
     return model;
 }
 
+// CoA: a model whose animation arrays are not usable (data not loaded yet / out of range, seen with many custom race models at once)
+// used to kill the client from this worker thread. It now keeps its last pose for this frame; the first few are logged by file name.
+static void AnimateGuarded(CM2Scene* scene, CM2Model* model) {
+    __try {
+        if (model->m_fFlags & 0x1000) {
+            model->AnimateMTSimple(&scene->m_view, C3Vector(1.0f, 1.0f, 1.0f), C3Vector(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
+        } else {
+            model->AnimateMT(&scene->m_view, C3Vector(1.0f, 1.0f, 1.0f), C3Vector(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        static volatile LONG logged = 0;
+
+        if (InterlockedIncrement(&logged) <= 40) {
+            FILE* file = fopen("Logs/AnimSkip.log", "a");
+
+            if (file) {
+                fprintf(file, "animate skipped: %s\n", model->m_shared ? model->m_shared->m_fileName : "?");
+                fclose(file);
+            }
+        }
+    }
+}
+
 // VERIFY: f41c995e auto
 // OFFSET: 0x0081CE70
 void CM2Scene::AnimateThread(void* param) {
@@ -254,11 +280,7 @@ void CM2Scene::AnimateThread(void* param) {
             continue;
         }
 
-        if (model->m_fFlags & 0x1000) {
-            model->AnimateMTSimple(&scene->m_view, C3Vector(1.0f, 1.0f, 1.0f), C3Vector(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
-        } else {
-            model->AnimateMT(&scene->m_view, C3Vector(1.0f, 1.0f, 1.0f), C3Vector(0.0f, 0.0f, 0.0f), 1.0f, 1.0f);
-        }
+        AnimateGuarded(scene, model);
     }
 }
 
@@ -1523,6 +1545,8 @@ void CM2ModelHeap::Delete(CM2Model* model) {
 // VERIFY: 6625d3c0 auto
 // OFFSET: 0x0081F8F0
 CM2Model* CM2Scene::CreateModel(const char* fileName, uint32_t flags) {
+    CoaHeapNote("CreateModel", fileName); // CoA: COA_HEAPCHECK diagnostics
+    CoaHeapCheck("CreateModel");
     // CoA: AscItemCollections.cpp:Detour81F8F0 (orig hook 0x81F8F0) -- before the original: the name as the crash
     // report's "Last Loaded M2 Name (CM2Shared)".
     if (g_m2CrashRecordHook) {

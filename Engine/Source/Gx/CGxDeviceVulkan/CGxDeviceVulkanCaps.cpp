@@ -102,7 +102,9 @@ void CGxDeviceVulkan::ISetCaps(const CGxFormat& format) {
 
     this->m_caps.m_shaderTargets[GxSh_Pixel] = 4;
     this->m_caps.m_shaderTargets[GxSh_Vertex] = 3;
-    this->m_caps.m_shaderConstants[GxSh_Vertex] = 1024;
+    // CoA: the models pick their skin profile (bones per draw) from this. 1024 chose the 256-bone profile, which custom race models
+    // do not carry intact (missing legs/torso); 256 is what D3D9 reports, so the same 64-bone profile is chosen.
+    this->m_caps.m_shaderConstants[GxSh_Vertex] = 256;
 
     if (format.m_fixedFunction[GxSh_Pixel] != -1 && format.m_fixedFunction[GxSh_Pixel] <= this->m_caps.m_shaderTargets[GxSh_Pixel]) {
         this->m_caps.m_shaderTargets[GxSh_Pixel] = format.m_fixedFunction[GxSh_Pixel];

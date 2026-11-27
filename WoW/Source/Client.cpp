@@ -1421,13 +1421,16 @@ static void OpenArchives() {
     s_archiveHandles.SetCount(512);
 
     for (uint32_t i = patches.m_files.Count(); i; i--) {
-        if (SFile::OpenArchive(patches.m_files[i - 1], priority, 0xC00, &s_archiveHandles[slot])) {
+        // CoA: in SD mode an HD archive opens below everything (priority 1), as a fallback for files SD lacks.
+        const bool fallback = CoA::RealmDataClient::SdFallbackArchive(patches.m_files[i - 1]);
+
+        if (SFile::OpenArchive(patches.m_files[i - 1], fallback ? 1 : priority, 0xC00, &s_archiveHandles[slot])) {
             if (SStrStrI(patches.m_files[i - 1], "Start.MPQ")) {
                 s_startArchivePriority = priority;
             }
 
             slot++;
-            priority++;
+            priority += fallback ? 0 : 1;
         }
     }
 

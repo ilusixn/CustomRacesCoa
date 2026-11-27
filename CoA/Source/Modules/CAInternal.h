@@ -46,7 +46,7 @@ namespace CoA::CA::detail {
     // ---- row predicates --------------------------------------------------------------------------------------
     bool StockClass(uint8_t c);   // FUN_100c63d0: 1..9 and 11
     inline bool CoAClass(uint8_t c) {
-        return c >= 12 && c <= 32;
+        return c >= 12 && c <= 33;   // 33: Skinshifter
     }
 
     bool Visible(Row r);        // FUN_101c6cc0

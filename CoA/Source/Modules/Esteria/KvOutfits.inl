@@ -116,7 +116,7 @@ KvBodySkin const* KvSkin(char const* path)
     if (!loaded)
     {
         loaded = true;
-        for (wchar_t const* bank : {L"EsteriaKvSkins.bin", L"EsteriaPackSkins.bin"})      // the pack races' skins sit in their own bank
+        for (wchar_t const* bank : {L"EsteriaKvSkins.bin", L"EsteriaPackSkins.bin", L"EsteriaSnagtoothSkins.bin"})      // the pack races' skins sit in their own bank
         {
             FILE* file = CatalogFile(bank);
             unsigned head[2]{};
@@ -1053,7 +1053,7 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
     // pack races: the body skin with its painted-on gear inpainted, laid under the armor (copied: the skin cache may be cleared by the next lookup)
     std::vector<unsigned char> nakedPixels;
     unsigned nakedWidth = 0, nakedHeight = 0;
-    if (skinPath && race >= 79 && race <= 91)
+    if (skinPath && race >= 79 && race <= 92)
         if (auto const* naked = KvSkin((std::string("naked\\") + skinPath).c_str()))
         {
             nakedPixels = naked->rgba;
@@ -1110,7 +1110,7 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
         }
         return true; // the plain colour skin the selection bound stays
     }
-    if (!map && race >= 79 && race <= 91)
+    if (!map && race >= 79 && race <= 92)
         return true;      // pack race whose own texture is its armor: no armor is baked
     if (!skin || !map || skin->width != map->width || skin->height != map->height)
     {
@@ -1236,7 +1236,7 @@ bool KvNativeBind(void* character, unsigned race, unsigned skinCount, unsigned m
             layer[4 * i + 2] = pixel[2] * a;
             layer[4 * i + 3] = a;
         }
-        int const radius = map->fine ? (map->width >= 1024 ? 1 : 0) : (race >= 79 && race <= 91 && map->width <= 512) ? 1 : 2;      // the pack skins are small: a 5x5 blur only smears the armor
+        int const radius = map->fine ? (map->width >= 1024 ? 1 : 0) : (race >= 79 && race <= 92 && map->width <= 512) ? 1 : 2;      // the pack skins are small: a 5x5 blur only smears the armor
         for (int pass = 0; pass < 2; ++pass)
         {
             for (std::size_t y = 0; y < h; ++y)
@@ -1327,7 +1327,7 @@ bool KvFacelessBind(void* character) { return KvNativeBind(character, 78, 9, 0, 
 bool KvPackBind(void* character)
 {
     unsigned race = RaceOf(CC<unsigned>(character, 0x18));
-    if (race < 79 || race > 91)
+    if (race < 79 || race > 92)
         return true;
-    return KvNativeBind(character, race, race == 79 ? 8u : CreatureAppearance::PackSkins[race - 80], 0, race == 84 || race == 85 || race == 91);
+    return KvNativeBind(character, race, race == 79 ? 8u : CreatureAppearance::PackSkins[race - 80], 0, race == 84 || race == 85 || race == 91 || race == 92);
 }

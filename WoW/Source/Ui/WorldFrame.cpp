@@ -88,6 +88,7 @@
 #include "WoW/Source/WorldClient/MapEntity.h"
 #include "WoW/Source/WorldClient/MapWeather.h"
 #include "Engine/Source/Lumenveil/Lumenveil.h"
+#include "WoW/Source/Ui/Visuals.h"
 #include "WoW/Source/WorldClient/HD/HdAO.h"
 #include "WoW/Source/WorldClient/HD/HdBloom.h"
 #include "WoW/Source/WorldClient/HD/HdCamera.h"
@@ -1779,6 +1780,10 @@ void CGWorldFrame::OnWorldRender() {
     }
 
     CShaderEffect::UpdateProjMatrix();
+    // Lumenveil's fog and shading run over the finished world, so names drawn from the model callback are recorded
+    // now and drawn after WorldDone (see PlayerNameDeferRendering).
+    const bool lumenveilNames = Visuals::Current() == Visuals::Lumenveil;
+    PlayerNameDeferRendering(lumenveilNames);
     CWorld::Render(this->m_camera->m_position, this->m_elapsedSec);
     CMap::RenderFootprints();
     ClntObjMgrEnumVisibleObjects(UnitPostAnimateProc, this);
@@ -1889,6 +1894,10 @@ void CGWorldFrame::OnWorldRender() {
     // Not in the original binary: Lumenveil's passes go onto the finished world, before the full-screen effects,
     // where the stock-client mod hooked the call to FFX::Finish.
     Lumenveil::WorldDone();
+    if (lumenveilNames) {
+        PlayerNameRenderDeferred();
+    }
+    PlayerNameDeferRendering(false);
     FFX::Finish();
     CVehiclePassenger_C::PostRenderUpdateAll();
 }

@@ -1,6 +1,7 @@
 // AscBindings.cpp's transcribed bindings that need no client objects (the rest are in BindingsClient.cpp): the
 // resurrection choices, C_Callboard.RequestView, C_UICamera.GetCameraInfo and the bindings the original registers
 // without implementing them.
+#include "CoA/Source/Modules/RealmDataClient.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/LuaReg.h"
@@ -56,8 +57,7 @@ namespace {
     bool HdCameras() {
         const DWORD attr = GetFileAttributesA("Data\\Patch-Q.mpq");
         const bool patchQ = attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY);
-        const char* hd = CoA::Script::CommandLineArg("hd");
-        return patchQ && !(hd && strcmp(hd, "0") == 0);
+        return patchQ && !CoA::RealmDataClient::SdFallbackArchive("Data\\patch-Q.MPQ");   // SD mode: -hd 0 or no Vulkan
     }
 
     // FUN_100c9000: (fov, x, y, z, flags) -- the HD set at +0x14.., the SD set at +0x4..

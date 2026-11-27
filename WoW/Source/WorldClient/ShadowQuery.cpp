@@ -685,9 +685,15 @@ void CShadowQuery::GatherShadowCasters(CShadowCacheQueryData& data, int32_t firs
             isUnit = 0;
         }
 
-        // CoA: AscGraphics.cpp:FUN_1025e290 (Extensions.dll patch 0x7BBA22) -- entityShadows other than "1" NOPs the jne:
-        // never a doodad caster.
-        uint32_t doodad = (CoA::Graphics::EntityShadows() && (model->m_fFlags & 0x1)) ? model->m_shared->m_billboardBoneCount : 0;
+        // entityShadows "1" is the only on value. Off skips character casters (the ground blob is already
+        // skipped in CWorldScene::RenderEntitys) and billboard doodads.
+        const bool entityShadows = CoA::Graphics::EntityShadows();
+
+        if (isUnit && !entityShadows) {
+            continue;
+        }
+
+        uint32_t doodad = (entityShadows && (model->m_fFlags & 0x1)) ? model->m_shared->m_billboardBoneCount : 0;
 
         for (int32_t band = firstBand; band <= lastBand; band++) {
             int32_t queryFlags = data.m_queryFlags[band];

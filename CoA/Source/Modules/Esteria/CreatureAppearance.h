@@ -429,8 +429,8 @@ namespace CreatureAppearance
     inline constexpr std::array<char const*, 2> CentaurFemaleLabels = {{"Skin Color", "Head Style"}};
 
     // AllRaces v12 pack races (ids 80-91): plain CharSections colour skins bound from EsteriaXxx.bin, skin colour only
-    constexpr bool IsPack(unsigned race) { return race >= 80 && race <= 91; }
-    inline constexpr unsigned PackSkins[12] = {18, 10, 9, 64, 11, 11, 13, 8, 8, 7, 12, 9};
+    constexpr bool IsPack(unsigned race) { return race >= 80 && race <= 92; }    // 92: Snagtooth
+    inline constexpr unsigned PackSkins[13] = {18, 10, 9, 64, 11, 11, 13, 8, 8, 7, 12, 9, 14};
 #include "PackCounts.inl"
     // fields: 0 skin colour, 1 hair colour, 2 facial hair; a control only exists when it has more than one choice, in this order
     inline std::vector<Option> PackControl(unsigned race, unsigned gender)
@@ -453,15 +453,15 @@ namespace CreatureAppearance
             return {"Skin Color", "Eye Color", "Beard", "Cap", "Extra (Shoulder Mushroom)"};
         bool fungarian = race == 84;
         if (c[1] > 1)
-            labels.push_back(fungarian ? "Eye Color" : "Hair Color");
+            labels.push_back(fungarian || race == 92 ? "Eye Color" : "Hair Color");     // 92 Snagtooth: eye texture (snagtooth/eyes.py)
         if (c[2] > 1)
             labels.push_back(fungarian ? "Cap / Extra / Beard" : "Features");
         return labels;
     }
-    constexpr std::array<std::array<std::array<Option, 5>, 2>, 12> MakePackOptions()
+    constexpr std::array<std::array<std::array<Option, 5>, 2>, 13> MakePackOptions()
     {
-        std::array<std::array<std::array<Option, 5>, 2>, 12> a{};
-        for (unsigned i = 0; i < 12; ++i)
+        std::array<std::array<std::array<Option, 5>, 2>, 13> a{};
+        for (unsigned i = 0; i < 13; ++i)
             for (unsigned g = 0; g < 2; ++g)
                 for (unsigned k = 0; k < 5; ++k)
                     a[i][g][k] = i == 4 ? Option{k, k == 0 ? PackCounts[i][g][0] : k == 1 ? PackCounts[i][g][1] : k == 2 ? 3u : k == 3 ? 5u : 4u, 1}
