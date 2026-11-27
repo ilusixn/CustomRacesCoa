@@ -109,8 +109,8 @@ namespace {
     int s_cancelled = 0;
 }
 
-// Reproduced original behaviour: each world entry arms another 100 ms chain; the glue stop cancels only the stored id.
-COA_TEST(ExtraActionButton_EachWorldEntryAddsAChain) {
+// A repeated world entry (/reload, far teleport) replaces the 100 ms chain instead of adding one.
+COA_TEST(ExtraActionButton_WorldEntryReplacesTheChain) {
     Setup();
     s_scheduled = 0;
     s_cancelled = 0;
@@ -119,8 +119,9 @@ COA_TEST(ExtraActionButton_EachWorldEntryAddsAChain) {
     CoA::ExtraActionButton::Start();
     CoA::ExtraActionButton::Start();
     CHECK(s_scheduled == 2);
-    CoA::ExtraActionButton::Stop();
     CHECK(s_cancelled == 1);
+    CoA::ExtraActionButton::Stop();
+    CHECK(s_cancelled == 2);
     CoA::Timer::SetBackend(nullptr, nullptr);
     CoA::Dbc::SetFileReader(nullptr);
 }

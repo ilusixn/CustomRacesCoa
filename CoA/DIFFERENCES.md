@@ -60,6 +60,13 @@ From the design (`docs/superpowers/specs/2026-10-25-coa64-client-design.md`) and
 - **Not ported from the reconstruction.** `AscDbcStream` (its `ASCENSION_DBC_STREAM` build, default off; SMSG
   `0x8F3`-`0x8F5` streamed GameObjectDisplayInfo / Map / MapDifficulty rows, not in the original) and
   `AscMinimapTargetKeep` (a workaround for a 32-bit-only indoor minimap defect CoA64 does not show).
+- **Quest log of up to 64 quests (also in the reconstruction).** The DLL has the same feature (`ASCENSION_QUEST_LOG_64`,
+  on in the ship preset; its `docs/QUEST_LOG_64.md`). After world entry the client sends CMSG `0x8F6` (HELLO); a
+  server that answers with SMSG `0x8F7` fills quest log slots 25..63 and sets the log size (25..64), and
+  `MAX_QUESTLOG_QUESTS` and `MAX_WATCHABLE_QUESTS` follow it. Slots 0..24 stay in the player descriptor; without a `0x8F7` the log is the
+  native 25 (`docs/superpowers/specs/2026-11-25-quest-log-64-design.md`). Known limit: the zone-header collapse
+  filter is the 25-bit `QuestLogCollapseFilter` mask, kept unchanged, so a header past the 25th distinct sort type
+  cannot be collapsed.
 - **Character advancement `0x726` handler order.** As in the reconstruction: unit parameters are synchronized before
   listeners run.
 - **World headers.** The reconstruction's plaintext-header stub (`0x466BF0`) is disabled there and not ported.

@@ -115,14 +115,19 @@ namespace {
             .U8(a.flag).U32(a.count).Send();
     }
 
-    // 0x1033B840: the next tick is armed without storing its id.
+    // 0x1033B840. The original dropped the re-armed id; storing it lets the glue cancel reach the live chain.
     int32_t OnTick(const void*, void*) {
         SendNext();
-        CoA::Timer::Schedule(0x32, OnTick, nullptr);
+        s_timer = CoA::Timer::Schedule(0x32, OnTick, nullptr);
         return 0;
     }
 
-    void OnEnterWorld() {   // FUN_1033b820
+    // FUN_1033b820. World entry repeats on /reload and far teleports: drop the running chain so ticks do not stack.
+    void OnEnterWorld() {
+        if (s_timer) {
+            CoA::Timer::Cancel(s_timer, OnTick, nullptr);
+        }
+
         s_timer = CoA::Timer::Schedule(0x32, OnTick, nullptr);
     }
 

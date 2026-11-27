@@ -5,24 +5,23 @@
 #include <string>
 #include <vector>
 
-// Live addon list (CoA addition, not in the original DLL): AddOnWatchClient.cpp watches Interface\AddOns\ (and
-// -addonspath) for changes and has the client rescan just the addons that changed, so an addon added, removed or
-// edited while the client runs shows up in the addon list without a restart. This half is the platform-free part:
-// which changes matter and when a burst of them has settled.
+// Live addon list (CoA addition): which folder changes matter and when a burst has settled.
+// See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
 namespace CoA::AddOnWatch {
     // The quiet time after the last relevant change before the rescan runs: extracting an addon writes many files.
     constexpr uint32_t kSettleMs = 500;
 
-    // The addon a change notification path (relative to the watched folder, '\' or '/') is about, or "" when the
-    // change cannot affect the list: only the top-level folder itself and a .toc directly inside it count, so
-    // Lua/XML edits and the client's own .url / .pub writes never trigger a rescan.
+    // The addon a changed path (relative, '\' or '/') is about: only a top-level folder or a .toc directly in it,
+    // so Lua/XML edits and the client's own .url / .pub writes never rescan the list ("" otherwise).
     std::string AddOnForChange(const char* relativePath);
 
     // A relevant change to the addon at now (ms).
     void Note(const std::string& name, uint32_t now);
     // The watch lost events (buffer overflow): every addon has to be rescanned.
     void NoteAll(uint32_t now);
-    // Whether a rescan is due at now; if so, takes the pending names (all = rescan everything).
+    // Any other file change: the disk file hash goes stale, the list does not.
+    void NoteFile(uint32_t now);
+    // Whether changes settled at now; if so, takes the pending names (all = rescan everything; none = hash only).
     bool Take(uint32_t now, std::vector<std::string>& names, bool& all);
     // Tests only.
     void Reset();

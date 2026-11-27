@@ -6,7 +6,7 @@
 //   c0..c3   rows of the render projection (device's current, possibly jittered, m_projNative) -> POSITION
 //   c4..c7   rows of cur.proj, unjittered
 //   c8..c11  rows of prev.proj
-//   c12      x = this frame's bones' base texel, y = last frame's, z = 1 / palette rows
+//   c12      x = this frame's bones' base texel, y = last frame's, z = 1 / palette rows, w = section bone count
 // TEXCOORD0 = current clip .xyw (cur.proj, this frame's bones), TEXCOORD1 = previous clip .xyw (prev.proj, last
 // frame's bones); MotionPS divides and subtracts. TEXCOORD2 = texcoord 0 for MotionKeyPS's alpha test.
 sampler2D bones : register(s0);
@@ -38,10 +38,14 @@ float4 Skin(float3 position, float4 weights, float4 indices, float base) {
     float4 p = float4(position, 1.0);
     float3 acc = float3(0, 0, 0);
     for (int i = 0; i < 4; ++i) {
-        float4 t0 = Fetch(indices[i], 0.0, base);
-        float4 t1 = Fetch(indices[i], 1.0, base);
-        float4 t2 = Fetch(indices[i], 2.0, base);
-        acc += weights[i] * float3(dot(p, t0), dot(p, t1), dot(p, t2));
+        // Unused influences are not read: their slot may lie past the section's texels (0 * NaN poisons the vertex).
+        [branch] if (weights[i] > 0.0) {
+            float index = min(indices[i], bases.w - 1.0);
+            float4 t0 = Fetch(index, 0.0, base);
+            float4 t1 = Fetch(index, 1.0, base);
+            float4 t2 = Fetch(index, 2.0, base);
+            acc += weights[i] * float3(dot(p, t0), dot(p, t1), dot(p, t2));
+        }
     }
     return float4(acc, 1.0);
 }

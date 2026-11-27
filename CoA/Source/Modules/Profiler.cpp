@@ -332,13 +332,13 @@ namespace {
 
     int32_t OpcodeTimer(const void*, void*) {   // LAB_102d5cb0
         DumpOpcodes();
-        CoA::Timer::Schedule(5000, OpcodeTimer, nullptr);
+        s_opcodeTimer = CoA::Timer::Schedule(5000, OpcodeTimer, nullptr);
         return 0;
     }
 
     int32_t EventTimer(const void*, void*) {   // LAB_102d5cd0
         DumpEvents();
-        CoA::Timer::Schedule(5000, EventTimer, nullptr);
+        s_eventTimer = CoA::Timer::Schedule(5000, EventTimer, nullptr);
         return 0;
     }
 

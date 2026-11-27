@@ -1888,6 +1888,9 @@ void CGWorldFrame::OnWorldRender() {
         g_renderPipelineHook->endWorld(this->m_viewportNDC);
     }
 
+    // CoA64: the names kept out of an upscaled world, at display size over the copied-back world.
+    PlayerNameRenderDeferred();
+
     SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
@@ -1895,7 +1898,7 @@ void CGWorldFrame::OnWorldRender() {
     // where the stock-client mod hooked the call to FFX::Finish.
     Lumenveil::WorldDone();
     if (lumenveilNames) {
-        PlayerNameRenderDeferred();
+        PlayerNameRenderLumenveilDeferred();
     }
     PlayerNameDeferRendering(false);
     FFX::Finish();

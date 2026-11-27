@@ -16,6 +16,10 @@ target_link_libraries(CoATests
         lua
         Os
         ConsoleBase
+        BLPFile
+        Images
+        Gx
+        Tempest
 )
 
 add_test(NAME CoATests COMMAND CoATests)

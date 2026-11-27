@@ -131,9 +131,8 @@ namespace {
     int s_cancelled = 0;
 }
 
-// Reproduced original behaviour: each world entry (also a far teleport or instance change re-entering the world) arms
-// another 100 ms chain, and the glue stop cancels only the last stored id.
-COA_TEST(SpellActivationOverlay_EachWorldEntryAddsAChain) {
+// A repeated world entry (/reload, far teleport) replaces the 100 ms chain instead of adding one.
+COA_TEST(SpellActivationOverlay_WorldEntryReplacesTheChain) {
     Setup();
     s_scheduled = 0;
     s_cancelled = 0;
@@ -142,8 +141,9 @@ COA_TEST(SpellActivationOverlay_EachWorldEntryAddsAChain) {
     CoA::SpellActivationOverlay::Start();
     CoA::SpellActivationOverlay::Start();
     CHECK(s_scheduled == 2);
-    CoA::SpellActivationOverlay::Stop();
     CHECK(s_cancelled == 1);
+    CoA::SpellActivationOverlay::Stop();
+    CHECK(s_cancelled == 2);
     CoA::Timer::SetBackend(nullptr, nullptr);
     CoA::Dbc::SetFileReader(nullptr);
 }

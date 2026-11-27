@@ -33,6 +33,13 @@
 #include "Engine/Source/Tempest/CWFrustum.h"
 #include "WoW/Source/WorldClient/World.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include <algorithm>
+#include <vector>
+
+// CoA64: names whose draw callback ran inside an upscaled / jittered world render, drawn after it at display size.
+static std::vector<PLAYERNAMEDESC*> s_deferredNames;
+// The view the draw callback ran with (CM2SceneRender::BeginFixed's billboard view, not the camera-relative one).
+static C44Matrix s_deferredView;
 
 // STATIC: 0x00D380A0
 uint32_t s_nameMask;
@@ -289,6 +296,7 @@ void PlayerNameDelete(PLAYERNAMEDESC* desc) {
         return;
     }
 
+    s_deferredNames.erase(std::remove(s_deferredNames.begin(), s_deferredNames.end(), desc), s_deferredNames.end());
     CGObject_C* object = ClntObjMgrObjectPtr(desc->m_guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object) {
@@ -537,8 +545,47 @@ void PLAYERNAMEDESC::RenderIfVisible(CM2Model* model, const CM2Lighting* lightin
             s_deferred.push_back(desc);
             return;
         }
+
+        // CoA64: DLSS / render scale would upscale the text and give it the camera's motion instead of the unit's.
+        if (g_renderPipelineHook && g_renderPipelineHook->deferWorldNames && g_renderPipelineHook->deferWorldNames()) {
+            if (std::find(s_deferredNames.begin(), s_deferredNames.end(), desc) == s_deferredNames.end()) {
+                GxXformView(s_deferredView);
+                s_deferredNames.push_back(desc);
+            }
+
+            return;
+        }
+
         desc->Render();
     }
+}
+
+void PlayerNameRenderDeferred() {
+    if (s_deferredNames.empty()) {
+        return;
+    }
+
+    // Without the world's depth (pipeline gone, copy failed) the names still draw, unoccluded.
+    if (g_renderPipelineHook && g_renderPipelineHook->drawWorldNames) {
+        g_renderPipelineHook->drawWorldNames();
+    }
+
+    // As CM2SceneRender::DrawCallback: its view, fixed function (the raid icon draws without shaders).
+    C44Matrix view;
+    GxXformView(view);
+    GxXformSetView(s_deferredView);
+    g_theGxDevicePtr->RsPush();
+    g_theGxDevicePtr->RsSet(GxRs_VertexShader, nullptr);
+    g_theGxDevicePtr->RsSet(GxRs_PixelShader, nullptr);
+    GxRsSet(GxRs_Texture1, nullptr);
+
+    for (PLAYERNAMEDESC* desc : s_deferredNames) {
+        desc->Render();
+    }
+
+    g_theGxDevicePtr->RsPop();
+    GxXformSetView(view);
+    s_deferredNames.clear();
 }
 
 void PlayerNameDeferRendering(bool defer) {
@@ -548,7 +595,7 @@ void PlayerNameDeferRendering(bool defer) {
     }
 }
 
-void PlayerNameRenderDeferred() {
+void PlayerNameRenderLumenveilDeferred() {
     if (s_deferred.empty()) {
         return;
     }

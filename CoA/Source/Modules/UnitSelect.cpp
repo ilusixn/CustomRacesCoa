@@ -3,7 +3,6 @@
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Runtime/CVars.h"
 #include "CoA/Source/Runtime/ClientHooks.h"
-#include "CoA/Source/Runtime/Packet.h"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include <algorithm>
 #include <cmath>
@@ -106,17 +105,6 @@ bool CoA::UnitSelect::SkipAutoTrackCursor() {
     }
 
     return false;
-}
-
-// CMSG 0x51F with three strings (XOR-decoded at run time in the original).
-void CoA::UnitSelect::BeforeClickToMove(bool returnPastImage) {
-    if (!returnPastImage) {
-        return;
-    }
-
-    CoA::Packet packet(0x51F);
-    packet.Str("Ascension").Str("CTM").Str("Click-to-Move called by bot.");
-    packet.Send();
 }
 
 // After the original: AutoInteractTurnSpeed's float (+0x2C) is the tracking turn rate, and the time is kept. Ruling: the

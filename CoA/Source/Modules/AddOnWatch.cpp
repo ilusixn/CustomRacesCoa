@@ -73,6 +73,11 @@ void CoA::AddOnWatch::NoteAll(uint32_t now) {
     s_lastChange = now;
 }
 
+void CoA::AddOnWatch::NoteFile(uint32_t now) {
+    s_dirty = true;
+    s_lastChange = now;
+}
+
 bool CoA::AddOnWatch::Take(uint32_t now, std::vector<std::string>& names, bool& all) {
     if (!s_dirty || now - s_lastChange < kSettleMs) {
         return false;

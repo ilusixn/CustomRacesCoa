@@ -23,6 +23,16 @@ float SafeInvW(float w) {
     return abs(w) > 1e-12 ? 1.0 / w : 1.0;
 }
 
+// As MotionPS: a point behind / at the previous eye moves off-screen, never Inf / NaN.
+float2 ClipMotion(float3 cur, float3 prev) {
+    bool valid = cur.z > 1e-4 && prev.z > 1e-4;
+    float cw = valid ? cur.z : 1.0;
+    float pw = valid ? prev.z : 1.0;
+    float2 m = float2(prev.x / pw - cur.x / cw, cur.y / cw - prev.y / pw) * 0.5;
+    valid = valid && abs(m.x) < 1e30 && abs(m.y) < 1e30;
+    return valid ? clamp(m, -2.0, 2.0) : float2(2.0, 2.0);
+}
+
 float4 main(float2 uv : TEXCOORD0) : COLOR0 {
     float stored = tex2D(s0, uv).r;
     float ndcD3d = (stored - depthRange.x) * depthRange.y;
@@ -35,7 +45,5 @@ float4 main(float2 uv : TEXCOORD0) : COLOR0 {
     float3 world = p.xyz * invW + (atInfinity ? float3(0, 0, 0) : eyeDelta.xyz);
 
     float4 prevClip = Mul(float4(world, atInfinity ? 0.0 : 1.0), prevVP[0], prevVP[1], prevVP[2], prevVP[3]);
-    float prevInvW = SafeInvW(prevClip.w);
-    float2 prevUV = float2((prevClip.x * prevInvW + 1.0) * 0.5, (1.0 - prevClip.y * prevInvW) * 0.5);
-    return float4(prevUV - uv, 0.0, 1.0);
+    return float4(ClipMotion(float3(ndc.xy, 1.0), prevClip.xyw), 0.0, 1.0);
 }

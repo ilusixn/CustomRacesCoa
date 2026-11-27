@@ -28,14 +28,10 @@ bool EffectGlow::Valid() {
 // VERIFY: 56a0fab0 auto
 // OFFSET: 0x008BFD90
 void EffectGlow::Execute() {
-    if (this->m_mode) {
-        for (uint32_t i = 0; i < this->m_altPasses.Count(); i++) {
-            this->m_altPasses[i]->Execute();
-        }
-    } else {
-        for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
-            this->m_passes[i]->Execute();
-        }
+    // CoA64: the underwater wave passes (m_altPasses) blank the screen on this client, so under water runs the
+    // regular glow passes too (SetParameters tints both sets). Notes: docs/2026-11-23-underwater-glow.md.
+    for (uint32_t i = 0; i < this->m_passes.Count(); i++) {
+        this->m_passes[i]->Execute();
     }
 }
 

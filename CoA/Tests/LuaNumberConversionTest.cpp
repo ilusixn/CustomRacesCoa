@@ -8,9 +8,8 @@
 extern "C" int luaopen_bit(lua_State* L);
 
 namespace {
-    // The 32-bit client converts a Lua number to a 32-bit integer through __ftol2 (0x88B9F6): a 64-bit truncation of
-    // which the low dword is kept, so numbers past 2^31 wrap. A plain (int) cast on x64 gives 0x80000000 instead --
-    // Ascension's bit.contains(Enum.ClassMask.COA = 0xFFFFF800, UnitClassMask) was false, LootCollector said "WR mode".
+    // The 32-bit client keeps the low dword of a 64-bit truncation (__ftol2, 0x88B9F6), so numbers past 2^31 wrap;
+    // a plain (int) cast on x64 gives 0x80000000 (broke Ascension's bit.contains on Enum.ClassMask.COA).
     std::string Eval(const char* expression) {
         lua_State* L = luaL_newstate();
         luaL_openlibs(L);
@@ -38,6 +37,9 @@ COA_TEST(LuaBit_NumbersPast2To31WrapLikeThe32BitClient) {
     CHECK(Eval("bit.rshift(4294967295, 1)") == "2147483647");
     CHECK(Eval("bit.arshift(4294967295, 1)") == "-1");
     CHECK(Eval("bit.mod(4294967295, 10)") == "-1");
+    CHECK(Eval("bit.mod(-2147483648, 4294967295)") == "0");  // INT_MIN % -1 traps in idiv
+    CHECK(Eval("bit.mod(2147483648, -1)") == "0");
+    CHECK(Eval("bit.mod(7, -1)") == "0");
     CHECK(Eval("bit.band(-1, 255)") == "255");
 }
 

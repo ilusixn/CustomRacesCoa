@@ -414,6 +414,7 @@ namespace {
         UINT startIndex;
         UINT primCount;
         float curBase, prevBase;   // palette texels of this frame's / last frame's bones
+        float boneCount;           // the section's bone slots (SkinnedMotionVS clamps indices to them)
         IDirect3DBaseTexture9* keyTex;   // nullptr: opaque (MotionPS)
         D3DTEXTUREADDRESS keyWrapU, keyWrapV;
         float keyRef;
@@ -514,10 +515,10 @@ namespace {
                 const uint32_t t = base + 3 * i + k;
                 float* texel = reinterpret_cast<float*>(static_cast<uint8_t*>(locked.pBits)
                     + static_cast<size_t>(locked.Pitch) * (t / CoA::RenderMotion::kPaletteStreamWidth)) + 4 * (t % CoA::RenderMotion::kPaletteStreamWidth);
-                texel[0] = m.m[0][k];
-                texel[1] = m.m[1][k];
-                texel[2] = m.m[2][k];
-                texel[3] = m.m[3][k];
+                // Non-finite bones (stale history) become 0: a NaN motion turns into black blocks under DLSS.
+                for (uint32_t r = 0; r < 4; ++r) {
+                    texel[r] = std::isfinite(m.m[r][k]) ? m.m[r][k] : 0.0f;
+                }
             }
         }
     }
@@ -689,6 +690,7 @@ namespace {
             draw.primCount = section->m_indexCount / 3u;
             draw.curBase = static_cast<float>(s_slotBase[slot]);
             draw.prevBase = static_cast<float>(s_slotBase[slot] + 3 * section->m_boneCount);
+            draw.boneCount = static_cast<float>(section->m_boneCount);
             const CGxTex* key = s_sources[batch].key;
             draw.keyTex = key ? static_cast<IDirect3DBaseTexture9*>(key->m_apiSpecificData) : nullptr;
             draw.keyWrapU = key && key->m_flags.m_wrapU ? D3DTADDRESS_WRAP : D3DTADDRESS_CLAMP;
@@ -811,7 +813,7 @@ namespace {
         bool keyed = false;
 
         for (const BatchDraw& draw : s_batches) {
-            const float bases[4] = { draw.curBase, draw.prevBase, 1.0f / static_cast<float>(rows), 0.0f };
+            const float bases[4] = { draw.curBase, draw.prevBase, 1.0f / static_cast<float>(rows), draw.boneCount };
             device->SetVertexShaderConstantF(12, bases, 1);
 
             if ((draw.keyTex != nullptr) != keyed) {

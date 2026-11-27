@@ -1703,8 +1703,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
         }
 
         // WoWFix335 npc-turn-attack-anim: original calls UpdateBaseAnimation(0, -1) when CanPlayTurnAnim() is nonzero
-        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
-        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call (je became jmp); nothing to change.
+        // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73E3C9) -- the DLL skips the same call; nothing to change.
         if (sequence != wanted) {
             this->CanPlayTurnAnim();
         }
@@ -9310,9 +9309,8 @@ void CGUnit_C::UpdateAuraEffectMask() {
         }
 
         for (int32_t effect = 0; effect < 3; effect++) {
-            // CoA: AscRuntime.cpp:Replace727E70 (orig hook 0x727E70) -- only aura types below 0x140 fit the 40-byte set;
-            // Ascension's higher types would write into the following fields. (The DLL's side map of types below
-            // 0x16E is read by nothing and is not kept.)
+            // CoA: AscRuntime.cpp:Replace727E70 (orig hook 0x727E70) -- only aura types below 0x140 fit the 40-byte set
+            // (docs/2026-11-15-unit-c-unitselect-notes.md).
             if ((aura->m_flags & (1 << effect)) && static_cast<uint32_t>(spell.m_effectAura[effect]) < 0x140) {
                 this->m_auraEffectMask[spell.m_effectAura[effect] / 8] |= 1 << (spell.m_effectAura[effect] % 8);
             }
@@ -17827,10 +17825,7 @@ void CGUnit_C::OnChannelSpellChanged(int32_t oldSpell) {
     }
 
     // WoWFix335 missing-pre-cast-animation: original ends with UpdateBaseAnimation(0, -1)
-    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
-    // nothing to change (the destructor is implicit here).
-    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call and the local's destructor call after it;
-    // nothing to change (the destructor is implicit here).
+    // CoA: AscAttachLate.cpp (Extensions.dll patch 0x73ECD6) -- the DLL NOPs the same call; nothing to change.
 }
 
 // VERIFY: 47ba34f4 auto
@@ -20977,7 +20972,6 @@ int32_t CGUnit_C::UpdateObjectNameStringForUnit(CGUnit_C* unit, int32_t flags, c
     return lines;
 }
 
-// STATIC
 // VERIFY: f5c49047 auto
 // OFFSET: 0x005EEB70
 static void ObjectNameCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
@@ -22730,9 +22724,8 @@ void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool su
 // VERIFY: 8ffb4576 manual
 // OFFSET: 0x00720BF0
 int32_t CGUnit_C::OverrideMissileFirePos(C3Vector* position, const SpellRec* spell) {
-    // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- before the body: a spell with a class set whose visual
-    // has a missile, an impact kit and follow-ground flags drops the 0x100 bit of ComputeMissileTrajectory's three
-    // intersections (the DLL writes the immediates 0x6FD335 / 0x6FD4C7 / 0x6FD59E) until the next targeting update.
+    // CoA: AscInitHooks.cpp:Detour720BF0 (orig hook 0x720BF0) -- follow-ground missiles drop the 0x100 intersection bit
+    // until the next targeting update (docs/2026-11-15-unit-c-unitselect-notes.md).
     if (spell) {
         const int32_t visualId = spell->m_spellVisualID[0];
         const SpellVisualRec* row = nullptr;
@@ -22849,7 +22842,8 @@ CM2Model* CGUnit_C::CreateItemModel(uint32_t displayId, uint32_t inventoryType, 
         int32_t sex = this->m_displayInfoExtra ? this->m_displayInfoExtra->m_displaySexID : this->m_unit->m_unitFieldBytes0[2];
         ChrRacesRec* race = g_chrRacesDB.GetRecord(this->GetDisplayRace());
 
-        if (!race) {
+        // CoA: s_genderSuffix has two entries; the sex comes from server data.
+        if (!race || sex < 0 || sex > 1) {
             return nullptr;
         }
 
@@ -23599,11 +23593,9 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 
 // VERIFY: 1484b729 manual
 // OFFSET: 0x00727400
-__declspec(noinline) bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
-    // CoA: AscUnitSelect.cpp:FUN_102da340 (orig hook 0x727400) -- a call from past the exe image reports a bot first
-    // (CMSG 0x51F); after the original the tracking turn rate is AutoInteractTurnSpeed and the time is kept.
-    // noinline: _ReturnAddress() must be this function's own return address, not an inlining caller's.
-    CoA::UnitSelectClient::BeforeClickToMove(_ReturnAddress());
+bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
+    // CoA: AscUnitSelect.cpp:FUN_102da340 (orig hook 0x727400) -- after the original the tracking turn rate is
+    // AutoInteractTurnSpeed and the time is kept. The original's CMSG 0x51F bot report is not ported.
     auto afterClick = CoA::ClientHooks::OnScopeExit([]() { CoA::UnitSelect::AfterClickToMove(); });
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
@@ -24390,9 +24382,8 @@ void CGUnit_C::OnSpecialMountAnim() {
 // VERIFY: d5c90727 manual
 // OFFSET: 0x00720F80
 const SpellVisualRec* CGUnit_C::GetAppropriateSpellVisual(const SpellRec* spell, SpellVisualRec& visual, int32_t visualId, int32_t lowViolenceVisualId) const {
-    // CoA: AscSpellVisuals.cpp:0x10322B50 (orig hook 0x720F80) -- from OnSpellGo (0x80ED4E) another player's harmful spell
-    // has no visual while hideOtherPlayerHarmfulSpellVisuals is on; after every return the record takes the server's /
-    // the appearance's visual (zeroed when hidden). The result is the original's.
+    // CoA: AscSpellVisuals.cpp:0x10322B50 (orig hook 0x720F80) -- hides other players' harmful visuals and applies the
+    // server / appearance visual (docs/2026-11-15-unit-c-unitselect-notes.md).
     if (CoA::SpellVisualsClient::SkipAppropriateVisual(this, spell)) {
         return nullptr;
     }

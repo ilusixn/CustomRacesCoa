@@ -134,6 +134,45 @@ COA_TEST(StaticMotion_CameraUpMovesPointsDown) {
     CHECK(m.y < 0 && Near(m.x, 0, 1e-4f));
 }
 
+COA_TEST(ClipMotion_BehindPreviousEyeIsFiniteOffscreen) {
+    const float cur[3] = { 0.1f, -0.2f, 5.0f };
+    const float behind[3] = { 0.3f, 0.4f, -2.0f };
+    const float atEye[3] = { 0.3f, 0.4f, 1e-7f };
+    auto a = CoA::RenderMotion::ClipMotion(cur, behind);
+    auto b = CoA::RenderMotion::ClipMotion(cur, atEye);
+    CHECK(a.x == CoA::RenderMotion::kMotionLimit && a.y == CoA::RenderMotion::kMotionLimit);
+    CHECK(b.x == CoA::RenderMotion::kMotionLimit && b.y == CoA::RenderMotion::kMotionLimit);
+}
+
+COA_TEST(ClipMotion_NonFiniteInputIsFiniteOffscreen) {
+    const float nan = std::nanf("");
+    const float cur[3] = { 0.1f, -0.2f, 5.0f };
+    const float prevNan[3] = { nan, 0.4f, 3.0f };
+    const float prevInf[3] = { INFINITY, 0.4f, 3.0f };
+    const float wNan[3] = { 0.1f, 0.4f, nan };
+    for (const float* prev : { prevNan, prevInf, wNan }) {
+        auto m = CoA::RenderMotion::ClipMotion(cur, prev);
+        CHECK(m.x == CoA::RenderMotion::kMotionLimit && m.y == CoA::RenderMotion::kMotionLimit);
+    }
+}
+
+COA_TEST(ClipMotion_LargeMotionClampedNormalUntouched) {
+    const float cur[3] = { 0.0f, 0.0f, 1.0f };
+    const float far[3] = { 1e6f, -1e6f, 1.0f };
+    auto c = CoA::RenderMotion::ClipMotion(cur, far);
+    CHECK(c.x == CoA::RenderMotion::kMotionLimit && c.y == CoA::RenderMotion::kMotionLimit);
+    const float near[3] = { 0.2f, 0.1f, 2.0f };   // prev ndc (0.1, 0.05)
+    auto n = CoA::RenderMotion::ClipMotion(cur, near);
+    CHECK(Near(n.x, 0.05f, 1e-6f) && Near(n.y, -0.025f, 1e-6f));
+}
+
+COA_TEST(StaticMotion_PointBehindPreviousEyeIsOffscreen) {
+    // Turned around: the point ahead of the current eye was behind the previous one.
+    auto f = FrameWith(Cam(0, 0, 0, Yaw(3.14159265f)), Cam(0, 0, 0, Yaw(0)));
+    auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, DepthAt(f, 10.0f));
+    CHECK(m.x == CoA::RenderMotion::kMotionLimit && m.y == CoA::RenderMotion::kMotionLimit);
+}
+
 COA_TEST(StaticMotion_EmptyDepthRangeIsZero) {
     auto f = SidestepFrame(0.5f, 0.5f);
     auto m = CoA::RenderMotion::StaticMotion(f, 0.5f, 0.5f, 0.5f);

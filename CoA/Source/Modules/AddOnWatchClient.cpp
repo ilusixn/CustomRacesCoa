@@ -5,6 +5,7 @@
 #include "CoA/Source/Runtime/Lifecycle.h"
 #include "CoA/Source/Runtime/Log.h"
 #include "Engine/Source/Base/Status.h"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Source/Ui/AddOns.h"
@@ -12,10 +13,8 @@
 #include <vector>
 #include <windows.h>
 
-// The live addon list's client half (AddOnWatch.h): an overlapped ReadDirectoryChangesW on each addon folder, checked
-// once per frame without a syscall (HasOverlappedIoCompleted); relevant changes are settled by AddOnWatch, then
-// RescanAddOns re-reads only those addons and ADDON_LIST_UPDATE tells the UI (the stock glue event; queued for the
-// world table).
+// The live addon list's client half: overlapped ReadDirectoryChangesW per folder, polled per frame.
+// See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
 namespace {
     constexpr uint32_t kRetryMs = 5000;
     constexpr DWORD kFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
@@ -86,6 +85,8 @@ namespace {
 
                 if (!name.empty()) {
                     CoA::AddOnWatch::Note(name, now);
+                } else {
+                    CoA::AddOnWatch::NoteFile(now);
                 }
             }
 
@@ -153,6 +154,13 @@ namespace {
         bool all = false;
 
         if (!CoA::AddOnWatch::Take(now, names, all)) {
+            return;
+        }
+
+        // Loose files resolve only through SFile's disk hash, built once: a new .toc or .lua is invisible until rebuilt.
+        SFile::RebuildHash();
+
+        if (names.empty() && !all) {
             return;
         }
 

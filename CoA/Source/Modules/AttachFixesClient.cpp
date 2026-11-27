@@ -258,14 +258,26 @@ bool CoA::AttachFixesClient::QuestRelevant(CGPlayer_C* player, uint32_t entry, b
 
         const uint32_t questId = static_cast<uint32_t>(log.m_questId);
 
-        for (uint32_t slot = 0; slot < 25; ++slot) {
-            const PlayerQuestLogEntry& logSlot = player->m_player->m_playerQuestLog[slot];
+        // CoA64: all 64 slots through the accessor (25..63 from SMSG 0x8F7).
+        for (uint32_t slot = 0; slot < CoA::QuestLogExtended::kMaxSlots; ++slot) {
+            const PlayerQuestLogEntry* slotEntry = player->GetQuestLogEntry(slot);
+
+            if (!slotEntry) {
+                break;
+            }
+
+            const PlayerQuestLogEntry& logSlot = *slotEntry;
             // PLAYER_QUEST_LOG_x_1 is 32 bits. The original reads its low word (1008dea0 movzx word), so no quest above
             // 65535 ever matched and custom quests drew no circle (applied early, as the reconstruction).
             const uint32_t id = logSlot.m_questId;
 
             if (id == 0) {
-                break;
+                // The original's break at the first empty slot ends the descriptor's 25 only; 25..63 are still read.
+                if (slot < CoA::QuestLogExtended::kNativeSlots) {
+                    slot = CoA::QuestLogExtended::kNativeSlots - 1;
+                }
+
+                continue;
             }
 
             if (id != questId) {
@@ -402,7 +414,6 @@ void CoA::AttachFixesClient::Init() {
 
     COA_PACKET(0x65C, OnMarkerModel);
 
-    // CoA: AscAttachFixes.cpp:sub_10a4c790 (orig hook 0x4181B0) -- not placed: in the 32-bit client 0x4181B0 is a CRT
-    // 80-bit float helper (callers 0x41464F / 0x894875), not FrameScript_RegisterFunction, and its report needs a
-    // caller outside the image, which a single-image x64 client cannot have. The 0x84E400 half is PushCClosure.
+    // CoA: AscAttachFixes.cpp:sub_10a4c790 (orig hook 0x4181B0) not placed: 0x4181B0 is a CRT float helper here, and its
+    // report needs a caller outside the image, impossible in a single-image x64 client. The 0x84E400 half is PushCClosure.
 }

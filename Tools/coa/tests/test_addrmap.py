@@ -87,3 +87,22 @@ class TagFormsTest(unittest.TestCase):
             write(recon, 'src/A.cpp', 'if (*reinterpret_cast<const uint32_t*>(0xB6AA2C) == 0) {}\n')
             row = addrmap.build(decomp, recon)[0xB6AA2C]
             self.assertEqual((row.kind, row.status, row.symbol), ('data', 'mapped', 'CGlueMgr::m_suspended'))
+
+
+class UntaggedStatusTest(unittest.TestCase):
+    def test_untagged_rows_are_covered_upstream_or_unported(self):
+        # covered: mentioned in the decomp (location = first mention); upstream: only WotLKExtensions refers to it.
+        with tempfile.TemporaryDirectory() as decomp, tempfile.TemporaryDirectory() as recon:
+            write(decomp, 'CoA/Source/Modules/A.cpp', 'int x;\n    // CoA: a non-stock class skips it (0x6DC45F jae -> jmp).\n')
+            write(recon, 'src/Ascension/AscA.cpp', 'Write(0x6DC45F, &op, 1);\nWrite(0x809572, j, 6);\n')
+            write(recon, 'WotLKExtensions/src/Client/Misc.cpp', 'Patch(0x5DC1EB);\nPatch(0x809572);\n')
+            rows = addrmap.build(decomp, recon)
+            self.assertEqual((rows[0x6DC45F].status, rows[0x6DC45F].location), ('covered', 'CoA/Source/Modules/A.cpp:2'))
+            self.assertEqual(rows[0x5DC1EB].status, 'upstream')
+            self.assertEqual(rows[0x809572].status, 'unported')
+
+    def test_mapped_wins_over_a_mention(self):
+        with tempfile.TemporaryDirectory() as decomp, tempfile.TemporaryDirectory() as recon:
+            write(decomp, 'a.cpp', '// see 0x00405DD0\n// OFFSET: 0x00405DD0\nstatic void OpenArchives() {\n}\n')
+            write(recon, 'WotLKExtensions/src/A.cpp', 'Call(0x405DD0);\n')
+            self.assertEqual(addrmap.build(decomp, recon)[0x405DD0].status, 'mapped')

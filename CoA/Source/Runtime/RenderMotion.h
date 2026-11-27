@@ -22,6 +22,13 @@ namespace CoA::RenderMotion {
     Vec2 ModelMotion(const RenderPipeline::Mat4& curBoneView, const RenderPipeline::Mat4& prevBoneView, const float pos[3],
                      const RenderPipeline::Mat4& curProj, const RenderPipeline::Mat4& prevProj);
 
+    // Motion limits every motion shader applies: DLSS turns an Inf / NaN motion into spreading black blocks.
+    constexpr float kMinClipW = 1e-4f;      // clip w at or below: behind / at that frame's eye
+    constexpr float kMotionLimit = 2.0f;    // |motion| in UV; beyond is off-screen anyway
+    // prevUV - curUV from the two clip .xyw; a point with no valid w or a non-finite result moves off-screen
+    // (kMotionLimit, kMotionLimit), the rest is clamped to +-kMotionLimit.
+    Vec2 ClipMotion(const float cur[3], const float prev[3]);
+
     // Row-vector matrix product: a is applied first.
     RenderPipeline::Mat4 Mul(const RenderPipeline::Mat4& a, const RenderPipeline::Mat4& b);
 

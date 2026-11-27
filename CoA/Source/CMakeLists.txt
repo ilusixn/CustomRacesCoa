@@ -53,3 +53,4 @@ coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/Moti
 coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/BiasMaskPS.hlsl PROFILE ps_3_0 NAME kBiasMaskPS)
 coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/DepthRemapPS.hlsl PROFILE ps_3_0 NAME kDepthRemapPS)
 coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/MotionViewPS.hlsl PROFILE ps_3_0 NAME kMotionViewPS)
+coa_embed_shader(TARGET CoA FILE ${CMAKE_CURRENT_SOURCE_DIR}/Render/Shaders/DepthCopyPS.hlsl PROFILE ps_3_0 NAME kDepthCopyPS)

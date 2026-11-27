@@ -410,6 +410,10 @@ struct RenderPipelineHook {
     // CoA64: right after FFX::Start in CGWorldFrame::OnWorldRender (FFX sizes its textures from the display, so the
     // world render size may only begin after it).
     void (*worldSized)();
+    // CoA64: true while the world renders upscaled / jittered: unit names wait for drawWorldNames (else DLSS smears them).
+    bool (*deferWorldNames)();
+    // CoA64: right after endWorld: the world's depth into the back buffer's, unjittered camera; false: draw without it.
+    bool (*drawWorldNames)();
 };
 
 extern RenderPipelineHook* g_renderPipelineHook;

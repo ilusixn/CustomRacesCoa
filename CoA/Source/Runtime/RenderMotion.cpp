@@ -11,11 +11,25 @@ namespace CoA::RenderMotion {
             }
         }
 
-        // Clip position to UV (u right, v down).
-        Vec2 ToUV(const float clip[4]) {
-            const float invW = 1.0f / clip[3];
-            return { (clip[0] * invW + 1.0f) * 0.5f, (1.0f - clip[1] * invW) * 0.5f };
+        float ClampMotion(float m) {
+            return m < -kMotionLimit ? -kMotionLimit : (m > kMotionLimit ? kMotionLimit : m);
         }
+    }
+
+    Vec2 ClipMotion(const float cur[3], const float prev[3]) {
+        // Written so that NaN fails every comparison and lands off-screen.
+        if (!(cur[2] > kMinClipW) || !(prev[2] > kMinClipW)) {
+            return { kMotionLimit, kMotionLimit };
+        }
+
+        const float mx = ((prev[0] / prev[2]) - (cur[0] / cur[2])) * 0.5f;
+        const float my = ((cur[1] / cur[2]) - (prev[1] / prev[2])) * 0.5f;
+
+        if (!(std::fabs(mx) < 1e30f) || !(std::fabs(my) < 1e30f)) {
+            return { kMotionLimit, kMotionLimit };
+        }
+
+        return { ClampMotion(mx), ClampMotion(my) };
     }
 
     Mat4 Mul(const Mat4& a, const Mat4& b) {
@@ -106,8 +120,10 @@ namespace CoA::RenderMotion {
 
         float prevClip[4];
         Transform(world, Mul(f.prev.view, f.prev.proj), prevClip);
-        const Vec2 prevUV = ToUV(prevClip);
-        return { prevUV.x - u, prevUV.y - v };
+        // The current side is the pixel itself (clip w 1).
+        const float cur[3] = { u * 2.0f - 1.0f, 1.0f - v * 2.0f, 1.0f };
+        const float prev[3] = { prevClip[0], prevClip[1], prevClip[3] };
+        return ClipMotion(cur, prev);
     }
 
     Vec2 ModelMotion(const Mat4& curBoneView, const Mat4& prevBoneView, const float pos[3], const Mat4& curProj, const Mat4& prevProj) {
@@ -115,9 +131,9 @@ namespace CoA::RenderMotion {
         float curClip[4], prevClip[4];
         Transform(p, Mul(curBoneView, curProj), curClip);
         Transform(p, Mul(prevBoneView, prevProj), prevClip);
-        const Vec2 c = ToUV(curClip);
-        const Vec2 q = ToUV(prevClip);
-        return { q.x - c.x, q.y - c.y };
+        const float cur[3] = { curClip[0], curClip[1], curClip[3] };
+        const float prev[3] = { prevClip[0], prevClip[1], prevClip[3] };
+        return ClipMotion(cur, prev);
     }
 
     bool ModelNeedsPass(bool animatedThisFrame, bool culled, bool staticSimple, bool worldChanged, bool havePrevious) {

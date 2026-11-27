@@ -57,6 +57,13 @@ static VOID CALLBACK MainFiberProc(LPVOID parameter) {
     // CoA: Ascension.exe cave 0x4E5CB0 (entered from 0x40B7D0) -- `mov dword [0xB6B474], 1` before main()
     CGlueMgr::m_scandllOkayToLogIn = 1;
     CGlueMgr::m_scandllShouldBlockPlaying = 0;
+    // CoA: updater extension
+    if (HMODULE coa64 = LoadLibraryA("coa64.dll")) {
+        using ModuleInitFn = void (*)();
+        if (auto init = reinterpret_cast<ModuleInitFn>(GetProcAddress(coa64, "ModuleInitialize"))) {
+            init();
+        }
+    }
     // CoA: the cave's LoadLibraryA("Extensions.dll") -- the CoA code is linked in
     CoA::Attach();
 

@@ -94,6 +94,7 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 #include "CoA/Source/Modules/InitHooks.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
 
 enum ANIMATED_OBJECT_STATE : int32_t {
     STATE_OPENING = 0,
@@ -575,9 +576,8 @@ int32_t CGGameObject_C::GetModelFileName(const char** name) const {
 // OFFSET: 0x0070CDF0
 const char* CGGameObject_C::GetObjectName() const {
     if (this->m_stats) {
-        // CoA: AscAttachFixes.cpp:FUN_10a42b80 (orig hook 0x70CDF0) -- a "$CN" name takes the creator's name over its first
-        // three characters, kept in the cache (the original writes it into the cached string; a fresh copy here, which
-        // a longer name cannot overrun).
+        // CoA: AscAttachFixes.cpp:FUN_10a42b80 (orig hook 0x70CDF0) -- a "$CN" name takes the creator's name over its
+        // first three characters, kept in a fresh cached copy (the original overwrote the cached string in place).
         if (this->m_stats->m_name[0] && SStrStr(this->m_stats->m_name[0], "$CN")) {
             std::string text = this->m_stats->m_name[0];
 
@@ -776,9 +776,8 @@ void CGGameObject_C::ShouldRender(uint32_t flags, int32_t& render, int32_t& hidd
     CGObject_C::ShouldRender(flags, render, hidden);
     this->m_typeData->ShouldRender(flags, render, hidden);
 
-    // CoA: AscAttachFixes.cpp:FUN_10a42d60 (orig hook 0x70B960) -- after a non-zero result the object's name is created once
-    // (ObjectNameCreate) and its draw callback updated. The result is eax, which the types' empty ShouldRender leave as
-    // flags.
+    // CoA: AscAttachFixes.cpp:FUN_10a42d60 (orig hook 0x70B960) -- after a non-zero result (eax, which the types' empty
+    // ShouldRender leave as flags) the object's name is created once (ObjectNameCreate) and its draw callback updated.
     if (flags) {
         if (!this->m_nameDesc) {
             this->m_nameDesc = ObjectNameCreate(this->m_obj->m_guid);
@@ -3872,7 +3871,8 @@ int32_t CGGameObject_C::CanHighlight() const {
         return 0;
     }
 
-    for (uint32_t i = 0; i < 25; i++) {
+    // CoA: quest log 64 (spec 2026-11-25).
+    for (uint32_t i = 0; i < CoA::QuestLogExtended::kMaxSlots; i++) {
         if (player->GetQuestLogEntry(i)->m_questId == static_cast<uint32_t>(questId)) {
             return 1;
         }

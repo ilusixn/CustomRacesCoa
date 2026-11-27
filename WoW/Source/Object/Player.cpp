@@ -1,5 +1,8 @@
 #include "Player.h"
 #include "WoW/Source/Object/Unit.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
+#include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
 // STATIC: 0x00AC4BC8
 const uint32_t CGPlayer::s_mirrorFields[173] = {
@@ -170,8 +173,11 @@ bool CGPlayer::HasAuraVision(uint8_t vision) {
 // VERIFY: d70d997f manual
 // OFFSET: 0x005E0870
 PlayerQuestLogEntry* CGPlayer::GetQuestLogEntry(uint32_t slot) {
-    if (slot > 25) {
-        return nullptr;
+    // CoA: quest log 64 (spec 2026-11-25). 0..24 stay on the descriptor; 25..63 come from SMSG 0x8F7's store,
+    // which only holds the active player's log (the original's slot > 25 read slot 25 past the descriptor).
+    if (slot >= CoA::QuestLogExtended::kNativeSlots) {
+        CGPlayer_C* active = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
+        return active && active->m_player == this->m_player ? CoA::QuestLogExtended::Mirror(slot) : nullptr;
     }
 
     return &this->m_player->m_playerQuestLog[slot];

@@ -195,15 +195,17 @@ namespace {
         return 1;
     }
 
-    // In the world: the quest's log slot (descriptor +0x278), CGQuestLog::GetQuestIndex, IsQuestCompleteEx(index - 1, 1).
+    // In the world: the quest's log slot (descriptor +0x278; CoA64: 64 slots through the accessor), CGQuestLog::GetQuestIndex,
+    // IsQuestCompleteEx(index - 1, 1).
     int IsQuestComplete(lua_State* L) {
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
         if (CGGameUI::s_inWorld && player) {
             const int32_t id = ToInt(lua_tonumber(L, 1));
 
-            for (uint32_t i = 0; i < 0x19; ++i) {
-                const int32_t q = static_cast<int32_t>(player->m_player->m_playerQuestLog[i].m_questId);
+            for (uint32_t i = 0; i < CoA::QuestLogExtended::kMaxSlots; ++i) {
+                const PlayerQuestLogEntry* entry = player->GetQuestLogEntry(i);
+                const int32_t q = entry ? static_cast<int32_t>(entry->m_questId) : 0;
 
                 if (q != 0 && q == id) {
                     const int32_t index = CGQuestLog::GetQuestIndex(id);

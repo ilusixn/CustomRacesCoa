@@ -1,62 +1,43 @@
 # Known Issues
 
-## KI-001: ACCESS_VIOLATION (read) in CoA64.exe, Scarlet Monastery, while attacking Scarlet Myrmidon
+## KI-001: ACCESS_VIOLATION in `CalcRowStride` when a BLP declares retail pixel format 11 (BC5)
 
-**Status:** Open, reproduced 2 of 2 times in the latest crash logs.
-**Severity:** High. It is a hard client crash.
+**Status:** Fixed in the working tree (2026-11-08). Not yet in a shipped build: the live client at `D:\WoW\CoA` is still the 2026-11-03 build.
+**Severity:** High. It is a hard client crash, and it happens every time the texture streams in.
 
 ### Source logs
-- `D:\WoW\Coa\Errors\2026-11-05 17.57.56 Crash.txt` and `.dmp`
-- `D:\WoW\Coa\Errors\2026-11-05 17.59.04 Crash.txt` and `.dmp`
-- Related: `D:\WoW\Coa\MemoryBridge.log`. It shows nothing abnormal: one `invalid_argument` on command 3, then the comm test passed.
+All three crashes on 2026-11-05 have the same signature:
+- `D:\WoW\CoA\Errors\2026-11-05 17.56.23 Crash.txt` / `.dmp`
+- `D:\WoW\CoA\Errors\2026-11-05 17.57.56 Crash.txt` / `.dmp`
+- `D:\WoW\CoA\Errors\2026-11-05 17.59.04 Crash.txt` / `.dmp`
 
-### Signature (identical in both crashes)
+### Signature
 | Field | Value |
 |---|---|
-| Error | `#2232418436 (0x85100084) Fatal Exception` |
-| Exception | `0xC0000005 ACCESS_VIOLATION` (read) |
-| Faulting RIP | `0x00007FF641C20C94` (`0001:000FFC94`, CoA64.exe) |
-| Module base | `0x00007FF641B20000` (R8 in the 17.59 dump). RVA is about `0x100C94`. |
-| Faulting address | `0x00007FF602603618` |
-| Build | WoWBuild 12340, DLL version `792084a2572c06bfd865feaf553c001f2bdd60fd` |
+| Exception | `0xC0000005 ACCESS_VIOLATION` (read) at `0x00007FF641C20C94`, reading `0x00007FF602603618` |
+| Symbol | `CalcRowStride+0x34` (`Engine/Source/Gx/Blit.cpp`). Build `6aea162b` (2026-11-03 18:13), resolved with `CoA64.map` |
+| Stack (from dump) | `UpdateBlpTextureAsync` → `PumpBlpTextureAsync+0x16b` → `CBLPFile::LockChain2+0x291` (inlined `Lock2`) → `CalcRowStride` |
+| Args | `format = RCX = 0xF0000000`, `width = RDX = 0x100` |
 
-The trace shows only the crashing frame, with no callers. The `.dmp` files are needed for a real stack.
+### Root cause
+The crash reports dump the `CBLPFile` header from the stack (the `BLP2` bytes at RBX): `colorEncoding=2` (DXT), `alphaSize=0`, `preferredFormat=0x0B`, 256×256 with mips. Mip 0 is 0x10000 bytes, which is 16 bytes per 4×4 block. It is the same texture in all three crashes.
 
-### Register hints (17.59.04)
-`RAX=FFFFFFFFF0000000 RCX=RDI=00000000F0000000 RDX=RSI=R9=0x100 R10=0x400 RBP=0`.
-- `F0000000` / `FFFFFFFFF0000000` looks like a sentinel or invalid index/handle that was sign-extended and used as an offset.
-- The faulting address is about 0x3F_4000_0000 below the module base, so it is probably a bad base + (index*scale) computation.
-- The `0x100` and `0x400` values look like size, stride or count constants.
+1. Preferred format 11 is retail's `PIXEL_BC5`. The 3.3.5 `PIXEL_FORMAT` enum stops at `NUM_PIXEL_FORMATS = 10`.
+2. The 2026-10-28 fix (`3017c3c`) made `TextureGetTextureFormats` fall back to `PIXEL_ARGB8888` for unknown formats. That stopped the old `ITexCreate` crash, but it sends the file into the DXT→ARGB decode in `CBLPFile::Lock2`.
+3. `Lock2` calls `GetBlitFormat(m_preferredFormat)`, which indexes the 10-entry `blitFmt` table without a bounds check. In the shipped exe, `blitFmt[11]` is the next static, `0xF0000000`.
+4. `CalcRowStride` takes that as a signed enum, which skips the DXT branch, and indexes `PIXELS_PER_BLOCK_SHIFT[-0x10000000]`. Table VA minus 1 GiB is exactly the faulting address.
 
-### Context at crash
-- Zone: Scarlet Monastery (cemetery WMO `MONESTARY_CEMETERY_023.wmo`).
-- The player (Helix) was in melee, auto-attacking a **Scarlet Myrmidon** (`F1300010C7...`). The target was the same creature type in both crashes (different GUIDs).
-- The current object track in crash 2 was a player or pet named Solaria.
-- Last Lua event: `SPELL_UPDATE_USABLE`.
-- Last M2s loaded: `spells\druid_infectedwounds.mdx` and `spells\cfx_paladin_sacredweapon_impact_recolored.m2`. These are spell effects, so a spell-visual or M2 path is a possible suspect.
-- The last `FrameScript_Execute` was the `HelixCtx` secure-function snapshot script. It saves `CastSpellByName`, `StartAttack`, `TargetUnit` and similar into `_H.secure`, then calls `HelixLoad`. **This is our own injected code that ran right before the crash.** The crash is probably unrelated to it, but rule it out.
-- Current Addon is `(null)`, so no addon Lua was running at the time.
-- Lua memory was about 305 MB and process memory about 2.4–2.6 GB (peak up to 5.5 GB). That is not at the 4 GB limit for a 64-bit process, but the peak is high.
+The earlier hypotheses were ruled out: HelixCtx, the DLSS/Reflex hooks, D3D9 adapter enumeration, and the Scarlet Myrmidon / spell-effect combat path. The mob fight only happened to be when the texture streamed in.
 
-### Environment (possibly relevant)
-- GPU: RTX 5080 plus AMD iGPU. D3D9 reports 3 adapters, all on `\\.\DISPLAY37`. Driver versions read `32767.65535.65535.65535`, which is a bogus or unparsed version.
-- Custom CVars: `coaDlssMode=2`, `coaReflex=2`, `useNewNameplates=0` (only in the first crash), `gxFixLag=0`, `particleDensity_raid=0.4`, `maxFPS=145`, `gxResolution=2560x1440`.
-- Addons loaded: DBM, Details, WeakAuras, DragonUI, Bagnon, LootCollector, Zygor and others.
+### Fix
+- `blp.cpp` `GetBlitFormat`: out-of-range formats map to `BlitFormat_Unknown`. `Lock` and `Lock2` return failure for an unknown DXT input format, and `Lock2` logs the file name.
+- `Blit.cpp`: `CalcRowStride` returns 0, and `Blit` returns failure, for out-of-range formats.
+- `Texture.cpp` `TextureLoadBlpMips` (the sync path): unknown preferred formats become `PIXEL_ARGB8888`. Before this, `Lock`'s `default:` returned success with uninitialized data.
+- **BC5 support:** `PIXEL_BC5 = 11` now maps to `BlitFormat_Bc5`. `Blit_Bc5_Argb8888` decodes it on the CPU: two BC4 blocks, reusing `Dxt5AlphaTable`. The output is (R, G, 0, 255), matching D3D BC5 sampling. The texture uploads as `GxTex_Argb8888`.
+- Any other unknown preferred format still fails cleanly. The async path reports "BLP Texture failure: … decompression failed" and calls `FillInSolidTexture`.
+- Tests: `CoA/Tests/BlpUnknownFormatTest.cpp` covers BC5 decode, small-mip clipping, the LockChain2 path, unknown formats, and out-of-range blit formats. All 1009 CoATests pass.
 
-### Hypotheses (most to least likely)
-1. A bad index or handle (`0xF0000000`) is dereferenced in a client routine. Candidates are combat or spell-visual handling for a mob that has just died or been engaged, or an M2 or effect cache lookup.
-2. Our hook or patch layer (HelixCtx, the `HD Patch: 1` hooks, the DLSS/Reflex integration) corrupts or invalidates a table or pointer. Check any hook near RVA `0x100C94`.
-3. A specific effect (infected wounds or sacred weapon) hits a bad skin or M2 pointer.
-4. A problem with the multi-adapter D3D9 enumeration. This is less likely, because the crash is not in the GX path.
-
-### Next steps for the fixing agent
-- Load both `.dmp` files in WinDbg or Visual Studio, or run `cdb -z <dmp> -c "!analyze -v; k; r; u @rip-40 @rip+20"`. Get the callers and the disassembly around RVA `0x100C94`.
-- Map RVA `0x100C94` to a function with the project symbols or map file, and check which hook or patch covers it.
-- Look at the `0x00007FF602603618` access and work out which structure it is indexing (RDI=`0xF0000000`, stride `0x100`/`0x400`).
-- Reproduce: enter Scarlet Monastery (Cemetery) and melee Scarlet Myrmidons. Both crashes happened within about 1m30s of each other, so try the same pull. Then test with:
-  - `HelixCtx` and Helix disabled
-  - `coaDlssMode=0` and `coaReflex=0`
-  - addons disabled (especially DBM and WeakAuras)
-  - spell effect density lowered
-- Add a null or sentinel guard (`idx == 0xF0000000` or similar) if the root cause is confirmed as an invalid handle.
-- Also check the `invalid_argument` returned by MemoryBridge command 3. It is probably benign but should be confirmed.
+### Still open
+- **Which file it is.** These reports have no texture name, because the "Last BLP" hook is only set when Extensions.dll is loaded.
+- **Not verified in-game yet.** Revisit the Scarlet Monastery cemetery to confirm the texture renders. A two-channel texture shows as red/green, which is correct BC5 output. If it is a normal map that the content expects drawn as color, that is a content issue.
+- **Memory cost.** BC5 textures sit in memory uncompressed (4× their file size). Uploading them natively as D3D `ATI2` would avoid that, but needs a new `EGxTexFormat`.

@@ -1,5 +1,6 @@
 // RenderPipeline's engine half: the g_renderPipelineHook callbacks (CGWorldFrame::OnWorldRender begin/end,
 // (continued: docs/2026-10-29-render-pipeline-notes.md, RenderPipelineClient.cpp #1)
+#include "CoA/Shaders/DepthCopyPS.h"
 #include "CoA/Shaders/DepthViewPS.h"
 #include "CoA/Shaders/FullscreenVS.h"
 #include "CoA/Source/Runtime/Dlss.h"
@@ -44,6 +45,8 @@ namespace {
     // projection carries this frame's jitter.
     bool s_dlss;
     bool s_jittered;
+    // This world render is upscaled or jittered: unit names are drawn after it at display size (DrawWorldNames).
+    bool s_deferNames;
     // The device may hold world textures (released when the pipeline turns off).
     bool s_targetHeld;
     // Device frame (CGxDevice::m_frameCount) and size of the last active world render: s_width x s_height is the
@@ -67,6 +70,7 @@ namespace {
     // reset / destroy through g_worldTargetReleaseHook, pipeline off through Deactivate).
     IDirect3DVertexShader9* s_debugVS;
     IDirect3DPixelShader9* s_debugPS;
+    IDirect3DPixelShader9* s_depthCopyPS;
     IDirect3DVertexDeclaration9* s_debugDecl;
     // Shader constants DrawDepthView writes (VS c0, PS c0..c2), re-sent from the engine's shadow copy afterwards.
     constexpr uint32_t kDebugVsConstants = 1;
@@ -75,7 +79,7 @@ namespace {
     bool s_debugFailed;
 
     void ReleaseDebug() {
-        IUnknown* objects[] = { s_debugVS, s_debugPS, s_debugDecl };
+        IUnknown* objects[] = { s_debugVS, s_debugPS, s_depthCopyPS, s_debugDecl };
 
         for (IUnknown* object : objects) {
             if (object) {
@@ -85,54 +89,61 @@ namespace {
 
         s_debugVS = nullptr;
         s_debugPS = nullptr;
+        s_depthCopyPS = nullptr;
         s_debugDecl = nullptr;
         s_debugFailed = false;
     }
 
-    // Draws the world's INTZ depth as greyscale over the full target rect, then ExternalStateRestore. Runs
-    // after WorldTargetEnd, so the original back buffer and depth surface are bound again. False: nothing drawn.
-    bool DrawDepthView(CGxDevice* gx) {
-        IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(gx->D3dDevice());
-        IDirect3DBaseTexture9* depth = static_cast<IDirect3DBaseTexture9*>(gx->WorldDepthTexture());
+    // The fullscreen passes' objects (depth view, names' depth copy), created once; false after a failure (logged).
+    bool EnsureFullscreenObjects(IDirect3DDevice9* device) {
+        if (s_debugDecl) {
+            return true;
+        }
 
-        if (!device || !depth || s_debugFailed) {
+        if (s_debugFailed) {
             return false;
         }
 
-        if (!s_debugDecl) {
-            const D3DVERTEXELEMENT9 elements[] = {
-                { 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
-                { 0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
-                D3DDECL_END()
-            };
+        const D3DVERTEXELEMENT9 elements[] = {
+            { 0, 0, D3DDECLTYPE_FLOAT4, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION, 0 },
+            { 0, 16, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD, 0 },
+            D3DDECL_END()
+        };
 
-            if (FAILED(device->CreateVertexShader(reinterpret_cast<const DWORD*>(kFullscreenVS), &s_debugVS))
-                || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kDepthViewPS), &s_debugPS))
-                || FAILED(device->CreateVertexDeclaration(elements, &s_debugDecl))) {
-                ReleaseDebug();
-                s_debugFailed = true;
-                CoA::Log::Printf("RenderPipeline: depth debug view unavailable (D3D9 object creation failed)");
-                return false;
-            }
+        if (FAILED(device->CreateVertexShader(reinterpret_cast<const DWORD*>(kFullscreenVS), &s_debugVS))
+            || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kDepthViewPS), &s_debugPS))
+            || FAILED(device->CreatePixelShader(reinterpret_cast<const DWORD*>(kDepthCopyPS), &s_depthCopyPS))
+            || FAILED(device->CreateVertexDeclaration(elements, &s_debugDecl))) {
+            ReleaseDebug();
+            s_debugFailed = true;
+            CoA::Log::Printf("RenderPipeline: fullscreen passes unavailable (D3D9 object creation failed)");
+            return false;
         }
 
-        // The quad covers the bound render target (the back buffer) exactly, so uv runs 0..1 over what is visible; the
-        // world target's size is the fallback. With both the same size the point sampling hits texel centres.
-        uint32_t targetWidth = s_width;
-        uint32_t targetHeight = s_height;
+        return true;
+    }
+
+    // Size of the bound render target (the back buffer after WorldTargetEnd); the display size as fallback.
+    void BoundTargetSize(IDirect3DDevice9* device, uint32_t& width, uint32_t& height) {
+        width = s_width;
+        height = s_height;
         IDirect3DSurface9* target = nullptr;
 
         if (SUCCEEDED(device->GetRenderTarget(0, &target)) && target) {
             D3DSURFACE_DESC desc;
 
             if (SUCCEEDED(target->GetDesc(&desc)) && desc.Width && desc.Height) {
-                targetWidth = desc.Width;
-                targetHeight = desc.Height;
+                width = desc.Width;
+                height = desc.Height;
             }
 
             target->Release();
         }
+    }
 
+    // A quad over the whole bound target (uv 0..1, point / clamp on s0), viewport depth 0..1. The caller sets the
+    // pixel shader, its constants, s0 and the depth / colour write states.
+    void DrawFullscreen(IDirect3DDevice9* device, uint32_t targetWidth, uint32_t targetHeight) {
         const float w = static_cast<float>(targetWidth);
         const float h = static_cast<float>(targetHeight);
         D3DVIEWPORT9 viewport = { 0, 0, targetWidth, targetHeight, 0.0f, 1.0f };
@@ -146,13 +157,10 @@ namespace {
         };
 
         device->SetViewport(&viewport);
-        device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
-        device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
         device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
         device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
         device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
         device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
         device->SetRenderState(D3DRS_CLIPPLANEENABLE, 0);
         device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
         device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
@@ -161,8 +169,27 @@ namespace {
         device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
         device->SetVertexDeclaration(s_debugDecl);
         device->SetVertexShader(s_debugVS);
-        device->SetPixelShader(s_debugPS);
         device->SetVertexShaderConstantF(0, offset, 1);
+        device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
+    }
+
+    // Draws the world's INTZ depth as greyscale over the full target rect, then ExternalStateRestore. Runs
+    // after WorldTargetEnd, so the original back buffer and depth surface are bound again. False: nothing drawn.
+    bool DrawDepthView(CGxDevice* gx) {
+        IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(gx->D3dDevice());
+        IDirect3DBaseTexture9* depth = static_cast<IDirect3DBaseTexture9*>(gx->WorldDepthTexture());
+
+        if (!device || !depth || !EnsureFullscreenObjects(device)) {
+            return false;
+        }
+
+        uint32_t targetWidth = 0;
+        uint32_t targetHeight = 0;
+        BoundTargetSize(device, targetWidth, targetHeight);
+        device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+        device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+        device->SetPixelShader(s_debugPS);
         // c0.x: 1 = depth view, 2 = diagnostic (uv gradient, blue where the depth is still at the clear value).
         // (continued: docs/2026-10-29-render-pipeline-notes.md, RenderPipelineClient.cpp #3)
         const Frame& frame = Current();
@@ -174,11 +201,41 @@ namespace {
         device->SetPixelShaderConstantF(0, mode, 1);
         device->SetPixelShaderConstantF(1, depthConstants, 2);
         device->SetTexture(0, depth);
-        device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
+        DrawFullscreen(device, targetWidth, targetHeight);
 
         // The INTZ must not stay bound (it would fail the next Begin / Reset); the engine re-binds its own textures.
         device->SetTexture(0, nullptr);
         gx->ExternalStateRestore(kDebugVsConstants, kDebugPsConstants);
+
+        return true;
+    }
+
+    // The world's INTZ upscaled (point) into the bound default depth surface: what that surface held after the world
+    // before the pipeline existed, and the occlusion the deferred names test against. False: nothing written.
+    bool CopyWorldDepth(CGxDevice* gx) {
+        IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(gx->D3dDevice());
+        IDirect3DBaseTexture9* depth = static_cast<IDirect3DBaseTexture9*>(gx->WorldDepthTexture());
+        IDirect3DSurface9* depthSurface = nullptr;
+
+        if (!device || !depth || !EnsureFullscreenObjects(device) || FAILED(device->GetDepthStencilSurface(&depthSurface)) || !depthSurface) {
+            return false;
+        }
+
+        depthSurface->Release();
+        uint32_t targetWidth = 0;
+        uint32_t targetHeight = 0;
+        BoundTargetSize(device, targetWidth, targetHeight);
+        device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
+        device->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
+        device->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+        device->SetRenderState(D3DRS_DEPTHBIAS, 0);
+        device->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, 0);
+        device->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
+        device->SetPixelShader(s_depthCopyPS);
+        device->SetTexture(0, depth);
+        DrawFullscreen(device, targetWidth, targetHeight);
+        device->SetTexture(0, nullptr);
+        gx->ExternalStateRestore(kDebugVsConstants, 0);
 
         return true;
     }
@@ -287,6 +344,7 @@ namespace {
 
         s_dlss = false;
         s_jittered = false;
+        s_deferNames = false;
         ActivationInput in;
         in.cvarOn = PipelineOn();
         in.msaaSamples = device->m_format.m_multisampleCount;
@@ -376,6 +434,7 @@ namespace {
         const bool fresh = s_havePending && s_pendingFresh;
         s_pendingFresh = false;
         s_dlss = dlss && fresh;
+        s_deferNames = dlss || renderWidth != width || renderHeight != height;
 
         if (dlss && !fresh) {
             CoA::DlssClient::Skip();
@@ -405,6 +464,7 @@ namespace {
         device->XformSetProjection(projection);
         SetJitter(jx, jy);
         s_jittered = true;
+        s_deferNames = true;
     }
 
     // Right after FFX::Start (which sizes its textures from the display): a world target smaller than the display
@@ -454,6 +514,14 @@ namespace {
                 // The whole target, not only the viewport: it started as a copy of the back buffer and the
                 // (continued: docs/2026-10-29-render-pipeline-notes.md, RenderPipelineClient.cpp #7)
                 copied = device->WorldTargetEnd(0, 0, static_cast<int32_t>(s_width), static_cast<int32_t>(s_height));
+            }
+
+            // What follows the world (names, chat bubbles) projects with the camera as the original did, unjittered.
+            if (s_jittered && s_havePending) {
+                C44Matrix projection;
+                memcpy(&projection, &s_pending.proj, sizeof(projection));
+                device->XformSetProjection(projection);
+                s_jittered = false;
             }
 
             if (!copied) {
@@ -518,7 +586,18 @@ namespace {
         }
     }
 
-    RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection, OpaqueDone, WorldSized };
+    bool DeferWorldNames() {
+        return s_begun && s_deferNames;
+    }
+
+    // After EndWorld, before the deferred names draw: the world's depth for their occlusion test.
+    bool DrawWorldNames() {
+        const bool deferred = s_deferNames;
+        s_deferNames = false;
+        return deferred && g_theGxDevicePtr && CopyWorldDepth(g_theGxDevicePtr);
+    }
+
+    RenderPipelineHook s_hook = { BeginWorld, EndWorld, SetupWorldProjection, OpaqueDone, WorldSized, DeferWorldNames, DrawWorldNames };
 
     // coaRenderPipeline's callback; also runs at registration with the value loaded from Config.wtf, so a 1 there
     // (continued: docs/2026-10-29-render-pipeline-notes.md, RenderPipelineClient.cpp #9)
