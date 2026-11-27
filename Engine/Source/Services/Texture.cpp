@@ -908,12 +908,10 @@ void TextureGetTextureFormats(PIXEL_FORMAT& pixelFormat, EGxTexFormat& gxTexForm
 
 // VERIFY: 7e1eb12e manual
 // OFFSET: 0x004B6180
-uint32_t TextureCacheGetMaxSize() {
-    uint32_t size = 0x4000000;
+static uint32_t TextureCacheLimit();
 
-    if (OsGetPhysicalMemory() <= 0x40000000) {
-        size = 0x2000000;
-    }
+uint32_t TextureCacheGetMaxSize() {
+    uint32_t size = TextureCacheLimit();
 
     return g_theGxDevicePtr->DeviceApi() == GxApi_D3d9Ex ? 0 : size;
 }
@@ -1062,12 +1060,16 @@ void AsyncTextureWait(CTexture* texture) {
 
 // VERIFY: 6e25a772 manual
 // OFFSET: 0x004B6580
-void TextureSetCacheSize(int32_t size) {
-    uint32_t maxSize = 0x4000000;
+// CoA perf: the original caps the freed-texture cache at 64 MB (32 MB under 1 GB of RAM), sized for 2008 32-bit
+// clients; with a small cache every texture that falls out is destroyed and created again (thousands per session).
+// The x64 client scales it with the machine: 32 MB under 1 GB, 256 MB under 8 GB, 1 GB above.
+static uint32_t TextureCacheLimit() {
+    const uint64_t ram = OsGetPhysicalMemory();
+    return ram <= 0x40000000ull ? 0x2000000u : ram < 0x200000000ull ? 0x10000000u : 0x40000000u;
+}
 
-    if (OsGetPhysicalMemory() <= 0x40000000) {
-        maxSize = 0x2000000;
-    }
+void TextureSetCacheSize(int32_t size) {
+    uint32_t maxSize = TextureCacheLimit();
 
     if (g_theGxDevicePtr->DeviceApi() == GxApi_D3d9Ex) {
         maxSize = 0;
