@@ -29,6 +29,12 @@ class SkillLineRecTable : public TSHashTable<SKILLLINEREC, HASHKEY_SKILLLINE> {
 // STATIC: 0x00D3F660
 static SkillLineRecTable s_skillLineRecs;
 
+// CoA: the original hashes on the spell id alone; with 100+ races every class spell chains ~100 race entries in one
+// bucket, walked per action button per frame. Race and class go into the hash (both sides, New and Ptr).
+static uint32_t SkillLineHash(uint8_t race, uint8_t classId, int32_t spellId) {
+    return static_cast<uint32_t>(spellId) * 2654435761u ^ (static_cast<uint32_t>(race) << 8 | classId) * 40503u;
+}
+
 // STATIC: 0x00D3F688
 static TSGrowableArray<SkillLineLinkInfo> s_skillLineLinkInfo;
 
@@ -157,7 +163,7 @@ static bool SpellTableAddSkillLineRec(int32_t race, int32_t classId, const Skill
     key.m_class = static_cast<uint8_t>(classId);
     key.m_spellId = ability->m_spell;
 
-    SKILLLINEREC* rec = s_skillLineRecs.New(ability->m_spell, key, 0, 0);
+    SKILLLINEREC* rec = s_skillLineRecs.New(SkillLineHash(key.m_race, key.m_class, key.m_spellId), key, 0, 0);
     rec->m_ability = ability;
     return true;
 }
@@ -269,7 +275,7 @@ SkillLineAbilityRec* SpellTableLookupAbility(int32_t race, int32_t classId, int3
     key.m_class = static_cast<uint8_t>(classId);
     key.m_spellId = spellId;
 
-    SKILLLINEREC* rec = s_skillLineRecs.Ptr(spellId, key);
+    SKILLLINEREC* rec = s_skillLineRecs.Ptr(SkillLineHash(key.m_race, key.m_class, key.m_spellId), key);
 
     if (rec) {
         return const_cast<SkillLineAbilityRec*>(rec->m_ability);

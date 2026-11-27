@@ -287,6 +287,7 @@ void CGxDeviceVulkan::IShaderConstantsFlush() {
 
     if (vs.dirtyMin <= vs.dirtyMax && vs.dirtyMax < ShadowConstants::Count) {
         memcpy(&this->m_vertexRegs[vs.dirtyMin * 4], &vs.constants[vs.dirtyMin * 4], (vs.dirtyMax - vs.dirtyMin + 1) * 4 * sizeof(float));
+        this->m_vertexRegsGen++;
         g_stats.flushes++;
     }
 

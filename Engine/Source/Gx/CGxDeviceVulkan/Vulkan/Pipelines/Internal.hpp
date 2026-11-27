@@ -222,6 +222,8 @@ namespace gxvk::vk::pipelines::detail
         /// The last slice written this frame, to bind again rather than write twice.
         uint8_t         lastSlice[kSliceBytesMax] = {};
         uint32_t        lastSliceBytes  = 0;
+        uint64_t        lastVertexGen   = 0;   ///< CoA: vertex file generation of lastSlice (0 = none)
+        uint32_t        lastVertexRows  = 0;
         VkDescriptorSet lastSliceSet    = VK_NULL_HANDLE;
         uint32_t        lastSliceOffset = 0;
     };

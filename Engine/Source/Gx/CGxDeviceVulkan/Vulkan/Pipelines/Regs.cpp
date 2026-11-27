@@ -97,18 +97,15 @@ namespace gxvk::vk::pipelines::detail
             ss.lastSliceSet   = VK_NULL_HANDLE;
         }
 
-        uint8_t slice[kSliceBytesMax];
-        std::memcpy(slice, draw.pixelRegs, kPixelRows * 16);
-        std::memcpy(slice + kPixelRows * 16, draw.misc, 16);
-        std::memcpy(slice + kSliceHeadBytes, draw.vertexRegs, rows * 16);
-        if (extra)
-        {
-            // The unused vertex rows stay zero so that equal draws compare equal below.
-            std::memset(slice + kSliceHeadBytes + rows * 16, 0, kSliceExtraOffset - kSliceHeadBytes - rows * 16);
-            std::memcpy(slice + kSliceExtraOffset, draw.pixelExtra, extra * 16);
-        }
+        // CoA: no staging copy. The vertex file (8-16 KB) counts as unchanged while its generation is, so only the
+        // small head (and the extended pixel rows) is compared; a new slice is written once, straight into the ring.
+        const bool same = ss.lastSliceSet != VK_NULL_HANDLE && ss.lastSliceBytes == bytes
+            && draw.vertexRegsGen != 0 && ss.lastVertexGen == draw.vertexRegsGen && ss.lastVertexRows == rows
+            && std::memcmp(ss.lastSlice, draw.pixelRegs, kPixelRows * 16) == 0
+            && std::memcmp(ss.lastSlice + kPixelRows * 16, draw.misc, 16) == 0
+            && (!extra || std::memcmp(ss.lastSlice + kSliceExtraOffset, draw.pixelExtra, extra * 16) == 0);
 
-        if (ss.lastSliceSet != VK_NULL_HANDLE && ss.lastSliceBytes == bytes && std::memcmp(ss.lastSlice, slice, bytes) == 0)
+        if (same)
         {
             set    = ss.lastSliceSet;
             offset = ss.lastSliceOffset;
@@ -127,7 +124,15 @@ namespace gxvk::vk::pipelines::detail
                 if (at + kSliceBytesMax <= kRegsChunkBytes)
                 {
                     memory::Buffer& b = ss.regs[ss.regsUsed - 1];
-                    std::memcpy(static_cast<uint8_t*>(b.block.mapped) + at, slice, bytes);
+                    uint8_t* dst = static_cast<uint8_t*>(b.block.mapped) + at;
+                    std::memcpy(dst, draw.pixelRegs, kPixelRows * 16);
+                    std::memcpy(dst + kPixelRows * 16, draw.misc, 16);
+                    std::memcpy(dst + kSliceHeadBytes, draw.vertexRegs, rows * 16);
+                    if (extra)
+                    {
+                        std::memset(dst + kSliceHeadBytes + rows * 16, 0, kSliceExtraOffset - kSliceHeadBytes - rows * 16);
+                        std::memcpy(dst + kSliceExtraOffset, draw.pixelExtra, extra * 16);
+                    }
                     memory::FlushHost(b.block);
                     ss.regsCursor = at + bytes;
                     set    = ss.regsSet[ss.regsUsed - 1];
@@ -146,7 +151,13 @@ namespace gxvk::vk::pipelines::detail
             ss.regsCursor = 0;
         }
 
-        std::memcpy(ss.lastSlice, slice, bytes);
+        // only the parts the comparison above reads
+        std::memcpy(ss.lastSlice, draw.pixelRegs, kPixelRows * 16);
+        std::memcpy(ss.lastSlice + kPixelRows * 16, draw.misc, 16);
+        if (extra)
+            std::memcpy(ss.lastSlice + kSliceExtraOffset, draw.pixelExtra, extra * 16);
+        ss.lastVertexGen   = draw.vertexRegsGen;
+        ss.lastVertexRows  = rows;
         ss.lastSliceBytes  = bytes;
         ss.lastSliceSet    = set;
         ss.lastSliceOffset = offset;

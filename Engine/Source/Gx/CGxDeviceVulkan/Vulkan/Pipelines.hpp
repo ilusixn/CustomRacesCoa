@@ -153,6 +153,7 @@ namespace gxvk::vk::pipelines
         /// floats), the pixel register file (kPixelRows rows) and the misc row (alpha reference / 255,
         /// 0, colour op, alpha op). Read when either program is of the translated family.
         const float* vertexRegs = nullptr;
+        uint64_t     vertexRegsGen = 0;   ///< CoA: bumped whenever the vertex file changes (IShaderConstantsFlush)
         uint32_t     vertexRows = kVertexRowsSmall;
         const float* pixelRegs  = nullptr;
         const float* pixelExtra = nullptr;   ///< rows kPixelRows.. of the pixel file, when pixelExtraRows is not 0

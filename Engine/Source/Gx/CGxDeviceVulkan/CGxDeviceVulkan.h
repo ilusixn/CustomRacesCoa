@@ -51,6 +51,7 @@ class CGxDeviceVulkan : public CGxDevice {
     // targets): the engine's shadow constants are moved here by their dirty ranges at each draw,
     // and persist across the shadow's per-present clear as D3D's registers do.
     float m_vertexRegs[ShadowConstants::Count * 4];
+    uint64_t m_vertexRegsGen = 1;   // CoA: lets RegsSlice skip comparing the (8-16 KB) vertex file
     float m_pixelRegs[ShadowConstants::Count * 4];
     // The hardware cursor: a Win32 cursor built from the engine's 32x32 cursor image, remade when
     // the image changes (CursorUnlock), shown over the client area by WM_SETCURSOR.
