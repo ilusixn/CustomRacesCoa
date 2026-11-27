@@ -6,3 +6,143 @@ addr	kind	recon_refs	decomp_symbol	decomp_file:line	status
 0x006E7346	data		CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
 0x006E7356	data		CoA::ClientHooks::suppressUnlearnMessages	WoW/Source/Object/ObjectClient/Player_C.cpp:8091	mapped
 0x00728AA1	data		CoA::AttachPatches::SetRuneUiClass	CoA/Source/Modules/AttachPatches.cpp:42	mapped
+0x006DC45F	data		CoA::WorldEntryTweaks::SkipProficiency	WoW/Source/Object/ObjectClient/Player_C.cpp:7017	mapped
+0x00809572	data		CoA::WorldEntryTweaks::SkipAmmoCheck	WoW/Source/Magic/MagicClient/Spell_C.cpp:7067	mapped
+0x008095FF	data		CoA::WorldEntryTweaks::SkipAmmoCheck	WoW/Source/Magic/MagicClient/Spell_C.cpp:7067	mapped
+0x00402915	unknown		call site / return address / operand inside the ported AscRuntime		site
+0x00406850	unknown		call site / return address / operand inside the ported AscMisc		site
+0x0040BB50	unknown		call site / return address / operand inside the ported AscSpellTokens		site
+0x00466BF1	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x00466C06	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x00488548	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x004D43C3	unknown		call site / return address / operand inside the ported AscCamera		site
+0x004D8B0E	unknown		left out of the inline table: a JS-client change, no genuine writer		excluded
+0x004D9BF7	unknown		call site / return address / operand inside the ported AscCVarHooks		site
+0x004DA71D	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x004DA757	unknown		call site / return address / operand inside the ported AscRuntime		site
+0x004E15B5	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E16A3	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E1C3A	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E1E94	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E20EE	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E2127	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E222A	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x004E4619	unknown		call site / return address / operand inside the ported AscCVarHooks		site
+0x004F7FB1	unknown		call site / return address / operand inside the ported AscGlobalsJ		site
+0x00510439	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x00510459	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x00510A07	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x005238AD	unknown		call site / return address / operand inside the ported AscAttachPatches		site
+0x0052AB17	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x0052AB25	unknown		call site / return address / operand inside the ported AscRuntime		site
+0x0052AB26	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x0052ED68	unknown		call site / return address / operand inside the ported AscAttachLate		site
+0x00552946	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x00553B58	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x00553DBE	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x005548F3	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x005548F8	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x00587450	unknown		call site / return address / operand inside the ported AscAttachLate		site
+0x00597140	unknown		call site / return address / operand inside the ported AscModelMethods		site
+0x005F8076	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x005F80FF	unknown		call site / return address / operand inside the ported AscAddonTaint		site
+0x006238AD	unknown		call site / return address / operand inside the ported AscSpellTokens		site
+0x006326AC	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x00632904	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x00632A9C	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x006330B3	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x00667F16	unknown		call site / return address / operand inside the ported AscRealmData		site
+0x006E09E8	unknown		call site / return address / operand inside the ported AscItemCollections/AscSmallHooks		site
+0x006F1497	unknown		call site / return address / operand inside the ported AscMovementForce		site
+0x007509F6	unknown		call site / return address / operand inside the ported AscAttachFixes		site
+0x00755206	unknown		call site / return address / operand inside the ported AscGlobalsJ		site
+0x007EE0F7	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EE51B	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EE571	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EEB5E	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EEB7C	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EEC90	unknown		call site / return address / operand inside the ported AscSmallApis		site
+0x007EEFF0	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF00C	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF18B	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF1BB	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF1E2	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF35D	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF3C3	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF3EA	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF5FF	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EF7E3	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EFAEE	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007EFCAF	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F0538	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F3310	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F3389	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F33EB	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F3483	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F38CE	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F38ED	unknown		call site / return address / operand inside the ported AscGraphics		site
+0x007F3BB6	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x007F3BBD	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x007F4281	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x007F4288	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x007F5A9D	unknown		attach-table bytes holding a DLL address (skipped by the reconstruction)		excluded
+0x0080C91E	unknown		call site / return address / operand inside the ported AscClientOptions		site
+0x00819C7A	unknown		call site / return address / operand inside the ported AscRegistry		site
+0x00832229	unknown		call site / return address / operand inside the ported AscModelMethods		site
+0x00863A40	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00863E50	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00864DC0	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00865080	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00865270	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00866660	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00866680	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x00866770	unknown		call site / return address / operand inside the ported AscBuildCreator		site
+0x009E8AAC	unknown		plaintext world headers / removed scaffold hooks (DIFFERENCES.md, AscMain.cpp)		excluded
+0x009F4250	unknown		call site / return address / operand inside the ported AscSpellShadow/AscUnitSelect		site
+0x009FC830	unknown		call site / return address / operand inside the ported AscNamePlates		site
+0x00A23F38	data		client data read by the ported AscGlobalsJ		data
+0x00A23FA4	data		client data read by the ported AscGlobalsJ		data
+0x00A23FD8	data		client data read by the ported AscGlobalsJ		data
+0x00A3B558	data		client data read by the ported AscBuildCreator		data
+0x00A40218	data		client data read by the ported AscAttachLua		data
+0x00A478E0	data		client data read by the ported AscClientGuards		data
+0x00ACFDA0	data		client data read by the ported AscCallboardCache		data
+0x00AD30D0	data		client data read by the ported AscAnimationCount		data
+0x00AD3144	data		client data read by the ported AscTemporalContracts		data
+0x00AD3154	data		client data read by the ported AscTemporalContracts		data
+0x00AD33A0	data		client data read by the ported AscHdDbc		data
+0x00AD33B8	data		client data read by the ported AscHdDbc		data
+0x00AD3410	data		client data read by the ported AscTooltipScaling		data
+0x00AD3414	data		client data read by the ported AscTooltipScaling		data
+0x00AD3424	data		client data read by the ported AscTooltipScaling		data
+0x00AD373C	data		client data read by the ported AscTooltipScaling		data
+0x00AD3760	data		client data read by the ported AscTooltipScaling		data
+0x00AD3D6C	data		client data read by the ported AscGlobalsD		data
+0x00AD416C	data		client data read by the ported AscAttachFixes/AscCrashContext		data
+0x00AD4170	data		client data read by the ported AscAttachFixes/AscCrashContext		data
+0x00AD4180	data		client data read by the ported AscAttachFixes/AscCrashContext		data
+0x00AD4440	data		client data read by the ported AscTemporalContracts		data
+0x00AD4450	data		client data read by the ported AscTemporalContracts		data
+0x00AD45EC	data		client data read by the ported AscGossipQuest		data
+0x00AD45F0	data		client data read by the ported AscGossipQuest		data
+0x00AD4600	data		client data read by the ported AscGossipQuest		data
+0x00AD4800	data		client data read by the ported AscGlobalsJ		data
+0x00AD4840	data		client data read by the ported AscGlobalsD		data
+0x00AD4994	data		client data read by the ported AscSpellMods		data
+0x00AD4998	data		client data read by the ported AscSpellMods		data
+0x00AD49A8	data		client data read by the ported AscSpellMods		data
+0x00AD4A90	data		client data read by the ported AscModelMethods		data
+0x00AD4A94	data		client data read by the ported AscModelMethods		data
+0x00AD4AB4	data		client data read by the ported AscInitHooks/AscSpellVisuals		data
+0x00AD4AB8	data		client data read by the ported AscInitHooks/AscSpellVisuals		data
+0x00AD4AC8	data		client data read by the ported AscInitHooks/AscSpellVisuals		data
+0x00BD07B4	data		client data read by the ported AscCamera		data
+0x00BEB204	data		client data read by the ported AscGlobalsE/AscTooltipScaling		data
+0x00C00EEF	data		client data read by the ported AscGossipQuest		data
+0x00C0DC38	data		client data read by the ported AscSmallApis		data
+0x00C0F4E0	data		client data read by the ported AscMisc		data
+0x00D37FCC	data		client data read by the ported AscGlobalsJ		data
+0x00D38C9C	data		client data read by the ported AscSmallApis		data
+0x00D38CA0	data		client data read by the ported AscSmallApis		data
+0x00D38CA4	data		client data read by the ported AscSmallApis		data
+0x00D3F7D4	data		client data read by the ported AscExtraActionButton		data

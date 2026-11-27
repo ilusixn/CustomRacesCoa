@@ -227,3 +227,7 @@ endif ()
 if (WOWDECOMP_BUILD_DXVK AND WOWDECOMP_ARCH_64)
     add_subdirectory(dxvk)
 endif ()
+
+if (WOWDECOMP_ARCH_64)
+    add_subdirectory(streamline)
+endif ()

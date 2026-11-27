@@ -529,7 +529,9 @@ void CoA::SuperTrack::MarkVisited(uint32_t id) {
     s_deps.storeVisited(ids);
 }
 
+// World entry repeats on /reload and far teleports: drop the running chains so ticks do not stack.
 void CoA::SuperTrack::Start() {
+    StopTimers();
     s_timers[0] = CoA::Timer::Schedule(1000, ResolveTick, nullptr);
     s_timers[1] = CoA::Timer::Schedule(100, ArrivalTick, nullptr);
     s_timers[2] = CoA::Timer::Schedule(1000, QuestChangeTick, nullptr);

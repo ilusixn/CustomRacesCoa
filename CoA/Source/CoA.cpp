@@ -4,6 +4,7 @@
 #include "CoA/Source/Modules/Account.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include "CoA/Source/Modules/Modules.h"
+#include "CoA/Source/Modules/RenderOptionsUi.h"
 #include "CoA/Source/Runtime/ClientState.h"
 #include "CoA/Source/Runtime/Dbc.h"
 #include "CoA/Source/Runtime/DbcPatch.h"
@@ -81,6 +82,7 @@ static const CoA::Module s_modules[] = {
     { "Discord", CoA::Discord::Init },
     { "GlobalsF", CoA::GlobalsF::Init },
     { "AutoQuest", CoA::AutoQuest::Init },
+    { "QuestLogExtended", CoA::QuestLogExtended::Init },
     { "UnitAddon", CoA::UnitAddon::Init },
     { "ExtraActionButton", CoA::ExtraActionButton::Init },
     { "MysticEnchant", CoA::MysticEnchant::Init },
@@ -143,6 +145,8 @@ static const CoA::Module s_modules[] = {
     // FUN_10a60cd0 / FUN_10296fd0 (client guards); AscCrashContext (FUN_1019dc80), AscInitHooks (FUN_10a60d20) and
     // AscLargeAlloc (FUN_102a85f0) are client sites only (their *Client halves).
     { "ClientGuards", CoA::ClientGuards::Init },
+    { "WorldEntryTweaks", CoA::WorldEntryTweaks::Init },
+    { "QuestSpellHide", CoA::QuestSpellHide::Init },
     { "MiscClient", CoA::MiscClient::Init },
     { "GlobalsBClient", CoA::GlobalsBClient::Init },
     { "GlobalsGClient", CoA::GlobalsGClient::Init },
@@ -158,6 +162,8 @@ static const CoA::Module s_modules[] = {
     { "AddOnWatchClient", CoA::AddOnWatchClient::Init },
     // The reconstruction's AscTooltipInsertFix (not in the original; until patch-B's Tooltip.lua is fixed).
     { "TooltipInsertFixClient", CoA::TooltipInsertFixClient::Init },
+    { "WorldEntryTweaksClient", CoA::WorldEntryTweaksClient::Init },
+    { "QuestSpellHideClient", CoA::QuestSpellHideClient::Init },
     { "HotPatchClient", CoA::HotPatchClient::Init },
     { "CharacterCreateClient", CoA::CharacterCreateClient::Init },
     { "AttachLateClient", CoA::AttachLateClient::Init },
@@ -243,7 +249,10 @@ static const CoA::Module s_modules[] = {
     { "SpellTokensClient", CoA::SpellTokensClient::Init },
     { "CrashContextClient", CoA::CrashContextClient::Init },
     { "InitHooksClient", CoA::InitHooksClient::Init },
+    { "QuestLogExtendedClient", CoA::QuestLogExtendedClient::Init },
     { "ClientGuardsClient", CoA::ClientGuardsClient::Init },
+    // CoA64 addition: the Graphics page's DLSS / Frame Generation / Reflex dropdowns (stage 5).
+    { "RenderOptionsUi", CoA::RenderOptionsUi::Init },
 };
 
 // Runtime/CrashTrace.cpp (developer diagnostic, -extlog only).

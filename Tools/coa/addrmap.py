@@ -7,6 +7,10 @@ Every function in the decomp carries `// OFFSET: 0xADDR` above it; that gives th
 Every client address literal in the reconstruction's sources is listed with where it is used and whether the
 decomp has it. Globals and data have no OFFSET tag; they are resolved by hand in `CoA/addrmap.manual.tsv`
 (same columns), which is merged in and never overwritten.
+
+Status: mapped (tagged), covered (mentioned in the decomp; the location is the first mention), upstream (only
+WotLKExtensions refers to it, which the genuine DLL does not apply), and the hand-checked site / data / excluded
+rows of the manual file. Anything left as unported is a candidate gap.
 """
 import argparse
 import os
@@ -108,8 +112,25 @@ def scan_recon(root):
 scan_recon.hints = {}
 
 
+def index_mentions(root):
+    """addr -> 'rel/path:line' of the first client-range address literal in the decomp (sorted walk)."""
+    mentions = {}
+    for path in sorted(walk_sources(root)):
+        rel = os.path.relpath(path, root).replace(os.sep, '/')
+        with open(path, encoding='utf-8', errors='ignore') as f:
+            for n, line in enumerate(f, 1):
+                for m in ADDR_RE.finditer(line):
+                    addr = int(m.group(1), 16)
+                    if CLIENT_LO <= addr <= CLIENT_HI and addr not in mentions:
+                        mentions[addr] = f'{rel}:{n}'
+    return mentions
+
+
 def build(decomp_root, recon_root):
+    """Untagged rows: covered (mentioned in the decomp), upstream (only WotLKExtensions, which the genuine DLL does
+    not apply), else unported."""
     index = _scan_tags(decomp_root)
+    mentions = index_mentions(decomp_root)
     refs = scan_recon(recon_root)
     rows = {}
     for addr, where in refs.items():
@@ -117,8 +138,13 @@ def build(decomp_root, recon_root):
             symbol, path, line, kind = index[addr]
             location = f'{os.path.relpath(path, decomp_root).replace(os.sep, "/")}:{line}'
             rows[addr] = Row(addr, kind, where, symbol, location, 'mapped')
-        else:
-            rows[addr] = Row(addr, scan_recon.hints.get(addr, 'unknown'), where)
+            continue
+        row = Row(addr, scan_recon.hints.get(addr, 'unknown'), where)
+        if addr in mentions:
+            row.location, row.status = mentions[addr], 'covered'
+        elif all(r.startswith('WotLKExtensions/') for r in where):
+            row.status = 'upstream'
+        rows[addr] = row
     return rows
 
 

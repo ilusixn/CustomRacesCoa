@@ -6,7 +6,9 @@ Usage:
 The reference side is parsed from the reconstruction's generated `docs/DLL_REFERENCE.md`. The CoA side is read
 from the registration macros in `CoA/Source` (`COA_NATIVE`, `COA_PACKET`, `COA_CVAR`, `COA_EVENT`), the
 `CoA::DbcPatch::Register*` calls and `DbcPatch*.generated.inc` rows, and from the
-`// CoA: ... (orig hook 0xADDR)` markers anywhere in the tree.
+`// CoA: ... (orig hook 0xADDR)` markers anywhere in the tree. Runtime code writes (module code writing a literal
+client address) count when the address is mentioned anywhere in the tree; client packets count when the opcode is
+passed to a call in `CoA/Source`.
 """
 import argparse
 import os
@@ -30,6 +32,13 @@ SIGNAL_RE = re.compile(r'Events::Signal\(([^;]*?)(?:,|\);)')
 HOOK_RE = re.compile(r'//\s*CoA:.*?orig hook ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_RE = re.compile(r'//\s*CoA:.*?Extensions\.dll patch ((?:0x[0-9A-Fa-f]+[/, ]*)+)')
 PATCH_ROW_RE = re.compile(r'^\s*\{(0x[0-9A-Fa-f]+)\s*,', re.M)
+# The reconstruction's runtime code writes: Write / WriteCode / Patch... (0xADDR, ...) in module code.
+RUNTIME_WRITE_RE = re.compile(r'\b(?:WriteCode|Write|Patch|PatchBytes|WriteByte|WriteBytes)\s*\(\s*(0x[0-9A-Fa-f]{6,8})\b')
+# A client opcode passed to a call: CoA::Packet(0x561), CoA::Packet p(0x747), SendEmpty(0x543), Send(L, 0x658, ...).
+SENT_RE = re.compile(r'\b\w+\s*\(\s*(?:[^;()]*?,\s*)?(0x[0-9A-Fa-f]{3})\s*[,)]')
+ADDRESS_RE = re.compile(r'0x([0-9A-Fa-f]{6,8})\b')
+CLIENT_LO = 0x00401000
+CLIENT_HI = 0x00DFFFFF
 GLUE_TABLE_RE = re.compile(r'kGlueBindings\[\]\s*=\s*\{(.*?)\};', re.S)
 STATE_NAME_RE = re.compile(r'\{"([^"]*)",\s*"([^"]+)"\}')
 BINDING_STATES = os.path.join('CoA', 'Source', 'Runtime', 'BindingStates.generated.inc')
@@ -46,6 +55,9 @@ class Inventory:
     events: set = field(default_factory=set)
     hooks: set = field(default_factory=set)     # client addresses detoured / replaced / jumped
     patches: set = field(default_factory=set)   # client addresses the DLL byte-patches at attach
+    runtime: set = field(default_factory=set)   # client addresses module code writes at runtime
+    sent: set = field(default_factory=set)      # client -> server opcodes sent
+    addresses: set = field(default_factory=set)   # every client address mentioned (CoA side)
 
 
 def parse_reference(path):
@@ -75,6 +87,8 @@ def parse_reference(path):
                 inv.natives.add(('' if namespace == '(global)' else namespace, key, second.strip()))
             elif section == 'Server packet index (SMSG)' and table == 'Opcode':
                 inv.packets.add(int(key, 16))
+            elif section == 'Client packet index (CMSG)' and table == 'Opcode':
+                inv.sent.add(int(key, 16))
             elif section == 'Event index' and table == 'Event':
                 inv.events.add(key)
             elif section == 'Modules' and table == 'Address':
@@ -90,6 +104,21 @@ def parse_patches(recon_root):
         with open(os.path.join(recon_root, 'src', 'Ascension', name), encoding='utf-8') as f:
             patches.update(int(a, 16) for a in PATCH_ROW_RE.findall(f.read()))
     return patches
+
+
+def parse_runtime_patches(recon_root):
+    """Client addresses the reconstruction's module code writes at runtime (not the attach tables)."""
+    found = set()
+    src = os.path.join(recon_root, 'src', 'Ascension')
+    for name in os.listdir(src):
+        if not name.endswith(SOURCE_EXT) or name in PATCH_TABLES:
+            continue
+        with open(os.path.join(src, name), encoding='utf-8', errors='ignore') as f:
+            for addr in RUNTIME_WRITE_RE.findall(f.read()):
+                value = int(addr, 16)
+                if CLIENT_LO <= value <= CLIENT_HI:
+                    found.add(value)
+    return found
 
 
 def parse_glue_bindings(path):
@@ -115,8 +144,10 @@ def scan_coa(root):
             for m in PATCH_RE.finditer(text):
                 for addr in re.findall(r'0x[0-9A-Fa-f]+', m.group(1)):
                     inv.patches.add(int(addr, 16))
+            inv.addresses.update(v for v in (int(a, 16) for a in ADDRESS_RE.findall(text)) if CLIENT_LO <= v <= CLIENT_HI)
             if not in_coa:
                 continue
+            inv.sent.update(int(op, 16) for op in SENT_RE.findall(text))
             # The state is not declared per native; it comes from BindingStates.generated.inc.
             for ns, fn in NATIVE_RE.findall(text):
                 inv.natives.add((ns, fn, ''))
@@ -143,6 +174,8 @@ def report(ref, have, glue=None):
         ('Server packets', ref.packets, have.packets, lambda k: f'0x{k:03X}'),
         ('Client hooks', ref.hooks, have.hooks, lambda k: f'0x{k:06X}'),
         ('Client byte patches', ref.patches, have.patches, lambda k: f'0x{k:06X}'),
+        ('Runtime code writes (address mentioned)', ref.runtime, have.addresses, lambda k: f'0x{k:06X}'),
+        ('Client packets sent', ref.sent, have.sent, lambda k: f'0x{k:03X}'),
         ('CVars', ref.cvars, have.cvars, str),
         ('Events', ref.events, have.events, str),
     ]
@@ -169,10 +202,11 @@ def main(argv=None):
     args = p.parse_args(argv)
     ref = parse_reference(os.path.join(args.recon, 'docs', 'DLL_REFERENCE.md'))
     ref.patches = parse_patches(args.recon)
+    ref.runtime = parse_runtime_patches(args.recon)
     text = report(ref, scan_coa(args.root), parse_glue_bindings(os.path.join(args.root, BINDING_STATES)))
     with open(args.out, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
-    print('\n'.join(text.splitlines()[4:12]))
+    print('\n'.join(text.splitlines()[4:14]))
     return 0
 
 

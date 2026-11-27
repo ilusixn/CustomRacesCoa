@@ -63,6 +63,9 @@ void PlayerNameShutdown();
 void PlayerNameUpdateEarly();
 void PlayerNameUpdateLate();
 void PlayerNameUpdateWorldText();
+// CoA64: draws the names the render pipeline deferred out of the upscaled world (CGWorldFrame::OnWorldRender, after
+// endWorld).
+void PlayerNameRenderDeferred();
 
 bool ObjectNameShowCallback(CVar* var, const char* oldValue, const char* value, void* arg);
 void PlayerNameRegisterCVars();

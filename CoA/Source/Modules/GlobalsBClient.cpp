@@ -201,7 +201,8 @@ namespace {
         return 1;
     }
 
-    // The quest's slot in the player's log (descriptor +0x278, 25 x 0x14), then CGQuestLog::GetQuestIndex (0x5DEEB0).
+    // The quest's slot in the player's log (descriptor +0x278, 25 x 0x14; CoA64: 64 slots through the accessor, 25..63
+    // from SMSG 0x8F7), then CGQuestLog::GetQuestIndex (0x5DEEB0).
     int GetQuestLogIndexByID(lua_State* L) {
         const int32_t quest = ArgInt(L, 1);
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
@@ -210,8 +211,9 @@ namespace {
             return 0;
         }
 
-        for (uint32_t i = 0; i < 25; ++i) {
-            const int32_t q = static_cast<int32_t>(player->m_player->m_playerQuestLog[i].m_questId);
+        for (uint32_t i = 0; i < CoA::QuestLogExtended::kMaxSlots; ++i) {
+            const PlayerQuestLogEntry* entry = player->GetQuestLogEntry(i);
+            const int32_t q = entry ? static_cast<int32_t>(entry->m_questId) : 0;
 
             if (q != 0 && q == quest) {
                 lua_pushinteger(L, CGQuestLog::GetQuestIndex(quest));
@@ -250,9 +252,8 @@ namespace {
         return 1;
     }
 
-    // CastSpecialSpell(spell): a profession spell (an effect 0xA2, or a SkillLineAbility row whose SkillLine category
-    // is 11) is cast as CMSG_CAST_SPELL 0x12E with the DLL's own cast counter and the DLL-global target guid
-    // DAT_10bdb230 (never written: empty).
+    // CastSpecialSpell(spell): a profession spell (effect 0xA2, or SkillLineAbility in SkillLine category 11) is cast as
+    // CMSG_CAST_SPELL 0x12E with the DLL's cast counter and the never-written target guid DAT_10bdb230.
     uint8_t s_castCount = 0;   // DAT_10bde438
 
     int CastSpecialSpell(lua_State* L) {
@@ -290,9 +291,8 @@ namespace {
         return 0;
     }
 
-    // MovieFrame:SetVolume(v) (FUN_101aeca0): v clamped to [0, 1], then SESound::SetVolume (0x879710). The original
-    // calls it with the frame as `this`, so the sound's m_internal is read from the frame's vtable slot and the
-    // write lands in the client's code; here it goes to the frame's own sound (CSimpleMovieFrame::m_sound, +0x29C).
+    // MovieFrame:SetVolume(v) (FUN_101aeca0): v clamped to [0, 1], then SESound::SetVolume (0x879710) on the frame's own
+    // sound (m_sound, +0x29C); the original passed the frame as `this` and wrote into the client's code.
     int SetVolume(lua_State* L) {
         lua_rawgeti(L, 1, 0);
         CSimpleMovieFrame* frame = static_cast<CSimpleMovieFrame*>(lua_touserdata(L, -1));

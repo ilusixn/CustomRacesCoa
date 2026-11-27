@@ -278,19 +278,6 @@ namespace {
             player->RenderTargetSelection();
         }
     }
-
-    // A return address past the running exe's image (the original: > 0xDFCBFF, the end of Ascension.exe's).
-    uintptr_t ImageEnd() {
-        static uintptr_t s_end = 0;
-
-        if (!s_end) {
-            const uint8_t* base = reinterpret_cast<const uint8_t*>(GetModuleHandleA(nullptr));
-            const IMAGE_NT_HEADERS* nt = reinterpret_cast<const IMAGE_NT_HEADERS*>(base + reinterpret_cast<const IMAGE_DOS_HEADER*>(base)->e_lfanew);
-            s_end = reinterpret_cast<uintptr_t>(base) + nt->OptionalHeader.SizeOfImage - 1;
-        }
-
-        return s_end;
-    }
 }
 
 bool CoA::UnitSelectClient::RenderUnit(CGUnit_C* unit) {
@@ -302,10 +289,6 @@ bool CoA::UnitSelectClient::RenderUnit(CGUnit_C* unit) {
     unit->RenderAutoTrackCursor();
     CoA::ClientHooks::options.circleTexture = nullptr;
     return true;
-}
-
-void CoA::UnitSelectClient::BeforeClickToMove(const void* returnAddress) {
-    CoA::UnitSelect::BeforeClickToMove(reinterpret_cast<uintptr_t>(returnAddress) > ImageEnd());
 }
 
 void CoA::UnitSelectClient::Init() {

@@ -127,7 +127,7 @@ namespace {
     // 0x1031fb60
     int32_t OnTimer(const void*, void*) {
         CoA::SpellActivationOverlay::Tick();
-        CoA::Timer::Schedule(100, OnTimer, nullptr);
+        s_timer = CoA::Timer::Schedule(100, OnTimer, nullptr);   // stored so Stop/Start cancel the live chain
         return 0;
     }
 
@@ -219,7 +219,12 @@ void CoA::SpellActivationOverlay::Tick() {
     }
 }
 
+// World entry repeats on /reload and far teleports: drop the running chain so ticks do not stack.
 void CoA::SpellActivationOverlay::Start() {
+    if (s_timer) {
+        CoA::Timer::Cancel(s_timer, OnTimer, nullptr);
+    }
+
     s_timer = CoA::Timer::Schedule(100, OnTimer, nullptr);
 }
 

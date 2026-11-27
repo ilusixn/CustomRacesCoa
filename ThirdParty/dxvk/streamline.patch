@@ -1,0 +1,1477 @@
+diff --git a/src/d3d9/d3d9.def b/src/d3d9/d3d9.def
+index 96ae240f..2f4d14ce 100644
+--- a/src/d3d9/d3d9.def
++++ b/src/d3d9/d3d9.def
+@@ -28,3 +28,11 @@ EXPORTS
+   
+   Direct3DCreate9On12 @20
+   Direct3DCreate9On12Ex @21
++
++  CoaDxvkSetVulkanRequirements
++  CoaDxvkSetDeviceCallback
++  CoaDxvkSetPresentProc
++  CoaDxvkSetDeviceDestroyCallback
++  CoaDxvkSetSwapchainProcs
++  CoaDxvkSetNextPresentFrame
++  CoaDxvkSetPresentMarkerCallback
+diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
+index 50fe25ca..65ddb210 100644
+--- a/src/d3d9/d3d9_device.cpp
++++ b/src/d3d9/d3d9_device.cpp
+@@ -279,7 +279,8 @@ namespace dxvk {
+       return S_OK;
+     }
+ 
+-    if (riid == __uuidof(ID3D9VkInteropDevice)) {
++    if (riid == __uuidof(ID3D9VkInteropDevice)
++     || riid == __uuidof(ID3D9VkInteropDevice1)) {
+       *ppvObject = ref(&m_d3d9Interop);
+       return S_OK;
+     }
+diff --git a/src/d3d9/d3d9_interfaces.h b/src/d3d9/d3d9_interfaces.h
+index 3664b6c6..47f4c812 100644
+--- a/src/d3d9/d3d9_interfaces.h
++++ b/src/d3d9/d3d9_interfaces.h
+@@ -253,6 +253,60 @@ ID3D9VkInteropDevice : public IUnknown {
+           IDirect3DResource9**      ppResult) = 0;
+ };
+ 
++/**
++ * \brief CoA64: image access for ID3D9VkInteropDevice1::RecordCallback
++ *
++ * In: resource, the layout the callback needs it in (UNDEFINED: the image's
++ * default DXVK layout) and the usage of the view to create (0: SAMPLED).
++ * Out (at callback time): image, view of mip 0 / layer 0 (null if the image
++ * lacks the usage), format, extent and the layout the image is actually in
++ * (DXVK may substitute GENERAL). The callback must leave it in that layout.
++ */
++struct D3D9VkImageAccess {
++  IDirect3DResource9* pResource; VkImageLayout requiredLayout; VkImageUsageFlags viewUsage;
++  VkImage image; VkImageView view; VkFormat format; VkExtent3D extent; VkImageLayout layout;
++};
++
++/**
++ * \brief CoA64: callback recording into DXVK's command buffer
++ *
++ * Called later on DXVK's CS thread, not inside RecordCallback. \c images is
++ * a copy of the array passed to RecordCallback with the out fields filled,
++ * \c user the copied user blob, or RecordCallback's \c user if no blob was
++ * given. \c images and the blob are only valid during the callback.
++ */
++typedef void (__stdcall* PFN_D3D9VkRecordCallback)(VkCommandBuffer cmd, D3D9VkImageAccess* images, UINT count, void* user);
++
++/**
++ * \brief CoA64: D3D9 device interop with command recording
++ */
++MIDL_INTERFACE("f9e3883a-e7ac-42ed-9a1d-d8f50e43aea9")
++ID3D9VkInteropDevice1 : public ID3D9VkInteropDevice {
++  /**
++   * \brief Records Vulkan commands into DXVK's command stream
++   *
++   * Emits a command to DXVK's CS thread that ends any render pass,
++   * transitions the images to their required layouts, flushes barriers
++   * and calls \c fn with DXVK's current command buffer, with a full
++   * memory barrier recorded before and after it. The images are then
++   * tracked as written. The callback runs later, not inside this call.
++   * \param [in] fn Callback
++   * \param [in] user Passed to the callback if \c userBlob is null
++   * \param [in] images Images the callback accesses
++   * \param [in] count Number of images
++   * \param [in] userBlob Data copied into the command and passed to the callback instead of \c user
++   * \param [in] userBlobSize Size of \c userBlob in bytes
++   * \returns D3D_OK, or D3DERR_INVALIDCALL for a null callback or an image-less resource
++   */
++  virtual HRESULT STDMETHODCALLTYPE RecordCallback(
++          PFN_D3D9VkRecordCallback  fn,
++          void*                     user,
++    const D3D9VkImageAccess*        images,
++          UINT                      count,
++    const void*                     userBlob,
++          UINT                      userBlobSize) = 0;
++};
++
+ /**
+  * \brief D3D9 current output metadata
+  */
+@@ -299,6 +353,7 @@ __CRT_UUID_DECL(ID3D9VkInteropInterface,   0x3461a81b,0xce41,0x485b,0xb6,0xb5,0x
+ __CRT_UUID_DECL(ID3D9VkInteropInterface1,  0xd6589ed4,0x7a37,0x4096,0xba,0xc2,0x22,0x3b,0x25,0xae,0x31,0xd2);
+ __CRT_UUID_DECL(ID3D9VkInteropTexture,     0xd56344f5,0x8d35,0x46fd,0x80,0x6d,0x94,0xc3,0x51,0xb4,0x72,0xc1);
+ __CRT_UUID_DECL(ID3D9VkInteropDevice,      0x2eaa4b89,0x0107,0x4bdb,0x87,0xf7,0x0f,0x54,0x1c,0x49,0x3c,0xe0);
++__CRT_UUID_DECL(ID3D9VkInteropDevice1,     0xf9e3883a,0xe7ac,0x42ed,0x9a,0x1d,0xd8,0xf5,0x0e,0x43,0xae,0xa9);
+ __CRT_UUID_DECL(ID3D9VkExtSwapchain,       0x13776e93,0x4aa9,0x430a,0xa4,0xec,0xfe,0x9e,0x28,0x11,0x81,0xd5);
+ __CRT_UUID_DECL(ID3D9VkExtInterface,       0x65b55086,0xe3e3,0x4c3e,0xb3,0xa0,0x86,0x81,0x5c,0xce,0x2c,0x4c);
+ #endif
+diff --git a/src/d3d9/d3d9_interop.cpp b/src/d3d9/d3d9_interop.cpp
+index 7594eb15..ff013bec 100644
+--- a/src/d3d9/d3d9_interop.cpp
++++ b/src/d3d9/d3d9_interop.cpp
+@@ -353,6 +353,145 @@ namespace dxvk {
+     }
+   }
+ 
++  // CoA64: image behind a D3D9 texture or surface, null for anything else
++  static Rc<DxvkImage> GetDxvkImage(IDirect3DResource9* pResource) {
++    switch (pResource->GetType()) {
++      case D3DRTYPE_SURFACE:       return static_cast<D3D9Surface*>     (pResource)->GetCommonTexture()->GetImage();
++      case D3DRTYPE_TEXTURE:       return static_cast<D3D9Texture2D*>   (pResource)->GetCommonTexture()->GetImage();
++      case D3DRTYPE_VOLUMETEXTURE: return static_cast<D3D9Texture3D*>   (pResource)->GetCommonTexture()->GetImage();
++      case D3DRTYPE_CUBETEXTURE:   return static_cast<D3D9TextureCube*> (pResource)->GetCommonTexture()->GetImage();
++      default:                     return nullptr;
++    }
++  }
++
++
++  HRESULT STDMETHODCALLTYPE D3D9VkInteropDevice::RecordCallback(
++          PFN_D3D9VkRecordCallback  fn,
++          void*                     user,
++    const D3D9VkImageAccess*        images,
++          UINT                      count,
++    const void*                     userBlob,
++          UINT                      userBlobSize) {
++    if (unlikely(fn == nullptr || (count && images == nullptr) || (userBlobSize && userBlob == nullptr)))
++      return D3DERR_INVALIDCALL;
++
++    D3D9DeviceLock lock = m_device->LockDevice();
++
++    std::vector<Rc<DxvkImage>> dxvkImages(count);
++    std::vector<D3D9VkImageAccess> access(images, images + count);
++
++    for (UINT i = 0u; i < count; i++) {
++      if (unlikely(access[i].pResource == nullptr))
++        return D3DERR_INVALIDCALL;
++
++      dxvkImages[i] = GetDxvkImage(access[i].pResource);
++
++      if (unlikely(dxvkImages[i] == nullptr))
++        return D3DERR_INVALIDCALL;
++    }
++
++    std::vector<uint8_t> blob;
++
++    if (userBlobSize) {
++      auto bytes = reinterpret_cast<const uint8_t*>(userBlob);
++      blob.assign(bytes, bytes + userBlobSize);
++    }
++
++    m_device->EmitCs([
++      cFn     = fn,
++      cUser   = user,
++      cImages = std::move(dxvkImages),
++      cAccess = std::move(access),
++      cBlob   = std::move(blob)
++    ] (DxvkContext* ctx) mutable {
++      // Ends the render pass and flushes all barriers. This also returns shared
++      // images to their default layout, so it must come before the transitions.
++      Rc<DxvkCommandList> cmdList = ctx->beginExternalRendering();
++
++      // Transition every image to the layout the callback needs (UNDEFINED: the
++      // image's default layout). Always goes through the barrier path so that
++      // pending clears are flushed and earlier accesses are synchronized.
++      for (size_t i = 0u; i < cImages.size(); i++) {
++        const auto& image = cImages[i];
++
++        VkImageLayout layout = cAccess[i].requiredLayout != VK_IMAGE_LAYOUT_UNDEFINED
++          ? cAccess[i].requiredLayout
++          : image->info().layout;
++
++        ctx->transformImage(image, image->getAvailableSubresources(),
++          VK_IMAGE_LAYOUT_MAX_ENUM, image->pickLayout(layout));
++      }
++
++      // Flush the transitions' barriers, without restoring shared images again
++      ctx->coaFlushBarriers();
++
++      for (size_t i = 0u; i < cImages.size(); i++) {
++        const auto& image = cImages[i];
++        const auto& info = image->info();
++
++        auto& a = cAccess[i];
++        a.layout = image->queryLayout(image->getAvailableSubresources());
++        a.image  = image->handle();
++        a.format = info.format;
++        a.extent = info.extent;
++        a.view   = VK_NULL_HANDLE;
++
++        VkImageUsageFlags usage = a.viewUsage ? a.viewUsage : VkImageUsageFlags(VK_IMAGE_USAGE_SAMPLED_BIT);
++
++        if ((info.usage & usage) != usage) {
++          Logger::warn(str::format("CoA: RecordCallback: image usage ", info.usage, " lacks view usage ", usage));
++          continue;
++        }
++
++        DxvkImageViewKey key;
++        key.viewType   = info.type == VK_IMAGE_TYPE_3D ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
++        key.usage      = usage;
++        key.format     = info.format;
++        key.layout     = a.layout;
++        key.aspects    = lookupFormatInfo(info.format)->aspectMask;
++        key.mipIndex   = 0u;
++        key.mipCount   = 1u;
++        key.layerIndex = 0u;
++        key.layerCount = 1u;
++
++        // Depth-only view of depth-stencil images unless used as an attachment
++        if ((key.aspects & VK_IMAGE_ASPECT_DEPTH_BIT) && !(usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT))
++          key.aspects &= ~VK_IMAGE_ASPECT_STENCIL_BIT;
++
++        // Views are cached by the image and live as long as it does
++        a.view = image->createView(key)->handle();
++      }
++
++      // Full memory barrier around the callback: earlier DXVK writes become visible
++      // to it, and its writes to everything DXVK records after it
++      VkMemoryBarrier2 barrier = { VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };
++      barrier.srcStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
++      barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
++      barrier.dstStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
++      barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
++
++      VkDependencyInfo depInfo = { VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
++      depInfo.memoryBarrierCount = 1u;
++      depInfo.pMemoryBarriers = &barrier;
++
++      cmdList->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &depInfo);
++
++      VkCommandBuffer cmd = cmdList->getExecBuffer();
++      cFn(cmd, cAccess.data(), UINT(cAccess.size()), cBlob.empty() ? cUser : cBlob.data());
++
++      cmdList->cmdPipelineBarrier(DxvkCmdBuffer::ExecBuffer, &depInfo);
++
++      for (const auto& image : cImages)
++        cmdList->track(image, DxvkAccess::Write);
++
++      // The callback may have bound its own descriptors
++      cmdList->invalidateDescriptorHeapBinding();
++    });
++
++    return D3D_OK;
++  }
++
++
+   template <typename ResourceType>
+   HRESULT D3D9VkInteropDevice::CreateTextureResource(
+           const D3D9_COMMON_TEXTURE_DESC& desc,
+diff --git a/src/d3d9/d3d9_interop.h b/src/d3d9/d3d9_interop.h
+index 9909893f..f8c4bb1c 100644
+--- a/src/d3d9/d3d9_interop.h
++++ b/src/d3d9/d3d9_interop.h
+@@ -83,7 +83,7 @@ namespace dxvk {
+ 
+   };
+ 
+-  class D3D9VkInteropDevice final : public ID3D9VkInteropDevice {
++  class D3D9VkInteropDevice final : public ID3D9VkInteropDevice1 {
+ 
+   public:
+ 
+@@ -134,6 +134,14 @@ namespace dxvk {
+             const D3D9VkExtImageDesc* desc,
+             IDirect3DResource9**      ppResult);
+ 
++    HRESULT STDMETHODCALLTYPE RecordCallback(
++            PFN_D3D9VkRecordCallback  fn,
++            void*                     user,
++      const D3D9VkImageAccess*        images,
++            UINT                      count,
++      const void*                     userBlob,
++            UINT                      userBlobSize);
++
+   private:
+ 
+     template <typename ResourceType>
+diff --git a/src/d3d9/d3d9_main.cpp b/src/d3d9/d3d9_main.cpp
+index 3fe778a3..6bb00de4 100644
+--- a/src/d3d9/d3d9_main.cpp
++++ b/src/d3d9/d3d9_main.cpp
+@@ -1,3 +1,4 @@
++#include "../dxvk/dxvk_coa_streamline.h"
+ #include "../dxvk/dxvk_instance.h"
+ 
+ #include "d3d9_interface.h"
+@@ -28,6 +29,39 @@ namespace dxvk {
+ 
+ extern "C" {
+ 
++  // CoA64: Streamline hooks, call before Direct3DCreate9
++  DLLEXPORT void __stdcall CoaDxvkSetVulkanRequirements(const CoaVkRequirements* req) {
++    dxvk::coa::setRequirements(req);
++  }
++
++  DLLEXPORT void __stdcall CoaDxvkSetDeviceCallback(PFN_CoaVkDeviceCallback cb) {
++    dxvk::coa::setDeviceCallback(cb);
++  }
++
++  // CoA64: vkQueuePresentKHR replacement (Streamline's proxy), null for the driver's; any time
++  DLLEXPORT void __stdcall CoaDxvkSetPresentProc(PFN_vkQueuePresentKHR proc) {
++    dxvk::coa::setPresentProc(proc);
++  }
++
++  // CoA64: called from ~DxvkDevice before the VkDevice is destroyed; any time
++  DLLEXPORT void __stdcall CoaDxvkSetDeviceDestroyCallback(PFN_CoaVkDeviceDestroyCallback cb) {
++    dxvk::coa::setDeviceDestroyCallback(cb);
++  }
++
++  // CoA64: Streamline's swapchain proxies (Frame Generation), null for the driver's; set before any swapchain
++  DLLEXPORT void __stdcall CoaDxvkSetSwapchainProcs(const CoaVkSwapchainProcs* procs) {
++    dxvk::coa::setSwapchainProcs(procs);
++  }
++
++  // CoA64: the client's frame index for the next Present (its present markers carry it)
++  DLLEXPORT void __stdcall CoaDxvkSetNextPresentFrame(uint64_t frameIndex) {
++    dxvk::coa::setNextPresentFrame(frameIndex);
++  }
++
++  DLLEXPORT void __stdcall CoaDxvkSetPresentMarkerCallback(PFN_CoaPresentMarker cb) {
++    dxvk::coa::setPresentMarkerCallback(cb);
++  }
++
+   DLLEXPORT IDirect3D9* __stdcall Direct3DCreate9(UINT nSDKVersion) {
+     IDirect3D9Ex* pDirect3D = nullptr;
+     dxvk::CreateD3D9(false, &pDirect3D, nullptr, 0);
+diff --git a/src/d3d9/d3d9_swapchain.cpp b/src/d3d9/d3d9_swapchain.cpp
+index d672f115..ba9d0230 100644
+--- a/src/d3d9/d3d9_swapchain.cpp
++++ b/src/d3d9/d3d9_swapchain.cpp
+@@ -5,6 +5,8 @@
+ #include "d3d9_hud.h"
+ #include "d3d9_window.h"
+ 
++#include "../dxvk/dxvk_coa_streamline.h"
++
+ namespace dxvk {
+ 
+   static uint16_t MapGammaControlPoint(float x) {
+@@ -883,6 +885,9 @@ namespace dxvk {
+       viewInfo.layerIndex = 0u;
+       viewInfo.layerCount = 1u;
+ 
++      // CoA64: the client frame stamped for this present, for Streamline's present markers
++      coa::bindPresentFrame(m_wctx->frameId);
++
+       m_parent->EmitCs([
+         cDevice         = m_device,
+         cPresenter      = m_wctx->presenter,
+diff --git a/src/dxvk/dxvk_adapter.cpp b/src/dxvk/dxvk_adapter.cpp
+index 96dfa5d1..6330d6a4 100644
+--- a/src/dxvk/dxvk_adapter.cpp
++++ b/src/dxvk/dxvk_adapter.cpp
+@@ -217,6 +217,13 @@ namespace dxvk {
+     Logger::info("Creating device:");
+     caps.logDeviceInfo();
+ 
++    // CoA64: merge the client's Streamline features and reserve its queues
++    const coa::StreamlineRequirements* coaRequirements = m_instance->coaRequirements();
++    coa::StreamlineQueues coaQueues = { };
++
++    if (coaRequirements)
++      coaQueues = caps.applyCoaRequirements(*coaRequirements);
++
+     // Get device features to enable
+     size_t featureBlobSize = 0u;
+     caps.queryDeviceFeatures(&featureBlobSize, nullptr);
+@@ -302,6 +309,23 @@ namespace dxvk {
+     deviceQueues.transfer = getDeviceQueue(vkd, caps, queueMapping.transfer);
+     deviceQueues.sparse   = getDeviceQueue(vkd, caps, queueMapping.sparse);
+ 
++    // CoA64: hand the new device and the reserved queues to the client
++    if (coaRequirements) {
++      CoaVkDeviceInfo coaInfo = { };
++      coaInfo.instance = m_instance->handle();
++      coaInfo.physicalDevice = m_handle;
++      coaInfo.device = device;
++      coaInfo.graphicsQueueFamily = queueMapping.graphics.family;
++      coaInfo.graphicsQueueIndex = queueMapping.graphics.index;
++      coaInfo.extraComputeQueueFamily = coaQueues.computeFamily;
++      coaInfo.extraComputeQueueFirstIndex = coaQueues.computeFirstIndex;
++      coaInfo.extraGraphicsQueueFamily = coaQueues.graphicsFamily;
++      coaInfo.extraGraphicsQueueFirstIndex = coaQueues.graphicsFirstIndex;
++      coaInfo.opticalFlowQueueFamily = coaQueues.opticalFlowFamily;
++      coaInfo.opticalFlowQueueIndex = coaQueues.opticalFlowIndex;
++      coa::notifyDeviceCreated(coaInfo);
++    }
++
+     return new DxvkDevice(m_instance, this, vkd, caps, deviceQueues, DxvkQueueCallback());
+   }
+ 
+diff --git a/src/dxvk/dxvk_cmdlist.h b/src/dxvk/dxvk_cmdlist.h
+index 38891eb0..f0b5ad14 100644
+--- a/src/dxvk/dxvk_cmdlist.h
++++ b/src/dxvk/dxvk_cmdlist.h
+@@ -1352,6 +1352,17 @@ namespace dxvk {
+       m_descriptorHeapInvalidated = true;
+     }
+ 
++    /**
++     * \brief CoA64: Main execution command buffer for external recording
++     *
++     * Marks the execution buffer as used so that it gets submitted.
++     * \returns Execution command buffer
++     */
++    VkCommandBuffer getExecBuffer() {
++      m_cmd.execCommands = true;
++      return getCmdBuffer();
++    }
++
+   private:
+     
+     DxvkDevice*               m_device;
+diff --git a/src/dxvk/dxvk_coa_streamline.cpp b/src/dxvk/dxvk_coa_streamline.cpp
+new file mode 100644
+index 00000000..cad3f33b
+--- /dev/null
++++ b/src/dxvk/dxvk_coa_streamline.cpp
+@@ -0,0 +1,270 @@
++#include <algorithm>
++
++#include "dxvk_coa_streamline.h"
++#include "dxvk_instance.h"
++
++#include "../vulkan/vulkan_util.h"
++
++namespace dxvk::coa {
++
++  static std::mutex               g_mutex;
++  static bool                     g_hasRequirements = false;
++  static StreamlineRequirements   g_requirements;
++  static PFN_CoaVkDeviceCallback  g_deviceCallback = nullptr;
++  static PFN_CoaVkDeviceDestroyCallback g_destroyCallback = nullptr;
++  static std::atomic<PFN_vkQueuePresentKHR> g_presentProc = { nullptr };
++  static std::atomic<PFN_vkCreateSwapchainKHR>    g_createSwapchain = { nullptr };
++  static std::atomic<PFN_vkDestroySwapchainKHR>   g_destroySwapchain = { nullptr };
++  static std::atomic<PFN_vkGetSwapchainImagesKHR> g_getSwapchainImages = { nullptr };
++  static std::atomic<PFN_vkAcquireNextImageKHR>   g_acquireNextImage = { nullptr };
++  static std::atomic<PFN_vkDeviceWaitIdle>        g_deviceWaitIdle = { nullptr };
++  static std::atomic<PFN_vkCreateWin32SurfaceKHR> g_createWin32Surface = { nullptr };
++  static std::atomic<PFN_vkDestroySurfaceKHR>     g_destroySurface = { nullptr };
++  static std::atomic<PFN_CoaPresentMarker>        g_presentMarker = { nullptr };
++  static std::atomic<uint64_t>                    g_nextPresentFrame = { 0u };
++  // DXVK frame id -> client frame index, a small ring (presents in flight are few)
++  static std::atomic<uint64_t>                    g_boundDxvk[16];
++  static std::atomic<uint64_t>                    g_boundClient[16];
++
++
++  static std::vector<std::string> copyNames(const char* const* names, uint32_t count) {
++    std::vector<std::string> result;
++
++    for (uint32_t i = 0u; names && i < count; i++) {
++      if (names[i])
++        result.emplace_back(names[i]);
++    }
++
++    return result;
++  }
++
++
++  void setRequirements(const CoaVkRequirements* req) {
++    std::lock_guard lock(g_mutex);
++
++    g_hasRequirements = req != nullptr;
++    g_requirements = StreamlineRequirements();
++
++    if (!req)
++      return;
++
++    g_requirements.instanceExtensions = copyNames(req->instanceExtensions, req->instanceExtensionCount);
++    g_requirements.deviceExtensions   = copyNames(req->deviceExtensions,   req->deviceExtensionCount);
++    g_requirements.features12         = copyNames(req->features12,         req->features12Count);
++    g_requirements.features13         = copyNames(req->features13,         req->features13Count);
++    g_requirements.extraComputeQueues  = req->extraComputeQueues;
++    g_requirements.extraGraphicsQueues = req->extraGraphicsQueues;
++    g_requirements.opticalFlowQueues   = req->opticalFlowQueues;
++
++    Logger::info(str::format("CoA: Streamline requirements set: ",
++      g_requirements.instanceExtensions.size(), " instance extensions, ",
++      g_requirements.deviceExtensions.size(), " device extensions, ",
++      g_requirements.features12.size(), " + ", g_requirements.features13.size(), " features, ",
++      g_requirements.extraComputeQueues, " compute + ", g_requirements.extraGraphicsQueues, " graphics queues"));
++  }
++
++
++  void setDeviceCallback(PFN_CoaVkDeviceCallback cb) {
++    std::lock_guard lock(g_mutex);
++    g_deviceCallback = cb;
++  }
++
++
++  void setDeviceDestroyCallback(PFN_CoaVkDeviceDestroyCallback cb) {
++    std::lock_guard lock(g_mutex);
++    g_destroyCallback = cb;
++  }
++
++
++  void notifyDeviceDestroying(VkDevice device) {
++    PFN_CoaVkDeviceDestroyCallback cb = nullptr;
++
++    { std::lock_guard lock(g_mutex);
++      cb = g_destroyCallback;
++    }
++
++    if (cb)
++      cb(device);
++  }
++
++
++  void setSwapchainProcs(const CoaVkSwapchainProcs* procs) {
++    CoaVkSwapchainProcs p = procs ? *procs : CoaVkSwapchainProcs();
++    g_createSwapchain.store(p.createSwapchain, std::memory_order_release);
++    g_destroySwapchain.store(p.destroySwapchain, std::memory_order_release);
++    g_getSwapchainImages.store(p.getSwapchainImages, std::memory_order_release);
++    g_acquireNextImage.store(p.acquireNextImage, std::memory_order_release);
++    g_deviceWaitIdle.store(p.deviceWaitIdle, std::memory_order_release);
++    g_createWin32Surface.store(p.createWin32Surface, std::memory_order_release);
++    g_destroySurface.store(p.destroySurface, std::memory_order_release);
++    g_presentProc.store(p.queuePresent, std::memory_order_release);
++    Logger::info(str::format("CoA: swapchain procs ", procs ? "set" : "cleared"));
++  }
++
++
++  template<typename T>
++  static T pick(const std::atomic<T>& slot, T native) {
++    T proc = slot.load(std::memory_order_acquire);
++    return proc ? proc : native;
++  }
++
++
++  bool swapchainRouted() { return g_createSwapchain.load(std::memory_order_acquire) != nullptr; }
++
++  PFN_vkCreateSwapchainKHR    createSwapchain(PFN_vkCreateSwapchainKHR native)       { return pick(g_createSwapchain, native); }
++  PFN_vkDestroySwapchainKHR   destroySwapchain(PFN_vkDestroySwapchainKHR native)     { return pick(g_destroySwapchain, native); }
++  PFN_vkGetSwapchainImagesKHR getSwapchainImages(PFN_vkGetSwapchainImagesKHR native) { return pick(g_getSwapchainImages, native); }
++  PFN_vkAcquireNextImageKHR   acquireNextImage(PFN_vkAcquireNextImageKHR native)     { return pick(g_acquireNextImage, native); }
++  PFN_vkDeviceWaitIdle        deviceWaitIdle(PFN_vkDeviceWaitIdle native)            { return pick(g_deviceWaitIdle, native); }
++  PFN_vkCreateWin32SurfaceKHR createWin32Surface(PFN_vkCreateWin32SurfaceKHR native) { return pick(g_createWin32Surface, native); }
++  PFN_vkDestroySurfaceKHR     destroySurface(PFN_vkDestroySurfaceKHR native)         { return pick(g_destroySurface, native); }
++
++
++  void setNextPresentFrame(uint64_t frameIndex) {
++    g_nextPresentFrame.store(frameIndex, std::memory_order_release);
++  }
++
++
++  void bindPresentFrame(uint64_t dxvkFrameId) {
++    uint64_t client = g_nextPresentFrame.exchange(0u, std::memory_order_acq_rel);
++    uint32_t slot = uint32_t(dxvkFrameId % 16u);
++    g_boundClient[slot].store(client, std::memory_order_relaxed);
++    g_boundDxvk[slot].store(dxvkFrameId, std::memory_order_release);
++  }
++
++
++  void setPresentMarkerCallback(PFN_CoaPresentMarker cb) {
++    g_presentMarker.store(cb, std::memory_order_release);
++  }
++
++
++  void presentMarker(uint32_t marker, uint64_t dxvkFrameId) {
++    PFN_CoaPresentMarker cb = g_presentMarker.load(std::memory_order_acquire);
++    uint32_t slot = uint32_t(dxvkFrameId % 16u);
++
++    if (!cb || g_boundDxvk[slot].load(std::memory_order_acquire) != dxvkFrameId)
++      return;
++
++    uint64_t client = g_boundClient[slot].load(std::memory_order_relaxed);
++
++    if (client)
++      cb(marker, client);
++  }
++
++
++  void setPresentProc(PFN_vkQueuePresentKHR proc) {
++    g_presentProc.store(proc, std::memory_order_release);
++    Logger::info(str::format("CoA: present proc ", proc ? "set" : "cleared"));
++  }
++
++
++  VkResult queuePresent(
++          PFN_vkQueuePresentKHR native,
++          VkQueue               queue,
++    const VkPresentInfoKHR*     info) {
++    PFN_vkQueuePresentKHR proc = g_presentProc.load(std::memory_order_acquire);
++    return proc ? proc(queue, info) : native(queue, info);
++  }
++
++
++  std::optional<StreamlineRequirements> getRequirements() {
++    std::lock_guard lock(g_mutex);
++
++    if (!g_hasRequirements)
++      return std::nullopt;
++
++    return g_requirements;
++  }
++
++
++  void notifyDeviceCreated(const CoaVkDeviceInfo& info) {
++    PFN_CoaVkDeviceCallback cb = nullptr;
++
++    { std::lock_guard lock(g_mutex);
++      cb = g_deviceCallback;
++    }
++
++    if (cb)
++      cb(&info);
++  }
++
++
++  StreamlineExtensionProvider StreamlineExtensionProvider::s_instance;
++
++
++  std::string_view StreamlineExtensionProvider::getName() {
++    return "CoA Streamline";
++  }
++
++
++  DxvkExtensionList StreamlineExtensionProvider::getInstanceExtensions() {
++    std::lock_guard lock(m_mutex);
++    return m_instanceExtensions;
++  }
++
++
++  DxvkExtensionList StreamlineExtensionProvider::getDeviceExtensions(
++          uint32_t      adapterId) {
++    std::lock_guard lock(m_mutex);
++
++    if (adapterId < m_deviceExtensions.size())
++      return m_deviceExtensions[adapterId];
++
++    return DxvkExtensionList();
++  }
++
++
++  void StreamlineExtensionProvider::setRequirements(
++    const StreamlineRequirements& req) {
++    std::lock_guard lock(m_mutex);
++    m_requirements = req;
++  }
++
++
++  void StreamlineExtensionProvider::initInstanceExtensions() {
++    std::lock_guard lock(m_mutex);
++
++    m_instanceExtensions.clear();
++
++    for (const auto& name : m_requirements.instanceExtensions)
++      m_instanceExtensions.push_back(vk::makeExtension(name.c_str()));
++  }
++
++
++  void StreamlineExtensionProvider::initDeviceExtensions(
++    const DxvkInstance* instance) {
++    std::lock_guard lock(m_mutex);
++
++    const auto& names = m_requirements.deviceExtensions;
++    auto vki = instance->vki();
++
++    m_deviceExtensions.clear();
++
++    for (uint32_t i = 0u; instance->enumAdapters(i) != nullptr; i++) {
++      VkPhysicalDevice adapter = instance->enumAdapters(i)->handle();
++
++      uint32_t count = 0u;
++      vki->vkEnumerateDeviceExtensionProperties(adapter, nullptr, &count, nullptr);
++
++      std::vector<VkExtensionProperties> supported(count);
++      vki->vkEnumerateDeviceExtensionProperties(adapter, nullptr, &count, supported.data());
++
++      DxvkExtensionList list;
++
++      for (const auto& name : names) {
++        bool found = std::find_if(supported.begin(), supported.end(),
++          [&name] (const VkExtensionProperties& ext) {
++            return name == ext.extensionName;
++          }) != supported.end();
++
++        if (found)
++          list.push_back(vk::makeExtension(name.c_str()));
++        else
++          Logger::warn(str::format("CoA: Adapter ", i, " does not support device extension ", name, ", ignoring"));
++      }
++
++      m_deviceExtensions.push_back(std::move(list));
++    }
++  }
++
++}
+diff --git a/src/dxvk/dxvk_coa_streamline.h b/src/dxvk/dxvk_coa_streamline.h
+new file mode 100644
+index 00000000..5cdca236
+--- /dev/null
++++ b/src/dxvk/dxvk_coa_streamline.h
+@@ -0,0 +1,207 @@
++#pragma once
++
++#include <atomic>
++#include <mutex>
++#include <optional>
++#include <string>
++#include <vector>
++
++#include "dxvk_extension_provider.h"
++
++// CoA64: Streamline (NVIDIA DLSS) hooks. The client passes Streamline's Vulkan requirements through the exported
++// CoaDxvkSetVulkanRequirements before Direct3DCreate9 and gets the created device's handles back through the
++// CoaDxvkSetDeviceCallback callback. Nothing here changes DXVK's behaviour unless the requirements were set.
++// Each DxvkInstance latches the requirements once when it is created (Direct3DCreate9); later calls only affect
++// instances created after them.
++// Must match CoA64's ThirdParty/dxvk/include/coa_dxvk_streamline.h.
++
++struct CoaVkRequirements {
++  const char* const* instanceExtensions; uint32_t instanceExtensionCount;
++  const char* const* deviceExtensions;   uint32_t deviceExtensionCount;
++  const char* const* features12;         uint32_t features12Count;   // names as in VkPhysicalDeviceVulkan12Features
++  const char* const* features13;         uint32_t features13Count;   // names as in VkPhysicalDeviceVulkan13Features
++  uint32_t extraComputeQueues; uint32_t extraGraphicsQueues;
++  uint32_t opticalFlowQueues;                                       // VK_QUEUE_OPTICAL_FLOW_BIT_NV family
++};
++
++struct CoaVkDeviceInfo {
++  VkInstance instance; VkPhysicalDevice physicalDevice; VkDevice device;
++  uint32_t graphicsQueueFamily, graphicsQueueIndex;               // DXVK's own queue
++  uint32_t extraComputeQueueFamily, extraComputeQueueFirstIndex;   // first queue reserved for the app
++  uint32_t extraGraphicsQueueFamily, extraGraphicsQueueFirstIndex; // (0xFFFFFFFF: none reserved)
++  uint32_t opticalFlowQueueFamily, opticalFlowQueueIndex;
++};
++
++// Streamline's proxies for the calls it must see (sl_hooks.h, Vulkan); a null member keeps the driver's.
++struct CoaVkSwapchainProcs {
++  PFN_vkCreateSwapchainKHR    createSwapchain;
++  PFN_vkDestroySwapchainKHR   destroySwapchain;
++  PFN_vkGetSwapchainImagesKHR getSwapchainImages;
++  PFN_vkAcquireNextImageKHR   acquireNextImage;
++  PFN_vkQueuePresentKHR       queuePresent;
++  PFN_vkDeviceWaitIdle        deviceWaitIdle;
++  PFN_vkCreateWin32SurfaceKHR createWin32Surface;
++  PFN_vkDestroySurfaceKHR     destroySurface;
++};
++
++// Called on DXVK's queue thread around a present that carries a client frame (marker 0 start, 1 end).
++typedef void (__stdcall* PFN_CoaPresentMarker)(uint32_t marker, uint64_t frameIndex);
++
++typedef void (__stdcall* PFN_CoaVkDeviceCallback)(const CoaVkDeviceInfo* info);
++typedef void (__stdcall* PFN_CoaVkDeviceDestroyCallback)(VkDevice device);
++
++namespace dxvk::coa {
++
++  /**
++   * \brief Copy of the requirements passed by the client
++   */
++  struct StreamlineRequirements {
++    std::vector<std::string> instanceExtensions;
++    std::vector<std::string> deviceExtensions;
++    std::vector<std::string> features12;
++    std::vector<std::string> features13;
++    uint32_t extraComputeQueues  = 0u;
++    uint32_t extraGraphicsQueues = 0u;
++    uint32_t opticalFlowQueues   = 0u;
++  };
++
++  /**
++   * \brief Queues reserved for the client on device creation
++   */
++  struct StreamlineQueues {
++    uint32_t computeFamily      = VK_QUEUE_FAMILY_IGNORED;
++    uint32_t computeFirstIndex  = VK_QUEUE_FAMILY_IGNORED;
++    uint32_t graphicsFamily     = VK_QUEUE_FAMILY_IGNORED;
++    uint32_t graphicsFirstIndex = VK_QUEUE_FAMILY_IGNORED;
++    uint32_t opticalFlowFamily  = VK_QUEUE_FAMILY_IGNORED;
++    uint32_t opticalFlowIndex   = VK_QUEUE_FAMILY_IGNORED;
++  };
++
++  void setRequirements(const CoaVkRequirements* req);
++
++  void setDeviceCallback(PFN_CoaVkDeviceCallback cb);
++
++  void setDeviceDestroyCallback(PFN_CoaVkDeviceDestroyCallback cb);
++
++  /**
++   * \brief Sets Streamline's swapchain proxies (null clears all)
++   */
++  void setSwapchainProcs(const CoaVkSwapchainProcs* procs);
++
++  /**
++   * \brief Swapchains are created through Streamline (Frame Generation)
++   */
++  bool swapchainRouted();
++
++  PFN_vkCreateSwapchainKHR    createSwapchain(PFN_vkCreateSwapchainKHR native);
++  PFN_vkDestroySwapchainKHR   destroySwapchain(PFN_vkDestroySwapchainKHR native);
++  PFN_vkGetSwapchainImagesKHR getSwapchainImages(PFN_vkGetSwapchainImagesKHR native);
++  PFN_vkAcquireNextImageKHR   acquireNextImage(PFN_vkAcquireNextImageKHR native);
++  PFN_vkDeviceWaitIdle        deviceWaitIdle(PFN_vkDeviceWaitIdle native);
++  PFN_vkCreateWin32SurfaceKHR createWin32Surface(PFN_vkCreateWin32SurfaceKHR native);
++  PFN_vkDestroySurfaceKHR     destroySurface(PFN_vkDestroySurfaceKHR native);
++
++  /**
++   * \brief Client frame index for the next present (main thread)
++   */
++  void setNextPresentFrame(uint64_t frameIndex);
++
++  /**
++   * \brief Binds the pending client frame index to DXVK's frame id of this present
++   */
++  void bindPresentFrame(uint64_t dxvkFrameId);
++
++  void setPresentMarkerCallback(PFN_CoaPresentMarker cb);
++
++  /**
++   * \brief Present start (0) / end (1) for DXVK's frame id, if it carries a client frame
++   */
++  void presentMarker(uint32_t marker, uint64_t dxvkFrameId);
++
++  /**
++   * \brief Sets the present function the presenter calls instead of the driver's
++   *
++   * Streamline's vkQueuePresentKHR proxy (its presentCommon bookkeeping runs on
++   * every present). Null restores the driver's. The presenter calls it under
++   * the device queue lock, so a client that clears it and then takes and drops
++   * that lock (ID3D9VkInteropDevice::LockSubmissionQueue) knows no call into the
++   * old proc is still running.
++   */
++  void setPresentProc(PFN_vkQueuePresentKHR proc);
++
++  /**
++   * \brief Presents through the client's proc if one is set, else \c native
++   */
++  VkResult queuePresent(
++          PFN_vkQueuePresentKHR native,
++          VkQueue               queue,
++    const VkPresentInfoKHR*     info);
++
++  /**
++   * \brief Snapshot of the requirements
++   *
++   * Taken once per DxvkInstance on creation (see DxvkInstance::coaRequirements).
++   * \returns The requirements, or nothing if CoaDxvkSetVulkanRequirements was
++   *    not called (or called with null)
++   */
++  std::optional<StreamlineRequirements> getRequirements();
++
++  /**
++   * \brief Calls the device callback, if one was set
++   *
++   * Only called for instances that latched requirements.
++   */
++  void notifyDeviceCreated(const CoaVkDeviceInfo& info);
++
++  /**
++   * \brief Calls the destroy callback, if one was set
++   *
++   * From ~DxvkDevice once the device is idle, before the VkDevice goes,
++   * so a device whose D3D9 device never existed (failed InitialReset)
++   * is reported too. Only for instances that latched requirements.
++   */
++  void notifyDeviceDestroying(VkDevice device);
++
++  /**
++   * \brief Extension provider for the client's instance and device extensions
++   *
++   * Only registered with the instance when requirements were set. Extensions
++   * the driver does not support are logged and dropped.
++   */
++  class StreamlineExtensionProvider : public DxvkExtensionProvider {
++
++  public:
++
++    std::string_view getName();
++
++    DxvkExtensionList getInstanceExtensions();
++
++    DxvkExtensionList getDeviceExtensions(
++            uint32_t      adapterId);
++
++    void initInstanceExtensions();
++
++    void initDeviceExtensions(
++      const DxvkInstance* instance);
++
++    /**
++     * \brief Sets the requirements of the instance being created
++     *
++     * Called by DxvkInstance with its latched requirements
++     * before the extension sets are initialized.
++     */
++    void setRequirements(
++      const StreamlineRequirements& req);
++
++    static StreamlineExtensionProvider s_instance;
++
++  private:
++
++    std::mutex                      m_mutex;
++    StreamlineRequirements          m_requirements;
++    DxvkExtensionList               m_instanceExtensions;
++    std::vector<DxvkExtensionList>  m_deviceExtensions;
++
++  };
++
++}
+diff --git a/src/dxvk/dxvk_context.h b/src/dxvk/dxvk_context.h
+index 2d73c55d..6efd9058 100644
+--- a/src/dxvk/dxvk_context.h
++++ b/src/dxvk/dxvk_context.h
+@@ -122,6 +122,18 @@ namespace dxvk {
+      */
+     Rc<DxvkCommandList> beginExternalRendering();
+ 
++    /**
++     * \brief CoA64: Flushes pending barriers for external rendering
++     *
++     * Ends any render pass and records pending barriers into the
++     * current command buffer. Unlike \c beginExternalRendering, shared
++     * images keep their current layouts and state is not invalidated.
++     */
++    void coaFlushBarriers() {
++      this->endCurrentPass(true);
++      this->flushBarriers();
++    }
++
+     /**
+      * \brief Begins generating query data
+      * \param [in] query The query to end
+diff --git a/src/dxvk/dxvk_device.cpp b/src/dxvk/dxvk_device.cpp
+index 02218254..0556ba95 100644
+--- a/src/dxvk/dxvk_device.cpp
++++ b/src/dxvk/dxvk_device.cpp
+@@ -27,6 +27,10 @@ namespace dxvk {
+     m_checkpoints       (this),
+     m_submissionQueue   (this, queueCallback) {
+ 
++    // CoA64: Streamline owns latency handling, keep DXVK's latency tracker off
++    if (instance->coaRequirements())
++      m_options.latencySleep = Tristate::False;
++
+     if (adapter->kmtLocal()) {
+       D3DKMT_CREATEDEVICE create = { };
+       create.hAdapter = adapter->kmtLocal();
+@@ -66,6 +70,10 @@ namespace dxvk {
+     // Stop workers explicitly in order to prevent
+     // access to structures that are being destroyed.
+     m_objects.pipelineManager().stopWorkerThreads();
++
++    // CoA64: Streamline must shut down before the VkDevice goes
++    if (m_instance->coaRequirements())
++      coa::notifyDeviceDestroying(m_vkd->device());
+   }
+ 
+ 
+@@ -695,7 +703,7 @@ namespace dxvk {
+     m_submissionQueue.waitForIdle();
+     m_submissionQueue.lockDeviceQueue();
+ 
+-    if (m_vkd->vkDeviceWaitIdle(m_vkd->device()) != VK_SUCCESS)
++    if (coa::deviceWaitIdle(m_vkd->vkDeviceWaitIdle)(m_vkd->device()) != VK_SUCCESS)
+       Logger::err("DxvkDevice: waitForIdle: Operation failed");
+ 
+     m_submissionQueue.unlockDeviceQueue();
+diff --git a/src/dxvk/dxvk_device_info.cpp b/src/dxvk/dxvk_device_info.cpp
+index 63d89d9d..9e5be6d7 100644
+--- a/src/dxvk/dxvk_device_info.cpp
++++ b/src/dxvk/dxvk_device_info.cpp
+@@ -506,6 +506,14 @@ namespace dxvk {
+ 
+       applyTristate(enableDescriptorHeap, instance.options().enableDescriptorHeap);
+ 
++      // CoA64: with DXVK's descriptor heap bound, NGX's DLSS kernels (VK_NVX_binary_import, images addressed
++      // through VK_NVX_image_view_handle) write an all-zero output. Streamline forces the legacy binding model
++      // (descriptor sets, or descriptor buffers where DXVK picks them), whatever dxvk.conf says.
++      if (instance.coaRequirements()) {
++        enableDescriptorHeap = false;
++        Logger::info("DXVK: descriptor heap disabled for Streamline");
++      }
++
+       if (!enableDescriptorHeap)
+         m_featuresSupported.extDescriptorHeap.descriptorHeap = VK_FALSE;
+     }
+@@ -545,7 +553,10 @@ namespace dxvk {
+     if (!instance.options().enableUnifiedImageLayout)
+       m_featuresSupported.khrUnifiedImageLayouts.unifiedImageLayouts = VK_FALSE;
+ 
+-    if (env::is32BitHostPlatform() || !env::isWineVulkan() || safeMode || !instance.options().enableNvCudaInterop) {
++    // CoA64: Streamline needs the NVX extensions on native Windows too
++    bool nvxAllowed = env::isWineVulkan() || instance.coaRequirements();
++
++    if (env::is32BitHostPlatform() || !nvxAllowed || safeMode || !instance.options().enableNvCudaInterop) {
+       // CUDA interop is unnecessary on 32-bit, no games use it. These extensions
+       // can also cause device creation errors for unknown reasons.
+       m_featuresSupported.nvxBinaryImport = VK_FALSE;
+@@ -711,6 +722,184 @@ namespace dxvk {
+   }
+ 
+ 
++  // CoA64: Vulkan 1.2 / 1.3 feature names the client may request
++  #define COA_VK12_FEATURES                                      \
++    COA_FEATURE(samplerMirrorClampToEdge)                        \
++    COA_FEATURE(drawIndirectCount)                               \
++    COA_FEATURE(storageBuffer8BitAccess)                         \
++    COA_FEATURE(uniformAndStorageBuffer8BitAccess)               \
++    COA_FEATURE(storagePushConstant8)                            \
++    COA_FEATURE(shaderBufferInt64Atomics)                        \
++    COA_FEATURE(shaderSharedInt64Atomics)                        \
++    COA_FEATURE(shaderFloat16)                                   \
++    COA_FEATURE(shaderInt8)                                      \
++    COA_FEATURE(descriptorIndexing)                              \
++    COA_FEATURE(shaderInputAttachmentArrayDynamicIndexing)       \
++    COA_FEATURE(shaderUniformTexelBufferArrayDynamicIndexing)    \
++    COA_FEATURE(shaderStorageTexelBufferArrayDynamicIndexing)    \
++    COA_FEATURE(shaderUniformBufferArrayNonUniformIndexing)      \
++    COA_FEATURE(shaderSampledImageArrayNonUniformIndexing)       \
++    COA_FEATURE(shaderStorageBufferArrayNonUniformIndexing)      \
++    COA_FEATURE(shaderStorageImageArrayNonUniformIndexing)       \
++    COA_FEATURE(shaderInputAttachmentArrayNonUniformIndexing)    \
++    COA_FEATURE(shaderUniformTexelBufferArrayNonUniformIndexing) \
++    COA_FEATURE(shaderStorageTexelBufferArrayNonUniformIndexing) \
++    COA_FEATURE(descriptorBindingUniformBufferUpdateAfterBind)   \
++    COA_FEATURE(descriptorBindingSampledImageUpdateAfterBind)    \
++    COA_FEATURE(descriptorBindingStorageImageUpdateAfterBind)    \
++    COA_FEATURE(descriptorBindingStorageBufferUpdateAfterBind)   \
++    COA_FEATURE(descriptorBindingUniformTexelBufferUpdateAfterBind) \
++    COA_FEATURE(descriptorBindingStorageTexelBufferUpdateAfterBind) \
++    COA_FEATURE(descriptorBindingUpdateUnusedWhilePending)       \
++    COA_FEATURE(descriptorBindingPartiallyBound)                 \
++    COA_FEATURE(descriptorBindingVariableDescriptorCount)        \
++    COA_FEATURE(runtimeDescriptorArray)                          \
++    COA_FEATURE(samplerFilterMinmax)                             \
++    COA_FEATURE(scalarBlockLayout)                               \
++    COA_FEATURE(imagelessFramebuffer)                            \
++    COA_FEATURE(uniformBufferStandardLayout)                     \
++    COA_FEATURE(shaderSubgroupExtendedTypes)                     \
++    COA_FEATURE(separateDepthStencilLayouts)                     \
++    COA_FEATURE(hostQueryReset)                                  \
++    COA_FEATURE(timelineSemaphore)                               \
++    COA_FEATURE(bufferDeviceAddress)                             \
++    COA_FEATURE(bufferDeviceAddressCaptureReplay)                \
++    COA_FEATURE(bufferDeviceAddressMultiDevice)                  \
++    COA_FEATURE(vulkanMemoryModel)                               \
++    COA_FEATURE(vulkanMemoryModelDeviceScope)                    \
++    COA_FEATURE(vulkanMemoryModelAvailabilityVisibilityChains)   \
++    COA_FEATURE(shaderOutputViewportIndex)                       \
++    COA_FEATURE(shaderOutputLayer)                               \
++    COA_FEATURE(subgroupBroadcastDynamicId)
++
++  #define COA_VK13_FEATURES                                      \
++    COA_FEATURE(robustImageAccess)                               \
++    COA_FEATURE(inlineUniformBlock)                              \
++    COA_FEATURE(descriptorBindingInlineUniformBlockUpdateAfterBind) \
++    COA_FEATURE(pipelineCreationCacheControl)                    \
++    COA_FEATURE(privateData)                                     \
++    COA_FEATURE(shaderDemoteToHelperInvocation)                  \
++    COA_FEATURE(shaderTerminateInvocation)                       \
++    COA_FEATURE(subgroupSizeControl)                             \
++    COA_FEATURE(computeFullSubgroups)                            \
++    COA_FEATURE(synchronization2)                                \
++    COA_FEATURE(textureCompressionASTC_HDR)                      \
++    COA_FEATURE(shaderZeroInitializeWorkgroupMemory)             \
++    COA_FEATURE(dynamicRendering)                                \
++    COA_FEATURE(shaderIntegerDotProduct)                         \
++    COA_FEATURE(maintenance4)
++
++  template<typename T, size_t N>
++  static void enableCoaFeatures(
++    const std::pair<const char*, VkBool32 T::*> (&table)[N],
++    const std::vector<std::string>&   names,
++    const T&                          supported,
++          T&                          enabled,
++    const char*                       structName) {
++    for (const auto& name : names) {
++      auto entry = std::find_if(std::begin(table), std::end(table),
++        [&name] (const std::pair<const char*, VkBool32 T::*>& e) { return name == e.first; });
++
++      if (entry == std::end(table))
++        Logger::warn(str::format("CoA: Unknown ", structName, " feature ", name, ", ignoring"));
++      else if (!(supported.*(entry->second)))
++        Logger::warn(str::format("CoA: ", structName, " feature ", name, " not supported, ignoring"));
++      else
++        enabled.*(entry->second) = VK_TRUE;
++    }
++  }
++
++
++  coa::StreamlineQueues DxvkDeviceCapabilities::applyCoaRequirements(
++    const coa::StreamlineRequirements& req) {
++    #define COA_FEATURE(name) { #name, &VkPhysicalDeviceVulkan12Features::name },
++    static const std::pair<const char*, VkBool32 VkPhysicalDeviceVulkan12Features::*> s_vk12[] = { COA_VK12_FEATURES };
++    #undef COA_FEATURE
++
++    #define COA_FEATURE(name) { #name, &VkPhysicalDeviceVulkan13Features::name },
++    static const std::pair<const char*, VkBool32 VkPhysicalDeviceVulkan13Features::*> s_vk13[] = { COA_VK13_FEATURES };
++    #undef COA_FEATURE
++
++    enableCoaFeatures(s_vk12, req.features12, m_featuresSupported.vk12, m_featuresEnabled.vk12, "Vulkan 1.2");
++    enableCoaFeatures(s_vk13, req.features13, m_featuresSupported.vk13, m_featuresEnabled.vk13, "Vulkan 1.3");
++
++    // Extra compute queues come from a dedicated compute family if the device has one,
++    // otherwise from DXVK's graphics family; extra graphics queues from the graphics family.
++    // Reserved queues always follow the ones DXVK itself uses in that family.
++    coa::StreamlineQueues result = { };
++
++    if (m_queueMapping.graphics.family == VK_QUEUE_FAMILY_IGNORED)
++      return result;
++
++    uint32_t computeFamily = findQueueFamily(
++      VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT,
++      VK_QUEUE_COMPUTE_BIT);
++
++    if (computeFamily == VK_QUEUE_FAMILY_IGNORED)
++      computeFamily = m_queueMapping.graphics.family;
++
++    auto reserve = [this] (uint32_t family, uint32_t count, uint32_t& outFamily, uint32_t& outIndex, const char* kind) {
++      if (!count)
++        return;
++
++      outFamily = family;
++
++      auto entry = std::find_if(m_queuesEnabled.begin(), m_queuesEnabled.end(),
++        [family] (const VkDeviceQueueCreateInfo& q) { return q.queueFamilyIndex == family; });
++
++      uint32_t used = entry != m_queuesEnabled.end() ? entry->queueCount : 0u;
++      uint32_t available = m_queuesAvailable[family].core.queueFamilyProperties.queueCount;
++
++      if (used + count > available) {
++        Logger::warn(str::format("CoA: Cannot reserve ", count, " ", kind, " queue(s) in family ", family,
++          " (", used, " used, ", available, " available), reserving none"));
++        return;
++      }
++
++      if (entry == m_queuesEnabled.end()) {
++        auto& q = m_queuesEnabled.emplace_back();
++        q.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
++        q.queueFamilyIndex = family;
++        q.queueCount = count;
++      } else {
++        entry->queueCount = used + count;
++      }
++
++      outIndex = used;
++
++      Logger::info(str::format("CoA: Reserved ", count, " ", kind, " queue(s): family ", family, ", first index ", used));
++    };
++
++    reserve(computeFamily, req.extraComputeQueues,
++      result.computeFamily, result.computeFirstIndex, "compute");
++    reserve(m_queueMapping.graphics.family, req.extraGraphicsQueues,
++      result.graphicsFamily, result.graphicsFirstIndex, "graphics");
++
++    // Frame Generation's native optical flow needs a queue of its own family
++    if (req.opticalFlowQueues) {
++      uint32_t opticalFlowFamily = findQueueFamily(VK_QUEUE_OPTICAL_FLOW_BIT_NV, VK_QUEUE_OPTICAL_FLOW_BIT_NV);
++
++      if (opticalFlowFamily != VK_QUEUE_FAMILY_IGNORED)
++        reserve(opticalFlowFamily, req.opticalFlowQueues, result.opticalFlowFamily, result.opticalFlowIndex, "optical flow");
++      else
++        Logger::warn("CoA: No optical flow queue family");
++    }
++
++    // Fix up queue priority pointers for the new queue counts
++    uint32_t maxQueueCount = 0u;
++
++    for (auto& q : m_queuesEnabled)
++      maxQueueCount = std::max(maxQueueCount, q.queueCount);
++
++    m_queuePriorities.resize(maxQueueCount, 1.0f);
++
++    for (auto& q : m_queuesEnabled)
++      q.pQueuePriorities = m_queuePriorities.data();
++
++    return result;
++  }
++
++
+   void DxvkDeviceCapabilities::enableQueue(
+           DxvkDeviceQueueIndex        queue) {
+     if (queue.family == VK_QUEUE_FAMILY_IGNORED)
+diff --git a/src/dxvk/dxvk_device_info.h b/src/dxvk/dxvk_device_info.h
+index 54deab3e..d4e7221d 100644
+--- a/src/dxvk/dxvk_device_info.h
++++ b/src/dxvk/dxvk_device_info.h
+@@ -4,6 +4,7 @@
+ #include <string>
+ #include <vector>
+ 
++#include "dxvk_coa_streamline.h"
+ #include "dxvk_include.h"
+ 
+ #include "../util/util_version.h"
+@@ -359,6 +360,18 @@ namespace dxvk {
+      */
+     void logDeviceInfo();
+ 
++    /**
++     * \brief CoA64: applies the client's Streamline requirements
++     *
++     * Enables the requested Vulkan 1.2 / 1.3 features the device supports
++     * and reserves the requested extra queues. Only used when creating a
++     * device and only when the client set requirements.
++     * \param [in] req Requirements
++     * \returns Reserved queue family / first index pairs
++     */
++    coa::StreamlineQueues applyCoaRequirements(
++      const coa::StreamlineRequirements& req);
++
+     /**
+      * \brief Decodes vendor-specific driver version into something readable
+      *
+diff --git a/src/dxvk/dxvk_instance.cpp b/src/dxvk/dxvk_instance.cpp
+index a120a212..c6901173 100644
+--- a/src/dxvk/dxvk_instance.cpp
++++ b/src/dxvk/dxvk_instance.cpp
+@@ -1,6 +1,7 @@
+ #include <version.h>
+ #include <buildenv.h>
+ 
++#include "dxvk_coa_streamline.h"
+ #include "dxvk_instance.h"
+ #include "dxvk_openvr.h"
+ #include "dxvk_openxr.h"
+@@ -35,6 +36,9 @@ namespace dxvk {
+ 
+     m_options = DxvkOptions(m_config);
+ 
++    // CoA64: latch the client's Streamline requirements for this instance
++    m_coaRequirements = coa::getRequirements();
++
+     // Load Vulkan library
+     if (!initVulkanLoader(args))
+       throw DxvkError("Failed to load vulkan-1 library.");
+@@ -46,6 +50,12 @@ namespace dxvk {
+     m_extProviders.push_back(&DxvkXrProvider::s_instance);
+ #endif
+ 
++    // CoA64: the client's Streamline extensions, only when it passed its requirements
++    if (m_coaRequirements) {
++      coa::StreamlineExtensionProvider::s_instance.setRequirements(*m_coaRequirements);
++      m_extProviders.push_back(&coa::StreamlineExtensionProvider::s_instance);
++    }
++
+     Logger::info("Extension providers:");
+ 
+     for (const auto& provider : m_extProviders) {
+@@ -215,8 +225,16 @@ namespace dxvk {
+     }
+ 
+     for (const auto& provider : m_extProviders) {
+-      for (const auto& ext : provider->getInstanceExtensions())
++      for (const auto& ext : provider->getInstanceExtensions()) {
++        // CoA64: drop client extensions the loader does not support instead of failing instance creation
++        if (provider == &coa::StreamlineExtensionProvider::s_instance
++         && extensionsSupported.find(ext) == extensionsSupported.end()) {
++          Logger::warn(str::format("CoA: Instance extension ", ext.extensionName, " not supported, ignoring"));
++          continue;
++        }
++
+         extensionsEnabled.insert(ext);
++      }
+     }
+ 
+     Logger::info("Enabled instance extensions:");
+diff --git a/src/dxvk/dxvk_instance.h b/src/dxvk/dxvk_instance.h
+index 1b0263ed..d06758d2 100644
+--- a/src/dxvk/dxvk_instance.h
++++ b/src/dxvk/dxvk_instance.h
+@@ -3,6 +3,7 @@
+ #include "../util/config/config.h"
+ 
+ #include "dxvk_adapter.h"
++#include "dxvk_coa_streamline.h"
+ #include "dxvk_device_filter.h"
+ #include "dxvk_extension_provider.h"
+ #include "dxvk_options.h"
+@@ -190,12 +191,22 @@ namespace dxvk {
+     DxvkDebugFlags debugFlags() const {
+       return m_debugFlags;
+     }
++
++    /**
++     * \brief CoA64: Streamline requirements latched on creation
++     * \returns Requirements, or \c nullptr if the client set none
++     */
++    const coa::StreamlineRequirements* coaRequirements() const {
++      return m_coaRequirements ? &(*m_coaRequirements) : nullptr;
++    }
+     
+   private:
+ 
+     Config                    m_config;
+     DxvkOptions               m_options;
+ 
++    std::optional<coa::StreamlineRequirements> m_coaRequirements;
++
+     Rc<vk::LibraryFn>         m_vkl = nullptr;
+     Rc<vk::InstanceFn>        m_vki = nullptr;
+ 
+diff --git a/src/dxvk/dxvk_presenter.cpp b/src/dxvk/dxvk_presenter.cpp
+index f93ae8d6..7ef3cc37 100644
+--- a/src/dxvk/dxvk_presenter.cpp
++++ b/src/dxvk/dxvk_presenter.cpp
+@@ -1,5 +1,6 @@
+ #include <algorithm>
+ 
++#include "dxvk_coa_streamline.h"
+ #include "dxvk_device.h"
+ #include "dxvk_presenter.h"
+ 
+@@ -44,6 +45,10 @@ namespace dxvk {
+     m_hasSwapchainMaintenance1 = m_device->features().khrSwapchainMaintenance1.swapchainMaintenance1
+                               || m_device->features().extSwapchainMaintenance1.swapchainMaintenance1;
+ 
++    // CoA64: Streamline's Frame Generation present does not forward present fences
++    if (coa::swapchainRouted())
++      m_hasSwapchainMaintenance1 = false;
++
+     // Gamescope WSI is currently broken and doesn't properly signal
+     // the present fence if presentation is queued but fails.
+     // TODO Remove this hack when this gets fixed in stable SteamOS.
+@@ -103,7 +108,7 @@ namespace dxvk {
+ 
+       waitForSwapchainFence(sync);
+ 
+-      m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
++      m_acquireStatus = coa::acquireNextImage(m_vkd->vkAcquireNextImageKHR)(m_vkd->device(),
+         m_swapchain, std::numeric_limits<uint64_t>::max(),
+         sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+     }
+@@ -127,7 +132,7 @@ namespace dxvk {
+ 
+       PresenterSync sync = m_semaphores.at(m_frameIndex);
+ 
+-      m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
++      m_acquireStatus = coa::acquireNextImage(m_vkd->vkAcquireNextImageKHR)(m_vkd->device(),
+         m_swapchain, std::numeric_limits<uint64_t>::max(),
+         sync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+ 
+@@ -224,8 +229,11 @@ namespace dxvk {
+     if (m_hasIncrementalPresent && !m_presentRepaint && m_acquireStatus == VK_SUCCESS && rectCount)
+       regionInfo.pNext = const_cast<void*>(std::exchange(info.pNext, &regionInfo));
+ 
+-    VkResult status = m_vkd->vkQueuePresentKHR(
++    // CoA64: through Streamline's proxy while the client has set one
++    coa::presentMarker(0u, frameId);
++    VkResult status = coa::queuePresent(m_vkd->vkQueuePresentKHR,
+       m_device->queues().graphics.queueHandle, &info);
++    coa::presentMarker(1u, frameId);
+ 
+     // Maintain valid state if presentation succeeded, even if we want to
+     // recreate the swapchain. Spec says that 'queue' operations, i.e. the
+@@ -266,7 +274,7 @@ namespace dxvk {
+       PresenterSync& nextSync = m_semaphores.at(m_frameIndex);
+       waitForSwapchainFence(nextSync);
+ 
+-      m_acquireStatus = m_vkd->vkAcquireNextImageKHR(m_vkd->device(),
++      m_acquireStatus = coa::acquireNextImage(m_vkd->vkAcquireNextImageKHR)(m_vkd->device(),
+         m_swapchain, std::numeric_limits<uint64_t>::max(),
+         nextSync.acquire, VK_NULL_HANDLE, &m_imageIndex);
+     }
+@@ -734,7 +742,8 @@ namespace dxvk {
+     modeInfo.pPresentModes          = compatibleModes.data();
+ 
+     VkSwapchainLatencyCreateInfoNV latencyInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_LATENCY_CREATE_INFO_NV };
+-    latencyInfo.latencyModeEnable   = m_latencySleepMode.has_value();
++    // CoA64: Streamline's Reflex drives latency mode on a swapchain it creates
++    latencyInfo.latencyModeEnable   = m_latencySleepMode.has_value() || coa::swapchainRouted();
+ 
+     VkImageFormatListCreateInfo formatList = { VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO };
+     formatList.viewFormatCount      = viewFormats.size();
+@@ -783,7 +792,7 @@ namespace dxvk {
+       "\n  Buffer size:  ", swapInfo.imageExtent.width, "x", swapInfo.imageExtent.height,
+       "\n  Image count:  ", swapInfo.minImageCount));
+     
+-    if ((status = m_vkd->vkCreateSwapchainKHR(m_vkd->device(), &swapInfo, nullptr, &m_swapchain))) {
++    if ((status = coa::createSwapchain(m_vkd->vkCreateSwapchainKHR)(m_vkd->device(), &swapInfo, nullptr, &m_swapchain))) {
+       Logger::err(str::format("Presenter: Failed to create Vulkan swapchain: ", status));
+       return status;
+     }
+@@ -863,7 +872,7 @@ namespace dxvk {
+     }
+     
+     // Invalidate indices
+-    m_latencySleepSupported = m_device->features().nvLowLatency2 && latencyInfo.latencyModeEnable;
++    m_latencySleepSupported = m_device->features().nvLowLatency2 && m_latencySleepMode.has_value();
+ 
+     m_imageIndex = 0;
+     m_frameIndex = 0;
+@@ -874,10 +883,16 @@ namespace dxvk {
+     m_hasPresentId = presentId2Caps.presentId2Supported || m_device->features().khrPresentId.presentId;
+     m_hasPresentWait = presentWait2Caps.presentWait2Supported || m_device->features().khrPresentWait.presentWait;
+ 
++    // CoA64: nor present IDs / waits or present regions on the swapchain it owns
++    if (coa::swapchainRouted()) {
++      m_hasPresentId = false;
++      m_hasPresentWait = false;
++    }
++
+     // Only support incremental present if the surface isn't transformed. Spec says
+     // that present rects are defined with respect to the current surface transform,
+     // not with the pre-transform set on the swap chain.
+-    if (m_device->features().khrIncrementalPresent)
++    if (m_device->features().khrIncrementalPresent && !coa::swapchainRouted())
+       m_hasIncrementalPresent = caps.surfaceCapabilities.currentTransform == VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+ 
+     if (m_signal && m_hasPresentWait && !m_frameThread.joinable())
+@@ -979,7 +994,7 @@ namespace dxvk {
+   VkResult Presenter::getSwapImages(std::vector<VkImage>& images) {
+     uint32_t imageCount = 0;
+ 
+-    VkResult status = m_vkd->vkGetSwapchainImagesKHR(
++    VkResult status = coa::getSwapchainImages(m_vkd->vkGetSwapchainImagesKHR)(
+       m_vkd->device(), m_swapchain, &imageCount, nullptr);
+     
+     if (status != VK_SUCCESS) {
+@@ -989,7 +1004,7 @@ namespace dxvk {
+     
+     images.resize(imageCount);
+ 
+-    status = m_vkd->vkGetSwapchainImagesKHR(
++    status = coa::getSwapchainImages(m_vkd->vkGetSwapchainImagesKHR)(
+       m_vkd->device(), m_swapchain, &imageCount, images.data());
+ 
+     if (status != VK_SUCCESS)
+@@ -1245,7 +1260,7 @@ namespace dxvk {
+ 
+     // The conditional is here because some third party layers don't properly handle null swapchains
+     if (m_swapchain)
+-      m_vkd->vkDestroySwapchainKHR(m_vkd->device(), m_swapchain, nullptr);
++      coa::destroySwapchain(m_vkd->vkDestroySwapchainKHR)(m_vkd->device(), m_swapchain, nullptr);
+ 
+     m_images.clear();
+     m_semaphores.clear();
+@@ -1269,7 +1284,7 @@ namespace dxvk {
+ 
+ 
+   void Presenter::destroySurface() {
+-    m_vki->vkDestroySurfaceKHR(m_vki->instance(), m_surface, nullptr);
++    coa::destroySurface(m_vki->vkDestroySurfaceKHR)(m_vki->instance(), m_surface, nullptr);
+ 
+     m_surface = VK_NULL_HANDLE;
+   }
+diff --git a/src/dxvk/meson.build b/src/dxvk/meson.build
+index 6b12f95c..e70b1197 100644
+--- a/src/dxvk/meson.build
++++ b/src/dxvk/meson.build
+@@ -33,6 +33,7 @@ dxvk_src = [
+   'dxvk_barrier.cpp',
+   'dxvk_buffer.cpp',
+   'dxvk_cmdlist.cpp',
++  'dxvk_coa_streamline.cpp',
+   'dxvk_compute.cpp',
+   'dxvk_constant_state.cpp',
+   'dxvk_context.cpp',
+diff --git a/src/wsi/win32/wsi_window_win32.cpp b/src/wsi/win32/wsi_window_win32.cpp
+index 9b7fa4f1..209bdf1c 100644
+--- a/src/wsi/win32/wsi_window_win32.cpp
++++ b/src/wsi/win32/wsi_window_win32.cpp
+@@ -6,6 +6,8 @@
+ #include "../../util/util_gdi.h"
+ #include "../../util/log/log.h"
+ 
++#include "../../dxvk/dxvk_coa_streamline.h"
++
+ namespace dxvk::wsi {
+ 
+   static bool getMonitorDisplayMode(
+@@ -356,7 +358,7 @@ namespace dxvk::wsi {
+     info.hinstance  = hInstance;
+     info.hwnd       = hWindow;
+     
+-    return (*pfnVkCreateWin32SurfaceKHR)(instance, &info, nullptr, pSurface);
++    return coa::createWin32Surface(pfnVkCreateWin32SurfaceKHR)(instance, &info, nullptr, pSurface);
+   }
+ 
+ }

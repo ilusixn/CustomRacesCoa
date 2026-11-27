@@ -3,14 +3,10 @@
 #include <cctype>
 #include <cstring>
 
-// CoA64: security hardening (not in the 32-bit client). The patch-download prepatch.lst runs unauthenticated on
-// Ascension (Extensions.dll patch 0x4E57FE), so any server can ship one. Its "extract" / "delete" paths are confined
-// to the download folder, "extract" may not write runnable files, and "execute" is refused (CGlueMgr::
-// PatchDownloadExecuteCommand) -- together the server-controlled code execution RCEPatcher2 closes.
+// CoA64: any server can ship an unauthenticated prepatch.lst; this confines it (RCEPatcher2's fix in source).
+// Rationale: docs/2026-11-26-prepatch-path-policy.md.
 
-// Whether a path component names a folder the prepatch may not touch (user decision 2026-10-26: addon code and
-// settings): Interface and WTF, compared the way Windows resolves them (case-insensitive, trailing dots / spaces
-// ignored).
+// Interface\ and WTF\ are off limits (user decision), compared as Windows resolves them.
 inline bool PatchProtectedFolder(const char* component, size_t length) {
     while (length && (component[length - 1] == '.' || component[length - 1] == ' ')) {
         length--;
@@ -33,7 +29,14 @@ inline bool PatchPathConfined(const char* path) {
         if (*c == '\\' || *c == '/' || *c == '\0') {
             const size_t length = static_cast<size_t>(c - component);
 
-            if (length == 2 && component[0] == '.' && component[1] == '.') {
+            // Windows drops trailing dots / spaces, so "..", ".. " and "..." all climb; only a bare "." is allowed.
+            size_t trimmed = length;
+
+            while (trimmed && (component[trimmed - 1] == '.' || component[trimmed - 1] == ' ')) {
+                trimmed--;
+            }
+
+            if (trimmed == 0 && length != 0 && !(length == 1 && component[0] == '.')) {
                 return false;
             }
 

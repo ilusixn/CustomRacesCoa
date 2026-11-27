@@ -60,6 +60,7 @@ namespace CoA::MysticEnchant { void Init(); }
 namespace CoA::ExtraActionButton { void Init(); }
 namespace CoA::UnitAddon { void Init(); }
 namespace CoA::AutoQuest { void Init(); }
+namespace CoA::QuestLogExtended { void Init(); }
 namespace CoA::GlobalsF { void Init(); }
 namespace CoA::ObjectAddon { void Init(); }
 namespace CoA::AuraAmounts { void Init(); }
@@ -164,6 +165,10 @@ namespace CoA::CVarHooksClient { void Init(); }
 namespace CoA::RealmDataClient { void Init(); }
 namespace CoA::AddOnWatchClient { void Init(); }
 namespace CoA::TooltipInsertFixClient { void Init(); }
+namespace CoA::WorldEntryTweaksClient { void Init(); }
+namespace CoA::WorldEntryTweaks { void Init(); }
+namespace CoA::QuestSpellHide { void Init(); }
+namespace CoA::QuestSpellHideClient { void Init(); }
 namespace CoA::HotPatchClient { void Init(); }
 namespace CoA::CharacterCreateClient { void Init(); }
 namespace CoA::AttachLateClient { void Init(); }
@@ -213,6 +218,7 @@ namespace CoA::SpellTokensClient { void Init(); }
 namespace CoA::ClientGuards { void Init(); }
 namespace CoA::CrashContextClient { void Init(); }
 namespace CoA::InitHooksClient { void Init(); }
+namespace CoA::QuestLogExtendedClient { void Init(); }
 namespace CoA::ClientGuardsClient { void Init(); }
 
 #endif

@@ -119,9 +119,8 @@ namespace {
     }
 }
 
-// FUN_102cbfe0: each collection of the display: "Item\ObjectComponents\<folder>\<model>" (the waist slot keeps the
-// name), the texture from +0x14 or else from the model name, the link from +8, the scale (+0x18) on the created model,
-// the model's id recorded for the slot. The pending scale starts at 1.0, so the very first model created gets it.
+// FUN_102cbfe0: each collection's model path (the waist slot keeps the name), texture (+0x14, else the model name), link
+// (+8), scale (+0x18) and recorded model id. The pending scale starts at 1.0, so the very first model created gets it.
 COA_TEST(ItemCollections_Attach) {
     lua_State* L = Start();
     CHECK(CoA::ItemCollections::PendingScale() == 1.0f);
@@ -279,13 +278,13 @@ COA_TEST(ItemCollections_PatchAndReload) {
     patch(3, 88, 21, "New.mdx", "");
     Attach(c, 4, 88);
     CHECK(Take() == (V{ "detach:2", "link:21:Item\\ObjectComponents\\Waist\\New.mdx:Item\\ObjectComponents\\Waist\\New.blp" }));
-    // A new id past the maximum grows the index without the old maximum's row (FUN_10133ac0, kept): row 3 is gone, and
-    // row 9 is not in the map until the reload.
+    // A new id past the maximum keeps row 3, and row 9 is not in the map until the reload.
     patch(9, 88, 22, "Extra.m2", "Extra.blp");
+    const std::string kept = "link:21:Item\\ObjectComponents\\Waist\\New.mdx:Item\\ObjectComponents\\Waist\\New.blp";
     Attach(c, 4, 88);
-    CHECK(Take() == V{ "detach:3" });
+    CHECK(Take() == (V{ "detach:3", kept }));
     CHECK(CoATest::Call(L, "", "ReloadItemDisplayInfoCollections").empty());
     Attach(c, 4, 88);
-    CHECK(Take() == V{ "link:22:Item\\ObjectComponents\\Waist\\Extra.m2:Item\\ObjectComponents\\Waist\\Extra.blp" });
+    CHECK(Take() == (V{ "detach:4", kept, "link:22:Item\\ObjectComponents\\Waist\\Extra.m2:Item\\ObjectComponents\\Waist\\Extra.blp" }));
     Stop(L);
 }

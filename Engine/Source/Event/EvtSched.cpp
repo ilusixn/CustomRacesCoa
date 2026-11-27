@@ -134,6 +134,9 @@ void IEvtDispatchUpdate(EvtContext* context, uint32_t currTime, float elapsedSec
     }
 }
 
+void (*g_idleHook)();
+void (*g_paintHook)();
+
 // VERIFY: 8e0d29f6 manual
 // OFFSET: 0x0047DBC0
 void SynthesizeIdle(EvtContext* context, uint32_t currTime, float elapsedSec) {
@@ -149,6 +152,10 @@ void SynthesizeIdle(EvtContext* context, uint32_t currTime, float elapsedSec) {
         EVENT_DATA_IDLE data;
         data.m_elapsedSec = elapsedSec;
         data.m_time = currTime;
+
+        if (g_idleHook) {
+            g_idleHook();
+        }
 
         IEvtQueueDispatch(context, EVENT_ID_IDLE, &data);
     }
@@ -175,6 +182,11 @@ void SynthesizePaint(EvtContext* context) {
 
     if (!closed && (context->m_schedFlags & 4)) {
         context->m_schedFlags &= ~4u;
+
+        if (g_paintHook) {
+            g_paintHook();
+        }
+
         IEvtQueueDispatch(context, EVENT_ID_PAINT, nullptr);
     }
 }

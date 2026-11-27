@@ -35,10 +35,8 @@
 #include <string>
 
 namespace {
-    // GetSpellData(spell [, a, b]) (FUN_10a4da30): accepts {number, boolean, boolean}, then {number, boolean} (the
-    // boolean is read and ignored), then {number}. Pushes the Spell.dbc name (+0x220), the description
-    // (FUN_101ac910(spell, a, 0, b) = SpellText::Description) and the SpellIcon path (+0x214 -> SpellIcon.dbc +4,
-    // default the question mark). Nothing for an unknown spell.
+    // GetSpellData(spell [, a, b]) (FUN_10a4da30): name, description, icon path; nothing for an unknown spell.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int GetSpellData(lua_State* L) {
         uint32_t spell = 0;
         bool a = false;
@@ -221,9 +219,8 @@ namespace {
         return 0;
     }
 
-    // ---- GetItemTemplate ----
-    // The item cache record as FUN_1021c4b0's JSON object: integer fields pushed as integers, floats as numbers,
-    // strings as strings, arrays as tables keyed 1..n. Nothing when the item is not cached.
+    // ---- GetItemTemplate ---- the item cache record as FUN_1021c4b0's JSON object (nothing when not cached).
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     void PushTemplateInt(lua_State* L, const char* key, int32_t value) {
         PushStr(L, key);
         PushInt(L, value);
@@ -359,9 +356,8 @@ namespace {
         return 1;
     }
 
-    // ---- GetEncounterInfo ----
-    // (encounter [, unit]) -> name, map, difficulty + 1, SpellIcon path (default the question mark), order index, the
-    // unit's loot-lockout seconds and whether the current Mythic+ run killed it. nil for an unknown encounter.
+    // ---- GetEncounterInfo(encounter [, unit]) ---- nil for an unknown encounter.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int GetEncounterInfo(lua_State* L) {
         const bool hasUnit = lua_type(L, 2) > 0;
 
@@ -392,10 +388,8 @@ namespace {
         return 7;
     }
 
-    // ---- GetReducedChanceToBeCrit ----
-    // The attacker-crit reductions the player carries: BasePoints + 1 of each SPELL_AURA_MOD_ATTACKER_{SPELL (179),
-    // MELEE (187), RANGED (188)}_CRIT_CHANCE effect, 197 counting towards all three. Over the player's auras (every
-    // aura, repeats included), then the spell book, each of those only once and not when an aura counted it.
+    // ---- GetReducedChanceToBeCrit ---- the player's attacker-crit reductions (auras, then the spell book).
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int GetReducedChanceToBeCrit(lua_State* L) {
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
@@ -450,11 +444,8 @@ namespace {
         return 3;
     }
 
-    // ---- IsSpellHoldToCast ----
-    // Nothing unless the game window has focus (OsGuiGetWindow(0) == (2)) and the spell has a record. Shaman spells
-    // (family 11) hold with family flag 0x2 when mystic enchant 81091 is slotted, or with flag[2] 0x20000000 when CA
-    // spell 955831 is known. Otherwise a spell holds when it has no SpellCharges row, lacks AttributesEx2 0x20, has a
-    // family, applies no shapeshift (aura 36) and targets neither 23 nor 26 with ImplicitTargetA / B.
+    // ---- IsSpellHoldToCast ---- nothing unless the window has focus and the spell has a record.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int IsSpellHoldToCast(lua_State* L) {
         const uint32_t spell = static_cast<uint32_t>(ToInt(CheckNumber(L, 1)));
 
@@ -493,10 +484,8 @@ namespace {
         return 1;
     }
 
-    // ---- PlayerAuraHidden ----
-    // UnitAura's eleven values for the player's first aura of the spell, hidden or not: name, rank, icon, count,
-    // dispel type name (when its immunity flag is set), duration and expiration in seconds (0, 0 when permanent),
-    // caster token, stealable and AttributesEx7 0x10000000 as 1 or nil, and the spell id.
+    // ---- PlayerAuraHidden ---- UnitAura's eleven values for the player's first aura of the spell, hidden or not.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int PlayerAuraHidden(lua_State* L) {
         uint32_t spell = 0;
         CGPlayer_C* player = nullptr;
@@ -561,9 +550,8 @@ namespace {
         return 0;
     }
 
-    // ---- SetItemQualityColor(quality 0..7, r, g, b) ----
-    // Nothing when a component is above 1. Each is scaled by 255 and written as two lower-case hex digits ("" above
-    // 0xFF skips the update); "|cffRRGGBB" goes over the quality's colour string and its colour becomes 0xFFRRGGBB.
+    // ---- SetItemQualityColor(quality 0..7, r, g, b) ---- nothing when a component is above 1.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int SetItemQualityColor(lua_State* L) {
         const uint32_t q = static_cast<uint32_t>(ToInt(CheckNumber(L, 1)));
 
@@ -610,7 +598,7 @@ namespace {
     }
 
     // ---- SetWorldTimeSpeed(speed) ----
-    // The game-time rate becomes `speed`, or the stock 1/60 (0x3C888889) for a negative one.
+    // The game-time rate (0xD37FC8) becomes `speed`, or the stock 1/60 (0x3C888889) for a negative one.
     void SetRateBits(uint32_t bits) {
         memcpy(&g_clientGameTime.m_minutesPerSecond, &bits, 4);
     }
@@ -627,10 +615,8 @@ namespace {
         return 0;
     }
 
-    // ---- SetWorldTime(hour 0..23, minute 0..59) ----
-    // The clock's low bytes are set, the rate is overwritten with the double 100.0 (8 bytes: rate 0, the next field
-    // 0x40590000 -- the original's width), the thread sleeps 50 ms, the clock bytes are written again and the rate
-    // goes back to the stock 1/60.
+    // ---- SetWorldTime(hour 0..23, minute 0..59) ---- clock bytes 0xD37F9C / 0xD37F98, rate forced for 50 ms.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     void SetClockBytes(uint8_t hour, uint8_t minute) {
         reinterpret_cast<uint8_t*>(&g_clientGameTime.m_hour)[0] = hour;
         reinterpret_cast<uint8_t*>(&g_clientGameTime.m_minute)[0] = minute;
@@ -656,9 +642,8 @@ namespace {
         return 0;
     }
 
-    // ---- GetItemInfoInstant(item) ----
-    // The client Item.dbc row and the item addon record, else nil: {itemID, icon, classID, subclassID, name,
-    // description, quality, pvePower, pvpPower, miscValue {3}, inventoryType, itemLevel}.
+    // ---- GetItemInfoInstant(item) ---- the Item.dbc row and the item addon record, else nil.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int GetItemInfoInstant(lua_State* L) {
         if (lua_gettop(L) == 1 && lua_isnumber(L, 1)) {
             const uint32_t id = static_cast<uint32_t>(ToInt(CheckNumber(L, 1)));
@@ -711,9 +696,8 @@ namespace {
         return 1;
     }
 
-    // ---- ApplyComponents(slot, texture, model) ----
-    // "Item\\ObjectComponents\\" + each name, with ItemDisplayInfo row 17, linked onto the player's character model.
-    // (The original copies the paths into the component code's own path buffers first and reads the player unchecked.)
+    // ---- ApplyComponents(slot, texture, model) ---- the item components, linked onto the player's character model.
+    // See docs/2026-11-15-addon-watch-and-world-entry-notes.md.
     int ApplyComponents(lua_State* L) {
         const int32_t slot = ToInt(CheckNumber(L, 1));
         const std::string first = std::string("Item\\ObjectComponents\\") + CheckString(L, 2);

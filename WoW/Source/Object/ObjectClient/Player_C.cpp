@@ -2,6 +2,7 @@
 #include "CoA/Source/Runtime/ClientHooks.h"
 #include "CoA/Source/Modules/AttachFixes.h"
 #include "CoA/Source/Modules/ItemCollectionsClient.h"
+#include "CoA/Source/Modules/WorldEntryTweaks.h"
 #include "CoA/Source/Modules/GossipQuest.h"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
@@ -157,6 +158,7 @@
 #include "WoW/Source/Ui/WorldFrame.h"
 #include "WoW/Source/UIUtil/PortraitButton.h"
 #include "CoA/Source/Modules/InitHooks.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
 
 struct GUILDUPDATETIMESTAMP {
     /* 0000 */ uint32_t m_guildId;
@@ -3824,8 +3826,9 @@ int32_t Packet_Group_17(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             return 1;
         }
 
-        for (int32_t i = 0; i < 25; i++) {
-            PlayerQuestLogEntry* entry = i >= 0 && i <= 25 ? &player->m_player->m_playerQuestLog[i] : nullptr;
+        // CoA: quest log 64 (spec 2026-11-25).
+        for (int32_t i = 0; i < static_cast<int32_t>(CoA::QuestLogExtended::kMaxSlots); i++) {
+            PlayerQuestLogEntry* entry = player->GetQuestLogEntry(static_cast<uint32_t>(i));
 
             if (entry && entry->m_questId == questId) {
                 if (entry->m_state & 0x2) {
@@ -7012,7 +7015,8 @@ int32_t CGPlayer_C::CanUseItem(const ItemStats_C* stats, int32_t& error, bool ch
 
     uint8_t itemClass = static_cast<uint8_t>(stats->m_class);
 
-    if (itemClass < 17 && s_proficiency[itemClass] && !(s_proficiency[itemClass] & (1 << stats->m_subClass))) {
+    // CoA: a non-stock class skips the proficiency check (Extensions.dll 0x6DC45F jae -> jmp).
+    if (!CoA::WorldEntryTweaks::SkipProficiency() && itemClass < 17 && s_proficiency[itemClass] && !(s_proficiency[itemClass] & (1 << stats->m_subClass))) {
         error = ERR_PROFICIENCY_NEEDED;
         return 0;
     }
@@ -7243,12 +7247,30 @@ int32_t OnUpdateQuest(WOWGUID guid, uint32_t offset, uint32_t count, const void*
 
     CGQuestLog::Update(1);
     uint32_t slot = (offset - 0x28) / sizeof(PlayerQuestLogEntry);
-    PlayerQuestLogEntry* entry = slot > 25 ? nullptr : &player->m_player->m_playerQuestLog[slot];
-    const PlayerQuestLogEntry* old = static_cast<const PlayerQuestLogEntry*>(value);
+    // CoA: quest log 64 (spec 2026-11-25). The slot comes from a descriptor offset,
+    // so it stays 0..24 here.
+    QuestLogSlotUpdated(player, slot, static_cast<const PlayerQuestLogEntry*>(value));
+    return 1;
+}
+
+// CoA: quest log 64 (spec 2026-11-25). OnUpdateQuest's per-slot half, also run for
+// slots 25..63 after SMSG 0x8F7 (QuestLogExtendedClient.cpp).
+void QuestLogSlotUpdated(CGPlayer_C* player, uint32_t slot, const PlayerQuestLogEntry* old) {
+    // CoA: a quest another slot still holds has moved there (promotion): no accept, no POI removal.
+    uint32_t ids[CoA::QuestLogExtended::kMaxSlots];
+
+    for (uint32_t i = 0; i < CoA::QuestLogExtended::kMaxSlots; i++) {
+        const PlayerQuestLogEntry* e = player->GetQuestLogEntry(i);
+        ids[i] = e ? e->m_questId : 0;
+    }
+
+    PlayerQuestLogEntry* entry = player->GetQuestLogEntry(slot);
     uint32_t questId = entry->m_questId;
     WOWGUID none = { 0 };
+    const CoA::QuestLogExtended::SlotDecision decision =
+        CoA::QuestLogExtended::DecideSlot(ids, slot, entry->m_state, old ? old->m_questId : 0, old ? old->m_state : 0);
 
-    if (questId && (questId != old->m_questId || (!(entry->m_state & 2) && (old->m_state & 2)))) {
+    if (decision.accepted) {
         QuestCache* quest = g_questDBCache.GetRecord(questId, none, QuestAcceptCallback, nullptr, false);
 
         if (quest) {
@@ -7278,11 +7300,9 @@ int32_t OnUpdateQuest(WOWGUID guid, uint32_t offset, uint32_t count, const void*
         }
     }
 
-    if (old && old->m_questId && entry->m_questId != old->m_questId) {
+    if (decision.removePoi) {
         RemoveQuestPointDisplay(old->m_questId);
     }
-
-    return 1;
 }
 
 // VERIFY: 1103b817 manual
@@ -12646,8 +12666,9 @@ void CGPlayer_C::CheckForQuestItemLoot(uint32_t itemId, uint32_t count, uint32_t
         return;
     }
 
-    for (uint32_t i = 0; i < 25; i++) {
-        PlayerQuestLogEntry* entry = &this->m_player->m_playerQuestLog[i];
+    // CoA: quest log 64 (spec 2026-11-25).
+    for (uint32_t i = 0; i < CoA::QuestLogExtended::kMaxSlots; i++) {
+        PlayerQuestLogEntry* entry = this->GetQuestLogEntry(i);
 
         if (static_cast<int32_t>(entry->m_questId) <= 0 || CGQuestLog::IsQuestExpiredByID(entry->m_questId)) {
             continue;

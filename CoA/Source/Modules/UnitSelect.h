@@ -6,22 +6,8 @@
 
 struct CVar;
 
-// AscUnitSelect.cpp: AoE radius indicators, quest-unit circles, the player's own selection circle and auto-interact
-// (installer FUN_102daaf0). Its seven FUN_10114540 CVars are checked against the genuine DLL (0x102DAB13 .. 0x102DACF6:
-// help nullptr, flags 1; aoeRadiusIndicator* / AutoInteract* category 3, showQuestUnitCircles / ObjectSelectionCircleSelf
-// category 4).
-//
-//   World entry (FUN_102da1c0)  the two cone splats (0x10BE3858 / 0x10BE385C), released first when loaded
-//   after 0x7460C0 (FUN_102da2b0)  UnitSelectTexture / TrackingTexture / UnitSelectTexture-Quest (0x10BE384C / 850 / 854)
-//   0x72B7E0 replaced (FUN_102da6c0)  CGUnit_C::Render skipped once AutoInteractCursorTime (ms, when set) has passed
-//                                     since the last click-to-move; else drawn with the tracking texture
-//   0x727400 around (FUN_102da340)  a call from past the exe image first sends CMSG 0x51F "Ascension" / "CTM" /
-//                                   "Click-to-Move called by bot."; after it the tracking turn rate is AutoInteractTurnSpeed
-//                                   and the time is kept
-//   after 0x4F6F90 (FUN_102dbf60)  the indicators, the quest circles, the player's own circle
-//   every other 0x6DF050 (FUN_102db0d0)  the projected-batch z pad (0x82080B): 10.0 outside a dungeon / raid, back to
-//                                        the stock 2.0 inside one while any aoeRadiusIndicator* is 1; the installer
-//                                        writes 10.0 once at start-up
+// AscUnitSelect.cpp: AoE radius indicators, quest-unit circles, own selection circle, auto-interact (FUN_102daaf0).
+// Hook map: docs/2026-11-15-unit-c-unitselect-notes.md.
 namespace CoA::UnitSelect {
     struct Colours {
         uint32_t self = 0;       // 0xAD2D3C
@@ -62,8 +48,7 @@ namespace CoA::UnitSelect {
 
     // FUN_102da6c0: true when the auto-track cursor is not drawn.
     bool SkipAutoTrackCursor();
-    // FUN_102da340: before the original (returnPastImage: its return address is past the exe image) and after it.
-    void BeforeClickToMove(bool returnPastImage);
+    // FUN_102da340: after the original.
     void AfterClickToMove();
 
     // The indicator colour for an effect of a unit as the player sees it, or false when its CVar is off (or the unit is

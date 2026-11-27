@@ -281,10 +281,8 @@ namespace {
     }
 }
 
-// FUN_100c3ba0: an item set's appearances per category -- for each set item whose item record's inventory type (0x14
-// robe counts as 5 chest) matches an ITEM category's +0x10, and that inventory type is one of the tracked slots, the
-// item's ItemAppearances appearance goes in that category's index. The list is MaxId long (FUN_100ce6b0(max)), so the
-// highest category id never gets a slot.
+// FUN_100c3ba0: a set's appearances per ITEM category, matched by inventory type (robe 0x14 counts as chest 5). As in the
+// original the list is MaxId long (FUN_100ce6b0(max)), so the highest category id never gets a slot.
 void CoA::Appearance::detail::ItemSetAppearanceList(const ItemSetRecord& set, std::vector<uint32_t>& out) {
     CoA::Dbc::Table& cats = Categories();
     out.assign(cats.Loaded() ? cats.MaxId() : 0, 0);
@@ -1168,8 +1166,7 @@ namespace {
     }
 
     // ---- display info / item sets / alternates -------------------------------------------------------------------
-    // FUN_101b46e0: a UICameras row -- +0x10 directly, else for an ITEM display the item's camera (FUN_1021a020, shared
-    // with C_UICamera.GetItemCameraID). The camera's id, false when there is none.
+    // FUN_101b46e0: UICameras row +0x10, else an ITEM display's item camera (FUN_1021a020); false when there is none.
     bool DisplayCameraId(const uint8_t* a, int32_t& id) {
         if (const uint32_t cam = U32(a, 0x10)) {
             const uint8_t* row = CoA::Dbc::Get("DBFilesClient/UICameras.dbc").Row(cam);
@@ -1457,10 +1454,8 @@ namespace {
     };
 }
 
-// FUN_10322c70's branch for the active player: the first AppearanceCategories.dbc row (by id) of APPEARANCE_TYPE 4
-// whose +0xC or +0x10 is `spell` gives the category (0 when none); the appearance applied there (FUN_100c39f0 over
-// +0x148) names an Appearances.dbc row whose +0x20 is the visual. False (the caller falls back to its map) when there is
-// no applied appearance or no such row.
+// FUN_10322c70's active-player branch: category = first APPEARANCE_TYPE 4 row with +0xC or +0x10 == spell; the appearance
+// applied there (FUN_100c39f0) gives Appearances +0x20. False lets the caller fall back to its map.
 bool CoA::Appearance::PlayerSpellVisual(uint32_t spell, uint32_t& visual) {
     uint32_t category = 0;
     CoA::Dbc::Table& cats = Categories();
@@ -1485,15 +1480,14 @@ bool CoA::Appearance::PlayerSpellVisual(uint32_t spell, uint32_t& visual) {
 }
 
 // The refreshes the SMSG_PATCH_* handlers run: 0x693 (FUN_1020fc80 then FUN_101b5660) and 0x6EC (FUN_102101d0 then
-// FUN_101b5660).
+// FUN_101b5660). 0x693 only marks the item index stale: the original's rebuild per row froze login on a catalog stream.
 void CoA::Appearance::ItemAppearancesPatched() {
-    BuildItemAppearanceIndex();
+    s_itemIndexBuilt = false;
     s_setsForItemAppearanceBuilt = false;
 }
 
-// FUN_1020fae0 -> FUN_100c57a0 -> FUN_100c6450: the appearance's categories +0x14..+0x1C, the first with an
-// AppearanceCategories row ends the search; UNLOCKED_APPEARANCE_ITEM_USED("%u%s%u%s": category, its APPEARANCE_TYPE_*
-// name, appearance, item name).
+// FUN_1020fae0 -> FUN_100c57a0 -> FUN_100c6450: the first of categories +0x14..+0x1C with a row ends the search;
+// UNLOCKED_APPEARANCE_ITEM_USED("%u%s%u%s": category, its APPEARANCE_TYPE_* name, appearance, item name).
 void CoA::Appearance::ItemUsed(uint32_t entry, const char* itemName) {
     const uint8_t* itemAppearance = ItemAppearanceOf(entry);
 

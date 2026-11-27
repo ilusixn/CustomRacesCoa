@@ -158,14 +158,6 @@ COA_TEST(UnitSelect_AutoInteract) {
     Set("AutoInteractTurnSpeed", "7");
     CoA::UnitSelect::AfterClickToMove();
     CHECK(s_turnRate == 7.0f);
-
-    CoATest::RecordPackets();
-    CoA::UnitSelect::BeforeClickToMove(false);
-    CHECK(CoATest::SentPackets().empty());
-    CoA::UnitSelect::BeforeClickToMove(true);
-    CHECK(CoATest::SentPackets().size() == 1);
-    CHECK(CoATest::SentPackets().size() == 1 && CoATest::SentPackets()[0] ==
-        CoATest::Expected(0x51F, CoATest::Bytes().Str("Ascension").Str("CTM").Str("Click-to-Move called by bot.")));
     Stop();
 }
 

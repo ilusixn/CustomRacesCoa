@@ -282,8 +282,8 @@ COA_TEST(TemporalContracts_ActivationQueue) {
     Stop(L);
 }
 
-// Reproduced original behaviour: the tick re-arms itself without storing the id, so the glue-Lua cancel (FUN_103392f0)
-// kills only the first timer, once; every world entry starts another chain.
+// The tick stores its re-armed id, so the glue-Lua cancel (FUN_103392f0) reaches the live timer, and a repeated
+// world entry replaces the chain instead of adding one.
 COA_TEST(TemporalContracts_TimerChain) {
     lua_State* L = Start();
     CoA::LuaReg::RunGlueRegistered();
@@ -291,14 +291,15 @@ COA_TEST(TemporalContracts_TimerChain) {
     CoA::ClientHooks::enterWorld.Run();
     Ticks(2);
     CoA::LuaReg::RunGlueRegistered();
-    CHECK((s_cancelled == std::vector<uint32_t>{ 1 }));
+    CHECK((s_cancelled == std::vector<uint32_t>{ 3 }));
     CoA::LuaReg::RunGlueRegistered();
-    CHECK((s_cancelled == std::vector<uint32_t>{ 1 }));
+    CHECK((s_cancelled == std::vector<uint32_t>{ 3 }));
     CoA::ClientHooks::enterWorld.Run();
     CoA::ClientHooks::enterWorld.Run();
     CHECK(s_scheduled.size() == 5);
+    CHECK((s_cancelled == std::vector<uint32_t>{ 3, 4 }));
     CoA::LuaReg::RunGlueRegistered();
-    CHECK((s_cancelled == std::vector<uint32_t>{ 1, 5 }));
+    CHECK((s_cancelled == std::vector<uint32_t>{ 3, 4, 5 }));
     Stop(L);
 }
 

@@ -2,17 +2,36 @@
 #include "CoA/Source/Modules/InitHooks.h"
 #include "CoA/Source/Modules/GlobalsJ.h"
 #include "CoA/Source/Modules/ObjectAddon.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
 #include <cstring>
 
 namespace {
     CoA::InitHooks::Deps s_deps;
     bool s_trajectoryM2Collision = true;   // the byte 1 at 0x6FD335 / 0x6FD4C7 / 0x6FD59E
 
-    const uint32_t kQuestLogSlots = 0x19;
+    // CoA64: slots 25..63 come from SMSG 0x8F7 (QuestLogExtended.h); the original walks the descriptor's 25.
+    const uint32_t kQuestLogSlots = CoA::QuestLogExtended::kMaxSlots;
 
     uint32_t PlayerAddon(uint32_t index) {
         const uint64_t guid = s_deps.activePlayerGuid ? s_deps.activePlayerGuid() : 0;
         return CoA::ObjectAddon::Unit(guid)[index & 0xFFFF].value;
+    }
+
+    // The slot's scaled level / reward XP: addon field base + slot for 0..24 (0x578), the 0x8F7 entry for 25..63.
+    bool SlotValue(uint32_t slot, uint32_t addonBase, bool level, int32_t& out) {
+        if (slot < CoA::QuestLogExtended::kNativeSlots) {
+            out = static_cast<int32_t>(PlayerAddon(slot + addonBase));
+            return true;
+        }
+
+        const CoA::QuestLogExtended::Entry* e = CoA::QuestLogExtended::Get(slot);
+
+        if (!e) {
+            return false;
+        }
+
+        out = static_cast<int32_t>(level ? e->level : e->rewardXP);
+        return true;
     }
 
     // The quest id in a slot; false without an active player.
@@ -50,8 +69,7 @@ bool CoA::InitHooks::QuestExperience(uint32_t questId, int32_t& xp) {
         return false;
     }
 
-    xp = static_cast<int32_t>(PlayerAddon(static_cast<uint32_t>(slot) + 0x24));
-    return true;
+    return SlotValue(static_cast<uint32_t>(slot), 0x24, false, xp);
 }
 
 bool CoA::InitHooks::QuestLevel(uint32_t questId, int32_t& level) {
@@ -61,8 +79,7 @@ bool CoA::InitHooks::QuestLevel(uint32_t questId, int32_t& level) {
         return false;
     }
 
-    level = static_cast<int32_t>(PlayerAddon(static_cast<uint32_t>(slot) + 0x3D));
-    return true;
+    return SlotValue(static_cast<uint32_t>(slot), 0x3D, true, level);
 }
 
 int32_t CoA::InitHooks::QuestLinkLevel(uint32_t questId, int32_t level) {
@@ -74,7 +91,7 @@ int32_t CoA::InitHooks::QuestLinkLevel(uint32_t questId, int32_t level) {
         }
 
         if (id != 0 && id == questId) {
-            level = static_cast<int32_t>(PlayerAddon(i + 0x3D));
+            SlotValue(i, 0x3D, true, level);
         }
     }
 

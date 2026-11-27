@@ -38,6 +38,14 @@ const char* s_formatToInt[CGxFormat::Formats_Last] = { "16", "24", "24", "30", "
 // CoA64: set by CoA::DxvkClient::Preload.
 void* (*g_d3d9LibraryHook)();
 
+// CoA64: set by the render pipeline client; null by default.
+RenderPipelineHook* g_renderPipelineHook;
+void (*g_worldTargetReleaseHook)();
+
+// CoA64: set by CoA::StreamlineClient::PreDevice; null by default.
+void (*g_d3dDeviceReleaseHook)(void* d3dDevice);
+void (*g_scenePresentHook)();
+
 // STATIC: 0x00AD87FC
 const char* CGxDevice::s_pixelShaderTargetNames[14] = { "none", "ps_1_1", "ps_1_4", "ps_2_0", "ps_3_0", "ps_4_0", "ps_5_0", "nvrc", "nvts", "nvts2", "nvts3", "nvfp2", "arbfp1", "glsl" };
 
@@ -172,6 +180,10 @@ void CGxDevice::DeviceTakeScreenShot() {
 // VERIFY: 4da47b00 auto
 // OFFSET: 0x00682E50
 void CGxDevice::ScenePresent() {
+    if (g_scenePresentHook) {
+        g_scenePresentHook();
+    }
+
     this->m_frameCount++;
     this->m_scrShotClick = 0;
     this->m_intF5C = 0;
@@ -1140,6 +1152,12 @@ void CGxDevice::BufDestroy(CGxBuf*& buf) {
 
     if (buf->m_pool) {
         buf->m_pool->UnlinkBuf(buf);
+    }
+
+    // CoA64: the bound primitive index buffer must not outlive the buffer (IStateSync would dereference it).
+    if (this->m_primIndexBuf == buf) {
+        this->m_primIndexBuf = nullptr;
+        this->m_primIndexDirty = 0;
     }
 
     buf->m_link.Unlink();
@@ -2123,4 +2141,120 @@ void CGxDevice::RsInit() {
 CGxMonitorMode::CGxMonitorMode() {
     this->m_size.x = 0;
     this->m_size.y = 0;
+}
+
+// CoA64: render pipeline world target -- only the D3D9 devices implement it.
+bool CGxDevice::WorldTargetSupported() {
+    return false;
+}
+
+// CoA64: see WorldTargetSupported.
+bool CGxDevice::WorldTargetBegin(uint32_t /* width */, uint32_t /* height */) {
+    return false;
+}
+
+// CoA64: see WorldTargetSupported.
+bool CGxDevice::WorldTargetEnd(int32_t /* left */, int32_t /* top */, int32_t /* right */, int32_t /* bottom */) {
+    return true;
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::WorldDepthTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::WorldColorTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldTargetSupported.
+void CGxDevice::WorldTargetRelease() {
+}
+
+// CoA64: render pipeline motion targets -- only the D3D9 devices implement them.
+bool CGxDevice::WorldMotionSupported() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldMotionTargetsEnsure() {
+    return false;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMotionTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldMaskTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+void* CGxDevice::WorldSnapshotTexture() {
+    return nullptr;
+}
+
+// CoA64: see WorldMotionSupported.
+bool CGxDevice::WorldSnapshotOpaque() {
+    return false;
+}
+
+// CoA64: see WorldRenderSizeBegin in CGxDevice.h. Only the window rects change: DeviceSetRenderTarget(nullptr) copies
+// m_defWindowRect into m_curWindowRect, and a texture render target keeps its own size.
+void CGxDevice::WorldRenderSizeBegin(uint32_t width, uint32_t height) {
+    if (!this->m_worldRenderSizeActive) {
+        this->m_worldRenderSavedWindow = this->m_defWindowRect;
+        this->m_worldRenderSizeActive = 1;
+    }
+
+    this->m_defWindowRect.minY = 0.0f;
+    this->m_defWindowRect.minX = 0.0f;
+    this->m_defWindowRect.maxY = static_cast<float>(height);
+    this->m_defWindowRect.maxX = static_cast<float>(width);
+    this->IWorldRenderSizeApply();
+}
+
+// CoA64: see WorldRenderSizeBegin in CGxDevice.h.
+void CGxDevice::WorldRenderSizeEnd() {
+    if (!this->m_worldRenderSizeActive) {
+        return;
+    }
+
+    this->m_defWindowRect = this->m_worldRenderSavedWindow;
+    this->m_worldRenderSizeActive = 0;
+    this->IWorldRenderSizeApply();
+}
+
+// CoA64: the default window rect changed (WorldRenderSizeBegin / End): the current window follows it unless a texture
+// render target is bound (as in DeviceSetRenderTarget), and the states derived from the window are re-sent.
+void CGxDevice::IWorldRenderSizeApply() {
+    if (!this->m_textureTarget[GxBuffers_Color].m_texture && !this->m_textureTarget[GxBuffers_Depth].m_texture) {
+        this->m_curWindowRect = this->m_defWindowRect;
+    }
+
+    this->m_viewportDirty = 1;
+    this->m_scissorRectDirty = 1;
+    // D3D9 bakes the window height into D3DRS_POINTSIZE (IRsSendToHw, GxRs_PointScale).
+    this->IRsForceUpdate(GxRs_PointScale);
+}
+
+// CoA64: see WorldLodBiasSet in CGxDevice.h.
+void CGxDevice::WorldLodBiasSet(float /* bias */) {
+}
+
+// CoA64: see ExternalStateRestore in CGxDevice.h.
+void CGxDevice::ExternalStateRestore(uint32_t /* vsConstants */, uint32_t /* psConstants */) {
+}
+
+// CoA64: see WorldTargetSupported.
+void* CGxDevice::D3dDevice() {
+    return nullptr;
+}
+
+// CoA64: see WorldTargetEndWith in CGxDevice.h.
+bool CGxDevice::WorldTargetEndWith(void* /* texture */) {
+    return true;
 }

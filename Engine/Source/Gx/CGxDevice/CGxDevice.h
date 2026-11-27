@@ -157,6 +157,9 @@ class CGxDevice {
     /* 2960 */ uint32_t m_cursor [1024];
     /* 3960 */ CGxTex* m_cursorTexture;
     /* 3964 */ float m_cursorDepth;
+    // CoA64: WorldRenderSizeBegin's saved default window rect (the display's) while m_worldRenderSizeActive is set.
+    CRect m_worldRenderSavedWindow = { 0.0f, 0.0f, 0.0f, 0.0f };
+    int32_t m_worldRenderSizeActive = 0;
 
     virtual void ITexMarkAsUpdated(CGxTex* texId);
     virtual void IRsSendToHw(EGxRenderState which) = 0;
@@ -242,6 +245,37 @@ class CGxDevice {
     virtual void DeviceUnk81(uint32_t a, uint32_t b) = 0;
     virtual void DeviceUnk82() = 0;
     virtual void DeviceUnk83(uint32_t a, uint32_t b) = 0;
+    // CoA64: render pipeline world target -- an off-screen colour target + sampleable depth texture swapped in as the
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #1)
+    virtual bool WorldTargetSupported();
+    virtual bool WorldTargetBegin(uint32_t width, uint32_t height);
+    virtual bool WorldTargetEnd(int32_t left, int32_t top, int32_t right, int32_t bottom);
+    virtual void* WorldDepthTexture();
+    virtual void* WorldColorTexture();
+    virtual void WorldTargetRelease();
+    // CoA64: render pipeline motion targets beside the world target -- motion vectors (G16R16F), translucency mask
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #2)
+    virtual bool WorldMotionSupported();
+    virtual bool WorldMotionTargetsEnsure();
+    virtual void* WorldMotionTexture();
+    virtual void* WorldMaskTexture();
+    virtual void* WorldSnapshotTexture();
+    virtual bool WorldSnapshotOpaque();
+    // CoA64: while begun the window rect is the world render size (render pixels); End restores the display rect.
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h WorldRenderSize)
+    virtual void WorldRenderSizeBegin(uint32_t width, uint32_t height);
+    virtual void WorldRenderSizeEnd();
+    // CoA64: render pipeline texture LOD bias -- while non-zero, every texture stage the device binds also gets
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #3)
+    virtual void WorldLodBiasSet(float bias);
+    // CoA64: puts the D3D9 states the render pipeline's raw D3D9 motion passes change (render targets excepted) back in
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #4)
+    virtual void ExternalStateRestore(uint32_t vsConstants, uint32_t psConstants);
+    // CoA64: the underlying IDirect3DDevice9* of the D3D9 devices (nullptr for others), for the render pipeline's debug draw.
+    virtual void* D3dDevice();
+    // CoA64: as WorldTargetEnd, but the back buffer gets the given display-size texture (IDirect3DTexture9*, DLSS's output)
+    // (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #5)
+    virtual bool WorldTargetEndWith(void* texture);
 
     static HSLOG m_log;
     static C2iVector s_clientAdjust;
@@ -302,6 +336,8 @@ class CGxDevice {
     void IRsForceUpdate(EGxRenderState which);
     void IRsInit();
     void IRsSync(int32_t force);
+    // CoA64: see WorldRenderSizeBegin.
+    void IWorldRenderSizeApply();
     void RsPop();
     void RsInit();
     void RsPush();
@@ -361,6 +397,31 @@ extern const char* s_formatToInt[CGxFormat::Formats_Last];
 // CoA64: set by CoA::DxvkClient::Preload -- the preloaded DXVK d3d9 module (a new reference) or nullptr; both
 // ILoadD3dLib try it before the system d3d9.dll.
 extern void* (*g_d3d9LibraryHook)();
+
+// CoA64: render pipeline hooks (CoA::RenderPipelineClient), null when the pipeline is not installed.
+struct RenderPipelineHook {
+    void (*beginWorld)();
+    void (*endWorld)(const CRect& viewportNDC);
+    void (*setupWorldProjection)(C44Matrix& projection, const C44Matrix& view, const C3Vector& position, float fovY, float aspect, float nearZ, float farZ, const C3Vector& forward, const C3Vector& up);
+    // CoA64: the opaque world is drawn (CGWorldFrame::OnWorldRender, after the detail doodads).
+    void (*opaqueDone)();
+    // CoA64: right after FFX::Start in CGWorldFrame::OnWorldRender (FFX sizes its textures from the display, so the
+    // world render size may only begin after it).
+    void (*worldSized)();
+    // CoA64: true while the world renders upscaled / jittered: unit names wait for drawWorldNames (else DLSS smears them).
+    bool (*deferWorldNames)();
+    // CoA64: right after endWorld: the world's depth into the back buffer's, unjittered camera; false: draw without it.
+    bool (*drawWorldNames)();
+};
+
+extern RenderPipelineHook* g_renderPipelineHook;
+// CoA64: called from WorldTargetRelease (device reset / destroy, pipeline off) so the pipeline drops its own D3D9 objects.
+extern void (*g_worldTargetReleaseHook)();
+// CoA64: called by both D3D9 devices' IDestroyD3d (device re-creation and client shutdown) right before the
+// (continued: docs/2026-10-29-render-pipeline-notes.md, CGxDevice.h (b) #6)
+extern void (*g_d3dDeviceReleaseHook)(void* d3dDevice);
+// CoA: stage 4 (SlFrameClient) -- a frame is about to be presented (before the device Present).
+extern void (*g_scenePresentHook)();
 
 // CoA: AscCursor.cpp:FUN_10a205f0 (orig hook 0x683640) -- the visibility CGxDevice::CursorSetVisible stores.
 extern int32_t (*g_cursorSetVisibleHook)(int32_t visible);

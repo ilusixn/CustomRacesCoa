@@ -474,6 +474,8 @@ int32_t OnUpdatePlayerScriptEvent(WOWGUID guid, uint32_t offset, uint32_t count,
 int32_t CritterUpdate(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);
 int32_t InventoryUpdate(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);
 int32_t OnUpdateQuest(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);
+// CoA: quest log 64 (spec 2026-11-25). OnUpdateQuest for one slot (0..63), with its entry before the change.
+void QuestLogSlotUpdated(CGPlayer_C* player, uint32_t slot, const PlayerQuestLogEntry* old);
 int32_t ReportDailyQuestsRemaining(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);
 int32_t OnUpdateMoney(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);
 int32_t CharmChangeHandler(WOWGUID guid, uint32_t offset, uint32_t count, const void* value, void* param);

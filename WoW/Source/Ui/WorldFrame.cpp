@@ -1701,8 +1701,19 @@ void CGWorldFrame::OnWorldRender() {
 
     g_theGxDevicePtr->RsPush();
     GxRsSet(GxRs_Multisample, 1);
+
+    // CoA64: render pipeline -- the 3D world renders into the off-screen world target until endWorld.
+    if (g_renderPipelineHook) {
+        g_renderPipelineHook->beginWorld();
+    }
+
     CGWorldFrame::UpdateScreenEffectParams();
     FFX::Start();
+
+    // CoA64: render pipeline -- the world may render at a size other than the display's from here to endWorld.
+    if (g_renderPipelineHook && g_renderPipelineHook->worldSized) {
+        g_renderPipelineHook->worldSized();
+    }
 
     CRect fullViewport = { 0.0f, 0.0f, 1.0f, 1.0f };
 
@@ -1769,6 +1780,11 @@ void CGWorldFrame::OnWorldRender() {
     CM2Scene* scene = World::s_m2Scene;
 
     if (!scene) {
+        // CoA64: the world target is copied back on this exit too.
+        if (g_renderPipelineHook) {
+            g_renderPipelineHook->endWorld(this->m_viewportNDC);
+        }
+
         return;
     }
 
@@ -1783,6 +1799,11 @@ void CGWorldFrame::OnWorldRender() {
     GxuSortDrawList(GxuCat_0, GxuSort_VtxStream, *World::GetCamPos());
     GxuFlushDrawList(GxuCat_0, *World::GetCamPos());
     CWorldScene::RenderDetailDoodads();
+
+    // CoA64: render pipeline -- the opaque world is complete (the translucency mask compares against it).
+    if (g_renderPipelineHook && g_renderPipelineHook->opaqueDone) {
+        g_renderPipelineHook->opaqueDone();
+    }
 
     if (World::SceneCamLiquidStatus(nullptr)) {
         CWorldScene::RenderBarriers(this->m_elapsedSec);
@@ -1817,6 +1838,15 @@ void CGWorldFrame::OnWorldRender() {
     }
 
     g_theGxDevicePtr->RsPop();
+
+    // CoA64: render pipeline -- copy the world target back to the back buffer before world text and chat bubbles.
+    if (g_renderPipelineHook) {
+        g_renderPipelineHook->endWorld(this->m_viewportNDC);
+    }
+
+    // CoA64: the names kept out of an upscaled world, at display size over the copied-back world.
+    PlayerNameRenderDeferred();
+
     SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);

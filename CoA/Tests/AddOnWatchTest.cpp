@@ -45,3 +45,24 @@ COA_TEST(AddOnWatch_OverflowRescansAll) {
     CHECK(all);
     CoA::AddOnWatch::Reset();
 }
+
+// Any other file change settles too, with no addon to rescan: the client's disk file hash still has to be rebuilt.
+COA_TEST(AddOnWatch_FileChangeSettlesWithoutRescan) {
+    CoA::AddOnWatch::Reset();
+    std::vector<std::string> names;
+    bool all = true;
+
+    CoA::AddOnWatch::NoteFile(100);
+    CHECK(!CoA::AddOnWatch::Take(100 + CoA::AddOnWatch::kSettleMs - 1, names, all));
+    CHECK(CoA::AddOnWatch::Take(100 + CoA::AddOnWatch::kSettleMs, names, all));
+    CHECK(names.empty());
+    CHECK(!all);
+
+    // A later file change pushes the settle point out.
+    CoA::AddOnWatch::Note("MyAddon", 1000);
+    CoA::AddOnWatch::NoteFile(1400);
+    CHECK(!CoA::AddOnWatch::Take(1000 + CoA::AddOnWatch::kSettleMs, names, all));
+    CHECK(CoA::AddOnWatch::Take(1400 + CoA::AddOnWatch::kSettleMs, names, all));
+    CHECK(names.size() == 1);
+    CoA::AddOnWatch::Reset();
+}

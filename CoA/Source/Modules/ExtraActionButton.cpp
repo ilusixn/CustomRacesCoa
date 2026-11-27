@@ -79,10 +79,10 @@ namespace {
         return std::find(s_active.begin(), s_active.end(), id) != s_active.end();
     }
 
-    // 0x10236ca0: re-arms itself without storing the new id (so Stop cancels only the first one).
+    // 0x10236ca0. The original dropped the re-armed id; storing it lets Stop/Start cancel the live chain.
     int32_t OnTimer(const void*, void*) {
         CoA::ExtraActionButton::Tick();
-        CoA::Timer::Schedule(100, OnTimer, nullptr);
+        s_timer = CoA::Timer::Schedule(100, OnTimer, nullptr);
         return 0;
     }
 
@@ -176,7 +176,12 @@ void CoA::ExtraActionButton::Tick() {
     }
 }
 
+// World entry repeats on /reload and far teleports: drop the running chain so ticks do not stack.
 void CoA::ExtraActionButton::Start() {
+    if (s_timer) {
+        CoA::Timer::Cancel(s_timer, OnTimer, nullptr);
+    }
+
     s_timer = CoA::Timer::Schedule(100, OnTimer, nullptr);
 }
 

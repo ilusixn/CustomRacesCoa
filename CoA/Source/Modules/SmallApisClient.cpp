@@ -34,9 +34,8 @@ namespace {
     using CoA::Script::PushStr;
     using CoA::Script::ToInt;
 
-    // ---- C_Sun (FUN_1026a540 / 790 / 9e0) -------------------------------------------------------------------------
-    // FUN_1026c920 NOPs DayNight::SetDirection's three sun-direction stores for good, then the binding writes the
-    // component. Called as C_Sun:SetX(v): exactly two arguments, and only in the world.
+    // ---- C_Sun (FUN_1026a540 / 790 / 9e0): FUN_1026c920 NOPs DayNight::SetDirection's three sun-direction stores for
+    // good, then the binding writes the component. Called as C_Sun:SetX(v): exactly two arguments, only in the world.
     bool s_sunFrozen = false;
 
     int SetSun(lua_State* L, float C3Vector::*component) {
@@ -161,13 +160,25 @@ namespace {
                 continue;
             }
 
-            for (uint32_t slot = 0; slot < 25; ++slot) {
-                const PlayerQuestLogEntry& logged = player->m_player->m_playerQuestLog[slot];
+            // CoA64: all 64 slots through the accessor (25..63 from SMSG 0x8F7).
+            for (uint32_t slot = 0; slot < CoA::QuestLogExtended::kMaxSlots; ++slot) {
+                const PlayerQuestLogEntry* entry = player->GetQuestLogEntry(slot);
+
+                if (!entry) {
+                    break;
+                }
+
+                const PlayerQuestLogEntry& logged = *entry;
                 // 32 bits, as in QuestRelevant (AttachFixesClient.cpp). The original reads the low word here too.
                 const uint32_t id = logged.m_questId;
 
                 if (!id) {
-                    break;
+                    // As in QuestRelevant: the first empty slot ends the descriptor's 25 only.
+                    if (slot < CoA::QuestLogExtended::kNativeSlots) {
+                        slot = CoA::QuestLogExtended::kNativeSlots - 1;
+                    }
+
+                    continue;
                 }
 
                 if (id == static_cast<uint32_t>(e.m_questId)) {
@@ -248,9 +259,8 @@ namespace {
         });
     }
 
-    // FUN_1021ac30: (unit token). A unit with a quest-giver state: its name, -1 and its marker model's file name.
-    // Otherwise its creature entry (the cache record's id, +0x6C) against the quest log: "objective" or "collect" and
-    // the quest id. Else nil.
+    // FUN_1021ac30: (unit token). A quest giver: its name, -1 and its marker model's file. Otherwise its creature entry
+    // (+0x6C) against the quest log: "objective" or "collect" and the quest id. Else nil.
     int GetUnitQuestInfo(lua_State* L) {
         const char* s = lua_tolstring(L, 1, nullptr);
         const std::string token = s ? s : "";

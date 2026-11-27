@@ -29,6 +29,12 @@ FIXTURE = """## Lua API index
 |---|---|---|
 | `0x563` | SMSG_LOYALTY_PASS_UPDATE | [AscSmallApis](#ascsmallapis) |
 
+## Client packet index (CMSG)
+
+| Opcode | Name | Sent by |
+|---|---|---|
+| `0x561` | CMSG_EXTENSION_INITIALIZED | [AscWorldEntryTweaks](#ascworldentrytweaks) |
+
 ## Event index
 
 | Event | Fired by |
@@ -70,6 +76,24 @@ class ParseReferenceTest(unittest.TestCase):
         self.assertEqual(inv.events, {'ACTIVE_MANASTORM_UPDATED'})
         self.assertEqual(inv.hooks, {0x488540})
         self.assertEqual(inv.cvars, {'showToolsUI'})
+        self.assertEqual(inv.sent, {0x561})
+
+
+class RuntimePatchTest(unittest.TestCase):
+    def test_parse_runtime_patches(self):
+        # Literal client addresses written by module code at runtime; the attach tables are counted separately.
+        with tempfile.TemporaryDirectory() as recon:
+            src = os.path.join(recon, 'src', 'Ascension')
+            os.makedirs(src)
+            with open(os.path.join(src, 'AscWorldEntryTweaks.cpp'), 'w', encoding='utf-8') as f:
+                f.write('        Write(0x6DC45F, &op, 1);\n'
+                        '        Write(0x809572, jmp, sizeof(jmp));\n'
+                        '        WriteCode(0xD37FC8, &bits, 4);\n'
+                        '        Write(0x10BE2D78, &x, 4);\n'
+                        '        const uint32_t a = 0x7F1777;\n')
+            with open(os.path.join(src, 'AscAttachPatches.generated.inc'), 'w', encoding='utf-8') as f:
+                f.write('    WriteCode(0x4DA8EB, b, 1);\n')
+            self.assertEqual(inventory.parse_runtime_patches(recon), {0x6DC45F, 0x809572, 0xD37FC8})
 
 
 @unittest.skipUnless(os.path.exists(REFERENCE), 'reconstruction checkout not found')
@@ -118,6 +142,24 @@ class ScanCoaTest(unittest.TestCase):
             self.assertEqual(inv.events, {'ACTIVE_MANASTORM_UPDATED'})
             self.assertEqual(inv.hooks, {0x488540})
             self.assertEqual(inv.patches, {0x4DA8EB})
+
+    def test_scan_coa_counts_sent_packets_and_mentioned_addresses(self):
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, 'CoA', 'Source'))
+            os.makedirs(os.path.join(root, 'WoW'))
+            with open(os.path.join(root, 'CoA', 'Source', 'A.cpp'), 'w', encoding='utf-8') as f:
+                f.write('    CoA::Packet(0x561).U32(0).U32(1).Send();\n'
+                        '    CoA::Packet p(0x747);\n'
+                        '    return SendEmpty(0x543);\n'
+                        '    return SendIdPacket(L, 0x658, "Usage");\n'
+                        '    const uint32_t mask = 0x1F;\n')
+            with open(os.path.join(root, 'WoW', 'B.cpp'), 'w', encoding='utf-8') as f:
+                f.write('    // CoA: a non-stock class skips the proficiency check (Extensions.dll 0x6DC45F jae -> jmp).\n'
+                        '    Send(0x777);\n')
+            inv = inventory.scan_coa(root)
+            self.assertEqual(inv.sent, {0x561, 0x747, 0x543, 0x658})
+            self.assertIn(0x6DC45F, inv.addresses)
+            self.assertNotIn(0x777, inv.sent)
 
     def test_scan_coa_counts_dbc_patch_registrations(self):
         with tempfile.TemporaryDirectory() as root:

@@ -2,7 +2,9 @@
 #include "CoA/Source/Modules/InitHooks.h"
 #include "CoA/Source/Modules/Modules.h"
 #include "CoA/Source/Modules/ObjectAddon.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
 #include "CoA/Source/Runtime/LuaReg.h"
+#include "CoA/Source/Runtime/Packets.h"
 #include "Engine/Source/lua-5.1/src/lua.h"
 #include "CoA/Tests/Support.h"
 #include "CoA/Tests/TestMain.h"
@@ -10,11 +12,11 @@
 
 namespace {
     bool s_havePlayer = true;
-    uint32_t s_questLog[25] = {};
+    uint32_t s_questLog[64] = {};
     const uint64_t kPlayer = 0x77;
 
     bool QuestLogQuest(uint32_t slot, uint32_t& questId) {
-        questId = slot < 25 ? s_questLog[slot] : 0;
+        questId = slot < 64 ? s_questLog[slot] : 0;
         return s_havePlayer;
     }
 
@@ -24,6 +26,7 @@ namespace {
         CoA::InitHooks::Reset();
         CoA::ObjectAddon::Reset();
         CoA::GlobalsJ::Reset();
+        CoA::QuestLogExtended::Reset();
         s_havePlayer = true;
         memset(s_questLog, 0, sizeof(s_questLog));
         CoA::InitHooks::Deps& d = CoA::InitHooks::Dependencies();
@@ -77,6 +80,27 @@ COA_TEST(InitHooks_QuestLinkLevel) {
     CHECK(CoA::InitHooks::QuestLinkLevel(43, 80) == 80);
     s_havePlayer = false;
     CHECK(CoA::InitHooks::QuestLinkLevel(42, 80) == 80);
+}
+
+// Slots 25..63 (SMSG 0x8F7) have no addon fields: their level and reward XP come with the slot.
+COA_TEST(InitHooks_OverflowQuestLevelAndXp) {
+    Start();
+    CoA::Packets::Clear();
+    CoA::QuestLogExtended::Init();
+    CoATest::Bytes b;
+    b.U8(1).U8(1).U8(64).U8(1);
+    b.U8(40).U32(777).U32(0).U16(0).U16(0).U16(0).U16(0).U32(0).U32(21).U32(1350);
+    CDataStore msg(b.data.data(), static_cast<uint32_t>(b.data.size()));
+    int32_t result = 0;
+    CoA::Packets::Dispatch(0x8F7, 0, &msg, result);
+    s_questLog[40] = 777;
+    int32_t level = 0, xp = 0;
+    CHECK(CoA::InitHooks::QuestLevel(777, level));
+    CHECK(level == 21);
+    CHECK(CoA::InitHooks::QuestExperience(777, xp));
+    CHECK(xp == 1350);
+    CHECK(CoA::InitHooks::QuestLinkLevel(777, 5) == 21);
+    CoA::QuestLogExtended::Reset();
 }
 
 // sub_10a44860 over 0x6E4950 CGPlayer_C::CombatModeEnter: autoRangedCombat "1" -> its int is whether the ranged slot

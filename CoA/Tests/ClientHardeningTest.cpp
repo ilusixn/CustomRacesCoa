@@ -16,6 +16,15 @@ COA_TEST(Hardening_PatchPathsStayInTheDownloadFolder) {
     CHECK(!PatchPathConfined("file.mpq:stream"));
     CHECK(!PatchPathConfined(""));
     CHECK(!PatchPathConfined(nullptr));
+    // Windows drops trailing dots / spaces, so these components resolve to "..".
+    CHECK(!PatchPathConfined(".. \\evil.mpq"));
+    CHECK(!PatchPathConfined("Data\\..  \\..\\evil.mpq"));
+    CHECK(!PatchPathConfined("Data/.../evil.mpq"));
+    CHECK(!PatchPathConfined("Data\\.. .\\evil.mpq"));
+    // ". " is "." to Windows; it may not hide Interface\ from the top-level check.
+    CHECK(!PatchPathConfined(". \\Interface\\AddOns\\X\\x.lua"));
+    CHECK(PatchPathConfined(".\\Data\\patch-5.MPQ"));
+    CHECK(PatchPathConfined("Data\\.hidden\\a.mpq"));
 }
 
 COA_TEST(Hardening_PatchExtractRefusesRunnableFiles) {

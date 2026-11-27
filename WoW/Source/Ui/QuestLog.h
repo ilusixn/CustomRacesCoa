@@ -6,6 +6,7 @@
 #include "Engine/Source/Storm/H/stpl.h"
 #include "WoW/Source/Object/WGUID.h"
 #include "WoW/Source/Net/Types.h"
+#include "CoA/Source/Modules/QuestLogExtended.h"
 
 class CGItem_C;
 class CDataStore;
@@ -86,7 +87,8 @@ class CGQuestLog {
     static int32_t FindOrFreePOISlot(int32_t questId);
     static int32_t GetQuestLeaderBoardByID(int32_t questId, QuestLogLeaderBoardParams* params);
     static int32_t GetQuestLeaderBoardForObject(int32_t questId, int32_t objectId, QuestLogLeaderBoardParams* params);
-    static int32_t m_sortTypes[25];
+    // CoA: quest log 64 (spec 2026-11-25).
+    static int32_t m_sortTypes[CoA::QuestLogExtended::kMaxSlots];
     static uint32_t m_numSortTypes;
     static int32_t m_questResetTime;
     static uint8_t m_trackedQuestsLoaded;
@@ -110,8 +112,9 @@ class CGQuestLog {
     static int32_t IsQuestFailed(uint32_t index);
     static bool HasNoObjectives(uint32_t index);
     static int32_t IsQuestExpiredByID(int32_t questId);
-    static QuestLogEntry m_quests[50];
-    static QuestPOIInfo m_questPOIs[25];
+    // CoA: quest log 64 (spec 2026-11-25).
+    static QuestLogEntry m_quests[CoA::QuestLogExtended::kMaxSlots * 2];
+    static QuestPOIInfo m_questPOIs[CoA::QuestLogExtended::kMaxSlots];
     static int32_t m_abandonQuest;
     static uint32_t m_numQuestWatches;
     static int32_t m_timeOffset;
@@ -121,9 +124,12 @@ class CGQuestLog {
     static void SetServerTime(int32_t serverTime, int32_t resetTime);
     static int32_t SetQuestExpired(uint32_t index);
     static void UpdateQuestPOIFromUserServer();
-    static QuestWatch m_questWatches[25];
+    // CoA: quest log 64 (spec 2026-11-25).
+    static QuestWatch m_questWatches[CoA::QuestLogExtended::kMaxSlots];
     static uint32_t m_numShownQuests;
     static void Update(int32_t a1);
+    // CoA: quest log 64. Quest records Update still waits for (it returns early while any are pending).
+    static uint32_t PendingQuestRecords();
     static void EnterWorld();
     static int32_t m_numQuest;
     static int32_t m_selectedQuest;

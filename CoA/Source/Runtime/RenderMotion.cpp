@@ -1,0 +1,189 @@
+#include "CoA/Source/Runtime/RenderMotion.h"
+#include <cmath>
+
+namespace CoA::RenderMotion {
+    using RenderPipeline::Mat4;
+
+    namespace {
+        void Transform(const float v[4], const Mat4& m, float out[4]) {
+            for (int c = 0; c < 4; ++c) {
+                out[c] = v[0] * m.m[0][c] + v[1] * m.m[1][c] + v[2] * m.m[2][c] + v[3] * m.m[3][c];
+            }
+        }
+
+        float ClampMotion(float m) {
+            return m < -kMotionLimit ? -kMotionLimit : (m > kMotionLimit ? kMotionLimit : m);
+        }
+    }
+
+    Vec2 ClipMotion(const float cur[3], const float prev[3]) {
+        // Written so that NaN fails every comparison and lands off-screen.
+        if (!(cur[2] > kMinClipW) || !(prev[2] > kMinClipW)) {
+            return { kMotionLimit, kMotionLimit };
+        }
+
+        const float mx = ((prev[0] / prev[2]) - (cur[0] / cur[2])) * 0.5f;
+        const float my = ((cur[1] / cur[2]) - (prev[1] / prev[2])) * 0.5f;
+
+        if (!(std::fabs(mx) < 1e30f) || !(std::fabs(my) < 1e30f)) {
+            return { kMotionLimit, kMotionLimit };
+        }
+
+        return { ClampMotion(mx), ClampMotion(my) };
+    }
+
+    Mat4 Mul(const Mat4& a, const Mat4& b) {
+        Mat4 r{};
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                r.m[i][j] = a.m[i][0] * b.m[0][j] + a.m[i][1] * b.m[1][j] + a.m[i][2] * b.m[2][j] + a.m[i][3] * b.m[3][j];
+            }
+        }
+        return r;
+    }
+
+    Mat4 Inverse(const Mat4& m) {
+        // Gauss-Jordan with partial pivoting, in double.
+        Mat4 identity{};
+        for (int i = 0; i < 4; ++i) {
+            identity.m[i][i] = 1.0f;
+        }
+        double a[4][8];
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                a[r][c] = m.m[r][c];
+                a[r][4 + c] = (r == c) ? 1.0 : 0.0;
+            }
+        }
+        for (int col = 0; col < 4; ++col) {
+            int piv = col;
+            for (int r = col + 1; r < 4; ++r) {
+                if (std::fabs(a[r][col]) > std::fabs(a[piv][col])) {
+                    piv = r;
+                }
+            }
+            if (a[piv][col] == 0.0) {
+                return identity;
+            }
+            if (piv != col) {
+                for (int c = 0; c < 8; ++c) {
+                    const double t = a[col][c];
+                    a[col][c] = a[piv][c];
+                    a[piv][c] = t;
+                }
+            }
+            const double inv = 1.0 / a[col][col];
+            for (int c = 0; c < 8; ++c) {
+                a[col][c] *= inv;
+            }
+            for (int r = 0; r < 4; ++r) {
+                if (r == col) {
+                    continue;
+                }
+                const double f = a[r][col];
+                for (int c = 0; c < 8; ++c) {
+                    a[r][c] -= f * a[col][c];
+                }
+            }
+        }
+        Mat4 out{};
+        for (int r = 0; r < 4; ++r) {
+            for (int c = 0; c < 4; ++c) {
+                out.m[r][c] = static_cast<float>(a[r][4 + c]);
+            }
+        }
+        return out;
+    }
+
+    Vec2 StaticMotion(const RenderPipeline::Frame& f, float u, float v, float storedDepth) {
+        const float range = f.depthMax - f.depthMin;
+        if (range == 0.0f) {
+            return { 0.0f, 0.0f };
+        }
+        // The device writes the D3D depth (ndcGL + 1) / 2 through the viewport range; Frame.proj is the GL-style projection.
+        const float ndcD3d = (storedDepth - f.depthMin) / range;
+        const float ndc[4] = { u * 2.0f - 1.0f, 1.0f - v * 2.0f, ndcD3d * 2.0f - 1.0f, 1.0f };
+        // Far plane / clear value (sky): a direction at infinity, so the eye translation does not apply (w = 0).
+        const bool atInfinity = storedDepth >= f.depthMax - 1e-6f;
+
+        // Camera-relative point: the view has no translation (eye at the origin).
+        const Mat4 inv = Inverse(Mul(f.cur.view, f.cur.proj));
+        float p[4];
+        Transform(ndc, inv, p);
+        const float invW = 1.0f / p[3];
+        const float world[4] = {
+            p[0] * invW + (atInfinity ? 0.0f : f.cur.pos[0] - f.prev.pos[0]),
+            p[1] * invW + (atInfinity ? 0.0f : f.cur.pos[1] - f.prev.pos[1]),
+            p[2] * invW + (atInfinity ? 0.0f : f.cur.pos[2] - f.prev.pos[2]),
+            atInfinity ? 0.0f : 1.0f
+        };
+
+        float prevClip[4];
+        Transform(world, Mul(f.prev.view, f.prev.proj), prevClip);
+        // The current side is the pixel itself (clip w 1).
+        const float cur[3] = { u * 2.0f - 1.0f, 1.0f - v * 2.0f, 1.0f };
+        const float prev[3] = { prevClip[0], prevClip[1], prevClip[3] };
+        return ClipMotion(cur, prev);
+    }
+
+    Vec2 ModelMotion(const Mat4& curBoneView, const Mat4& prevBoneView, const float pos[3], const Mat4& curProj, const Mat4& prevProj) {
+        const float p[4] = { pos[0], pos[1], pos[2], 1.0f };
+        float curClip[4], prevClip[4];
+        Transform(p, Mul(curBoneView, curProj), curClip);
+        Transform(p, Mul(prevBoneView, prevProj), prevClip);
+        const float cur[3] = { curClip[0], curClip[1], curClip[3] };
+        const float prev[3] = { prevClip[0], prevClip[1], prevClip[3] };
+        return ClipMotion(cur, prev);
+    }
+
+    bool ModelNeedsPass(bool animatedThisFrame, bool culled, bool staticSimple, bool worldChanged, bool havePrevious) {
+        return animatedThisFrame && !culled && havePrevious && (!staticSimple || worldChanged);
+    }
+
+    BatchKind ClassifyBatch(uint32_t blendMode, uint32_t transform, uint32_t transformCount) {
+        if (blendMode == 0) {
+            return BatchKind::Opaque;
+        }
+
+        // Animated UVs would need the texture matrix in the motion pass; those keep the camera motion.
+        return blendMode == 1 && transform >= transformCount ? BatchKind::Keyed : BatchKind::Skip;
+    }
+
+    float KeyAlphaRef(float elementAlpha) {
+        return elementAlpha * 0.87843138f;
+    }
+
+    void PaletteSlots::Clear() {
+        this->keys_.clear();
+    }
+
+    bool PaletteSlots::Assign(const void* model, const void* section, uint32_t& slot, bool& fresh) {
+        // Batches of one model arrive together, so the recent end of the list is searched first.
+        for (size_t i = this->keys_.size(); i-- > 0;) {
+            if (this->keys_[i].first == model && this->keys_[i].second == section) {
+                slot = static_cast<uint32_t>(i);
+                fresh = false;
+                return true;
+            }
+        }
+
+        if (this->keys_.size() >= this->capacity_) {
+            return false;
+        }
+
+        slot = static_cast<uint32_t>(this->keys_.size());
+        fresh = true;
+        this->keys_.emplace_back(model, section);
+        return true;
+    }
+
+    uint32_t PaletteBucket(uint32_t texels) {
+        for (uint32_t b = 0; b < kPaletteBuckets; ++b) {
+            if (texels <= kPaletteBucketRows[b] * kPaletteStreamWidth) {
+                return b;
+            }
+        }
+
+        return kPaletteBuckets;
+    }
+}

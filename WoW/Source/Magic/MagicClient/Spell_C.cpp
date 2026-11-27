@@ -6,6 +6,7 @@
 #include "CoA/Source/Modules/SpellMods.h"
 #include "CoA/Source/Modules/SpellModsClient.h"
 #include "CoA/Source/Modules/SmallHooks.h"
+#include "CoA/Source/Modules/WorldEntryTweaks.h"
 #include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/Types.h"
 #include "Engine/Source/Base/CDataStore.h"
@@ -5525,9 +5526,8 @@ PendingSpellCast* Spell_C_GetActivePlayerPendingCast() {
 // VERIFY: fd2d4d6a manual
 // OFFSET: 0x00806200
 void Spell_C_CancelSpell(PendingSpellCast* cast, bool stopRecast, bool notifyServer, int32_t reason) {
-    // CoA: AscSpellMods.cpp:FUN_10327240 (orig hook 0x806200) -- a null cast link is never passed on (from
-    // Spell_C_StopCasting it is the DLL's assert, there); from Spell_C_CancelCastingSpellByMovement a spell the player
-    // passes aura-type check 0x139 for is kept (there).
+    // CoA: FUN_10327240 (hook 0x806200): a null cast link is never passed on; a cancel by movement keeps a spell
+    // that passes aura-type check 0x139 (see SpellMods.h).
     if (!cast) {
         return;
     }
@@ -7063,7 +7063,8 @@ bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool 
     WOWGUID none = { 0 };
     ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, none, nullptr, nullptr, false);
 
-    if (!stats) {
+    // CoA: a non-stock class skips the ammo check (Extensions.dll 0x809572 je -> jmp).
+    if (!stats || CoA::WorldEntryTweaks::SkipAmmoCheck()) {
         return true;
     }
 
